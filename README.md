@@ -26,7 +26,7 @@ The Settings page lets you manage:
 Changing a product default price affects new invoice line items, but you can still override the price on any individual invoice.
 
 ## Invoice features
-- Automatic invoice date and unique invoice number
+- Automatic invoice date and sequential invoice number (for example `CC-0001`, `CC-0002`, `CC-0003`)
 - Due date automatically set from the default payment term (currently 3 days) but editable on every invoice
 - Service dropdown + custom description, quantity and multiple line items
 - Automatic 15% GST calculation with subtotal, GST and total shown separately
@@ -105,3 +105,10 @@ If you already ran an earlier `schema.sql`, run the v7 `schema.sql` again in the
 
 ## v11 - My Customers CRM
 Adds individual/business customer profiles, categories, multiple contacts with one billing contact, birthday highlighting, custom fields, customer invoice history, Create Invoice customer lookup/auto-create, CSV import/export, and customer-ID invoice linking. If using Supabase, run the updated `schema.sql` once to create the `customers` table and add customer-link columns to invoices. Existing invoices remain valid; new invoices link by `customer_id`.
+
+
+## v12 sequential invoice numbering
+- New invoices now receive automatic sequential invoice numbers: `CC-0001`, `CC-0002`, `CC-0003` and so on.
+- The next number is determined from saved invoice history, including when a new invoice form is prepared after saving.
+- Recurring invoices use the same sequence.
+- Existing invoice numbers are preserved and are not renumbered.
