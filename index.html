@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareClean Invoicing</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img id="brandLogo" src="assets/careclean-logo.jpg" alt="CareClean logo"><div><strong>CareClean</strong><span>Invoice Manager</span></div></div>
+    <nav><button class="nav-btn active" data-view="create">New Invoice</button><button class="nav-btn" data-view="invoices">Invoices</button><button class="nav-btn" data-view="settings">Settings</button></nav>
+  </header>
+  <main>
+    <section id="view-create" class="view active">
+      <div class="page-head"><div><h1>Create invoice</h1><p>GST is calculated automatically at 15%.</p></div><button class="secondary" id="clearInvoice">Clear</button></div>
+      <div class="notice" id="configNotice">Add your GST number in Settings before sending invoices.</div>
+      <div class="card form-grid">
+        <label>Invoice number<input id="invoiceNumber" readonly></label>
+        <label>Invoice date<input id="invoiceDate" type="date"></label>
+        <label>Due date<input id="dueDate" type="date"></label>
+        <label>Customer name<input id="customerName" placeholder="Customer name"></label>
+        <label class="wide">Customer address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
+        <label>Customer email<input id="customerEmail" type="email" placeholder="name@example.com"></label>
+        <label>Reference / notes<input id="reference" placeholder="Optional internal note"></label>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><h2>Invoice items</h2><button class="secondary" id="addItem">+ Add item</button></div>
+        <div class="items" id="items"></div>
+      </div>
+
+      <div class="totals-wrap">
+        <div class="card notes-card"><label>Message to customer<textarea id="customerNote" rows="4"></textarea></label></div>
+        <div class="card totals">
+          <div><span>Subtotal (excl. GST)</span><strong id="subtotal">$0.00</strong></div>
+          <div><span>GST (15%)</span><strong id="gst">$0.00</strong></div>
+          <div class="grand"><span>Total (incl. GST)</span><strong id="total">$0.00</strong></div>
+        </div>
+      </div>
+      <div class="actions"><button class="secondary" id="previewPdf">Download PDF</button><button class="secondary" id="saveInvoice">Save Invoice</button><button class="primary" id="emailInvoice">Save & Email PDF</button></div>
+    </section>
+
+    <section id="view-invoices" class="view">
+      <div class="page-head"><div><h1>Invoices</h1><p>Search, filter, export, edit and review invoice history.</p></div><button class="secondary" id="exportCsv">Export CSV</button></div>
+      <div class="summary-grid"><div class="metric"><span>Excl. GST</span><strong id="sumNet">$0.00</strong></div><div class="metric"><span>GST</span><strong id="sumGst">$0.00</strong></div><div class="metric"><span>Total invoiced</span><strong id="sumTotal">$0.00</strong></div><div class="metric"><span>Invoices</span><strong id="sumCount">0</strong></div></div>
+      <div class="card filters"><label>Month<input id="filterMonth" type="month"></label><label>Search<input id="filterSearch" placeholder="Customer, address, invoice #"></label><button class="secondary" id="resetFilters">Reset</button></div>
+      <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Address</th><th>Excl GST</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody id="invoiceRows"></tbody></table></div></div>
+    </section>
+
+    <section id="view-settings" class="view">
+      <div class="page-head"><div><h1>Settings</h1><p>Set the defaults used on every new invoice.</p></div></div>
+
+      <div class="settings-grid">
+        <div class="card">
+          <h2>Company details</h2>
+          <div class="form-grid compact">
+            <label>Company name<input id="sCompany"></label><label>Trading name<input id="sTrading"></label>
+            <label class="wide">Address<input id="sAddress"></label><label>Phone<input id="sPhone"></label><label>Email<input id="sEmail"></label>
+            <label>GST number<input id="sGst" placeholder="Enter GST number"></label><label>Default due days<input id="sDueDays" type="number" min="0" step="1"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Branding & invoice template</h2>
+          <div class="form-grid compact">
+            <label>Template<select id="sTemplate"><option value="classic">Classic</option><option value="minimal">Minimal</option><option value="modern">Modern</option></select></label>
+            <label>Colour theme<select id="sTheme"><option value="careclean">CareClean Navy & Green</option><option value="navy">Navy</option><option value="green">Green</option><option value="charcoal">Charcoal</option><option value="custom">Custom</option></select></label>
+            <label>Primary colour<input id="sPrimary" type="color"></label><label>Accent colour<input id="sAccent" type="color"></label>
+            <label class="wide">Logo<input id="sLogo" type="file" accept="image/png,image/jpeg,image/webp"><small>Leave blank to keep the current logo.</small></label>
+            <div class="wide logo-preview-wrap"><img id="settingsLogoPreview" class="settings-logo-preview" alt="Logo preview"><button class="secondary" id="resetLogo" type="button">Use original CareClean logo</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><h2>Bank accounts</h2><button class="secondary" id="addBank" type="button">+ Add bank account</button></div>
+        <p class="hint">Choose one default account. Every invoice tells the customer to use the invoice number as the payment reference.</p>
+        <div id="bankSettings"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><h2>Products & default prices</h2><button class="secondary" id="addProduct" type="button">+ Add product</button></div>
+        <p class="hint">These appear in the invoice description dropdown. Prices are excluding GST and can still be changed on an individual invoice.</p>
+        <div id="productSettings"></div>
+      </div>
+
+      <div class="card">
+        <h2>Database & email</h2>
+        <div class="form-grid compact"><label>Supabase URL<input id="sSupabaseUrl" placeholder="https://xxxxx.supabase.co"></label><label>Supabase anon key<input id="sSupabaseKey" placeholder="Anon public key"></label></div>
+        <p class="hint">Email delivery is configured to send from <strong>info@careclean.co.nz</strong> through the included Supabase function once your email provider is connected.</p>
+      </div>
+
+      <div class="actions"><button class="primary" id="saveSettings">Save settings</button></div>
+    </section>
+  </main>
+
+  <div class="modal" id="invoiceModal"><div class="modal-box"><button class="close" id="closeModal">×</button><div id="modalContent"></div></div></div>
+  <div id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
