@@ -75,3 +75,13 @@ This is a static app. Drag the app folder into Netlify or deploy from Git. There
 The Settings page now includes an **Invoice wording** section. You can edit the invoice title, Bill To heading, invoice/date/due labels, item-table headings, subtotal/GST/total labels, payment labels, payment instruction, and the default customer note/footer. The live invoice preview updates while you type. Saved wording is snapshotted into each invoice so older invoices keep the wording they were created with.
 
 The default customer note supports `{dueDays}` and `{tradingName}` placeholders, for example: `Thank you for choosing {tradingName}. Please pay within {dueDays} days.`
+
+## Version 6 updates
+- GST rate is now configurable in **Settings** instead of being fixed at 15%.
+- An optional second percentage charge can be enabled for an **additional tax or service fee**. Its label and percentage are configurable and it is shown separately on the invoice when enabled.
+- Customer address and customer email are optional. An invoice can be saved without either. If **Save & Email PDF** is used without a customer email, the invoice is saved normally and no email is sent.
+- The Invoices page now includes a **PDF** button on every saved invoice row for direct download.
+- Invoice numbers are shorter: `CC-YYMMDD-1234` rather than including the four-digit year.
+- A new **Reports** module includes custom date ranges plus Last Month, Last 3 Months, Last 6 Months and Last 12 Months shortcuts.
+- Reports show sales excluding tax/fees, GST, invoice count and total invoiced, plus a month-on-month bar chart with the sales value displayed above every bar.
+- Report CSV exports include the optional additional fee/tax amount.

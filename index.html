@@ -8,15 +8,16 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand"><img id="brandLogo" src="assets/careclean-logo.jpg" alt="CareClean logo"><div><strong>CareClean</strong><span>Invoice Manager</span></div></div>
-    <nav><button class="nav-btn active" data-view="create">New Invoice</button><button class="nav-btn" data-view="invoices">Invoices</button><button class="nav-btn" data-view="settings">Settings</button></nav>
+    <nav><button class="nav-btn active" data-view="create">New Invoice</button><button class="nav-btn" data-view="invoices">Invoices</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button></nav>
   </header>
   <main>
     <section id="view-create" class="view active">
-      <div class="page-head"><div><h1>Create invoice</h1><p>GST is calculated automatically at 15%.</p></div><button class="secondary" id="clearInvoice">Clear</button></div>
+      <div class="page-head"><div><h1>Create invoice</h1><p>Taxes and optional service fees are calculated automatically from Settings.</p></div><button class="secondary" id="clearInvoice">Clear</button></div>
       <div class="notice" id="configNotice">Add your GST number in Settings before sending invoices.</div>
       <div class="card form-grid">
         <label>Invoice number<input id="invoiceNumber" readonly></label>
@@ -37,8 +38,9 @@
         <div class="card notes-card"><label>Message to customer<textarea id="customerNote" rows="4"></textarea></label></div>
         <div class="card totals">
           <div><span>Subtotal (excl. GST)</span><strong id="subtotal">$0.00</strong></div>
-          <div><span>GST (15%)</span><strong id="gst">$0.00</strong></div>
-          <div class="grand"><span>Total (incl. GST)</span><strong id="total">$0.00</strong></div>
+          <div><span id="gstLabel">GST (15%)</span><strong id="gst">$0.00</strong></div>
+          <div id="extraFeeRow" style="display:none"><span id="extraFeeLabel">Service fee</span><strong id="extraFee">$0.00</strong></div>
+          <div class="grand"><span>Total</span><strong id="total">$0.00</strong></div>
         </div>
       </div>
       <div class="actions"><button class="secondary" id="previewPdf">Download PDF</button><button class="secondary" id="saveInvoice">Save Invoice</button><button class="primary" id="emailInvoice">Save & Email PDF</button></div>
@@ -51,6 +53,22 @@
       <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Address</th><th>Excl GST</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody id="invoiceRows"></tbody></table></div></div>
     </section>
 
+    <section id="view-reports" class="view">
+      <div class="page-head"><div><h1>Sales reports</h1><p>Review invoiced sales by period and month.</p></div><button class="secondary" id="reportExportCsv">Export report CSV</button></div>
+      <div class="card report-controls">
+        <div class="quick-ranges">
+          <button class="secondary report-range" data-range="last-month">Last month</button>
+          <button class="secondary report-range" data-range="3">Last 3 months</button>
+          <button class="secondary report-range" data-range="6">Last 6 months</button>
+          <button class="secondary report-range" data-range="12">Last 12 months</button>
+        </div>
+        <div class="report-date-grid"><label>From<input id="reportFrom" type="date"></label><label>To<input id="reportTo" type="date"></label><button class="primary" id="runReport">Run report</button></div>
+      </div>
+      <div class="summary-grid"><div class="metric"><span>Sales excl. tax/fees</span><strong id="reportNet">$0.00</strong></div><div class="metric"><span>GST</span><strong id="reportGst">$0.00</strong></div><div class="metric"><span>Total invoiced</span><strong id="reportTotal">$0.00</strong></div><div class="metric"><span>Invoices</span><strong id="reportCount">0</strong></div></div>
+      <div class="card"><div class="card-title"><h2>Month-on-month sales</h2><span class="hint" id="reportPeriodLabel"></span></div><div class="chart-wrap"><canvas id="salesChart"></canvas></div></div>
+      <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Month</th><th>Invoices</th><th>Excl. tax/fees</th><th>GST</th><th>Additional fee/tax</th><th>Total</th></tr></thead><tbody id="reportRows"></tbody></table></div></div>
+    </section>
+
     <section id="view-settings" class="view">
       <div class="page-head"><div><h1>Settings</h1><p>Set the defaults used on every new invoice.</p></div></div>
 
@@ -61,6 +79,8 @@
             <label>Company name<input id="sCompany"></label><label>Trading name<input id="sTrading"></label>
             <label class="wide">Address<input id="sAddress"></label><label>Phone<input id="sPhone"></label><label>Email<input id="sEmail"></label>
             <label>GST number<input id="sGst" placeholder="Enter GST number"></label><label>Default due days<input id="sDueDays" type="number" min="0" step="1"></label>
+            <label>GST rate %<input id="sGstRate" type="number" min="0" step="0.01"></label><label class="default-check"><input id="sExtraFeeEnabled" type="checkbox"> Add another tax / service fee</label>
+            <label>Additional fee/tax label<input id="sExtraFeeLabel" placeholder="Service fee"></label><label>Additional fee/tax %<input id="sExtraFeeRate" type="number" min="0" step="0.01"></label>
           </div>
         </div>
 
@@ -94,7 +114,7 @@
           <label>Unit price heading<input id="sTextUnitPrice" placeholder="Unit (ex GST)"></label>
           <label>Line total heading<input id="sTextLineTotal" placeholder="Amount"></label>
           <label>Subtotal label<input id="sTextSubtotal" placeholder="Subtotal (ex GST)"></label>
-          <label>GST label<input id="sTextGst" placeholder="GST (15%)"></label>
+          <label>GST label<input id="sTextGst" placeholder="GST"></label>
           <label>Total label<input id="sTextTotal" placeholder="Total"></label>
           <label>Payment to label<input id="sTextPaymentTo" placeholder="Payment to"></label>
           <label>Payment reference label<input id="sTextPaymentReference" placeholder="Payment reference"></label>
