@@ -67,12 +67,39 @@
         <div class="card">
           <h2>Branding & invoice template</h2>
           <div class="form-grid compact">
-            <label>Template<select id="sTemplate"><option value="classic">Classic</option><option value="minimal">Minimal</option><option value="modern">Modern</option></select></label>
-            <label>Colour theme<select id="sTheme"><option value="careclean">CareClean Navy & Green</option><option value="navy">Navy</option><option value="green">Green</option><option value="charcoal">Charcoal</option><option value="custom">Custom</option></select></label>
+            <label>Template<select id="sTemplate"><option value="classic">Classic</option><option value="minimal">Minimal</option><option value="modern">Modern</option><option value="pastel-cute">Pastel Cute</option><option value="pastel-elegant">Pastel Elegant</option></select></label>
+            <label>Colour theme<select id="sTheme"><option value="careclean">CareClean Navy & Green</option><option value="navy">Navy</option><option value="green">Green</option><option value="charcoal">Charcoal</option><option value="pastel-pink">Pastel Pink</option><option value="pastel-blue">Pastel Blue</option><option value="pastel-purple">Pastel Purple</option><option value="pastel-green">Pastel Green</option><option value="custom">Custom</option></select></label>
             <label>Primary colour<input id="sPrimary" type="color"></label><label>Accent colour<input id="sAccent" type="color"></label>
             <label class="wide">Logo<input id="sLogo" type="file" accept="image/png,image/jpeg,image/webp"><small>Leave blank to keep the current logo.</small></label>
             <div class="wide logo-preview-wrap"><img id="settingsLogoPreview" class="settings-logo-preview" alt="Logo preview"><button class="secondary" id="resetLogo" type="button">Use original CareClean logo</button></div>
           </div>
+          <div class="design-preview-panel">
+            <div class="preview-panel-head"><strong>Live invoice preview</strong><span>Changes appear here before you save them.</span></div>
+            <div id="settingsInvoicePreview"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Invoice wording</h2>
+        <p class="hint">Change the words and labels that appear on the invoice. The live preview above updates as you type.</p>
+        <div class="form-grid compact">
+          <label>Invoice title<input id="sTextInvoiceTitle" placeholder="INVOICE"></label>
+          <label>Bill to heading<input id="sTextBillTo" placeholder="Bill To"></label>
+          <label>Invoice number label<input id="sTextInvoiceNumber" placeholder="Invoice #"></label>
+          <label>Invoice date label<input id="sTextInvoiceDate" placeholder="Invoice date"></label>
+          <label>Due date label<input id="sTextDueDate" placeholder="Due date"></label>
+          <label>Description heading<input id="sTextDescription" placeholder="Description"></label>
+          <label>Quantity heading<input id="sTextQty" placeholder="Qty"></label>
+          <label>Unit price heading<input id="sTextUnitPrice" placeholder="Unit (ex GST)"></label>
+          <label>Line total heading<input id="sTextLineTotal" placeholder="Amount"></label>
+          <label>Subtotal label<input id="sTextSubtotal" placeholder="Subtotal (ex GST)"></label>
+          <label>GST label<input id="sTextGst" placeholder="GST (15%)"></label>
+          <label>Total label<input id="sTextTotal" placeholder="Total"></label>
+          <label>Payment to label<input id="sTextPaymentTo" placeholder="Payment to"></label>
+          <label>Payment reference label<input id="sTextPaymentReference" placeholder="Payment reference"></label>
+          <label class="wide">Payment instruction<textarea id="sTextPaymentInstruction" rows="2" placeholder="Please use the invoice number above as your bank payment reference."></textarea></label>
+          <label class="wide">Default customer note / footer<textarea id="sTextDefaultNote" rows="3" placeholder="Thank you for choosing CareClean. Please pay within 3 days."></textarea></label>
         </div>
       </div>
 
@@ -84,7 +111,7 @@
 
       <div class="card">
         <div class="card-title"><h2>Products & default prices</h2><button class="secondary" id="addProduct" type="button">+ Add product</button></div>
-        <p class="hint">These appear in the invoice description dropdown. Prices are excluding GST and can still be changed on an individual invoice.</p>
+        <p class="hint">These appear as suggestions while you type a description. You can also enter any custom description. Prices are excluding GST and can still be changed on an individual invoice.</p>
         <div id="productSettings"></div>
       </div>
 

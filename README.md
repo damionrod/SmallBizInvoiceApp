@@ -63,3 +63,15 @@ This is a static app. Drag the app folder into Netlify or deploy from Git. There
 - Add login/authentication before public deployment.
 - Replace the starter RLS policy with authenticated owner-only access.
 - Add invoice status such as Draft / Sent / Paid / Overdue if required later.
+
+
+## Latest workflow updates
+- Saving an invoice now creates/saves that record, refreshes the invoice history, then automatically clears the form and generates a fresh invoice number for the next invoice.
+- Invoice history is ordered newest-first so multiple invoices appear as separate rows.
+- Service descriptions are now typeable text fields with saved products/services shown as autocomplete suggestions.
+- Settings includes a live invoice design preview that updates while changing template, theme, colours, company details, GST number, and logo.
+
+## Invoice wording (v4)
+The Settings page now includes an **Invoice wording** section. You can edit the invoice title, Bill To heading, invoice/date/due labels, item-table headings, subtotal/GST/total labels, payment labels, payment instruction, and the default customer note/footer. The live invoice preview updates while you type. Saved wording is snapshotted into each invoice so older invoices keep the wording they were created with.
+
+The default customer note supports `{dueDays}` and `{tradingName}` placeholders, for example: `Thank you for choosing {tradingName}. Please pay within {dueDays} days.`
