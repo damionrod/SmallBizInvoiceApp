@@ -85,3 +85,19 @@ The default customer note supports `{dueDays}` and `{tradingName}` placeholders,
 - A new **Reports** module includes custom date ranges plus Last Month, Last 3 Months, Last 6 Months and Last 12 Months shortcuts.
 - Reports show sales excluding tax/fees, GST, invoice count and total invoiced, plus a month-on-month bar chart with the sales value displayed above every bar.
 - Report CSV exports include the optional additional fee/tax amount.
+
+## v7 changes
+
+- GST is now calculated **after** the optional service fee/tax, so the service fee is included in the GST taxable base.
+- The GST label is cleaned automatically so a saved label such as `GST (15%)` does not display the percentage twice.
+- Create Invoice includes an optional discount as either a percentage or fixed dollar amount. The discount is applied before the service fee and GST.
+- Create Invoice includes optional Amount Paid and automatically calculates Balance Due.
+- Create Invoice includes a recurring-invoice checkbox with weekly, fortnightly, and monthly frequencies. When the app is opened, any recurring invoices that have become due are generated automatically. This browser-based starter does not run while the app is completely closed; fully unattended recurrence requires a server-side scheduler/cron job.
+- My Invoices includes an email box and Send button on each invoice row, as well as View, PDF, Edit and Delete.
+- Company Settings now includes Website, which is shown on the invoice and live preview.
+- Buttons now have visible press/click feedback.
+- Invoice numbers are shorter, for example `CC-260901-123`.
+
+### Important Supabase upgrade
+
+If you already ran an earlier `schema.sql`, run the v7 `schema.sql` again in the Supabase SQL editor. It contains safe `ADD COLUMN IF NOT EXISTS` statements for discount, service fee, amount paid, balance due, and recurrence fields, plus the new `recurring_rules` table.

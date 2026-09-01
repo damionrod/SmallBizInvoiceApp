@@ -12,12 +12,12 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><img id="brandLogo" src="assets/careclean-logo.jpg" alt="CareClean logo"><div><strong>CareClean</strong><span>Invoice Manager</span></div></div>
-    <nav><button class="nav-btn active" data-view="create">New Invoice</button><button class="nav-btn" data-view="invoices">Invoices</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button></nav>
+    <div class="brand"><img id="brandLogo" src="assets/careclean-logo.jpg" alt="CareClean logo"><div><strong id="brandCompanyName">Care New Zealand Limited</strong><span>Invoice Manager</span></div></div>
+    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button></nav>
   </header>
   <main>
     <section id="view-create" class="view active">
-      <div class="page-head"><div><h1>Create invoice</h1><p>Taxes and optional service fees are calculated automatically from Settings.</p></div><button class="secondary" id="clearInvoice">Clear</button></div>
+      <div class="page-head"><div><h1>Create Invoice</h1><p>Taxes and optional service fees are calculated automatically from Settings.</p></div><button class="secondary" id="clearInvoice">Clear</button></div>
       <div class="notice" id="configNotice">Add your GST number in Settings before sending invoices.</div>
       <div class="card form-grid">
         <label>Invoice number<input id="invoiceNumber" readonly></label>
@@ -34,23 +34,48 @@
         <div class="items" id="items"></div>
       </div>
 
+      <div class="card invoice-options-grid">
+        <div>
+          <h2>Discount</h2>
+          <div class="option-fields">
+            <label>Discount type<select id="discountType"><option value="percent">Percentage (%)</option><option value="fixed">Fixed amount ($)</option></select></label>
+            <label>Discount value<input id="discountValue" type="number" min="0" step="0.01" placeholder="Optional"></label>
+          </div>
+          <p class="hint">Discount is deducted before the service fee and GST are calculated.</p>
+        </div>
+        <div>
+          <h2>Payment</h2>
+          <label>Amount paid (optional)<input id="amountPaid" type="number" min="0" step="0.01" placeholder="0.00"></label>
+          <p class="hint">The invoice will calculate the remaining balance due automatically.</p>
+        </div>
+        <div>
+          <h2>Recurring invoice</h2>
+          <label class="tick-option"><input id="recurringEnabled" type="checkbox"> <span>✓ Create this as a recurring invoice</span></label>
+          <div id="recurringOptions" style="display:none;margin-top:10px"><label>Repeat every<select id="recurringFrequency"><option value="weekly">Week</option><option value="fortnightly" selected>Fortnight</option><option value="monthly">Month</option></select></label></div>
+          <p class="hint">Recurring invoices are generated when the app is opened and a scheduled invoice is due.</p>
+        </div>
+      </div>
+
       <div class="totals-wrap">
         <div class="card notes-card"><label>Message to customer<textarea id="customerNote" rows="4"></textarea></label></div>
         <div class="card totals">
           <div><span>Subtotal (excl. GST)</span><strong id="subtotal">$0.00</strong></div>
-          <div><span id="gstLabel">GST (15%)</span><strong id="gst">$0.00</strong></div>
+          <div id="discountRow" style="display:none"><span>Discount</span><strong id="discount">-$0.00</strong></div>
           <div id="extraFeeRow" style="display:none"><span id="extraFeeLabel">Service fee</span><strong id="extraFee">$0.00</strong></div>
+          <div><span id="gstLabel">GST (15%)</span><strong id="gst">$0.00</strong></div>
           <div class="grand"><span>Total</span><strong id="total">$0.00</strong></div>
+          <div><span>Amount paid</span><strong id="amountPaidDisplay">$0.00</strong></div>
+          <div class="balance-due"><span>Balance due</span><strong id="balanceDue">$0.00</strong></div>
         </div>
       </div>
       <div class="actions"><button class="secondary" id="previewPdf">Download PDF</button><button class="secondary" id="saveInvoice">Save Invoice</button><button class="primary" id="emailInvoice">Save & Email PDF</button></div>
     </section>
 
     <section id="view-invoices" class="view">
-      <div class="page-head"><div><h1>Invoices</h1><p>Search, filter, export, edit and review invoice history.</p></div><button class="secondary" id="exportCsv">Export CSV</button></div>
+      <div class="page-head"><div><h1>My Invoices</h1><p>Search, filter, export, download, email, edit and review invoice history.</p></div><button class="secondary" id="exportCsv">Export CSV</button></div>
       <div class="summary-grid"><div class="metric"><span>Excl. GST</span><strong id="sumNet">$0.00</strong></div><div class="metric"><span>GST</span><strong id="sumGst">$0.00</strong></div><div class="metric"><span>Total invoiced</span><strong id="sumTotal">$0.00</strong></div><div class="metric"><span>Invoices</span><strong id="sumCount">0</strong></div></div>
       <div class="card filters"><label>Month<input id="filterMonth" type="month"></label><label>Search<input id="filterSearch" placeholder="Customer, address, invoice #"></label><button class="secondary" id="resetFilters">Reset</button></div>
-      <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Address</th><th>Excl GST</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody id="invoiceRows"></tbody></table></div></div>
+      <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Address</th><th>Excl GST</th><th>GST</th><th>Total</th><th>Email / Actions</th></tr></thead><tbody id="invoiceRows"></tbody></table></div></div>
     </section>
 
     <section id="view-reports" class="view">
@@ -77,7 +102,7 @@
           <h2>Company details</h2>
           <div class="form-grid compact">
             <label>Company name<input id="sCompany"></label><label>Trading name<input id="sTrading"></label>
-            <label class="wide">Address<input id="sAddress"></label><label>Phone<input id="sPhone"></label><label>Email<input id="sEmail"></label>
+            <label class="wide">Address<input id="sAddress"></label><label>Phone<input id="sPhone"></label><label>Email<input id="sEmail"></label><label>Website<input id="sWebsite" placeholder="https://careclean.co.nz"></label>
             <label>GST number<input id="sGst" placeholder="Enter GST number"></label><label>Default due days<input id="sDueDays" type="number" min="0" step="1"></label>
             <label>GST rate %<input id="sGstRate" type="number" min="0" step="0.01"></label><label class="default-check"><input id="sExtraFeeEnabled" type="checkbox"> Add another tax / service fee</label>
             <label>Additional fee/tax label<input id="sExtraFeeLabel" placeholder="Service fee"></label><label>Additional fee/tax %<input id="sExtraFeeRate" type="number" min="0" step="0.01"></label>

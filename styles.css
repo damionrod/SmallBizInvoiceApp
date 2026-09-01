@@ -16,3 +16,16 @@
 /* Reporting module */
 .report-controls{display:flex;justify-content:space-between;align-items:end;gap:18px;flex-wrap:wrap}.quick-ranges{display:flex;gap:8px;flex-wrap:wrap}.report-date-grid{display:grid;grid-template-columns:170px 170px auto;gap:10px;align-items:end}.chart-wrap{height:360px;position:relative;margin-top:10px}.chart-wrap canvas{max-height:360px}.row-actions{flex-wrap:wrap}.row-actions .secondary,.row-actions .danger{white-space:nowrap}
 @media(max-width:760px){.report-controls{align-items:stretch}.quick-ranges{display:grid;grid-template-columns:1fr 1fr;width:100%}.report-date-grid{grid-template-columns:1fr 1fr}.report-date-grid button{grid-column:1/-1}.chart-wrap{height:300px}.row-actions{min-width:190px}}
+
+/* v7 invoice options, recurring controls and interaction feedback */
+button{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease,background-color .12s ease}
+button:hover{filter:brightness(.985)}
+button.pressed,button:active{transform:translateY(1px) scale(.97);box-shadow:inset 0 2px 5px rgba(0,0,0,.12)}
+button.clicked{box-shadow:0 0 0 3px rgba(114,191,46,.22);filter:saturate(1.08)}
+.invoice-options-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.invoice-options-grid>div{padding:2px 4px}.invoice-options-grid h2{font-size:16px;margin:0 0 10px;color:var(--navy)}
+.option-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tick-option{display:flex;flex-direction:row;align-items:center;gap:8px;cursor:pointer}.tick-option input{width:18px;height:18px}.balance-due{border-top:1px solid var(--border);font-size:16px;font-weight:800;color:var(--navy)}
+.inv-summary .balance{font-weight:800;color:var(--navy);border-top:1px solid var(--border)}
+.invoice-email{display:flex;gap:6px;margin-bottom:7px;min-width:250px}.invoice-email input{padding:7px 8px;font-size:12px;min-width:170px}.invoice-email button{padding:7px 9px;font-size:12px}.badge{display:inline-block;margin-top:4px;margin-left:6px;padding:2px 6px;border-radius:999px;background:#edf6e7;color:#315d17;font-size:10px;text-transform:capitalize}.table-card td small{display:block;color:var(--muted);margin-top:3px}
+@media(max-width:900px){.invoice-options-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.invoice-options-grid{grid-template-columns:1fr}.option-fields{grid-template-columns:1fr}.invoice-email{min-width:220px}}
