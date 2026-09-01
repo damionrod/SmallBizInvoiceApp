@@ -1,3 +1,10 @@
+# CareClean Invoice Manager v14
+
+## Invoice saving reliability fix
+This build uses an offline-first invoice save. The invoice is committed to browser storage before any Supabase, customer, or recurring-invoice synchronization is attempted. Network/database errors therefore cannot prevent the invoice from appearing in **My Invoices**.
+
+It also strips Supabase credentials and unnecessary product/logo payload data from local invoice snapshots to reduce browser-storage usage. If cloud sync fails, the local invoice remains available and a message is shown.
+
 # CareClean Invoice Manager
 
 A mobile-friendly invoicing app for CareClean / Care New Zealand Limited.
