@@ -29,3 +29,126 @@ button.clicked{box-shadow:0 0 0 3px rgba(114,191,46,.22);filter:saturate(1.08)}
 .invoice-email{display:flex;gap:6px;margin-bottom:7px;min-width:250px}.invoice-email input{padding:7px 8px;font-size:12px;min-width:170px}.invoice-email button{padding:7px 9px;font-size:12px}.badge{display:inline-block;margin-top:4px;margin-left:6px;padding:2px 6px;border-radius:999px;background:#edf6e7;color:#315d17;font-size:10px;text-transform:capitalize}.table-card td small{display:block;color:var(--muted);margin-top:3px}
 @media(max-width:900px){.invoice-options-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){.invoice-options-grid{grid-template-columns:1fr}.option-fields{grid-template-columns:1fr}.invoice-email{min-width:220px}}
+
+
+/* v9 mobile-first polish for iOS + Android */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-height:100dvh;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{touch-action:manipulation}
+button{min-height:44px}
+input,textarea,select{min-height:44px}
+
+@media(max-width:760px){
+  body{padding-bottom:calc(76px + env(safe-area-inset-bottom));background:#f5f7f9}
+  .topbar{position:sticky;top:0;z-index:20;display:block;padding:8px 14px calc(8px + env(safe-area-inset-top));box-shadow:0 1px 8px rgba(8,47,79,.07)}
+  .brand{justify-content:flex-start;min-width:0}
+  .brand img{width:42px;height:42px;flex:0 0 42px}
+  .brand div{min-width:0}
+  .brand strong{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 90px)}
+  .brand span{display:block;font-size:11px}
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(255,255,255,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 18px rgba(8,47,79,.08);overflow:visible}
+  .nav-btn{min-height:52px;border-radius:12px;padding:6px 4px;font-size:11px;line-height:1.15;display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal}
+  .nav-btn.active{background:color-mix(in srgb,var(--green) 14%,white);color:var(--navy)}
+  main{padding:18px 12px 36px;max-width:none}
+  .page-head{align-items:flex-start;gap:12px;margin-bottom:14px}
+  .page-head h1{font-size:24px;line-height:1.15}
+  .page-head p{font-size:13px;line-height:1.4}
+  .page-head>.secondary{flex:0 0 auto;padding:10px 12px}
+  .card{border-radius:14px;padding:14px;margin-bottom:12px}
+  .form-grid{gap:11px}
+  label{font-size:12px;gap:5px}
+  input,textarea,select{font-size:16px!important;padding:11px 12px;border-radius:10px}
+  textarea{line-height:1.35}
+  .card-title{gap:10px;align-items:center}
+  .card-title h2,.help h2{font-size:16px}
+  .card-title button{padding:9px 11px;white-space:nowrap}
+
+  /* Invoice item entry becomes a thumb-friendly two-column card */
+  .item-row{position:relative;grid-template-columns:1fr 1fr;gap:9px;padding:14px 38px 14px 0;border-top:1px solid #e9eef1}
+  .item-row:first-of-type{border-top:0}
+  .desc-wrap{grid-column:1/-1;display:grid;grid-template-columns:1fr;gap:8px}
+  .item-row>input[data-k="qty"]{grid-column:1}
+  .item-row>input[data-k="unit_price"]{grid-column:2}
+  .line-total{grid-column:1/-1;background:#f6f8fa;border-radius:9px;padding:10px 12px;text-align:right;font-size:15px}
+  .line-total:before{content:"Line total  ";font-size:11px;color:var(--muted);font-weight:600;float:left;padding-top:2px}
+  .remove{position:absolute;right:0;top:13px;width:34px;height:34px;min-height:34px;border-radius:50%;background:#fff0ef;font-size:22px}
+
+  .invoice-options-grid{gap:10px}
+  .invoice-options-grid>div{border-bottom:1px solid #edf1f3;padding:4px 0 12px}
+  .invoice-options-grid>div:last-child{border-bottom:0;padding-bottom:0}
+  .tick-option{min-height:44px;padding:7px 0}
+  .tick-option input{width:22px;height:22px;min-height:22px}
+  .totals{font-size:14px}
+  .totals div{padding:10px 0}
+  .totals .grand,.balance-due{font-size:18px}
+
+  /* Keep primary invoice actions reachable without covering the bottom nav */
+  #view-create>.actions{position:sticky;bottom:calc(66px + env(safe-area-inset-bottom));z-index:15;background:rgba(245,247,249,.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:9px 0 4px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr}
+  #view-create>.actions #emailInvoice{grid-column:1/-1}
+  #view-create>.actions button{min-height:48px}
+
+  .summary-grid{gap:8px;margin-bottom:12px}
+  .metric{padding:12px;border-radius:12px}
+  .metric strong{font-size:19px}
+  .filters{gap:9px}
+
+  /* My Invoices: rows become cards instead of a tiny desktop table */
+  .invoice-list-card{padding:0;background:transparent;border:0;box-shadow:none}
+  .invoice-list-card .table-scroll{overflow:visible}
+  .invoice-list-card table,.invoice-list-card tbody,.invoice-list-card tr,.invoice-list-card td{display:block;width:100%;min-width:0}
+  .invoice-list-card thead{display:none}
+  .invoice-list-card tr{background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 13px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.02)}
+  .invoice-list-card td{border:0;padding:5px 0;font-size:13px;display:grid;grid-template-columns:92px 1fr;gap:8px;align-items:start}
+  .invoice-list-card td:before{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.02em}
+  .invoice-list-card td:nth-child(1):before{content:"Date"}.invoice-list-card td:nth-child(2):before{content:"Invoice"}.invoice-list-card td:nth-child(3):before{content:"Customer"}.invoice-list-card td:nth-child(4):before{content:"Address"}.invoice-list-card td:nth-child(5):before{content:"Excl GST"}.invoice-list-card td:nth-child(6):before{content:"GST"}.invoice-list-card td:nth-child(7):before{content:"Total"}.invoice-list-card td:nth-child(8):before{content:"Actions"}
+  .invoice-list-card td:nth-child(8){display:block;border-top:1px solid #edf1f3;margin-top:7px;padding-top:11px}
+  .invoice-list-card td:nth-child(8):before{display:block;margin-bottom:7px}
+  .invoice-email{min-width:0;width:100%;display:grid;grid-template-columns:1fr auto;gap:7px}
+  .invoice-email input{min-width:0;width:100%;font-size:16px!important}
+  .invoice-email button{min-width:68px}
+  .row-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;min-width:0!important}
+  .row-actions button{min-height:42px;font-size:13px}
+
+  /* Reports stay scrollable but are easier to use */
+  .quick-ranges button{min-height:46px}
+  .report-date-grid{grid-template-columns:1fr 1fr}
+  .report-date-grid button{min-height:48px}
+  .chart-wrap{height:280px;margin-left:-8px;margin-right:-4px}
+  #view-reports .table-scroll{-webkit-overflow-scrolling:touch}
+  #view-reports table{min-width:720px}
+
+  /* Settings and preview */
+  .settings-logo-preview{width:125px;height:76px}
+  .logo-preview-wrap{align-items:flex-start}
+  .design-preview-panel{margin-top:14px}
+  #settingsInvoicePreview{padding:8px;overflow:auto;-webkit-overflow-scrolling:touch}
+  .settings-invoice-preview{min-width:520px;transform-origin:top left}
+  .bank-row,.product-row{gap:8px;padding:12px 0}
+  .settings-row .danger{width:100%}
+  #view-settings>.actions{padding-bottom:8px}
+  #view-settings>.actions button{width:100%;min-height:50px}
+
+  /* Modal/PDF preview mobile sheet */
+  .modal{padding:0;align-items:flex-end}
+  .modal.open{display:flex}
+  .modal-box{width:100%;max-width:none;max-height:92dvh;overflow:auto;margin:auto 0 0;border-radius:18px 18px 0 0;padding:42px 14px 24px;overscroll-behavior:contain}
+  .close{position:sticky;float:right;top:4px;right:2px;width:42px;height:42px;min-height:42px;border-radius:50%;background:#f1f4f6;z-index:3}
+  .inv-preview{font-size:12px;overflow-x:auto}
+  .inv-preview-head img{width:105px}
+  .inv-title{gap:12px;flex-direction:column;margin:16px 0}
+  .inv-title h2{font-size:24px}
+  .inv-table{min-width:520px}
+  .inv-summary{width:100%;font-size:13px}
+  #toast{left:12px;right:12px;bottom:calc(82px + env(safe-area-inset-bottom));text-align:center;border-radius:12px}
+}
+
+@media(max-width:390px){
+  main{padding-left:9px;padding-right:9px}
+  .brand strong{max-width:calc(100vw - 82px)}
+  .page-head{flex-direction:column}
+  .page-head>.secondary{width:100%}
+  .summary-grid{grid-template-columns:1fr 1fr}
+  .metric{padding:10px}.metric strong{font-size:17px}
+  .invoice-list-card td{grid-template-columns:80px 1fr}
+  .quick-ranges{grid-template-columns:1fr 1fr}
+}
