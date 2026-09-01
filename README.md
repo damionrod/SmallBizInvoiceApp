@@ -101,3 +101,9 @@ The default customer note supports `{dueDays}` and `{tradingName}` placeholders,
 ### Important Supabase upgrade
 
 If you already ran an earlier `schema.sql`, run the v7 `schema.sql` again in the Supabase SQL editor. It contains safe `ADD COLUMN IF NOT EXISTS` statements for discount, service fee, amount paid, balance due, and recurrence fields, plus the new `recurring_rules` table.
+
+## v10 Customer module
+
+The app now includes a Customers tab with automatic customer numbers (C0001, C0002, ...), name, address, mobile, phone, email, date of birth, and unlimited custom information fields. Customers can be searched, edited, deleted, used to start an invoice, and exported to CSV. On Create Invoice, typing an exact saved customer name selects that customer and fills the saved address and email. The + New button beside Customer name opens a quick customer form prefilled from the invoice.
+
+If Supabase is connected, run the latest `schema.sql` once to create the `customers` table and add customer link fields to invoices. Without Supabase, customers continue to work in browser local storage.

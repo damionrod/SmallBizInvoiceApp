@@ -49,3 +49,25 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create policy "temporary recurring access" on public.recurring_rules for all using (true) with check (true);
 exception when duplicate_object then null; end $$;
+
+
+-- v10 customer management
+create table if not exists public.customers (
+  id uuid primary key default gen_random_uuid(),
+  customer_number text not null unique,
+  name text not null,
+  address text,
+  mobile text,
+  phone text,
+  email text,
+  dob date,
+  custom_fields jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.customers enable row level security;
+do $$ begin
+  create policy "temporary customer access" on public.customers for all using (true) with check (true);
+exception when duplicate_object then null; end $$;
+alter table public.invoices add column if not exists customer_id text;
+alter table public.invoices add column if not exists customer_number text;
