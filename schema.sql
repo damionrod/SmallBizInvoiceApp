@@ -51,23 +51,31 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 
--- v10 customer management
+-- v11 customer CRM
 create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),
   customer_number text not null unique,
+  customer_type text not null default 'individual',
+  category text,
   name text not null,
   address text,
-  mobile text,
-  phone text,
-  email text,
   dob date,
+  contacts jsonb not null default '[]'::jsonb,
   custom_fields jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table public.invoices add column if not exists customer_id uuid;
+alter table public.invoices add column if not exists customer_contact_name text;
+alter table public.invoices add column if not exists customer_phone text;
+alter table public.invoices add column if not exists customer_mobile text;
+alter table public.invoices add column if not exists customer_category text;
+do $$ begin
+  alter table public.invoices add constraint invoices_customer_id_fkey foreign key (customer_id) references public.customers(id) on delete set null;
+exception when duplicate_object then null; end $$;
 alter table public.customers enable row level security;
 do $$ begin
   create policy "temporary customer access" on public.customers for all using (true) with check (true);
 exception when duplicate_object then null; end $$;
-alter table public.invoices add column if not exists customer_id text;
-alter table public.invoices add column if not exists customer_number text;
+create index if not exists invoices_customer_id_idx on public.invoices(customer_id);
+create index if not exists customers_name_idx on public.customers(name);

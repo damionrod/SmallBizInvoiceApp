@@ -17,7 +17,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><img id="brandLogo" src="assets/careclean-logo.jpg" alt="CareClean logo"><div><strong id="brandCompanyName">Care New Zealand Limited</strong><span>Invoice Manager</span></div></div>
-    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">Customers</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button></nav>
+    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button></nav>
   </header>
   <main>
     <section id="view-create" class="view active">
@@ -27,9 +27,13 @@
         <label>Invoice number<input id="invoiceNumber" readonly></label>
         <label>Invoice date<input id="invoiceDate" type="date"></label>
         <label>Due date<input id="dueDate" type="date"></label>
-        <label>Customer name<div class="customer-picker"><input id="customerName" list="customerNameList" autocomplete="off" placeholder="Type or select customer"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameList"></datalist><small id="selectedCustomerHint" class="hint"></small></label>
-        <label class="wide">Customer address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
+        <label>Customer / business name<div class="customer-pick"><input id="customerName" list="customerNameOptions" autocomplete="off" placeholder="Start typing a customer name"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameOptions"></datalist><small id="selectedCustomerHint">Select an existing customer or type a new one.</small></label>
+        <label>Customer category<input id="invoiceCustomerCategory" list="customerCategoryOptions" placeholder="Residential / Commercial"><datalist id="customerCategoryOptions"></datalist></label>
+        <label class="wide">Billing address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
+        <label>Billing contact<input id="invoiceBillingContact" placeholder="Contact person"></label>
         <label>Customer email<input id="customerEmail" type="email" placeholder="name@example.com"></label>
+        <label>Phone<input id="invoiceCustomerPhone" type="tel" placeholder="Phone"></label>
+        <label>Mobile<input id="invoiceCustomerMobile" type="tel" placeholder="Mobile"></label>
         <label>Reference / notes<input id="reference" placeholder="Optional internal note"></label>
       </div>
 
@@ -82,11 +86,10 @@
       <div class="card table-card invoice-list-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Invoice</th><th>Customer</th><th>Address</th><th>Excl GST</th><th>GST</th><th>Total</th><th>Email / Actions</th></tr></thead><tbody id="invoiceRows"></tbody></table></div></div>
     </section>
 
-
     <section id="view-customers" class="view">
-      <div class="page-head"><div><h1>Customers</h1><p>Keep customer contact details together and use them when creating invoices.</p></div><div class="head-actions"><button class="secondary" id="exportCustomersCsv">Export CSV</button><button class="primary" id="addCustomer">+ Add Customer</button></div></div>
-      <div class="card filters"><label>Search customers<input id="customerSearch" placeholder="Name, customer #, phone, email or address"></label></div>
-      <div class="card table-card customer-list-card"><div class="table-scroll"><table><thead><tr><th>Customer #</th><th>Name</th><th>Address</th><th>Mobile</th><th>Phone</th><th>Email</th><th>DOB</th><th>Custom info</th><th>Actions</th></tr></thead><tbody id="customerRows"></tbody></table></div></div>
+      <div class="page-head"><div><h1>My Customers</h1><p>Manage individual and business customers, contacts, birthdays and invoice history.</p></div><div class="head-actions"><button class="secondary" id="importCustomersBtn">Import CSV</button><input id="importCustomersFile" type="file" accept=".csv,text/csv" hidden><button class="secondary" id="exportCustomersCsv">Export CSV</button><button class="primary" id="addCustomerBtn">+ Add Customer</button></div></div>
+      <div class="card filters customer-filters"><label>Search<input id="customerSearch" placeholder="Name, number, email, phone, address"></label><label>Category<select id="customerCategoryFilter"><option value="">All categories</option></select></label><button class="secondary" id="manageCategoriesBtn">Manage Categories</button></div>
+      <div class="card table-card customer-list-card"><div class="table-scroll"><table><thead><tr><th>Customer #</th><th>Customer / Business</th><th>Category</th><th>Address</th><th>Billing contact</th><th>Phone / Mobile</th><th>Email</th><th>DOB</th><th>Actions</th></tr></thead><tbody id="customerRows"></tbody></table></div></div>
     </section>
 
     <section id="view-reports" class="view">
@@ -181,20 +184,8 @@
     </section>
   </main>
 
-
-  <div class="modal" id="customerModal"><div class="modal-box customer-modal-box"><button class="close" id="closeCustomerModal">×</button><div class="page-head"><div><h2 id="customerModalTitle">Add Customer</h2><p>Customer numbers are generated automatically.</p></div></div><div class="form-grid compact">
-    <label>Customer number<input id="cNumber" readonly placeholder="Automatic"></label>
-    <label>Customer name<input id="cName" placeholder="Customer name"></label>
-    <label class="wide">Address<textarea id="cAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
-    <label>Mobile<input id="cMobile" type="tel" placeholder="Mobile number"></label>
-    <label>Phone<input id="cPhone" type="tel" placeholder="Phone number"></label>
-    <label>Email<input id="cEmail" type="email" placeholder="name@example.com"></label>
-    <label>Date of birth<input id="cDob" type="date"></label>
-  </div>
-  <div class="customer-custom-head"><div><h3>Custom information</h3><p class="hint">Add any extra details you want to keep for this customer.</p></div><button type="button" class="secondary" id="addCustomerCustomField">+ Add field</button></div>
-  <div id="customerCustomFields" class="customer-custom-fields"></div>
-  <div class="actions"><button type="button" class="secondary" id="cancelCustomer">Cancel</button><button type="button" class="primary" id="saveCustomer">Save Customer</button></div>
-  </div></div>
+  <div class="modal" id="customerModal"><div class="modal-box customer-modal-box"><button class="close" id="closeCustomerModal">×</button><div class="modal-head"><h2 id="customerModalTitle">Add Customer</h2><span id="customerNumberDisplay" class="customer-number-pill"></span></div><div id="customerFormArea"></div><div class="actions"><button class="secondary" id="cancelCustomer">Cancel</button><button class="primary" id="saveCustomer">Save Customer</button></div></div></div>
+  <div class="modal" id="categoryModal"><div class="modal-box small-modal"><button class="close" id="closeCategoryModal">×</button><h2>Customer Categories</h2><p class="hint">Create categories such as Residential or Commercial.</p><div id="categoryRows"></div><div class="card-title"><input id="newCategoryName" placeholder="New category name"><button class="primary" id="addCategorySave">+ Add</button></div></div></div>
   <div class="modal" id="invoiceModal"><div class="modal-box"><button class="close" id="closeModal">×</button><div id="modalContent"></div></div></div>
   <div id="toast"></div>
   <script src="app.js"></script>
