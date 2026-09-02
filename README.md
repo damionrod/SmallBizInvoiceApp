@@ -119,3 +119,7 @@ Adds individual/business customer profiles, categories, multiple contacts with o
 - The next number is determined from saved invoice history, including when a new invoice form is prepared after saving.
 - Recurring invoices use the same sequence.
 - Existing invoice numbers are preserved and are not renumbered.
+
+## v15 patch
+- Blank customer DOB and contact DOB values are converted to database NULL before Supabase writes, so optional DOB fields no longer block invoice saving/emailing.
+- Email function payload now sends `pdfBase64` to match the deployed `send-invoice` Edge Function, so PDF attachments can be included correctly.
