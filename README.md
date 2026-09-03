@@ -1,3 +1,5 @@
+# Invoice Manager v23 — SaaS + Job Costing
+
 # Invoice Manager v22 — SaaS Foundation
 
 v22 keeps the existing invoice, customer, report, PDF, email-status, recurring-invoice and settings workflows, while adding the account/subscription architecture needed to sell the application to multiple businesses.
@@ -167,3 +169,26 @@ Copy the webhook signing secret into Supabase as `STRIPE_WEBHOOK_SECRET`.
 - `V22-SAAS-MIGRATION.sql` — upgrade existing Supabase database
 - `schema.sql` — complete schema for a fresh install
 - `supabase/functions/` — email, Stripe and admin server functions
+
+## v23 — Job Costing + Quotes
+
+v23 keeps the existing v22 invoicing, customer, reports, settings, SaaS login/subscription and admin workflows, and adds the first optional business module: **Job Costing**.
+
+### New workflow
+1. Job Costing → Cost Settings: set default labour cost/hour, target gross margin, quote validity, prefixes, terms and reusable cost presets.
+2. New Costing: select an existing customer from My Customers, enter labour, variable/direct costs and optional custom fields.
+3. The app calculates total job cost ex GST and a recommended selling price using true gross margin: `cost / (1 - margin%)`.
+4. Override the recommended figure with your own quote price ex GST.
+5. Create Quote: saves the quote in Supabase with GST and total.
+6. Quotes can be opened, edited, downloaded as PDF, emailed, marked Approved/Rejected, and searched by status.
+7. Once Approved, Create Invoice pre-fills the existing Create Invoice screen with the same customer, quote reference, service description and ex-GST quoted price.
+8. When that invoice is actually saved, the source quote is automatically marked **Deal won** with a green status tag and linked to the invoice.
+
+### Required database migration
+Run `V23-JOB-COSTING-MIGRATION.sql` in Supabase SQL Editor after the v22 migration. It creates `job_costings` and `quotes`, adds the quote-to-invoice link, tenant RLS, the Job Costing module catalogue entry, trial provisioning and the automatic Deal Won trigger.
+
+### Quote email function
+Deploy `supabase/functions/send-quote/index.ts` as a Supabase Edge Function named exactly `send-quote`. It uses the same existing Supabase secrets as invoice email: `RESEND_API_KEY` and `EMAIL_FROM_ADDRESS`.
+
+### Module/subscription behaviour
+Existing v22 businesses receive Job Costing access when the v23 migration runs so the module can be tested immediately. New Trial accounts include Job Costing. For paid plans, Super Admin can include `job_costing` in a plan's Included modules or enable it for an individual business from Admin → Modules.

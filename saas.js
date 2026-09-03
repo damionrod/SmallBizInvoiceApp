@@ -63,7 +63,7 @@
     setupAccountUI();
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=22'; s.onload=()=>{bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw){setTimeout(()=>alert(`${mw} existing record${mw===1?'':'s'} could not be migrated to the cloud yet. Your original browser data has not been deleted. Reload after checking the v22 database migration.`),300)}}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=23'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=23';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw){setTimeout(()=>alert(`${mw} existing record${mw===1?'':'s'} could not be migrated to the cloud yet. Your original browser data has not been deleted. Reload after checking the v22 database migration.`),300)}};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -263,12 +263,17 @@
   }
 
   async function hasModule(slug){
-    const {data}=await state.client.from('business_modules').select('status,modules!inner(slug)').eq('business_id',state.business.id).eq('modules.slug',slug).maybeSingle();return !!data&&['active','trialing'].includes(data.status);
+    if(slug==='invoice_manager')return true;
+    const {data}=await state.client.from('business_modules').select('status,modules!inner(slug)').eq('business_id',state.business.id).eq('modules.slug',slug).maybeSingle();
+    if(data&&['active','trialing'].includes(data.status))return true;
+    const sub=state.subscription||await getSubscription();
+    return Array.isArray(sub?.plans?.included_modules)&&sub.plans.included_modules.includes(slug);
   }
 
-  function bindAfterAppLoad(){
+  async function bindAfterAppLoad(){
     if(q('adminNav')) q('adminNav').onclick=()=>{ if(window.switchView)window.switchView('admin'); renderAdmin() };
     if(q('saveSettings')) q('saveSettings').addEventListener('click',()=>setTimeout(()=>saveBusinessSettings(appSettings()),100));
+    if(q('jobCostingNav')){const allowed=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
     // Keep infrastructure config automatic and hidden from customers.
     if(q('sSupabaseUrl'))q('sSupabaseUrl').value=C.supabaseUrl;if(q('sSupabaseKey'))q('sSupabaseKey').value=C.supabaseKey;
   }

@@ -18,7 +18,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Invoice Manager</strong><span>Invoice Manager</span></div></div>
-    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button><button class="nav-btn admin-only" data-view="admin" id="adminNav" hidden>Admin</button><button class="account-chip" id="accountChip" type="button" title="Account"><span id="accountInitials">A</span></button></nav>
+    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn module-nav" data-view="jobcosting" id="jobCostingNav" hidden>Job Costing</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button><button class="nav-btn admin-only" data-view="admin" id="adminNav" hidden>Admin</button><button class="account-chip" id="accountChip" type="button" title="Account"><span id="accountInitials">A</span></button></nav>
   </header>
   <main>
     <section id="view-create" class="view active">
@@ -91,6 +91,95 @@
       <div class="page-head"><div><h1>My Customers</h1><p>Manage individual and business customers, contacts, birthdays and invoice history.</p></div><div class="head-actions"><button class="secondary" id="importCustomersBtn">Import CSV</button><input id="importCustomersFile" type="file" accept=".csv,text/csv" hidden><button class="secondary" id="exportCustomersCsv">Export CSV</button><button class="primary" id="addCustomerBtn">+ Add Customer</button></div></div>
       <div class="card filters customer-filters"><label>Search<input id="customerSearch" placeholder="Name, number, email, phone, address"></label><label>Category<select id="customerCategoryFilter"><option value="">All categories</option></select></label><button class="secondary" id="manageCategoriesBtn">Manage Categories</button></div>
       <div class="card table-card customer-list-card"><div class="table-scroll"><table><thead><tr><th>Customer #</th><th>Customer / Business</th><th>Category</th><th>Address</th><th>Billing contact</th><th>Phone / Mobile</th><th>Email</th><th>DOB</th><th>Actions</th></tr></thead><tbody id="customerRows"></tbody></table></div></div>
+    </section>
+
+    <section id="view-jobcosting" class="view">
+      <div class="page-head"><div><h1>Job Costing</h1><p>Build job costs, set your selling price, create quotes and progress won work into invoices.</p></div><button class="secondary" id="jcNewCostingTop">+ New Costing</button></div>
+      <div class="module-tabs" id="jcTabs">
+        <button class="module-tab active" data-jc-tab="costing">New Costing</button>
+        <button class="module-tab" data-jc-tab="saved">Saved Costings</button>
+        <button class="module-tab" data-jc-tab="quotes">Quotes</button>
+        <button class="module-tab" data-jc-tab="settings">Cost Settings</button>
+      </div>
+
+      <div class="jc-panel active" id="jc-panel-costing">
+        <div class="card form-grid">
+          <label>Costing number<input id="jcNumber" readonly></label>
+          <label>Date<input id="jcDate" type="date"></label>
+          <label class="wide">Customer / business<div class="customer-pick"><input id="jcCustomerName" list="jcCustomerOptions" autocomplete="off" placeholder="Start typing an existing customer"><datalist id="jcCustomerOptions"></datalist></div><small id="jcCustomerHint">Linked to My Customers.</small></label>
+          <label class="wide">Job / service description<input id="jcDescription" placeholder="e.g. Move-out clean - 3 bedroom house"></label>
+          <label class="wide">Job notes<textarea id="jcNotes" rows="3" placeholder="Scope, site details or internal notes"></textarea></label>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><div><h2>Labour</h2><p class="hint no-margin">All labour costs are excluding GST.</p></div><button class="secondary" id="jcAddLabour">+ Add Labour</button></div>
+          <div id="jcLabourRows"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><div><h2>Variable & direct costs</h2><p class="hint no-margin">Materials, fuel, equipment, subcontractors and any other job-specific costs.</p></div><button class="secondary" id="jcAddCost">+ Add Cost</button></div>
+          <div id="jcCostRows"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><div><h2>Additional information</h2><p class="hint no-margin">Add any extra fields you need for this job.</p></div><button class="secondary" id="jcAddField">+ Add Field</button></div>
+          <div id="jcCustomFields"></div>
+        </div>
+
+        <div class="job-costing-bottom">
+          <div class="card jc-pricing-card">
+            <h2>Pricing</h2>
+            <div class="form-grid compact">
+              <label>Target margin %<input id="jcMargin" type="number" min="0" max="99.9" step="0.1"></label>
+              <label>Your quote price (ex GST)<input id="jcQuotePrice" type="number" min="0" step="0.01"></label>
+            </div>
+            <p class="hint">Recommended selling price uses true gross margin: Cost ÷ (1 − margin %). You can override it with your own quote price.</p>
+          </div>
+          <div class="card totals jc-totals">
+            <div><span>Labour cost (ex GST)</span><strong id="jcLabourTotal">$0.00</strong></div>
+            <div><span>Other costs (ex GST)</span><strong id="jcOtherTotal">$0.00</strong></div>
+            <div><span>Total job cost (ex GST)</span><strong id="jcCostTotal">$0.00</strong></div>
+            <div><span>Target margin</span><strong id="jcMarginDisplay">0%</strong></div>
+            <div class="grand"><span>Recommended selling price (ex GST)</span><strong id="jcRecommended">$0.00</strong></div>
+            <div><span id="jcGstLabel">GST</span><strong id="jcQuoteGst">$0.00</strong></div>
+            <div class="balance-due"><span>Quote total (incl. GST)</span><strong id="jcQuoteTotal">$0.00</strong></div>
+          </div>
+        </div>
+        <div class="actions"><button class="secondary" id="jcClearCosting">Clear</button><button class="secondary" id="jcSaveCosting">Save Costing</button><button class="primary" id="jcCreateQuote">Create Quote</button></div>
+      </div>
+
+      <div class="jc-panel" id="jc-panel-saved">
+        <div class="card filters"><label>Search<input id="jcSavedSearch" placeholder="Customer, costing # or description"></label><button class="secondary" id="jcSavedRefresh">Refresh</button></div>
+        <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Costing</th><th>Customer</th><th>Job</th><th>Cost ex GST</th><th>Recommended</th><th>Quote price</th><th>Actions</th></tr></thead><tbody id="jcSavedRows"></tbody></table></div></div>
+      </div>
+
+      <div class="jc-panel" id="jc-panel-quotes">
+        <div class="summary-grid jc-quote-summary"><div class="metric"><span>Draft</span><strong id="jcQuoteDraftCount">0</strong></div><div class="metric"><span>Sent</span><strong id="jcQuoteSentCount">0</strong></div><div class="metric"><span>Approved</span><strong id="jcQuoteApprovedCount">0</strong></div><div class="metric"><span>Deal won</span><strong id="jcQuoteWonCount">0</strong></div></div>
+        <div class="card filters"><label>Search<input id="jcQuoteSearch" placeholder="Customer, quote # or description"></label><label>Status<select id="jcQuoteStatusFilter"><option value="">All statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="approved">Approved</option><option value="won">Deal won</option><option value="rejected">Rejected</option></select></label><button class="secondary" id="jcQuoteRefresh">Refresh</button></div>
+        <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Quote</th><th>Customer</th><th>Description</th><th>Ex GST</th><th>GST</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jcQuoteRows"></tbody></table></div></div>
+      </div>
+
+      <div class="jc-panel" id="jc-panel-settings">
+        <div class="settings-grid">
+          <div class="card">
+            <h2>Job costing defaults</h2>
+            <div class="form-grid compact">
+              <label>Default labour cost / hour<input id="jcSetLabourRate" type="number" min="0" step="0.01"></label>
+              <label>Default target margin %<input id="jcSetMargin" type="number" min="0" max="99.9" step="0.1"></label>
+              <label>Quote validity (days)<input id="jcSetValidity" type="number" min="1" step="1"></label>
+              <label>Costing prefix<input id="jcSetCostingPrefix" maxlength="8" placeholder="JC"></label>
+              <label>Quote prefix<input id="jcSetQuotePrefix" maxlength="8" placeholder="QUO"></label>
+              <label class="wide">Default quote terms<textarea id="jcSetQuoteTerms" rows="4"></textarea></label>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><h2>Cost presets</h2><button class="secondary" id="jcAddPreset">+ Add Preset</button></div>
+            <p class="hint">Optional shortcuts for common costs. Each preset has a description, unit and default unit cost.</p>
+            <div id="jcPresetRows"></div>
+          </div>
+        </div>
+        <div class="actions"><button class="primary" id="jcSaveSettings">Save Job Costing Settings</button></div>
+      </div>
     </section>
 
     <section id="view-reports" class="view">
@@ -242,6 +331,7 @@ Please find attached invoice {invoiceNumber}."></textarea></label>
 
   <div class="modal" id="adminUserModal"><div class="modal-box small-modal"><button class="close" id="closeAdminUserModal">×</button><h2>Add business account</h2><p class="hint">Creates an owner login and a new trial business.</p><div class="form-grid compact"><label>Owner name<input id="adminNewName"></label><label>Business name<input id="adminNewBusiness"></label><label>Email<input id="adminNewEmail" type="email"></label><label>Phone<input id="adminNewPhone"></label><label class="wide">Address<input id="adminNewAddress"></label><label>Temporary password<input id="adminNewPassword" type="password" minlength="8"></label><label>Trial days<input id="adminNewTrialDays" type="number" min="0" value="14"></label></div><div class="actions"><button class="secondary" id="cancelAdminUser">Cancel</button><button class="primary" id="saveAdminUser">Create account</button></div><p class="hint" id="adminUserMessage"></p></div></div>
   <div class="modal" id="moduleModal"><div class="modal-box small-modal"><button class="close" id="closeModuleModal">×</button><h2>Business modules</h2><p class="hint" id="moduleBusinessName"></p><div id="moduleChecklist"></div><div class="actions"><button class="primary" id="saveModules">Save modules</button></div></div></div>
+  <div class="modal" id="quoteModal"><div class="modal-box quote-modal-box"><button class="close" id="closeQuoteModal">×</button><div id="quoteModalContent"></div></div></div>
   <div class="modal" id="planModal"><div class="modal-box plan-modal-box"><button class="close" id="closePlanModal">×</button><h2>Choose your plan</h2><p class="hint">Upgrade whenever you need more invoices or additional modules.</p><div id="customerPlanGrid" class="plan-grid"></div></div></div>
   <div id="toast"></div>
   <script src="saas.js"></script>
