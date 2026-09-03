@@ -488,3 +488,17 @@ begin
 end $$;
 
 -- Existing auth trigger continues to call public.handle_new_user().
+
+-- v24 universal job costing additions
+alter table public.job_costings add column if not exists job_address text;
+alter table public.job_costings add column if not exists job_duration_hours numeric(12,3) not null default 0;
+alter table public.job_costings add column if not exists direct_costs jsonb not null default '[]'::jsonb;
+alter table public.job_costings add column if not exists total_direct numeric(12,2) not null default 0;
+alter table public.job_costings add column if not exists allocated_overhead numeric(12,2) not null default 0;
+alter table public.job_costings add column if not exists subtotal_job_cost numeric(12,2) not null default 0;
+alter table public.job_costings add column if not exists contingency_percent numeric(7,3) not null default 0;
+alter table public.job_costings add column if not exists contingency_amount numeric(12,2) not null default 0;
+alter table public.job_costings add column if not exists expected_profit numeric(12,2) not null default 0;
+alter table public.job_costings add column if not exists expected_margin_percent numeric(9,4) not null default 0;
+alter table public.job_costings add column if not exists costing_snapshot jsonb not null default '{}'::jsonb;
+alter table public.quotes add column if not exists quote_items jsonb not null default '[]'::jsonb;

@@ -192,3 +192,6 @@ Deploy `supabase/functions/send-quote/index.ts` as a Supabase Edge Function name
 
 ### Module/subscription behaviour
 Existing v22 businesses receive Job Costing access when the v23 migration runs so the module can be tested immediately. New Trial accounts include Job Costing. For paid plans, Super Admin can include `job_costing` in a plan's Included modules or enable it for an individual business from Admin → Modules.
+
+## v24 — Universal Job Costing Upgrade
+Run `V24-JOB-COSTING-UPGRADE.sql` after the v23 migration. This upgrade preserves existing invoice/customer/quote data and adds overhead allocation, labour roles, variable rates including fuel, direct costs, contingency, minimum charge, true gross-margin pricing, profit/margin feedback, snapshot-based historical costings, duplication, and the two overhead allocation bases.

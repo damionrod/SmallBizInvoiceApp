@@ -94,90 +94,42 @@
     </section>
 
     <section id="view-jobcosting" class="view">
-      <div class="page-head"><div><h1>Job Costing</h1><p>Build job costs, set your selling price, create quotes and progress won work into invoices.</p></div><button class="secondary" id="jcNewCostingTop">+ New Costing</button></div>
-      <div class="module-tabs" id="jcTabs">
-        <button class="module-tab active" data-jc-tab="costing">New Costing</button>
-        <button class="module-tab" data-jc-tab="saved">Saved Costings</button>
-        <button class="module-tab" data-jc-tab="quotes">Quotes</button>
-        <button class="module-tab" data-jc-tab="settings">Cost Settings</button>
-      </div>
+      <div class="page-head"><div><h1>Job Costing</h1><p>Calculate the true cost of a job, choose your selling price, create a customer quote and progress approved work into an invoice.</p></div><button class="secondary" id="jcNewCostingTop">+ New Costing</button></div>
+      <div class="module-tabs" id="jcTabs"><button class="module-tab active" data-jc-tab="costing">New Costing</button><button class="module-tab" data-jc-tab="saved">Saved Costings</button><button class="module-tab" data-jc-tab="quotes">Quotes</button><button class="module-tab" data-jc-tab="settings">Cost Settings</button></div>
 
       <div class="jc-panel active" id="jc-panel-costing">
-        <div class="card form-grid">
-          <label>Costing number<input id="jcNumber" readonly></label>
-          <label>Date<input id="jcDate" type="date"></label>
-          <label class="wide">Customer / business<div class="customer-pick"><input id="jcCustomerName" list="jcCustomerOptions" autocomplete="off" placeholder="Start typing an existing customer"><datalist id="jcCustomerOptions"></datalist></div><small id="jcCustomerHint">Linked to My Customers.</small></label>
-          <label class="wide">Job / service description<input id="jcDescription" placeholder="e.g. Move-out clean - 3 bedroom house"></label>
-          <label class="wide">Job notes<textarea id="jcNotes" rows="3" placeholder="Scope, site details or internal notes"></textarea></label>
-        </div>
+        <div class="card"><div class="card-title"><div><h2>Customer & job details</h2><p class="hint no-margin">Linked to My Customers. All internal costing is excluding GST.</p></div></div><div class="form-grid">
+          <label>Costing number<input id="jcNumber" readonly></label><label>Job date<input id="jcDate" type="date"></label>
+          <label class="wide">Customer / business<input id="jcCustomerName" list="jcCustomerOptions" autocomplete="off" placeholder="Start typing an existing customer"><datalist id="jcCustomerOptions"></datalist><small id="jcCustomerHint">Linked to My Customers.</small></label>
+          <label class="wide">Job name / description<input id="jcDescription" placeholder="Describe the job or service"></label><label class="wide">Job address<input id="jcAddress" placeholder="Job/site address"></label>
+          <label>Expected job duration (hours)<input id="jcDuration" type="number" min="0" step="0.25" placeholder="0"></label><label class="wide">Internal job notes<textarea id="jcNotes" rows="3"></textarea></label>
+        </div></div>
 
-        <div class="card">
-          <div class="card-title"><div><h2>Labour</h2><p class="hint no-margin">All labour costs are excluding GST.</p></div><button class="secondary" id="jcAddLabour">+ Add Labour</button></div>
-          <div id="jcLabourRows"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-title"><div><h2>Variable & direct costs</h2><p class="hint no-margin">Materials, fuel, equipment, subcontractors and any other job-specific costs.</p></div><button class="secondary" id="jcAddCost">+ Add Cost</button></div>
-          <div id="jcCostRows"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-title"><div><h2>Additional information</h2><p class="hint no-margin">Add any extra fields you need for this job.</p></div><button class="secondary" id="jcAddField">+ Add Field</button></div>
-          <div id="jcCustomFields"></div>
-        </div>
+        <div class="card"><div class="card-title"><div><h2>Labour</h2><p class="hint no-margin">Rates come from Labour Settings but can be changed for this costing.</p></div><button class="secondary" id="jcAddLabour">+ Add Labour</button></div><div id="jcLabourRows"></div></div>
+        <div class="card"><div class="card-title"><div><h2>Travel / variable costs</h2><p class="hint no-margin">Use configured variable rates, including automatic vehicle/fuel cost per kilometre.</p></div><button class="secondary" id="jcAddVariable">+ Add Variable Cost</button></div><div id="jcVariableRows"></div></div>
+        <div class="card"><div class="card-title"><div><h2>Direct job costs</h2><p class="hint no-margin">Materials, disposal, parking, subcontractors, equipment hire and other costs directly caused by this job.</p></div><button class="secondary" id="jcAddCost">+ Add Cost</button></div><div id="jcCostRows"></div></div>
+        <div class="card"><div class="card-title"><div><h2>Additional information</h2><p class="hint no-margin">Optional job-specific fields.</p></div><button class="secondary" id="jcAddField">+ Add Field</button></div><div id="jcCustomFields"></div></div>
 
         <div class="job-costing-bottom">
-          <div class="card jc-pricing-card">
-            <h2>Pricing</h2>
-            <div class="form-grid compact">
-              <label>Target margin %<input id="jcMargin" type="number" min="0" max="99.9" step="0.1"></label>
-              <label>Your quote price (ex GST)<input id="jcQuotePrice" type="number" min="0" step="0.01"></label>
-            </div>
-            <p class="hint">Recommended selling price uses true gross margin: Cost ÷ (1 − margin %). You can override it with your own quote price.</p>
-          </div>
-          <div class="card totals jc-totals">
-            <div><span>Labour cost (ex GST)</span><strong id="jcLabourTotal">$0.00</strong></div>
-            <div><span>Other costs (ex GST)</span><strong id="jcOtherTotal">$0.00</strong></div>
-            <div><span>Total job cost (ex GST)</span><strong id="jcCostTotal">$0.00</strong></div>
-            <div><span>Target margin</span><strong id="jcMarginDisplay">0%</strong></div>
-            <div class="grand"><span>Recommended selling price (ex GST)</span><strong id="jcRecommended">$0.00</strong></div>
-            <div><span id="jcGstLabel">GST</span><strong id="jcQuoteGst">$0.00</strong></div>
-            <div class="balance-due"><span>Quote total (incl. GST)</span><strong id="jcQuoteTotal">$0.00</strong></div>
+          <div class="card jc-pricing-card"><h2>Pricing decision</h2><div class="form-grid compact"><label>Target Gross Margin % <span class="help-tip" title="Gross margin is the percentage of the selling price remaining after job costs.">?</span><input id="jcMargin" type="number" min="0" max="99.99" step="0.1"></label><label>Contingency %<input id="jcContingency" type="number" min="0" step="0.1"></label><label class="wide quote-price-field">YOUR QUOTE PRICE EX GST<input id="jcQuotePrice" type="number" min="0" step="0.01"></label></div><p class="hint">The recommended price is guidance only. Enter the actual price you want to quote.</p></div>
+          <div class="card totals jc-totals"><h2>Cost breakdown</h2>
+            <div><span>Labour cost</span><strong id="jcLabourTotal">$0.00</strong></div><div><span>Travel / fuel</span><strong id="jcFuelTotal">$0.00</strong></div><div><span>Other variable costs</span><strong id="jcVariableTotal">$0.00</strong></div><div><span>Direct job costs</span><strong id="jcDirectTotal">$0.00</strong></div><div><span>Allocated fixed overhead</span><strong id="jcOverheadTotal">$0.00</strong></div><small id="jcOverheadMethod" class="hint"></small>
+            <div class="jc-divider"><span>Subtotal job cost</span><strong id="jcSubtotal">$0.00</strong></div><div><span id="jcContingencyLabel">Contingency</span><strong id="jcContingencyTotal">$0.00</strong></div><div class="true-cost"><span>TRUE JOB COST</span><strong id="jcTrueCost">$0.00</strong></div>
+            <h2 class="jc-summary-heading">Pricing</h2><div><span>Target Gross Margin</span><strong id="jcMarginDisplay">0%</strong></div><div><span>Recommended Price Ex GST</span><strong id="jcRecommended">$0.00</strong></div><div><span>Minimum Job Charge</span><strong id="jcMinimum">$0.00</strong></div><div class="quote-price-summary"><span>Your Quote Price Ex GST</span><strong id="jcQuoteDisplay">$0.00</strong></div><div class="profit-line"><span>Expected Gross Profit</span><strong id="jcProfit">$0.00</strong></div><div class="profit-line"><span>Expected Gross Margin</span><strong id="jcActualMargin">0%</strong></div><div><span id="jcGstLabel">GST</span><strong id="jcQuoteGst">$0.00</strong></div><div class="balance-due"><span>CUSTOMER PRICE INCL GST</span><strong id="jcQuoteTotal">$0.00</strong></div>
           </div>
         </div>
         <div class="actions"><button class="secondary" id="jcClearCosting">Clear</button><button class="secondary" id="jcSaveCosting">Save Costing</button><button class="primary" id="jcCreateQuote">Create Quote</button></div>
       </div>
 
-      <div class="jc-panel" id="jc-panel-saved">
-        <div class="card filters"><label>Search<input id="jcSavedSearch" placeholder="Customer, costing # or description"></label><button class="secondary" id="jcSavedRefresh">Refresh</button></div>
-        <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Costing</th><th>Customer</th><th>Job</th><th>Cost ex GST</th><th>Recommended</th><th>Quote price</th><th>Actions</th></tr></thead><tbody id="jcSavedRows"></tbody></table></div></div>
-      </div>
-
-      <div class="jc-panel" id="jc-panel-quotes">
-        <div class="summary-grid jc-quote-summary"><div class="metric"><span>Draft</span><strong id="jcQuoteDraftCount">0</strong></div><div class="metric"><span>Sent</span><strong id="jcQuoteSentCount">0</strong></div><div class="metric"><span>Approved</span><strong id="jcQuoteApprovedCount">0</strong></div><div class="metric"><span>Deal won</span><strong id="jcQuoteWonCount">0</strong></div></div>
-        <div class="card filters"><label>Search<input id="jcQuoteSearch" placeholder="Customer, quote # or description"></label><label>Status<select id="jcQuoteStatusFilter"><option value="">All statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="approved">Approved</option><option value="won">Deal won</option><option value="rejected">Rejected</option></select></label><button class="secondary" id="jcQuoteRefresh">Refresh</button></div>
-        <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Quote</th><th>Customer</th><th>Description</th><th>Ex GST</th><th>GST</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jcQuoteRows"></tbody></table></div></div>
-      </div>
+      <div class="jc-panel" id="jc-panel-saved"><div class="card filters"><label>Search<input id="jcSavedSearch" placeholder="Customer, costing # or description"></label><button class="secondary" id="jcSavedRefresh">Refresh</button></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Costing</th><th>Customer</th><th>Job</th><th>True cost</th><th>Recommended</th><th>Quote price</th><th>Actions</th></tr></thead><tbody id="jcSavedRows"></tbody></table></div></div></div>
+      <div class="jc-panel" id="jc-panel-quotes"><div class="summary-grid jc-quote-summary"><div class="metric"><span>Draft</span><strong id="jcQuoteDraftCount">0</strong></div><div class="metric"><span>Sent</span><strong id="jcQuoteSentCount">0</strong></div><div class="metric"><span>Approved</span><strong id="jcQuoteApprovedCount">0</strong></div><div class="metric"><span>Deal won</span><strong id="jcQuoteWonCount">0</strong></div></div><div class="card filters"><label>Search<input id="jcQuoteSearch" placeholder="Customer, quote # or description"></label><label>Status<select id="jcQuoteStatusFilter"><option value="">All statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="approved">Approved</option><option value="won">Deal won</option><option value="rejected">Rejected</option></select></label><button class="secondary" id="jcQuoteRefresh">Refresh</button></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Quote</th><th>Customer</th><th>Description</th><th>Ex GST</th><th>GST</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id="jcQuoteRows"></tbody></table></div></div></div>
 
       <div class="jc-panel" id="jc-panel-settings">
-        <div class="settings-grid">
-          <div class="card">
-            <h2>Job costing defaults</h2>
-            <div class="form-grid compact">
-              <label>Default labour cost / hour<input id="jcSetLabourRate" type="number" min="0" step="0.01"></label>
-              <label>Default target margin %<input id="jcSetMargin" type="number" min="0" max="99.9" step="0.1"></label>
-              <label>Quote validity (days)<input id="jcSetValidity" type="number" min="1" step="1"></label>
-              <label>Costing prefix<input id="jcSetCostingPrefix" maxlength="8" placeholder="JC"></label>
-              <label>Quote prefix<input id="jcSetQuotePrefix" maxlength="8" placeholder="QUO"></label>
-              <label class="wide">Default quote terms<textarea id="jcSetQuoteTerms" rows="4"></textarea></label>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-title"><h2>Cost presets</h2><button class="secondary" id="jcAddPreset">+ Add Preset</button></div>
-            <p class="hint">Optional shortcuts for common costs. Each preset has a description, unit and default unit cost.</p>
-            <div id="jcPresetRows"></div>
-          </div>
-        </div>
+        <div class="module-tabs jc-settings-tabs"><button class="module-tab active" data-jcs-tab="general">General</button><button class="module-tab" data-jcs-tab="overheads">Business Overheads</button><button class="module-tab" data-jcs-tab="rates">Labour & Variable Rates</button><button class="module-tab" data-jcs-tab="presets">Cost Presets</button></div>
+        <div class="jcs-panel active" id="jcs-general"><div class="card"><h2>General</h2><div class="form-grid compact"><label>Default Target Gross Margin % <span class="help-tip" title="Gross margin is the percentage of the selling price remaining after job costs.">?</span><input id="jcSetMargin" type="number" min="0" max="99.99" step="0.1"></label><label>General Job Contingency %<input id="jcSetContingency" type="number" min="0" step="0.1"></label><label>Minimum Job Charge (Ex GST)<input id="jcSetMinimum" type="number" min="0" step="0.01"></label><label>GST Rate %<input id="jcSetGst" type="number" min="0" step="0.01"></label><label>Estimated Billable Hours Per Month<input id="jcSetBillable" type="number" min="0" step="0.25"></label><label>Quote Validity Days<input id="jcSetValidity" type="number" min="1" step="1"></label><label>Costing Prefix<input id="jcSetCostingPrefix" maxlength="8"></label><label>Quote Prefix<input id="jcSetQuotePrefix" maxlength="8"></label><label>Overhead Allocation Basis<select id="jcSetOverheadBasis"><option value="billable">Total Billable Labour Hours</option><option value="duration">Job Duration Hours</option></select></label><label class="wide">Default Quote Terms<textarea id="jcSetQuoteTerms" rows="4"></textarea></label></div></div></div>
+        <div class="jcs-panel" id="jcs-overheads"><div class="card"><div class="card-title"><div><h2>Business Overheads</h2><p class="hint no-margin">Fixed business costs are converted to a monthly equivalent and automatically allocated to jobs.</p></div><button class="secondary" id="jcAddOverhead">+ Add Overhead</button></div><div id="jcOverheadRows"></div><div class="overhead-summary"><div><span>Total Monthly Fixed Overhead</span><strong id="jcMonthlyOverhead">$0.00</strong></div><div><span>Fixed Overhead Cost Per Billable Hour</span><strong id="jcOverheadRate">$0.00</strong></div></div></div></div>
+        <div class="jcs-panel" id="jcs-rates"><div class="card"><div class="card-title"><div><h2>Labour Roles</h2><p class="hint no-margin">Enter the total hourly employment cost to the business, including applicable employer costs.</p></div><button class="secondary" id="jcAddRole">+ Add Labour Role</button></div><div id="jcRoleRows"></div></div><div class="card"><div class="card-title"><div><h2>Variable Cost Rates</h2><p class="hint no-margin">Create reusable calculated costs such as per kilometre, per hour, per item or fuel.</p></div><button class="secondary" id="jcAddVariableRate">+ Add Variable Rate</button></div><div id="jcVariableRateRows"></div></div></div>
+        <div class="jcs-panel" id="jcs-presets"><div class="card"><div class="card-title"><div><h2>Cost Presets</h2><p class="hint no-margin">Optional direct job cost templates only — not normal business overheads.</p></div><button class="secondary" id="jcAddPreset">+ Add Preset</button></div><div id="jcPresetRows"></div></div></div>
         <div class="actions"><button class="primary" id="jcSaveSettings">Save Job Costing Settings</button></div>
       </div>
     </section>
