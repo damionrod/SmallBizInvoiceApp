@@ -382,3 +382,30 @@ tbody tr:last-child td{border-bottom:0}
 .product-picker-option span{font-weight:650;white-space:normal}
 .product-picker-option small{color:#6c7d88;white-space:nowrap;font-size:12px}
 @media(max-width:760px){.product-picker-menu{position:fixed;left:14px;right:14px;top:auto;bottom:82px;max-height:45vh;border-radius:7px;box-shadow:0 18px 45px rgba(9,32,47,.28)}.product-picker-option{padding:13px 12px}.product-picker-toggle{width:42px}}
+
+/* ============================================================
+   v22 SaaS foundation: authentication, subscriptions & admin
+   ============================================================ */
+.infra-config{display:none!important}
+.account-chip{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.16);color:#fff;font-weight:800;display:grid;place-items:center;align-self:center;margin-left:10px;cursor:pointer}
+.account-chip:hover{background:rgba(255,255,255,.25)}
+.auth-locked>header,.auth-locked>main{filter:blur(3px);pointer-events:none;user-select:none}
+.auth-shell{display:none;position:fixed;inset:0;z-index:5000;background:linear-gradient(135deg,#eef5fa,#f8fafb);align-items:center;justify-content:center;padding:22px;overflow:auto}
+.auth-shell.open{display:flex}
+.auth-card{width:min(620px,100%);background:#fff;border:1px solid #d8e2e8;border-radius:12px;box-shadow:0 24px 70px rgba(24,62,87,.18);padding:28px}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}.auth-mark{width:46px;height:46px;border-radius:10px;background:linear-gradient(180deg,#2084c8,#176fae);color:#fff;display:grid;place-items:center;font-size:24px;font-weight:800}.auth-brand strong{display:block;font-size:18px;color:#173f5c}.auth-brand span{display:block;color:#74838d;font-size:12px;margin-top:2px}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #dbe4e9;margin-bottom:24px}.auth-tabs button{border:0;background:transparent;padding:12px;color:#73818a;font-weight:700;cursor:pointer;border-bottom:3px solid transparent}.auth-tabs button.active{color:#176fae;border-bottom-color:#1976bd}
+.auth-form h1{font-size:24px;margin:0 0 5px;color:#173f5c}.auth-form>p{margin:0 0 20px;color:#6d7d87}.auth-form>label{display:block;margin-bottom:14px}.auth-form .primary{width:100%;min-height:45px;margin-top:4px}.auth-link{display:block;margin:12px auto 0;background:none;border:0;color:#176fae;cursor:pointer;font-weight:650}.auth-message{min-height:20px;margin-top:16px;text-align:center;font-size:13px}.auth-message.error{color:#b42318}.auth-message.success{color:#216d32}
+.subscription-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:15px 0}.subscription-summary>div{background:#f6f9fb;border:1px solid #e0e7eb;border-radius:6px;padding:13px}.subscription-summary span{display:block;text-transform:uppercase;letter-spacing:.045em;font-size:9px;font-weight:800;color:#7b8992}.subscription-summary strong{display:block;margin-top:5px;font-size:14px;color:#213d50;overflow-wrap:anywhere}.usage-track{height:8px;border-radius:99px;background:#e6edf1;overflow:hidden;margin:5px 0 12px}.usage-track span{display:block;width:0;height:100%;background:#1976bd;transition:width .25s ease}
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:16px}.plan-card{border:1px solid #d9e2e7;border-radius:8px;background:#fff;padding:18px;box-shadow:0 2px 8px rgba(30,55,70,.05)}.plan-card.current{border:2px solid #1976bd;background:#f7fbfe}.plan-card .plan-name{display:block;font-weight:800;color:#28475b;margin-bottom:9px}.plan-card>strong{font-size:27px;color:#173f5c}.plan-card>strong small{font-size:11px;color:#74838d;font-weight:600}.plan-card p{min-height:38px;color:#6c7b86;font-size:12px}.plan-limit{font-weight:750;font-size:12px;margin:12px 0}.plan-modules{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0 16px}.plan-modules span{font-size:10px;background:#edf6fc;color:#176fae;padding:4px 7px;border-radius:99px}.plan-card button{width:100%}.plan-card label{display:block;margin:9px 0}.plan-card input{width:100%}.plan-modal-box{max-width:920px}
+#view-admin .table-scroll{max-height:620px}#view-admin td small{display:block;color:#7b8992;margin-top:3px}#view-admin select{min-width:110px;padding:7px}#view-admin .row-actions{min-width:195px}
+.sync-pending{color:#a15c00;font-size:10px;font-weight:700}
+
+@media(max-width:760px){
+  .account-chip{display:none}
+  .auth-shell{padding:0;align-items:stretch}.auth-card{border:0;border-radius:0;min-height:100vh;padding:calc(28px + env(safe-area-inset-top)) 18px 28px;box-shadow:none}.auth-form .form-grid{grid-template-columns:1fr}.auth-form h1{font-size:23px}
+  .subscription-summary{grid-template-columns:1fr 1fr}.plan-grid{grid-template-columns:1fr}.plan-modal-box{max-height:92vh;overflow:auto}
+  #adminNav:not([hidden])~.account-chip{display:none}
+}
+.module-toggle{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid #e7edf1}.module-toggle:last-child{border-bottom:0}.module-toggle span{min-width:0}.module-toggle strong{display:block;color:#28475b}.module-toggle small{display:block;margin-top:3px;color:#7b8992;font-weight:500}.module-toggle input{width:20px;height:20px;flex:0 0 auto}
+@media(max-width:760px){nav:has(#adminNav:not([hidden])){grid-template-columns:repeat(6,1fr)}nav:has(#adminNav:not([hidden])) .nav-btn{font-size:9px!important}}

@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Invoice Manager" />
   <title>Invoice Manager</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
@@ -17,7 +18,7 @@
 <body>
   <header class="topbar">
     <div class="brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Invoice Manager</strong><span>Invoice Manager</span></div></div>
-    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button></nav>
+    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button><button class="nav-btn admin-only" data-view="admin" id="adminNav" hidden>Admin</button><button class="account-chip" id="accountChip" type="button" title="Account"><span id="accountInitials">A</span></button></nav>
   </header>
   <main>
     <section id="view-create" class="view active">
@@ -174,20 +175,75 @@
         <div id="productSettings"></div>
       </div>
 
+      <div class="card" id="subscriptionCard">
+        <div class="card-title"><h2>Account & subscription</h2><button class="secondary" id="manageSubscription" type="button">Manage plan</button></div>
+        <div class="subscription-summary">
+          <div><span>Plan</span><strong id="accountPlan">Loading…</strong></div>
+          <div><span>Invoices this period</span><strong id="accountUsage">—</strong></div>
+          <div><span>Status</span><strong id="accountStatus">—</strong></div>
+          <div><span>Account</span><strong id="accountEmail">—</strong></div>
+        </div>
+        <div class="usage-track"><span id="usageBar"></span></div>
+        <p class="hint" id="accountPlanHint">Your invoices, customers and business settings are securely synced to your business account.</p>
+        <div class="head-actions"><button class="secondary" id="billingPortalBtn" type="button" hidden>Billing portal</button><button class="secondary" id="signOutBtn" type="button">Sign out</button></div>
+      </div>
+
       <div class="card">
-        <h2>Database & email</h2>
-        <div class="form-grid compact"><label>Supabase URL<input id="sSupabaseUrl" placeholder="https://xxxxx.supabase.co"></label><label>Supabase anon key<input id="sSupabaseKey" placeholder="Anon public key"></label></div>
-        <p class="hint">Email delivery uses the included Supabase function. Configure the sender address for the business in the function environment before enabling email delivery.</p>
+        <h2>Email wording</h2>
+        <p class="hint">These templates are used for invoice emails. Available placeholders: {customerName}, {invoiceNumber}, {tradingName}, {companyName}, {total}, {balanceDue}, {dueDate}, {phone}, {email}.</p>
+        <div class="form-grid compact">
+          <label>Sender display name<input id="sEmailSenderName" placeholder="{tradingName} Accounts"></label>
+          <label>Email subject<input id="sEmailSubject" placeholder="Invoice {invoiceNumber} from {tradingName}"></label>
+          <label class="wide">Email body<textarea id="sEmailBody" rows="8" placeholder="Hi {customerName},
+
+Please find attached invoice {invoiceNumber}."></textarea></label>
+        </div>
+      </div>
+
+      <div class="infra-config" aria-hidden="true">
+        <input id="sSupabaseUrl"><input id="sSupabaseKey">
       </div>
 
       <div class="actions"><button class="primary" id="saveSettings">Save settings</button></div>
+    </section>
+
+    <section id="view-admin" class="view">
+      <div class="page-head"><div><h1>Super Admin</h1><p>Manage businesses, plans, trials, invoice limits and future module access.</p></div><div class="head-actions"><button class="primary" id="adminAddBusiness">+ Add business</button><button class="secondary" id="adminRefresh">Refresh</button></div></div>
+      <div class="summary-grid"><div class="metric"><span>Businesses</span><strong id="adminBusinessCount">0</strong></div><div class="metric"><span>Active subscriptions</span><strong id="adminActiveCount">0</strong></div><div class="metric"><span>Trials</span><strong id="adminTrialCount">0</strong></div><div class="metric"><span>Users</span><strong id="adminUserCount">0</strong></div></div>
+      <div class="card filters"><label>Search<input id="adminSearch" placeholder="Business, user or email"></label><label>Status<select id="adminStatusFilter"><option value="">All</option><option value="trialing">Trialing</option><option value="active">Active</option><option value="past_due">Past due</option><option value="suspended">Suspended</option><option value="canceled">Canceled</option></select></label></div>
+      <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Business</th><th>Owner</th><th>Plan</th><th>Status</th><th>Usage</th><th>Trial ends</th><th>Modules</th><th>Actions</th></tr></thead><tbody id="adminBusinessRows"></tbody></table></div></div>
+      <div class="card"><div class="card-title"><h2>Subscription plans</h2><button class="secondary" id="adminReloadPlans">Reload plans</button></div><p class="hint">Plan prices and invoice limits are stored in Supabase, not hardcoded into customer accounts.</p><div id="adminPlanGrid" class="plan-grid"></div></div>
+      <div class="card"><div class="card-title"><h2>Module catalog</h2><button class="secondary" id="adminReloadModules">Reload modules</button></div><p class="hint">Add future modules here, set their pricing, then enable them for businesses or include them in plans.</p><div id="adminModuleGrid" class="plan-grid"></div><div class="form-grid compact module-add-form"><label>Module name<input id="adminModuleName" placeholder="Job Costing"></label><label>Module slug<input id="adminModuleSlug" placeholder="job_costing"></label><label>Monthly price<input id="adminModulePrice" type="number" min="0" step="0.01" value="0"></label><label>Stripe Price ID<input id="adminModuleStripe" placeholder="price_..."></label><label class="wide">Description<input id="adminModuleDescription" placeholder="Optional description"></label></div><button class="primary" id="adminAddModule" type="button">+ Add module</button></div>
     </section>
   </main>
 
   <div class="modal" id="customerModal"><div class="modal-box customer-modal-box"><button class="close" id="closeCustomerModal">×</button><div class="modal-head"><h2 id="customerModalTitle">Add Customer</h2><span id="customerNumberDisplay" class="customer-number-pill"></span></div><div id="customerFormArea"></div><div class="actions"><button class="secondary" id="cancelCustomer">Cancel</button><button class="primary" id="saveCustomer">Save Customer</button></div></div></div>
   <div class="modal" id="categoryModal"><div class="modal-box small-modal"><button class="close" id="closeCategoryModal">×</button><h2>Customer Categories</h2><p class="hint">Create categories such as Residential or Commercial.</p><div id="categoryRows"></div><div class="card-title"><input id="newCategoryName" placeholder="New category name"><button class="primary" id="addCategorySave">+ Add</button></div></div></div>
   <div class="modal" id="invoiceModal"><div class="modal-box"><button class="close" id="closeModal">×</button><div id="modalContent"></div></div></div>
+
+  <div class="auth-shell" id="authShell">
+    <div class="auth-card">
+      <div class="auth-brand"><div class="auth-mark">$</div><div><strong>Invoice Manager</strong><span>Simple invoicing for small business</span></div></div>
+      <div class="auth-tabs"><button class="active" data-auth-tab="login">Log in</button><button data-auth-tab="signup">Create account</button></div>
+      <form id="loginForm" class="auth-form">
+        <h1>Welcome back</h1><p>Log in to access your business from any device.</p>
+        <label>Email<input id="loginEmail" type="email" required autocomplete="email"></label><label>Password<input id="loginPassword" type="password" required autocomplete="current-password"></label>
+        <button class="primary" type="submit">Log in</button><button class="auth-link" id="forgotPasswordBtn" type="button">Forgot password?</button>
+      </form>
+      <form id="signupForm" class="auth-form" hidden>
+        <h1>Create your account</h1><p>Start with a trial and set up your business in a few minutes.</p>
+        <div class="form-grid compact"><label>Your name<input id="signupName" required></label><label>Business name<input id="signupBusiness" required></label><label class="wide">Business address<input id="signupAddress"></label><label>Phone<input id="signupPhone" type="tel"></label><label>Email<input id="signupEmail" type="email" required autocomplete="email"></label><label>Password<input id="signupPassword" type="password" minlength="8" required autocomplete="new-password"></label></div>
+        <button class="primary" type="submit">Create account</button><small>By creating an account you agree to the service terms and privacy policy.</small>
+      </form>
+      <div class="auth-message" id="authMessage"></div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="adminUserModal"><div class="modal-box small-modal"><button class="close" id="closeAdminUserModal">×</button><h2>Add business account</h2><p class="hint">Creates an owner login and a new trial business.</p><div class="form-grid compact"><label>Owner name<input id="adminNewName"></label><label>Business name<input id="adminNewBusiness"></label><label>Email<input id="adminNewEmail" type="email"></label><label>Phone<input id="adminNewPhone"></label><label class="wide">Address<input id="adminNewAddress"></label><label>Temporary password<input id="adminNewPassword" type="password" minlength="8"></label><label>Trial days<input id="adminNewTrialDays" type="number" min="0" value="14"></label></div><div class="actions"><button class="secondary" id="cancelAdminUser">Cancel</button><button class="primary" id="saveAdminUser">Create account</button></div><p class="hint" id="adminUserMessage"></p></div></div>
+  <div class="modal" id="moduleModal"><div class="modal-box small-modal"><button class="close" id="closeModuleModal">×</button><h2>Business modules</h2><p class="hint" id="moduleBusinessName"></p><div id="moduleChecklist"></div><div class="actions"><button class="primary" id="saveModules">Save modules</button></div></div></div>
+  <div class="modal" id="planModal"><div class="modal-box plan-modal-box"><button class="close" id="closePlanModal">×</button><h2>Choose your plan</h2><p class="hint">Upgrade whenever you need more invoices or additional modules.</p><div id="customerPlanGrid" class="plan-grid"></div></div></div>
   <div id="toast"></div>
-  <script src="app.js"></script>
+  <script src="saas.js"></script>
 </body>
 </html>

@@ -1,138 +1,169 @@
-# Invoice Manager v14
+# Invoice Manager v22 — SaaS Foundation
 
-## Invoice saving reliability fix
-This build uses an offline-first invoice save. The invoice is committed to browser storage before any Supabase, customer, or recurring-invoice synchronization is attempted. Network/database errors therefore cannot prevent the invoice from appearing in **My Invoices**.
+v22 keeps the existing invoice, customer, report, PDF, email-status, recurring-invoice and settings workflows, while adding the account/subscription architecture needed to sell the application to multiple businesses.
 
-It also strips Supabase credentials and unnecessary product/logo payload data from local invoice snapshots to reduce browser-storage usage. If cloud sync fails, the local invoice remains available and a message is shown.
+## What is new in v22
 
-# Invoice Manager
+### 1. Login and account creation
+- Email + password login.
+- Simple sign-up form: owner name, business name, address, phone, email and password.
+- Password reset.
+- A new business workspace is created automatically for every new account.
+- New businesses automatically start on a 14-day Trial plan.
 
-A mobile-friendly invoicing app for any small business.
+### 2. Cloud-first, multi-device data
+- Supabase is now the source of truth for signed-in users.
+- Invoices and customers are separated by `business_id` and protected with Row Level Security (RLS).
+- Business settings are also stored in Supabase, so the same logo/company/settings appear after logging in on another device.
+- Browser storage remains a per-business cache/fallback only.
+- The Supabase project URL and publishable key are application infrastructure in `app-config.js`; customers no longer configure Supabase in Settings.
 
-## Business settings are configurable
-- Company: Care New Zealand Limited
-- Trading name: configurable
-- Address: 120 Melksham Drive, Churton Park, Wellington 6037
-- Phone: 027 499 4445
-- Email: your verified sender
-- Bank account: 02-0506-0400503-000
-- Default payment terms: due 3 days after invoice date
-- Payment instruction: customers are told to use the invoice number as the bank payment reference
+### 3. Existing-data migration
+On the first v22 login from the browser that contains the old invoice data, the app attempts a one-time migration of locally stored customers and invoices into the signed-in business workspace. The old browser data can no longer be claimed by a second business account on that browser.
 
-## Settings page
-The Settings page lets you manage:
-- Company name, trading name, address, phone, email and GST number
-- Default number of days until payment is due
-- One or multiple bank accounts, with one selected as the default
-- Products/services and default prices excluding GST
-- Invoice template selection: Classic, Minimal or Modern
-- Colour themes plus custom primary/accent colours
-- Custom logo upload, with an option to restore the original business logo
-- Supabase database credentials
+For the safest migration, create/log into your owner account on the same desktop/browser that currently contains your invoices before testing from the phone.
 
-Changing a product default price affects new invoice line items, but you can still override the price on any individual invoice.
+### 4. Subscription plans and invoice limits
+Default starter plans are created in Supabase:
+- Trial — 10 invoices
+- Starter — 25 invoices
+- Business — 100 invoices
+- Pro — unlimited
 
-## Invoice features
-- Automatic invoice date and sequential invoice number (for example `CC-0001`, `CC-0002`, `CC-0003`)
-- Due date automatically set from the default payment term (currently 3 days) but editable on every invoice
-- Service dropdown + custom description, quantity and multiple line items
-- Automatic 15% GST calculation with subtotal, GST and total shown separately
-- PDF download
-- Bank account and invoice-number payment reference displayed on the PDF
-- Invoice database/history, customer/address/date display
-- Monthly filtering and monthly totals
-- CSV export for accounting
-- View, edit and delete invoices
-- Supabase cloud storage support
-- Email PDF support using Supabase Edge Function + Resend, sent as `your verified sender`
-- LocalStorage demo mode if Supabase is not yet configured
+Prices and limits are stored in the database and can be changed from Super Admin. Invoice-limit enforcement happens in the database as well as the UI, so it cannot be bypassed by changing browser code.
 
-## Still required
-Enter your GST number in Settings once you have it.
+### 5. Stripe-ready billing
+Included Edge Functions:
+- `create-checkout` — opens Stripe Checkout for a paid plan.
+- `create-portal` — opens Stripe Customer Portal for card/subscription management.
+- `stripe-webhook` — updates the app subscription after Stripe events.
 
-## Supabase setup
-1. Create a Supabase project.
-2. In SQL Editor, run `schema.sql`.
-3. Paste the Project URL and anon key into Settings in the app.
-4. The included SQL policy is intentionally simple for a single-owner starter deployment. Before public use, add Supabase Auth and owner-specific RLS policies.
+The billing UI is built, but purchases become live only after you add your Stripe secret, webhook secret and Stripe Price IDs. Do not put Stripe secret keys in the browser files.
 
-## Email setup
-1. Create/verify `your domain` in Resend (or adapt the function to another provider).
-2. In Supabase, set the secret `RESEND_API_KEY`.
-3. Deploy `supabase/functions/send-invoice` as `send-invoice`.
-4. The sender is configured as your verified sender.
-5. Your email provider must authorize that sender/domain.
+### 6. Super Admin
+The Super Admin interface can:
+- View businesses and owner users.
+- Search/filter accounts.
+- See subscription status and invoice usage.
+- Change a business plan/status.
+- Extend/create trial access.
+- Suspend/reactivate subscriptions.
+- Create a new business/owner account.
+- Edit plan prices, invoice limits and Stripe Price IDs.
+- Manage included modules on plans.
+- Create/edit future module definitions.
+- Enable/disable modules for individual businesses.
 
-## Deploying to Netlify
-This is a static app. Drag the app folder into Netlify or deploy from Git. There is no build command; publish the project root.
+### 7. Future modules
+The database includes:
+- `modules`
+- `business_modules`
+- `plans.included_modules`
 
-## Recommended production hardening
-- Add login/authentication before public deployment.
-- Replace the starter RLS policy with authenticated owner-only access.
-- Add invoice status such as Draft / Sent / Paid / Overdue if required later.
+`invoice_manager` is the first module. Future modules such as Job Costing can be added without redesigning the account/subscription system.
 
+### 8. Email wording is configurable
+Settings now includes **Email wording**:
+- Sender display name
+- Subject template
+- Body template
 
-## Latest workflow updates
-- Saving an invoice now creates/saves that record, refreshes the invoice history, then automatically clears the form and generates a fresh invoice number for the next invoice.
-- Invoice history is ordered newest-first so multiple invoices appear as separate rows.
-- Service descriptions are now typeable text fields with saved products/services shown as autocomplete suggestions.
-- Settings includes a live invoice design preview that updates while changing template, theme, colours, company details, GST number, and logo.
+Supported placeholders:
+`{customerName}`, `{invoiceNumber}`, `{tradingName}`, `{companyName}`, `{total}`, `{balanceDue}`, `{dueDate}`, `{phone}`, `{email}`.
 
-## Invoice wording (v4)
-The Settings page now includes an **Invoice wording** section. You can edit the invoice title, Bill To heading, invoice/date/due labels, item-table headings, subtotal/GST/total labels, payment labels, payment instruction, and the default customer note/footer. The live invoice preview updates while you type. Saved wording is snapshotted into each invoice so older invoices keep the wording they were created with.
+The v22 `send-invoice` Edge Function is generic and no business name is hardcoded.
 
-The default customer note supports `{dueDays}` and `{tradingName}` placeholders, for example: `Thank you for choosing {tradingName}. Please pay within {dueDays} days.`
+---
 
-## Version 6 updates
-- GST rate is now configurable in **Settings** instead of being fixed at 15%.
-- An optional second percentage charge can be enabled for an **additional tax or service fee**. Its label and percentage are configurable and it is shown separately on the invoice when enabled.
-- Customer address and customer email are optional. An invoice can be saved without either. If **Save & Email PDF** is used without a customer email, the invoice is saved normally and no email is sent.
-- The Invoices page now includes a **PDF** button on every saved invoice row for direct download.
-- Invoice numbers are shorter: `CC-YYMMDD-1234` rather than including the four-digit year.
-- A new **Reports** module includes custom date ranges plus Last Month, Last 3 Months, Last 6 Months and Last 12 Months shortcuts.
-- Reports show sales excluding tax/fees, GST, invoice count and total invoiced, plus a month-on-month bar chart with the sales value displayed above every bar.
-- Report CSV exports include the optional additional fee/tax amount.
+# REQUIRED DEPLOYMENT ORDER
 
-## v7 changes
+## Step 1 — Run the v22 SQL
+In Supabase → SQL Editor, run:
 
-- GST is now calculated **after** the optional service fee/tax, so the service fee is included in the GST taxable base.
-- The GST label is cleaned automatically so a saved label such as `GST (15%)` does not display the percentage twice.
-- Create Invoice includes an optional discount as either a percentage or fixed dollar amount. The discount is applied before the service fee and GST.
-- Create Invoice includes optional Amount Paid and automatically calculates Balance Due.
-- Create Invoice includes a recurring-invoice checkbox with weekly, fortnightly, and monthly frequencies. When the app is opened, any recurring invoices that have become due are generated automatically. This browser-based starter does not run while the app is completely closed; fully unattended recurrence requires a server-side scheduler/cron job.
-- My Invoices includes an email box and Send button on each invoice row, as well as View, PDF, Edit and Delete.
-- Company Settings now includes Website, which is shown on the invoice and live preview.
-- Buttons now have visible press/click feedback.
-- Invoice numbers are shorter, for example `CC-260901-123`.
+`V22-SAAS-MIGRATION.sql`
 
-### Important Supabase upgrade
+If you are creating a completely new Supabase project, `schema.sql` contains both the original invoice schema and the v22 SaaS migration.
 
-If you already ran an earlier `schema.sql`, run the v7 `schema.sql` again in the Supabase SQL editor. It contains safe `ADD COLUMN IF NOT EXISTS` statements for discount, service fee, amount paid, balance due, and recurrence fields, plus the new `recurring_rules` table.
+**Do this before deploying the v22 website.** v22 replaces the old permissive prototype policies with authenticated business-scoped RLS.
 
+## Step 2 — Deploy v22 to Netlify
+Deploy the contents of this folder as the site root. No build command is required.
 
-## v11 - My Customers CRM
-Adds individual/business customer profiles, categories, multiple contacts with one billing contact, birthday highlighting, custom fields, customer invoice history, Create Invoice customer lookup/auto-create, CSV import/export, and customer-ID invoice linking. If using Supabase, run the updated `schema.sql` once to create the `customers` table and add customer-link columns to invoices. Existing invoices remain valid; new invoices link by `customer_id`.
+The public Supabase browser configuration is in:
 
+`app-config.js`
 
-## v12 sequential invoice numbering
-- New invoices now receive automatic sequential invoice numbers: `CC-0001`, `CC-0002`, `CC-0003` and so on.
-- The next number is determined from saved invoice history, including when a new invoice form is prepared after saving.
-- Recurring invoices use the same sequence.
-- Existing invoice numbers are preserved and are not renumbered.
+The Supabase publishable key is a browser/public key. Never put a Supabase service-role key, Stripe secret key or Resend secret in this file.
 
-## v15 patch
-- Blank customer DOB and contact DOB values are converted to database NULL before Supabase writes, so optional DOB fields no longer block invoice saving/emailing.
-- Email function payload now sends `pdfBase64` to match the deployed `send-invoice` Edge Function, so PDF attachments can be included correctly.
+## Step 3 — Create your owner account
+Open the deployed site on the desktop/browser containing your current invoices and choose **Create account**.
 
-## v16 email sending improvements
-- My Invoices now sends to the email address currently typed in the email box; it no longer overrides that address with the saved billing contact at send time.
-- Send button is red when an invoice has not been sent and green after a successful send.
-- The app records the last successful recipient and sent date/time.
-- Email status is kept locally immediately and can also be stored in Supabase for cross-device persistence.
-- Run `V16-SUPABASE-MIGRATION.sql` once in the Supabase SQL Editor to enable persistent cloud email-status tracking.
+After signup/login, v22 will attempt to move the existing local browser invoices/customers into that new business workspace. Once cloud data is present, logging into the same account on the phone should show the same invoices and customers.
 
-## v17 Professional UI refresh
-- Refreshed the application shell with a modern blue accounting-dashboard header.
-- Improved cards, KPI tiles, tables, forms, buttons, spacing and visual hierarchy.
-- Preserved the existing invoice/customer/report/settings workflows and v16 email status behaviour.
-- Added responsive refinements for tablet, iPhone and Android layouts.
+## Step 4 — Make your account Super Admin
+After your account exists, run this once in Supabase SQL Editor, replacing the email:
+
+```sql
+update public.profiles
+set is_super_admin = true
+where email = 'YOUR-LOGIN-EMAIL';
+```
+
+Reload the app. The **Admin** tab will appear only for that Super Admin account.
+
+## Step 5 — Deploy Edge Functions
+Deploy these functions:
+- `send-invoice`
+- `create-checkout`
+- `create-portal`
+- `stripe-webhook`
+- `admin-create-user`
+
+The function source is in `supabase/functions/`.
+
+### Required Supabase secrets
+For email:
+- `RESEND_API_KEY`
+- `EMAIL_FROM_ADDRESS` — use an address on your verified Resend domain, e.g. `invoices@yourdomain.co.nz`
+
+For Stripe billing:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+
+Supabase normally supplies these automatically to Edge Functions:
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+## Step 6 — Add Stripe Price IDs
+Create the paid prices/products in Stripe. Then in **Super Admin → Subscription plans**, paste each Stripe `price_...` ID into the relevant plan.
+
+Until a plan has a Stripe Price ID, clicking Choose Plan will correctly report that billing has not yet been configured for that plan.
+
+## Step 7 — Stripe webhook
+Point a Stripe webhook endpoint at your deployed `stripe-webhook` Supabase function and subscribe to:
+- `checkout.session.completed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+Copy the webhook signing secret into Supabase as `STRIPE_WEBHOOK_SECRET`.
+
+---
+
+# Important production notes
+
+- Do not re-enable the old `using (true)` prototype RLS policies.
+- Keep service-role and payment-provider secret keys only in Supabase secrets.
+- Test signup, login, password reset, trial expiry, invoice limits, cross-device sync and Stripe test-mode checkout before taking customer payments.
+- Supabase email confirmation settings determine whether a new user receives a confirmation email before the first login.
+- Application code changes still require a normal deployment. Super Admin manages users, plans, access and modules; it does not edit application source code from the browser.
+
+# Files
+- `index.html` — application UI
+- `styles.css` — desktop/mobile UI
+- `app.js` — existing invoice/customer/report workflows plus v22 subscription gate/cloud behavior
+- `saas.js` — authentication, tenant bootstrap, cross-device settings, subscriptions and Super Admin
+- `app-config.js` — public Supabase browser config
+- `V22-SAAS-MIGRATION.sql` — upgrade existing Supabase database
+- `schema.sql` — complete schema for a fresh install
+- `supabase/functions/` — email, Stripe and admin server functions
