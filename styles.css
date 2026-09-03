@@ -368,3 +368,17 @@ tbody tr:last-child td{border-bottom:0}
   .modal-box{border-radius:14px 14px 0 0}
   .balance-due{margin-left:-6px;margin-right:-6px}
 }
+
+
+/* v19: product/service picker — always shows the full configured list while preserving free-text descriptions */
+.product-picker{position:relative;min-width:0}
+.product-picker>input{padding-right:42px}
+.product-picker-toggle{position:absolute;right:1px;top:1px;bottom:1px;width:38px;border:0;border-left:1px solid #d8e0e5;background:#f8fafb;color:#3f5666;font-size:18px;line-height:1;cursor:pointer;border-radius:0 4px 4px 0}
+.product-picker-toggle:hover,.product-picker-toggle:focus{background:#edf4f8;color:#173f5c;outline:none}
+.product-picker-menu{display:none;position:absolute;z-index:45;left:0;right:0;top:calc(100% + 5px);max-height:260px;overflow:auto;background:#fff;border:1px solid #cbd7de;border-radius:5px;box-shadow:0 12px 28px rgba(21,52,72,.16);padding:5px}
+.product-picker-menu.open{display:block}
+.product-picker-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;border:0;background:#fff;color:#263f50;text-align:left;padding:10px 11px;border-radius:4px;cursor:pointer}
+.product-picker-option:hover,.product-picker-option:focus{background:#eef6fb;outline:none}
+.product-picker-option span{font-weight:650;white-space:normal}
+.product-picker-option small{color:#6c7d88;white-space:nowrap;font-size:12px}
+@media(max-width:760px){.product-picker-menu{position:fixed;left:14px;right:14px;top:auto;bottom:82px;max-height:45vh;border-radius:7px;box-shadow:0 18px 45px rgba(9,32,47,.28)}.product-picker-option{padding:13px 12px}.product-picker-toggle{width:42px}}

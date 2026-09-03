@@ -1,20 +1,20 @@
-# CareClean Invoice Manager v14
+# Invoice Manager v14
 
 ## Invoice saving reliability fix
 This build uses an offline-first invoice save. The invoice is committed to browser storage before any Supabase, customer, or recurring-invoice synchronization is attempted. Network/database errors therefore cannot prevent the invoice from appearing in **My Invoices**.
 
 It also strips Supabase credentials and unnecessary product/logo payload data from local invoice snapshots to reduce browser-storage usage. If cloud sync fails, the local invoice remains available and a message is shown.
 
-# CareClean Invoice Manager
+# Invoice Manager
 
-A mobile-friendly invoicing app for CareClean / Care New Zealand Limited.
+A mobile-friendly invoicing app for any small business.
 
-## CareClean defaults already included
+## Business settings are configurable
 - Company: Care New Zealand Limited
-- Trading name: CareClean
+- Trading name: configurable
 - Address: 120 Melksham Drive, Churton Park, Wellington 6037
 - Phone: 027 499 4445
-- Email: info@careclean.co.nz
+- Email: your verified sender
 - Bank account: 02-0506-0400503-000
 - Default payment terms: due 3 days after invoice date
 - Payment instruction: customers are told to use the invoice number as the bank payment reference
@@ -27,7 +27,7 @@ The Settings page lets you manage:
 - Products/services and default prices excluding GST
 - Invoice template selection: Classic, Minimal or Modern
 - Colour themes plus custom primary/accent colours
-- Custom logo upload, with an option to restore the original CareClean logo
+- Custom logo upload, with an option to restore the original business logo
 - Supabase database credentials
 
 Changing a product default price affects new invoice line items, but you can still override the price on any individual invoice.
@@ -44,11 +44,11 @@ Changing a product default price affects new invoice line items, but you can sti
 - CSV export for accounting
 - View, edit and delete invoices
 - Supabase cloud storage support
-- Email PDF support using Supabase Edge Function + Resend, sent as `info@careclean.co.nz`
+- Email PDF support using Supabase Edge Function + Resend, sent as `your verified sender`
 - LocalStorage demo mode if Supabase is not yet configured
 
 ## Still required
-Enter your CareClean GST number in Settings once you have it.
+Enter your GST number in Settings once you have it.
 
 ## Supabase setup
 1. Create a Supabase project.
@@ -57,10 +57,10 @@ Enter your CareClean GST number in Settings once you have it.
 4. The included SQL policy is intentionally simple for a single-owner starter deployment. Before public use, add Supabase Auth and owner-specific RLS policies.
 
 ## Email setup
-1. Create/verify `careclean.co.nz` in Resend (or adapt the function to another provider).
+1. Create/verify `your domain` in Resend (or adapt the function to another provider).
 2. In Supabase, set the secret `RESEND_API_KEY`.
 3. Deploy `supabase/functions/send-invoice` as `send-invoice`.
-4. The sender is configured as `CareClean <info@careclean.co.nz>`.
+4. The sender is configured as your verified sender.
 5. Your email provider must authorize that sender/domain.
 
 ## Deploying to Netlify

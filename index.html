@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#1976bd" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="CareClean Invoice" />
-  <title>CareClean Invoicing</title>
+  <meta name="apple-mobile-web-app-title" content="Invoice Manager" />
+  <title>Invoice Manager</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -16,7 +16,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><img id="brandLogo" src="assets/careclean-logo.jpg" alt="CareClean logo"><div><strong id="brandCompanyName">Care New Zealand Limited</strong><span>Invoice Manager</span></div></div>
+    <div class="brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Invoice Manager</strong><span>Invoice Manager</span></div></div>
     <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button></nav>
   </header>
   <main>
@@ -116,7 +116,7 @@
           <h2>Company details</h2>
           <div class="form-grid compact">
             <label>Company name<input id="sCompany"></label><label>Trading name<input id="sTrading"></label>
-            <label class="wide">Address<input id="sAddress"></label><label>Phone<input id="sPhone"></label><label>Email<input id="sEmail"></label><label>Website<input id="sWebsite" placeholder="https://careclean.co.nz"></label>
+            <label>Invoice prefix<input id="sInvoicePrefix" maxlength="10" placeholder="INV"></label><label class="wide">Address<input id="sAddress"></label><label>Phone<input id="sPhone"></label><label>Email<input id="sEmail"></label><label>Website<input id="sWebsite" placeholder="https://yourbusiness.co.nz"></label>
             <label>GST number<input id="sGst" placeholder="Enter GST number"></label><label>Default due days<input id="sDueDays" type="number" min="0" step="1"></label>
             <label>GST rate %<input id="sGstRate" type="number" min="0" step="0.01"></label><label class="default-check"><input id="sExtraFeeEnabled" type="checkbox"> Add another tax / service fee</label>
             <label>Additional fee/tax label<input id="sExtraFeeLabel" placeholder="Service fee"></label><label>Additional fee/tax %<input id="sExtraFeeRate" type="number" min="0" step="0.01"></label>
@@ -127,10 +127,10 @@
           <h2>Branding & invoice template</h2>
           <div class="form-grid compact">
             <label>Template<select id="sTemplate"><option value="classic">Classic</option><option value="minimal">Minimal</option><option value="modern">Modern</option><option value="pastel-cute">Pastel Cute</option><option value="pastel-elegant">Pastel Elegant</option></select></label>
-            <label>Colour theme<select id="sTheme"><option value="careclean">CareClean Navy & Green</option><option value="navy">Navy</option><option value="green">Green</option><option value="charcoal">Charcoal</option><option value="pastel-pink">Pastel Pink</option><option value="pastel-blue">Pastel Blue</option><option value="pastel-purple">Pastel Purple</option><option value="pastel-green">Pastel Green</option><option value="custom">Custom</option></select></label>
+            <label>Colour theme<select id="sTheme"><option value="professional">Professional Blue</option><option value="navy">Navy</option><option value="green">Green</option><option value="charcoal">Charcoal</option><option value="pastel-pink">Pastel Pink</option><option value="pastel-blue">Pastel Blue</option><option value="pastel-purple">Pastel Purple</option><option value="pastel-green">Pastel Green</option><option value="custom">Custom</option></select></label>
             <label>Primary colour<input id="sPrimary" type="color"></label><label>Accent colour<input id="sAccent" type="color"></label>
             <label class="wide">Logo<input id="sLogo" type="file" accept="image/png,image/jpeg,image/webp"><small>Leave blank to keep the current logo.</small></label>
-            <div class="wide logo-preview-wrap"><img id="settingsLogoPreview" class="settings-logo-preview" alt="Logo preview"><button class="secondary" id="resetLogo" type="button">Use original CareClean logo</button></div>
+            <div class="wide logo-preview-wrap"><img id="settingsLogoPreview" class="settings-logo-preview" alt="Logo preview"><button class="secondary" id="resetLogo" type="button">Remove logo</button></div>
           </div>
           <div class="design-preview-panel">
             <div class="preview-panel-head"><strong>Live invoice preview</strong><span>Changes appear here before you save them.</span></div>
@@ -158,7 +158,7 @@
           <label>Payment to label<input id="sTextPaymentTo" placeholder="Payment to"></label>
           <label>Payment reference label<input id="sTextPaymentReference" placeholder="Payment reference"></label>
           <label class="wide">Payment instruction<textarea id="sTextPaymentInstruction" rows="2" placeholder="Please use the invoice number above as your bank payment reference."></textarea></label>
-          <label class="wide">Default customer note / footer<textarea id="sTextDefaultNote" rows="3" placeholder="Thank you for choosing CareClean. Please pay within 3 days."></textarea></label>
+          <label class="wide">Default customer note / footer<textarea id="sTextDefaultNote" rows="3" placeholder="Thank you for your business. Please pay within {dueDays} days."></textarea></label>
         </div>
       </div>
 
@@ -177,7 +177,7 @@
       <div class="card">
         <h2>Database & email</h2>
         <div class="form-grid compact"><label>Supabase URL<input id="sSupabaseUrl" placeholder="https://xxxxx.supabase.co"></label><label>Supabase anon key<input id="sSupabaseKey" placeholder="Anon public key"></label></div>
-        <p class="hint">Email delivery is configured to send from <strong>info@careclean.co.nz</strong> through the included Supabase function once your email provider is connected.</p>
+        <p class="hint">Email delivery uses the included Supabase function. Configure the sender address for the business in the function environment before enabling email delivery.</p>
       </div>
 
       <div class="actions"><button class="primary" id="saveSettings">Save settings</button></div>

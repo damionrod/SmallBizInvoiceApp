@@ -9,10 +9,10 @@ serve(async (req) => {
       method:'POST',
       headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},
       body:JSON.stringify({
-        from:'CareClean <info@careclean.co.nz>',
+        from:Deno.env.get('RESEND_FROM') || 'Invoice Manager <onboarding@resend.dev>',
         to:[to],
-        subject:`CareClean invoice ${invoice.invoice_number}`,
-        html:`<p>Hi ${invoice.customer_name},</p><p>Please find attached your CareClean invoice <strong>${invoice.invoice_number}</strong> for <strong>$${Number(invoice.total).toFixed(2)}</strong>.</p><p>Thank you for choosing CareClean.</p><p>CareClean<br>Care New Zealand Limited<br>027 499 4445</p>`,
+        subject:`${invoice?.company_snapshot?.trading || invoice?.company_snapshot?.company || 'Invoice'} ${invoice.invoice_number}`, 
+        html:`<p>Hi ${invoice.customer_name || 'Customer'},</p><p>Please find attached invoice <strong>${invoice.invoice_number}</strong> for <strong>$${Number(invoice.total || 0).toFixed(2)}</strong>.</p><p>Thank you for your business.</p><p>${invoice?.company_snapshot?.trading || invoice?.company_snapshot?.company || 'Invoice Manager'}${invoice?.company_snapshot?.phone ? '<br>'+invoice.company_snapshot.phone : ''}${invoice?.company_snapshot?.email ? '<br>'+invoice.company_snapshot.email : ''}</p>`,
         attachments:[{filename,content:pdf_base64}]
       })
     });
