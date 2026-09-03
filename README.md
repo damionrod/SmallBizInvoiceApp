@@ -123,3 +123,16 @@ Adds individual/business customer profiles, categories, multiple contacts with o
 ## v15 patch
 - Blank customer DOB and contact DOB values are converted to database NULL before Supabase writes, so optional DOB fields no longer block invoice saving/emailing.
 - Email function payload now sends `pdfBase64` to match the deployed `send-invoice` Edge Function, so PDF attachments can be included correctly.
+
+## v16 email sending improvements
+- My Invoices now sends to the email address currently typed in the email box; it no longer overrides that address with the saved billing contact at send time.
+- Send button is red when an invoice has not been sent and green after a successful send.
+- The app records the last successful recipient and sent date/time.
+- Email status is kept locally immediately and can also be stored in Supabase for cross-device persistence.
+- Run `V16-SUPABASE-MIGRATION.sql` once in the Supabase SQL Editor to enable persistent cloud email-status tracking.
+
+## v17 Professional UI refresh
+- Refreshed the application shell with a modern blue accounting-dashboard header.
+- Improved cards, KPI tiles, tables, forms, buttons, spacing and visual hierarchy.
+- Preserved the existing invoice/customer/report/settings workflows and v16 email status behaviour.
+- Added responsive refinements for tablet, iPhone and Android layouts.

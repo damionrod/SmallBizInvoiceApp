@@ -79,3 +79,8 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 create index if not exists invoices_customer_id_idx on public.invoices(customer_id);
 create index if not exists customers_name_idx on public.customers(name);
+
+-- v16 invoice email delivery tracking
+alter table public.invoices add column if not exists email_sent boolean not null default false;
+alter table public.invoices add column if not exists last_sent_to text;
+alter table public.invoices add column if not exists last_sent_at timestamptz;
