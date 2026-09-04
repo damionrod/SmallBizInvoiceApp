@@ -507,3 +507,376 @@ alter table public.quotes add column if not exists quote_items jsonb not null de
 alter table public.quotes add column if not exists advance_enabled boolean not null default false;
 alter table public.quotes add column if not exists advance_percent numeric(7,3) not null default 0;
 alter table public.quotes add column if not exists advance_amount numeric(12,2) not null default 0;
+-- Invoice Manager v33
+-- Super Admin subscription controls + subscription-plan management hardening.
+-- Run this file once in Supabase SQL Editor before testing v33 admin changes.
+
+create or replace function public.v33_admin_set_subscription(
+  p_business_id uuid,
+  p_plan_id uuid,
+  p_status text
+)
+returns void
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  existing_id uuid;
+begin
+  if not public.is_super_admin() then
+    raise exception 'Super Admin access required';
+  end if;
+  if p_status not in ('trialing','active','past_due','suspended','canceled') then
+    raise exception 'Invalid subscription status';
+  end if;
+  if not exists(select 1 from public.businesses where id=p_business_id) then
+    raise exception 'Business not found';
+  end if;
+  if not exists(select 1 from public.plans where id=p_plan_id) then
+    raise exception 'Plan not found';
+  end if;
+
+  select id into existing_id from public.subscriptions where business_id=p_business_id;
+  if existing_id is null then
+    insert into public.subscriptions(
+      business_id,plan_id,status,trial_ends_at,current_period_start,current_period_end,updated_at
+    ) values (
+      p_business_id,p_plan_id,p_status,
+      case when p_status='trialing' then now()+interval '14 days' else null end,
+      now(),
+      case when p_status='trialing' then now()+interval '14 days' else now()+interval '1 month' end,
+      now()
+    );
+  else
+    update public.subscriptions
+       set plan_id=p_plan_id,
+           status=p_status,
+           trial_ends_at=case
+             when p_status='trialing' then coalesce(trial_ends_at,now()+interval '14 days')
+             else null
+           end,
+           updated_at=now()
+     where business_id=p_business_id;
+  end if;
+
+  update public.businesses
+     set status=case
+       when p_status='suspended' then 'suspended'
+       when p_status='canceled' then 'closed'
+       else 'active'
+     end,
+     updated_at=now()
+   where id=p_business_id;
+end $$;
+
+create or replace function public.v33_admin_set_suspension(
+  p_business_id uuid,
+  p_suspend boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  next_status text;
+  plan_slug text;
+begin
+  if not public.is_super_admin() then
+    raise exception 'Super Admin access required';
+  end if;
+  if not exists(select 1 from public.businesses where id=p_business_id) then
+    raise exception 'Business not found';
+  end if;
+
+  if p_suspend then
+    next_status := 'suspended';
+  else
+    select p.slug into plan_slug
+      from public.subscriptions s
+      join public.plans p on p.id=s.plan_id
+     where s.business_id=p_business_id;
+    next_status := case when plan_slug='trial' then 'trialing' else 'active' end;
+  end if;
+
+  update public.subscriptions
+     set status=next_status,updated_at=now()
+   where business_id=p_business_id;
+
+  if not found then
+    raise exception 'Subscription not found for this business';
+  end if;
+
+  update public.businesses
+     set status=case when p_suspend then 'suspended' else 'active' end,
+         updated_at=now()
+   where id=p_business_id;
+end $$;
+
+create or replace function public.v33_admin_extend_trial(
+  p_business_id uuid,
+  p_days integer default 14
+)
+returns void
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  new_end timestamptz;
+begin
+  if not public.is_super_admin() then
+    raise exception 'Super Admin access required';
+  end if;
+  if p_days < 1 or p_days > 365 then
+    raise exception 'Trial extension must be between 1 and 365 days';
+  end if;
+
+  new_end := now() + make_interval(days=>p_days);
+  update public.subscriptions
+     set status='trialing',
+         trial_ends_at=new_end,
+         current_period_start=now(),
+         current_period_end=new_end,
+         updated_at=now()
+   where business_id=p_business_id;
+  if not found then
+    raise exception 'Subscription not found for this business';
+  end if;
+
+  update public.businesses set status='active',updated_at=now() where id=p_business_id;
+end $$;
+
+create or replace function public.v33_admin_upsert_plan(
+  p_id uuid,
+  p_slug text,
+  p_name text,
+  p_description text,
+  p_monthly_price numeric,
+  p_invoice_limit integer,
+  p_included_modules text[],
+  p_stripe_price_id text,
+  p_is_public boolean,
+  p_sort_order integer
+)
+returns uuid
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  result_id uuid;
+  clean_slug text;
+begin
+  if not public.is_super_admin() then
+    raise exception 'Super Admin access required';
+  end if;
+  clean_slug := lower(trim(p_slug));
+  if clean_slug is null or clean_slug='' or p_name is null or trim(p_name)='' then
+    raise exception 'Plan name and slug are required';
+  end if;
+  if p_monthly_price < 0 then
+    raise exception 'Monthly price cannot be negative';
+  end if;
+  if p_invoice_limit is not null and p_invoice_limit < 0 then
+    raise exception 'Invoice limit cannot be negative';
+  end if;
+
+  if p_id is null then
+    insert into public.plans(
+      slug,name,description,monthly_price,invoice_limit,included_modules,
+      stripe_price_id,is_public,sort_order,updated_at
+    ) values (
+      clean_slug,trim(p_name),nullif(trim(coalesce(p_description,'')),''),coalesce(p_monthly_price,0),
+      p_invoice_limit,coalesce(p_included_modules,array['invoice_manager']::text[]),
+      nullif(trim(coalesce(p_stripe_price_id,'')),''),coalesce(p_is_public,true),coalesce(p_sort_order,0),now()
+    ) returning id into result_id;
+  else
+    update public.plans
+       set slug=clean_slug,
+           name=trim(p_name),
+           description=nullif(trim(coalesce(p_description,'')),''),
+           monthly_price=coalesce(p_monthly_price,0),
+           invoice_limit=p_invoice_limit,
+           included_modules=coalesce(p_included_modules,array['invoice_manager']::text[]),
+           stripe_price_id=nullif(trim(coalesce(p_stripe_price_id,'')),''),
+           is_public=coalesce(p_is_public,true),
+           sort_order=coalesce(p_sort_order,0),
+           updated_at=now()
+     where id=p_id
+     returning id into result_id;
+    if result_id is null then raise exception 'Plan not found'; end if;
+  end if;
+  return result_id;
+end $$;
+
+revoke all on function public.v33_admin_set_subscription(uuid,uuid,text) from public, anon;
+revoke all on function public.v33_admin_set_suspension(uuid,boolean) from public, anon;
+revoke all on function public.v33_admin_extend_trial(uuid,integer) from public, anon;
+revoke all on function public.v33_admin_upsert_plan(uuid,text,text,text,numeric,integer,text[],text,boolean,integer) from public, anon;
+
+grant execute on function public.v33_admin_set_subscription(uuid,uuid,text) to authenticated;
+grant execute on function public.v33_admin_set_suspension(uuid,boolean) to authenticated;
+grant execute on function public.v33_admin_extend_trial(uuid,integer) to authenticated;
+grant execute on function public.v33_admin_upsert_plan(uuid,text,text,text,numeric,integer,text[],text,boolean,integer) to authenticated;
+-- Invoice Manager v34
+-- Secure Super Admin payment-gateway configuration.
+-- Run once in Supabase SQL Editor after V33-SUBSCRIPTIONS-ADMIN-SIGNUP.sql.
+-- API secrets are stored in Supabase Vault, not in browser localStorage or public tables.
+
+create schema if not exists vault;
+create extension if not exists supabase_vault with schema vault;
+
+create table if not exists public.payment_provider_settings (
+  provider text primary key,
+  display_name text not null,
+  enabled boolean not null default false,
+  mode text not null default 'test' check (mode in ('test','live')),
+  public_config jsonb not null default '{}'::jsonb,
+  secret_id uuid null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint payment_provider_name_check check (provider ~ '^[a-z0-9_]+$')
+);
+
+alter table public.payment_provider_settings enable row level security;
+revoke all on table public.payment_provider_settings from anon, authenticated;
+grant select on table public.payment_provider_settings to service_role;
+
+-- Seed provider records without credentials.
+insert into public.payment_provider_settings(provider,display_name,enabled,mode,public_config)
+values
+  ('stripe','Stripe',false,'test','{}'::jsonb),
+  ('paypal','PayPal',false,'test','{}'::jsonb),
+  ('mollie','Mollie',false,'test','{}'::jsonb),
+  ('other','Other / future gateway',false,'test','{}'::jsonb)
+on conflict (provider) do nothing;
+
+create or replace function public.v34_admin_get_payment_providers()
+returns table(
+  provider text,
+  display_name text,
+  enabled boolean,
+  mode text,
+  public_config jsonb,
+  has_secret boolean,
+  updated_at timestamptz
+)
+language plpgsql
+security definer
+set search_path=public,vault
+as $$
+begin
+  if not public.is_super_admin() then
+    raise exception 'Super Admin access required';
+  end if;
+
+  return query
+  select p.provider,p.display_name,p.enabled,p.mode,p.public_config,(p.secret_id is not null),p.updated_at
+  from public.payment_provider_settings p
+  order by case p.provider when 'stripe' then 1 when 'paypal' then 2 when 'mollie' then 3 else 99 end,p.provider;
+end $$;
+
+create or replace function public.v34_admin_save_payment_provider(
+  p_provider text,
+  p_enabled boolean,
+  p_mode text,
+  p_display_name text,
+  p_public_config jsonb,
+  p_secret_patch jsonb default null
+)
+returns void
+language plpgsql
+security definer
+set search_path=public,vault
+as $$
+declare
+  v_provider text := lower(trim(coalesce(p_provider,'')));
+  v_secret_id uuid;
+  v_existing_secret jsonb := '{}'::jsonb;
+  v_merged_secret jsonb := '{}'::jsonb;
+  v_secret_name text;
+begin
+  if not public.is_super_admin() then
+    raise exception 'Super Admin access required';
+  end if;
+  if v_provider not in ('stripe','paypal','mollie','other') then
+    raise exception 'Unsupported payment provider';
+  end if;
+  if p_mode not in ('test','live') then
+    raise exception 'Mode must be test or live';
+  end if;
+  -- v34 only has a live checkout adapter for Stripe. Other credentials can be stored safely now.
+  if coalesce(p_enabled,false) and v_provider <> 'stripe' then
+    raise exception '% checkout is not enabled in this version yet', initcap(v_provider);
+  end if;
+
+  select secret_id into v_secret_id
+  from public.payment_provider_settings
+  where provider=v_provider;
+
+  v_secret_name := 'smallbiz_payment_' || v_provider;
+  if v_secret_id is null then
+    select id into v_secret_id from vault.secrets where name=v_secret_name limit 1;
+  end if;
+
+  if p_secret_patch is not null and p_secret_patch <> '{}'::jsonb then
+    if v_secret_id is not null then
+      begin
+        select decrypted_secret::jsonb into v_existing_secret
+        from vault.decrypted_secrets where id=v_secret_id;
+      exception when others then
+        v_existing_secret := '{}'::jsonb;
+      end;
+    end if;
+    v_merged_secret := coalesce(v_existing_secret,'{}'::jsonb) || p_secret_patch;
+
+    if v_secret_id is null then
+      select vault.create_secret(v_merged_secret::text,v_secret_name,'SaaS payment gateway credentials for '||v_provider)
+      into v_secret_id;
+    else
+      perform vault.update_secret(v_secret_id,v_merged_secret::text,v_secret_name,'SaaS payment gateway credentials for '||v_provider);
+    end if;
+  end if;
+
+  insert into public.payment_provider_settings(provider,display_name,enabled,mode,public_config,secret_id,updated_at)
+  values(v_provider,coalesce(nullif(trim(p_display_name),''),initcap(v_provider)),coalesce(p_enabled,false),p_mode,coalesce(p_public_config,'{}'::jsonb),v_secret_id,now())
+  on conflict(provider) do update set
+    display_name=excluded.display_name,
+    enabled=excluded.enabled,
+    mode=excluded.mode,
+    public_config=excluded.public_config,
+    secret_id=coalesce(excluded.secret_id,public.payment_provider_settings.secret_id),
+    updated_at=now();
+end $$;
+
+-- Server-only helper for Edge Functions. Never grant this to browser roles.
+create or replace function public.v34_get_payment_provider_secret(p_provider text)
+returns text
+language plpgsql
+security definer
+set search_path=public,vault
+as $$
+declare
+  v_secret text;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception 'Service role required';
+  end if;
+
+  select d.decrypted_secret into v_secret
+  from public.payment_provider_settings p
+  join vault.decrypted_secrets d on d.id=p.secret_id
+  where p.provider=lower(trim(p_provider));
+
+  return v_secret;
+end $$;
+
+revoke all on function public.v34_admin_get_payment_providers() from public,anon;
+revoke all on function public.v34_admin_save_payment_provider(text,boolean,text,text,jsonb,jsonb) from public,anon;
+revoke all on function public.v34_get_payment_provider_secret(text) from public,anon,authenticated;
+
+grant execute on function public.v34_admin_get_payment_providers() to authenticated;
+grant execute on function public.v34_admin_save_payment_provider(text,boolean,text,text,jsonb,jsonb) to authenticated;
+grant execute on function public.v34_get_payment_provider_secret(text) to service_role;

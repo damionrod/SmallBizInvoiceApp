@@ -299,3 +299,78 @@ Run `V30-QUOTE-UPGRADE.sql` once before using the v30 quote advance feature. It 
 - Suspended/canceled businesses are blocked from the application with a clear account-unavailable screen and Sign out option.
 - Super Admin Suspend/Activate now updates both the subscription and business status and reports database errors instead of failing silently.
 - No database migration required; existing business_modules.status already supports suspended.
+
+## v33 — Subscription signup, plan management and suspension fix
+
+Version 33 adds the subscription flow requested for SaaS onboarding and hardens Super Admin subscription controls.
+
+### What changed
+- Fixed **Suspend / Activate** so it no longer depends on an empty nested subscription UUID. Admin actions now operate by `business_id` through guarded database RPC functions.
+- Fixed **change plan/status** for a business in Super Admin using the same guarded RPC layer.
+- Added **Create subscription plan** to Super Admin.
+- Expanded **Edit plan** so Super Admin can change plan name, slug, description, monthly price, invoice limit, Stripe Price ID, included modules, public visibility and sort order.
+- Signup now includes a required **Subscription plan** selector.
+- **Trial** signup creates the account without payment.
+- Selecting a **paid plan** stores the selected plan on signup and automatically continues to Stripe Checkout once the user has an authenticated session. If email confirmation is enabled, the payment step starts after confirmation/login.
+- Paid-plan checkout requires that plan to have a valid Stripe Price ID in Super Admin.
+- Cache-busting has been moved to `v=33` for the SaaS, invoice and job-costing scripts.
+
+### Required Supabase step for v33
+Run this file once in Supabase SQL Editor before testing the new Super Admin actions:
+
+`V33-SUBSCRIPTIONS-ADMIN-SIGNUP.sql`
+
+This migration creates Super-Admin-only RPC functions for plan updates, plan creation, business plan/status changes, trial extensions and suspend/activate. It does not delete or recreate your existing data.
+
+### Stripe requirements for paid signup
+Keep the existing Stripe Edge Functions deployed (`create-checkout`, `create-portal`, `stripe-webhook`) and ensure the existing secrets are configured:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY` (provided by Supabase runtime where applicable)
+
+For each paid plan, enter its Stripe recurring **Price ID** (`price_...`) in Super Admin. A customer selecting that paid plan is then sent to Stripe Checkout after account creation/authentication. The webhook changes the business subscription to the purchased plan after successful checkout.
+
+### Recommended v33 test
+1. Run `V33-SUBSCRIPTIONS-ADMIN-SIGNUP.sql`.
+2. Deploy the v33 ZIP to Netlify.
+3. Log in as Damien → Super Admin.
+4. Edit an existing plan and save it; reload and confirm the change persisted.
+5. Create a small test paid plan and add a Stripe test-mode recurring Price ID.
+6. Suspend Fixfast; refresh Shamal's separate browser session and confirm the account is blocked.
+7. Activate Fixfast and confirm access returns.
+8. Open Create account in a private browser, choose Trial and verify no Stripe page opens.
+9. Create another test account, choose the paid test plan, confirm the account/email, and verify Stripe Checkout opens.
+
+## v34 — Super Admin payment gateway settings
+
+v34 adds a secure **Super Admin → Payment gateway settings** section.
+
+### What is new
+- Stripe API credentials can now be entered and changed from Super Admin without editing the website code again.
+- Stripe settings include Test/Live mode, Publishable Key, Secret Key, Webhook Signing Secret, Enable/Disable, and a connection test.
+- Secret values are stored in **Supabase Vault** and are not written to browser localStorage or returned to the admin UI after saving.
+- `create-checkout`, `create-portal`, and `stripe-webhook` now read Stripe credentials from the saved payment settings. Existing Supabase environment secrets remain as a backwards-compatible fallback.
+- PayPal, Mollie, and Other/Future Gateway cards are included so credentials/configuration can be stored securely now.
+- Only Stripe has an active subscription-checkout adapter in v34. Merely storing PayPal/Mollie/Other credentials cannot make those APIs compatible automatically; each provider needs its own checkout/webhook adapter before it can process subscriptions.
+
+### One-time v34 setup
+1. Run `V34-PAYMENT-GATEWAYS.sql` once in Supabase SQL Editor. This enables Supabase Vault and creates the secure gateway settings functions.
+2. Redeploy the website ZIP to Netlify.
+3. Redeploy these Supabase Edge Functions from the v34 package:
+   - `create-checkout`
+   - `create-portal`
+   - `stripe-webhook`
+   - `test-payment-provider` (new)
+4. Keep `stripe-webhook` configured as a public webhook endpoint (JWT verification off), as before.
+5. After that, future Stripe API-key changes are done from **Super Admin → Payment gateway settings** and do not require another website code deployment.
+
+### Later, when a Stripe account is ready
+1. In Super Admin, open Payment gateway settings → Stripe.
+2. Start in Test / Sandbox mode.
+3. Paste the Stripe Publishable Key, Secret Key, and Webhook Signing Secret.
+4. Save Stripe and click **Test connection**.
+5. Enable Stripe for checkout and save again.
+6. Add the Stripe recurring Price ID to each paid Subscription Plan.
+7. Test a new paid signup in an Incognito/private browser window.
+
+The Stripe webhook URL is shown directly in the Super Admin payment card so it can be copied into the Stripe Dashboard when the account is configured.

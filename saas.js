@@ -18,6 +18,7 @@
     }
     state.client=window.supabase.createClient(C.supabaseUrl,C.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     bindAuthUI();
+    await loadSignupPlans();
     const {data:{session}}=await state.client.auth.getSession();
     if(session) await enter(session); else q('authShell').classList.add('open');
     state.client.auth.onAuthStateChange(async (event,session)=>{
@@ -37,21 +38,48 @@
       if(error)message(error.message,'error');
     };
     q('signupForm').onsubmit=async e=>{
-      e.preventDefault(); message('Creating your account…');
+      e.preventDefault();
+      const selectedPlan=q('signupPlan')?.value||'trial';
+      const submit=q('signupSubmitBtn');
+      if(!selectedPlan){message('Choose a subscription plan first.','error');return}
+      if(submit){submit.disabled=true;submit.textContent=selectedPlan==='trial'?'Creating account…':'Creating account…'}
+      message(selectedPlan==='trial'?'Creating your trial account…':'Creating your account…');
       const email=q('signupEmail').value.trim();
       const {data,error}=await state.client.auth.signUp({
         email,password:q('signupPassword').value,
-        options:{data:{full_name:q('signupName').value.trim(),business_name:q('signupBusiness').value.trim(),business_address:q('signupAddress').value.trim(),phone:q('signupPhone').value.trim()}}
+        options:{data:{full_name:q('signupName').value.trim(),business_name:q('signupBusiness').value.trim(),business_address:q('signupAddress').value.trim(),phone:q('signupPhone').value.trim(),selected_plan_slug:selectedPlan}}
       });
+      if(submit){submit.disabled=false;submit.textContent='Create account'}
       if(error){message(error.message,'error');return}
-      if(data.session){message('Account created. Loading your business…','success');await enter(data.session)}
-      else message('Account created. Check your email to confirm your address, then log in.','success');
+      if(data.session){
+        message(selectedPlan==='trial'?'Account created. Loading your business…':'Account created. Opening secure payment…','success');
+        await enter(data.session);
+      } else {
+        message(selectedPlan==='trial'?'Account created. Check your email to confirm your address, then log in.':'Account created. Confirm your email, then log in to continue to secure Stripe payment.','success');
+      }
     };
     q('forgotPasswordBtn').onclick=async()=>{
       const email=q('loginEmail').value.trim(); if(!email)return message('Enter your email address first.','error');
       const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
       message(error?error.message:'Password reset email sent.',error?'error':'success');
     };
+  }
+
+  async function loadSignupPlans(){
+    const select=q('signupPlan'); if(!select||!state.client)return;
+    const {data:plans,error}=await state.client.from('plans').select('id,slug,name,description,monthly_price,invoice_limit,is_public,sort_order,stripe_price_id').order('sort_order');
+    if(error){select.innerHTML='<option value="trial">Trial</option>'; if(q('signupPlanSummary'))q('signupPlanSummary').textContent='Plan list could not be loaded. Trial is available.'; return}
+    const available=(plans||[]).filter(p=>p.slug==='trial'||p.is_public);
+    select.innerHTML=available.map(p=>`<option value="${escapeHtml(p.slug)}">${escapeHtml(p.name)} — ${p.slug==='trial'?'Free trial':('$'+Number(p.monthly_price||0).toFixed(2)+'/month')}</option>`).join('');
+    if(available.some(p=>p.slug==='trial'))select.value='trial';
+    const update=()=>{
+      const plan=available.find(p=>p.slug===select.value);
+      if(!q('signupPlanSummary')||!plan)return;
+      const limit=plan.invoice_limit==null?'Unlimited invoices':`${plan.invoice_limit} invoices per period`;
+      const pay=plan.slug==='trial'?'No payment required.':(plan.stripe_price_id?'Secure online payment follows account creation.':'Payment will be available once the plan and payment gateway are configured by the platform owner.');
+      q('signupPlanSummary').textContent=`${plan.description||''}${plan.description?' · ':''}${limit} · ${pay}`;
+    };
+    select.onchange=update; update();
   }
 
   async function enter(session){
@@ -61,13 +89,14 @@
     await migrateLegacyLocalData();
     q('authShell').classList.remove('open'); document.body.classList.remove('auth-locked');
     setupAccountUI();
+    if(await maybeContinueSignupCheckout())return;
     // A customer must never be able to retain or enter the owner route manually.
     if(location.hash==='#super-admin' && state.profile?.is_super_admin!==true){
       history.replaceState(null,'',location.pathname+location.search);
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=32'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=32';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=34'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=34';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -121,6 +150,19 @@
       const {error}=await state.client.from('invoices').insert(row); if(!error)existing.add(inv.invoice_number);else{migrationFailures++;console.warn('Legacy invoice migration failed',error)}
     }
     if(migrationFailures){localStorage.setItem('v22_migration_warning',String(migrationFailures));return;}localStorage.setItem(marker,'1');localStorage.setItem('v22_legacy_claimed_by',state.business.id);
+  }
+
+  async function maybeContinueSignupCheckout(){
+    const slug=String(state.user?.user_metadata?.selected_plan_slug||'trial').trim();
+    if(!slug||slug==='trial')return false;
+    const billing=new URLSearchParams(location.search).get('billing');
+    if(billing==='success'){history.replaceState(null,'',location.pathname+location.hash);return false;}
+    if(billing==='cancel'){history.replaceState(null,'',location.pathname+location.hash);setTimeout(()=>showPlans().catch(console.warn),500);return false;}
+    const sub=await getSubscription();
+    if(sub?.plans?.slug===slug && ['active','trialing'].includes(sub.status) && sub.stripe_subscription_id)return false;
+    if(sub?.plans?.slug===slug && sub.status==='active')return false;
+    const result=await startCheckout(slug,null,{silent:true});
+    return result===true;
   }
 
   async function openAdminPortal(){
@@ -187,6 +229,7 @@
     if(q('closePlanModal'))q('closePlanModal').onclick=()=>q('planModal').classList.remove('open');
     if(q('adminRefresh'))q('adminRefresh').onclick=renderAdmin;
     if(q('adminReloadPlans'))q('adminReloadPlans').onclick=renderAdminPlans;
+    if(q('adminReloadPayments'))q('adminReloadPayments').onclick=renderPaymentSettings;
     if(q('adminReloadModules'))q('adminReloadModules').onclick=renderAdminModules;
     if(q('adminAddModule'))q('adminAddModule').onclick=addAdminModule;
     if(q('adminSearch'))q('adminSearch').oninput=renderAdmin;
@@ -272,11 +315,18 @@
     root.querySelectorAll('[data-choose-plan]').forEach(b=>b.onclick=()=>startCheckout(b.dataset.choosePlan,b)); q('planModal').classList.add('open');
   }
 
-  async function startCheckout(slug,btn){
-    btn.disabled=true;btn.textContent='Opening checkout…';
+  async function startCheckout(slug,btn,opts={}){
+    const original=btn?.textContent||'Choose plan';
+    if(btn){btn.disabled=true;btn.textContent='Opening checkout…'}
     const {data,error}=await state.client.functions.invoke('create-checkout',{body:{planSlug:slug,returnUrl:location.origin}});
-    if(error||!data?.url){btn.disabled=false;btn.textContent='Choose plan';alert((error?.message||data?.error||'Billing is not configured yet.')+'\n\nThe SaaS app is ready; configure Stripe keys and price IDs to activate purchases.');return}
-    location.href=data.url;
+    if(error||!data?.url){
+      if(btn){btn.disabled=false;btn.textContent=original}
+      const text=error?.message||data?.error||'Billing is not configured yet.';
+      if(!opts.silent)alert(text+'\n\nConfigure an enabled payment gateway and the plan payment ID in Super Admin to activate purchases.');
+      else message(text,'error');
+      return false;
+    }
+    location.href=data.url; return true;
   }
 
   function openAdminUserModal(){
@@ -322,52 +372,178 @@
     q('moduleModal').classList.remove('open');await renderAdmin();
   }
 
+  function paymentProviderDefinitions(){
+    const webhook=(C.supabaseUrl||'').replace(/\/$/,'')+'/functions/v1/stripe-webhook';
+    return [
+      {
+        provider:'stripe',name:'Stripe',supported:true,
+        description:'Cards and subscription billing. This gateway is fully wired into the current signup and billing flow.',
+        publicFields:[{key:'publishable_key',label:'Publishable key',placeholder:'pk_test_... or pk_live_...'}],
+        secretFields:[{key:'secret_key',label:'Secret key',placeholder:'sk_test_... or sk_live_...'},{key:'webhook_secret',label:'Webhook signing secret',placeholder:'whsec_...'}],
+        webhook
+      },
+      {
+        provider:'paypal',name:'PayPal',supported:false,
+        description:'Credentials can be stored now so the platform is ready for a PayPal checkout adapter later.',
+        publicFields:[{key:'client_id',label:'Client ID',placeholder:'PayPal client ID'}],
+        secretFields:[{key:'client_secret',label:'Client secret',placeholder:'PayPal client secret'},{key:'webhook_id',label:'Webhook ID',placeholder:'Optional webhook ID'}]
+      },
+      {
+        provider:'mollie',name:'Mollie',supported:false,
+        description:'Credentials can be stored now. Mollie requires its own checkout and recurring-payment integration before it can process subscriptions.',
+        publicFields:[],
+        secretFields:[{key:'api_key',label:'API key',placeholder:'test_... or live_...'}]
+      },
+      {
+        provider:'other',name:'Other / future gateway',supported:false,
+        description:'Reserve configuration for another gateway. Saving credentials does not automatically create an API integration.',
+        publicFields:[{key:'provider_name',label:'Provider name',placeholder:'e.g. Windcave'}],
+        secretFields:[{key:'api_key',label:'API key / token',placeholder:'Secret API credential'}]
+      }
+    ];
+  }
+
+  async function renderPaymentSettings(){
+    if(!state.profile?.is_super_admin||!q('adminPaymentGrid'))return;
+    const root=q('adminPaymentGrid');
+    root.innerHTML='<p class="hint">Loading payment settings…</p>';
+    if(q('adminPaymentMessage'))q('adminPaymentMessage').textContent='';
+    const {data,error}=await state.client.rpc('v34_admin_get_payment_providers');
+    if(error){root.innerHTML='<p class="hint">Payment settings are unavailable until V34-PAYMENT-GATEWAYS.sql is run.</p>';if(q('adminPaymentMessage'))q('adminPaymentMessage').textContent=error.message;return}
+    const saved=new Map((data||[]).map(x=>[x.provider,x]));
+    root.innerHTML=paymentProviderDefinitions().map(def=>{
+      const row=saved.get(def.provider)||{};
+      const cfg=row.public_config||{};
+      const configured=row.has_secret===true;
+      const enabled=row.enabled===true;
+      const status=configured?(enabled?'Enabled':'Configured'):'Not configured';
+      const statusClass=enabled?'enabled':(configured?'ready':'');
+      const publicFields=def.publicFields.map(f=>`<label class="wide">${escapeHtml(f.label)}<input data-pay-public="${f.key}" value="${escapeHtml(cfg[f.key]||'')}" placeholder="${escapeHtml(f.placeholder||'')}"></label>`).join('');
+      const secretFields=def.secretFields.map(f=>`<label class="wide">${escapeHtml(f.label)}<input type="password" data-pay-secret="${f.key}" value="" placeholder="${configured?'Saved securely — enter only to replace/add':escapeHtml(f.placeholder||'')}"></label>`).join('');
+      const webhook=def.webhook?`<label class="wide">Stripe webhook URL<div class="gateway-webhook">${escapeHtml(def.webhook)}</div></label>`:'';
+      return `<div class="payment-gateway-card" data-payment-card="${def.provider}"><div class="gateway-head"><div><h3>${escapeHtml(def.name)}</h3><p>${escapeHtml(def.description)}</p></div><span class="gateway-status ${statusClass}">${status}</span></div><div class="gateway-fields"><label>Mode<select data-pay-mode><option value="test" ${row.mode!=='live'?'selected':''}>Test / Sandbox</option><option value="live" ${row.mode==='live'?'selected':''}>Live</option></select></label><label>Gateway status<select data-pay-enabled><option value="false" ${!enabled?'selected':''}>Disabled</option><option value="true" ${enabled?'selected':''} ${!def.supported?'disabled':''}>Enabled for checkout</option></select></label>${publicFields}${secretFields}${webhook}</div>${configured?'<div class="gateway-secret-state">✓ Secret credentials are stored securely in Supabase Vault.</div>':''}<p class="gateway-note ${def.supported?'':'warning'}">${def.supported?'Once enabled, the current subscription checkout can use this provider.':'Configuration storage is ready, but this provider is not yet an active checkout adapter.'}</p><div class="gateway-actions"><button class="primary" type="button" data-payment-save="${def.provider}">Save ${escapeHtml(def.name)}</button>${def.supported?`<button class="secondary" type="button" data-payment-test="${def.provider}">Test connection</button>`:''}</div></div>`;
+    }).join('');
+    root.querySelectorAll('[data-payment-save]').forEach(btn=>btn.onclick=()=>savePaymentProvider(btn.dataset.paymentSave));
+    root.querySelectorAll('[data-payment-test]').forEach(btn=>btn.onclick=()=>testPaymentProvider(btn.dataset.paymentTest,btn));
+  }
+
+  async function savePaymentProvider(provider){
+    const card=q('adminPaymentGrid')?.querySelector(`[data-payment-card="${provider}"]`);if(!card)return;
+    const def=paymentProviderDefinitions().find(x=>x.provider===provider);if(!def)return;
+    const publicConfig={};card.querySelectorAll('[data-pay-public]').forEach(i=>{if(i.value.trim())publicConfig[i.dataset.payPublic]=i.value.trim()});
+    const secretPatch={};card.querySelectorAll('[data-pay-secret]').forEach(i=>{if(i.value.trim())secretPatch[i.dataset.paySecret]=i.value.trim()});
+    const enabled=card.querySelector('[data-pay-enabled]')?.value==='true';
+    if(enabled&&!def.supported){alert(`${def.name} is not an active checkout adapter yet. Its credentials can be saved, but it cannot be enabled for payments in this version.`);return}
+    const btn=card.querySelector(`[data-payment-save="${provider}"]`),original=btn?.textContent||'Save';if(btn){btn.disabled=true;btn.textContent='Saving…'}
+    const {error}=await state.client.rpc('v34_admin_save_payment_provider',{p_provider:provider,p_enabled:enabled,p_mode:card.querySelector('[data-pay-mode]')?.value||'test',p_display_name:def.name,p_public_config:publicConfig,p_secret_patch:Object.keys(secretPatch).length?secretPatch:null});
+    if(btn){btn.disabled=false;btn.textContent=original}
+    if(error){alert('Could not save payment settings: '+error.message);return}
+    if(q('adminPaymentMessage')){q('adminPaymentMessage').textContent=`${def.name} settings saved.`;setTimeout(()=>{if(q('adminPaymentMessage'))q('adminPaymentMessage').textContent=''},2500)}
+    await renderPaymentSettings();
+  }
+
+  async function testPaymentProvider(provider,btn){
+    if(provider!=='stripe')return;
+    const original=btn?.textContent||'Test connection';if(btn){btn.disabled=true;btn.textContent='Testing…'}
+    const {data,error}=await state.client.functions.invoke('test-payment-provider',{body:{provider}});
+    if(btn){btn.disabled=false;btn.textContent=original}
+    if(error||data?.error){alert('Connection test failed: '+(data?.error||error?.message||'Unknown error'));return}
+    alert(`Stripe connection successful${data?.account_name?' — '+data.account_name:''}.`);
+  }
+
   async function renderAdmin(){
     if(!state.profile?.is_super_admin)return;
     const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles(id,full_name,email,role),subscriptions(id,status,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
-    if(error){console.warn(error);return}
+    if(error){console.warn(error);alert('Could not load Super Admin businesses: '+error.message);return}
+    const asArray=x=>Array.isArray(x)?x:(x?[x]:[]);
+    const getSub=b=>asArray(b.subscriptions)[0]||{};
+    const getProfiles=b=>asArray(b.profiles);
     const qtxt=(q('adminSearch')?.value||'').toLowerCase(),sf=q('adminStatusFilter')?.value||'';
-    let rows=(businesses||[]).filter(b=>{const owner=(b.profiles||[]).find(p=>p.role==='owner')||b.profiles?.[0]||{};const sub=b.subscriptions?.[0]||{};return(!qtxt||[b.name,owner.full_name,owner.email].join(' ').toLowerCase().includes(qtxt))&&(!sf||sub.status===sf)});
-    q('adminBusinessCount').textContent=(businesses||[]).length;q('adminUserCount').textContent=(businesses||[]).reduce((n,b)=>n+(b.profiles?.length||0),0);q('adminActiveCount').textContent=(businesses||[]).filter(b=>b.subscriptions?.[0]?.status==='active').length;q('adminTrialCount').textContent=(businesses||[]).filter(b=>b.subscriptions?.[0]?.status==='trialing').length;
-    const {data:plans}=await state.client.from('plans').select('id,name,slug,invoice_limit').order('sort_order');
+    let rows=(businesses||[]).filter(b=>{const profiles=getProfiles(b),owner=profiles.find(p=>p.role==='owner')||profiles[0]||{},sub=getSub(b);return(!qtxt||[b.name,owner.full_name,owner.email].join(' ').toLowerCase().includes(qtxt))&&(!sf||sub.status===sf)});
+    q('adminBusinessCount').textContent=(businesses||[]).length;
+    q('adminUserCount').textContent=(businesses||[]).reduce((n,b)=>n+getProfiles(b).length,0);
+    q('adminActiveCount').textContent=(businesses||[]).filter(b=>getSub(b).status==='active').length;
+    q('adminTrialCount').textContent=(businesses||[]).filter(b=>getSub(b).status==='trialing').length;
+    const {data:plans,error:planError}=await state.client.from('plans').select('id,name,slug,invoice_limit').order('sort_order');
+    if(planError){alert('Could not load subscription plans: '+planError.message);return}
     const body=q('adminBusinessRows'); body.innerHTML='';
     for(const b of rows){
-      const owner=(b.profiles||[]).find(p=>p.role==='owner')||b.profiles?.[0]||{}, sub=b.subscriptions?.[0]||{}, plan=sub.plans||{};
-      const overrideBySlug=new Map((b.business_modules||[]).map(x=>[x.modules?.slug,x.status]));
-      const moduleNames=new Map((b.business_modules||[]).map(x=>[x.modules?.slug,x.modules?.name]));
+      const profiles=getProfiles(b),owner=profiles.find(p=>p.role==='owner')||profiles[0]||{},sub=getSub(b),plan=sub.plans||{};
+      const overrideBySlug=new Map(asArray(b.business_modules).map(x=>[x.modules?.slug,x.status]));
+      const moduleNames=new Map(asArray(b.business_modules).map(x=>[x.modules?.slug,x.modules?.name]));
       const effectiveSlugs=new Set(plan.included_modules||[]);
       for(const [slug,status] of overrideBySlug){if(!slug)continue;if(['active','trialing'].includes(status))effectiveSlugs.add(slug);else if(['suspended','canceled'].includes(status))effectiveSlugs.delete(slug)}
       const mods=[...effectiveSlugs].map(slug=>moduleNames.get(slug)||human(slug));
       let countQ=state.client.from('invoices').select('id',{count:'exact',head:true}).eq('business_id',b.id);if(sub.current_period_start)countQ=countQ.gte('created_at',sub.current_period_start);if(sub.current_period_end)countQ=countQ.lt('created_at',sub.current_period_end);const {count}=await countQ;
-      const tr=document.createElement('tr'); tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong><small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}" data-sub="${sub.id||''}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}" data-sub="${sub.id||''}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-sub="${sub.id||''}">${sub.status==='suspended'?'Activate':'Suspend'}</button></div></td>`; body.appendChild(tr);
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong><small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button></div></td>`;
+      body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
-      const bid=btn.dataset.adminSave,sid=btn.dataset.sub,planId=body.querySelector(`[data-admin-plan="${bid}"]`).value,status=body.querySelector(`[data-admin-status="${bid}"]`).value;
-      const {error}=await state.client.from('subscriptions').update({plan_id:planId,status,updated_at:new Date().toISOString()}).eq('id',sid);
-      if(error){alert('Could not update subscription: '+error.message);return}
-      const businessStatus=status==='suspended'?'suspended':(status==='canceled'?'closed':'active');
-      await state.client.from('businesses').update({status:businessStatus,updated_at:new Date().toISOString()}).eq('id',bid);
+      const bid=btn.dataset.adminSave,planId=body.querySelector(`[data-admin-plan="${bid}"]`)?.value,status=body.querySelector(`[data-admin-status="${bid}"]`)?.value;
+      if(!bid||!planId||!status)return alert('Business, plan or status is missing. Reload the admin page and try again.');
+      btn.disabled=true;btn.textContent='Saving…';
+      const {error}=await state.client.rpc('v33_admin_set_subscription',{p_business_id:bid,p_plan_id:planId,p_status:status});
+      btn.disabled=false;
+      if(error){btn.textContent='Save';alert('Could not update subscription: '+error.message);return}
       btn.textContent='Saved';setTimeout(()=>btn.textContent='Save',900);await renderAdmin();
     });
     body.querySelectorAll('[data-admin-modules]').forEach(btn=>btn.onclick=()=>openModuleManager(btn.dataset.adminModules,btn.dataset.businessName));
-    body.querySelectorAll('[data-admin-trial]').forEach(btn=>btn.onclick=async()=>{const d=new Date();d.setDate(d.getDate()+14);await state.client.from('subscriptions').update({status:'trialing',trial_ends_at:d.toISOString(),current_period_start:new Date().toISOString(),current_period_end:d.toISOString(),updated_at:new Date().toISOString()}).eq('id',btn.dataset.sub);renderAdmin()});
+    body.querySelectorAll('[data-admin-trial]').forEach(btn=>btn.onclick=async()=>{
+      btn.disabled=true;btn.textContent='Extending…';
+      const {error}=await state.client.rpc('v33_admin_extend_trial',{p_business_id:btn.dataset.adminTrial,p_days:14});
+      btn.disabled=false;
+      if(error){btn.textContent='+14d trial';alert('Could not extend trial: '+error.message);return}
+      await renderAdmin();
+    });
     body.querySelectorAll('[data-admin-suspend]').forEach(btn=>btn.onclick=async()=>{
-      const bid=btn.dataset.adminSuspend,sid=btn.dataset.sub,current=body.querySelector(`[data-admin-status="${bid}"]`)?.value;
-      const next=current==='suspended'?'active':'suspended';
-      const {error}=await state.client.from('subscriptions').update({status:next,updated_at:new Date().toISOString()}).eq('id',sid);
-      if(error){alert('Could not change account status: '+error.message);return}
-      const {error:bErr}=await state.client.from('businesses').update({status:next==='suspended'?'suspended':'active',updated_at:new Date().toISOString()}).eq('id',bid);
-      if(bErr){alert('Subscription changed, but business status could not be updated: '+bErr.message);return}
+      const bid=btn.dataset.adminSuspend;
+      const suspend=btn.dataset.suspended!=='true';
+      btn.disabled=true;btn.textContent=suspend?'Suspending…':'Activating…';
+      const {error}=await state.client.rpc('v33_admin_set_suspension',{p_business_id:bid,p_suspend:suspend});
+      btn.disabled=false;
+      if(error){btn.textContent=suspend?'Suspend':'Activate';alert('Could not change account status: '+error.message);return}
       await renderAdmin();
     });
     renderAdminPlans();
+    renderPaymentSettings();
     renderAdminModules();
   }
 
+  function planEditorCard(p,isNew=false){
+    const id=isNew?'new':p.id;
+    return `<div class="plan-card ${isNew?'new-plan-card':''}" data-plan-card="${id}"><span class="plan-name">${isNew?'Create new plan':escapeHtml(p.name)}</span><label>Name<input data-plan-name="${id}" value="${escapeHtml(p.name||'')}" placeholder="Business"></label><label>Slug<input data-plan-slug="${id}" value="${escapeHtml(p.slug||'')}" placeholder="business"></label><label>Description<input data-plan-description="${id}" value="${escapeHtml(p.description||'')}" placeholder="Plan description"></label><label>Monthly price<input type="number" min="0" step="0.01" data-plan-price="${id}" value="${Number(p.monthly_price||0)}"></label><label>Invoice limit<input type="number" min="0" data-plan-limit="${id}" value="${p.invoice_limit??''}" placeholder="Blank = unlimited"></label><label>Stripe Price ID<input data-plan-stripe="${id}" value="${escapeHtml(p.stripe_price_id||'')}" placeholder="price_..."></label><label>Included modules<input data-plan-modules="${id}" value="${escapeHtml((p.included_modules||['invoice_manager']).join(', '))}" placeholder="invoice_manager, job_costing"></label><label>Sort order<input type="number" step="1" data-plan-sort="${id}" value="${Number(p.sort_order||0)}"></label><label class="tick-option"><input type="checkbox" data-plan-public="${id}" ${p.is_public?'checked':''}> <span>Visible to customers</span></label><button class="${isNew?'primary':'secondary'}" data-plan-save="${id}">${isNew?'+ Create plan':'Save plan'}</button></div>`;
+  }
+
+  async function savePlanFromCard(id){
+    const root=q('adminPlanGrid'),card=root?.querySelector(`[data-plan-card="${id}"]`);if(!card)return;
+    const name=card.querySelector(`[data-plan-name="${id}"]`).value.trim();
+    const slug=card.querySelector(`[data-plan-slug="${id}"]`).value.trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'');
+    const description=card.querySelector(`[data-plan-description="${id}"]`).value.trim();
+    const monthlyPrice=Number(card.querySelector(`[data-plan-price="${id}"]`).value||0);
+    const lv=card.querySelector(`[data-plan-limit="${id}"]`).value;
+    const stripe=card.querySelector(`[data-plan-stripe="${id}"]`).value.trim();
+    const modules=card.querySelector(`[data-plan-modules="${id}"]`).value.split(',').map(x=>x.trim()).filter(Boolean);
+    const sortOrder=Number(card.querySelector(`[data-plan-sort="${id}"]`).value||0);
+    const isPublic=card.querySelector(`[data-plan-public="${id}"]`).checked;
+    if(!name||!slug)return alert('Plan name and slug are required.');
+    if(slug!=='trial'&&monthlyPrice>0&&isPublic&&!stripe){
+      if(!confirm('This paid plan has no Stripe Price ID. Customers can see it but payment checkout will not work until you add one. Save anyway?'))return;
+    }
+    const btn=card.querySelector(`[data-plan-save="${id}"]`);btn.disabled=true;btn.textContent=id==='new'?'Creating…':'Saving…';
+    const {error}=await state.client.rpc('v33_admin_upsert_plan',{p_id:id==='new'?null:id,p_slug:slug,p_name:name,p_description:description||null,p_monthly_price:monthlyPrice,p_invoice_limit:lv===''?null:Number(lv),p_included_modules:modules.length?modules:['invoice_manager'],p_stripe_price_id:stripe||null,p_is_public:isPublic,p_sort_order:sortOrder});
+    btn.disabled=false;
+    if(error){btn.textContent=id==='new'?'+ Create plan':'Save plan';alert('Could not save plan: '+error.message);return}
+    if(q('adminPlanMessage')){q('adminPlanMessage').textContent=id==='new'?`${name} created.`:`${name} updated.`;q('adminPlanMessage').className='admin-inline-message success'}
+    await renderAdminPlans(); await loadSignupPlans();
+  }
+
   async function renderAdminPlans(){
-    if(!state.profile?.is_super_admin||!q('adminPlanGrid'))return;const {data:plans}=await state.client.from('plans').select('*').order('sort_order');
-    q('adminPlanGrid').innerHTML=(plans||[]).map(p=>`<div class="plan-card"><span class="plan-name">${escapeHtml(p.name)}</span><label>Monthly price<input type="number" step="0.01" data-plan-price="${p.id}" value="${Number(p.monthly_price||0)}"></label><label>Invoice limit<input type="number" min="0" data-plan-limit="${p.id}" value="${p.invoice_limit??''}" placeholder="Blank = unlimited"></label><label>Stripe Price ID<input data-plan-stripe="${p.id}" value="${escapeHtml(p.stripe_price_id||'')}" placeholder="price_..."></label><label>Included modules<input data-plan-modules="${p.id}" value="${escapeHtml((p.included_modules||[]).join(', '))}" placeholder="invoice_manager, job_costing"></label><button class="secondary" data-plan-save="${p.id}">Save plan</button></div>`).join('');
-    q('adminPlanGrid').querySelectorAll('[data-plan-save]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.planSave,price=Number(q('adminPlanGrid').querySelector(`[data-plan-price="${id}"]`).value||0),lv=q('adminPlanGrid').querySelector(`[data-plan-limit="${id}"]`).value,stripe=q('adminPlanGrid').querySelector(`[data-plan-stripe="${id}"]`).value.trim(),mods=q('adminPlanGrid').querySelector(`[data-plan-modules="${id}"]`).value.split(',').map(x=>x.trim()).filter(Boolean);await state.client.from('plans').update({monthly_price:price,invoice_limit:lv===''?null:Number(lv),stripe_price_id:stripe||null,included_modules:mods,updated_at:new Date().toISOString()}).eq('id',id);btn.textContent='Saved';setTimeout(()=>btn.textContent='Save plan',900)});
+    if(!state.profile?.is_super_admin||!q('adminPlanGrid'))return;
+    const {data:plans,error}=await state.client.from('plans').select('*').order('sort_order');
+    if(error){if(q('adminPlanMessage')){q('adminPlanMessage').textContent='Could not load plans: '+error.message;q('adminPlanMessage').className='admin-inline-message error'}return}
+    q('adminPlanGrid').innerHTML=planEditorCard({name:'',slug:'',description:'',monthly_price:0,invoice_limit:null,included_modules:['invoice_manager'],stripe_price_id:null,is_public:true,sort_order:40},true)+(plans||[]).map(p=>planEditorCard(p,false)).join('');
+    q('adminPlanGrid').querySelectorAll('[data-plan-save]').forEach(btn=>btn.onclick=()=>savePlanFromCard(btn.dataset.planSave));
   }
 
   async function renderAdminModules(){

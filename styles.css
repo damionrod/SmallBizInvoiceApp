@@ -647,3 +647,29 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 .account-lock-card{width:min(470px,100%);background:#fff;border-radius:12px;padding:30px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.28)}
 .account-lock-icon{font-size:38px;margin-bottom:8px}.account-lock-card h2{margin:4px 0 10px;color:#173f5c}.account-lock-card p{color:#657984;line-height:1.55;margin:0 0 20px}
 @media(max-width:760px){.account-lock-card{padding:24px 18px;border-radius:10px}}
+
+/* v33 subscription signup + admin plan management */
+#signupPlan{width:100%}#signupPlanSummary{display:block;margin-top:6px;line-height:1.4;color:#6d7d87}
+.admin-inline-message{min-height:18px;margin:8px 0;font-size:12px}.admin-inline-message.success{color:#216d32}.admin-inline-message.error{color:#b42318}
+#adminPlanGrid .plan-card{display:flex;flex-direction:column;gap:3px}#adminPlanGrid .plan-card p{min-height:0}
+#adminPlanGrid .new-plan-card{border-style:dashed;background:#f8fbfd}#adminPlanGrid .tick-option{display:flex;align-items:center;gap:8px}#adminPlanGrid .tick-option input{width:auto}
+
+/* v34 payment gateway settings */
+.payment-gateway-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px}
+.payment-gateway-card{border:1px solid var(--line,#e5e7eb);border-radius:16px;padding:18px;background:var(--card,#fff);display:flex;flex-direction:column;gap:12px}
+.payment-gateway-card .gateway-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.payment-gateway-card .gateway-head h3{margin:0 0 3px;font-size:18px}
+.payment-gateway-card .gateway-head p{margin:0;color:var(--muted,#667085);font-size:13px;line-height:1.45}
+.payment-gateway-card .gateway-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700;white-space:nowrap;background:#f2f4f7;color:#475467}
+.payment-gateway-card .gateway-status.ready{background:#ecfdf3;color:#027a48}
+.payment-gateway-card .gateway-status.enabled{background:#eff8ff;color:#175cd3}
+.payment-gateway-card .gateway-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.payment-gateway-card .gateway-fields label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--muted,#667085)}
+.payment-gateway-card .gateway-fields label.wide{grid-column:1/-1}
+.payment-gateway-card .gateway-fields input,.payment-gateway-card .gateway-fields select{width:100%}
+.payment-gateway-card .gateway-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.payment-gateway-card .gateway-note{font-size:12px;line-height:1.45;color:var(--muted,#667085);margin:0}
+.payment-gateway-card .gateway-note.warning{color:#b54708}
+.gateway-secret-state{font-size:12px;font-weight:700;color:#027a48}
+.gateway-webhook{padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid var(--line,#e5e7eb);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;word-break:break-all}
+@media(max-width:900px){.payment-gateway-grid{grid-template-columns:1fr}.payment-gateway-card .gateway-fields{grid-template-columns:1fr}.payment-gateway-card .gateway-fields label.wide{grid-column:auto}}
