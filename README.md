@@ -420,3 +420,8 @@ Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super A
 - Job name / description is no longer required to save a costing or create a quote.
 - Expected duration (hours) has been removed from the Job Costing input screen.
 - No database migration is required.
+
+## v46 — Cost Settings General alignment
+- Removed only the help/question-mark icon beneath Default Target Gross Margin % in Cost Settings > General.
+- Existing form-grid alignment now applies consistently to the field.
+- No calculations, behaviour, data, or other UI changed.

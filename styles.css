@@ -865,3 +865,24 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
     padding:4px 0 2px;
   }
 }
+
+/* v45 — Pricing decision alignment: remove margin help icon; visual only. */
+#jc-panel-costing .jc-pricing-card .form-grid.compact > label:not(.tick-option){
+  align-self:end;
+}
+#jc-panel-costing .jc-pricing-card .form-grid.compact > label:first-child,
+#jc-panel-costing .jc-pricing-card .form-grid.compact > label:nth-child(2){
+  display:grid;
+  grid-template-rows:auto 42px;
+  align-content:end;
+}
+#jc-panel-costing .jc-pricing-card .form-grid.compact > label:first-child input,
+#jc-panel-costing .jc-pricing-card .form-grid.compact > label:nth-child(2) input{
+  height:42px;
+}
+@media(max-width:600px){
+  #jc-panel-costing .jc-pricing-card .form-grid.compact > label:first-child,
+  #jc-panel-costing .jc-pricing-card .form-grid.compact > label:nth-child(2){
+    display:flex;
+  }
+}
