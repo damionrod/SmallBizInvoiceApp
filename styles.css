@@ -676,3 +676,17 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 
 /* v35 signup/payment UX and duplicate-record indicator */
 .plan-card.unavailable{background:#f8fafb;opacity:.82}.plan-card.unavailable .primary:disabled{background:#d8e0e5;color:#667780;cursor:not-allowed}.plan-unavailable-note{min-height:0!important;margin:4px 0 12px!important;color:#8a5a10!important;font-size:11px!important}.duplicate-account-badge{display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;background:#fff1cf;color:#8a5a10;font-size:9px;font-weight:800;vertical-align:middle}.auth-form #alreadyAccountBtn{width:auto;min-height:0;margin:12px auto 2px}
+
+/* v37 invoice output consistency + product picker arrow alignment */
+.actual-invoice-preview{min-width:0;font-size:13px;padding:24px;box-shadow:none;border-radius:0}
+.actual-invoice-preview .preview-top img{width:120px;height:72px}
+.actual-invoice-preview .preview-company strong{font-size:15px}
+.actual-invoice-preview .preview-title h3{font-size:28px}
+.actual-invoice-preview table{font-size:12px}
+.actual-invoice-preview th,.actual-invoice-preview td{padding:9px}
+.actual-invoice-preview .preview-totals{width:330px;font-size:13px}
+.actual-invoice-preview .preview-grand{font-size:16px}
+.actual-invoice-preview .preview-balance{color:var(--preview-primary);font-weight:700}
+.product-picker-toggle{display:flex;align-items:center;justify-content:center;font-size:0;padding:0;line-height:1}
+.product-picker-toggle::before{content:"";width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid currentColor;transform:translateY(1px)}
+@media(max-width:760px){.actual-invoice-preview{padding:18px}.actual-invoice-preview .preview-totals{width:100%}}
