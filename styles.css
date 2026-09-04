@@ -631,3 +631,19 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   .quick-quote-summary{justify-content:stretch;display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick-quote-summary span{justify-content:space-between}
   .quote-design-grid{grid-template-columns:1fr!important}
 }
+
+
+/* v31 SaaS permission hardening: hidden admin controls must never be forced visible
+   by component display rules. */
+.admin-only[hidden],
+.account-menu-row[hidden],
+#accountAdminNav[hidden],
+#adminNav[hidden],
+#adminPortalBar[hidden]{display:none!important}
+
+/* v32: account suspension lock */
+#accountAccessBlock{position:fixed;inset:0;z-index:20000;background:rgba(18,39,56,.76);display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(3px)}
+#accountAccessBlock[hidden]{display:none!important}
+.account-lock-card{width:min(470px,100%);background:#fff;border-radius:12px;padding:30px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.account-lock-icon{font-size:38px;margin-bottom:8px}.account-lock-card h2{margin:4px 0 10px;color:#173f5c}.account-lock-card p{color:#657984;line-height:1.55;margin:0 0 20px}
+@media(max-width:760px){.account-lock-card{padding:24px 18px;border-radius:10px}}

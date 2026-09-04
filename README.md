@@ -283,3 +283,19 @@ No new Supabase SQL migration is required for v29. Quote design settings are sto
 
 ### Database migration
 Run `V30-QUOTE-UPGRADE.sql` once before using the v30 quote advance feature. It safely adds `advance_enabled`, `advance_percent`, and `advance_amount` to existing quotes. Historical quotes remain unchanged with no advance requirement.
+
+
+## v31 — Super Admin permission fix
+- Fixes a UI bug where the `hidden` attribute on the Super Admin account-menu item could be overridden by the menu button's `display:flex` CSS.
+- Normal business owners (`is_super_admin = false`) no longer see the Super Admin option.
+- Opening the Super Admin portal now re-checks the authenticated profile in Supabase before access is granted.
+- A normal customer attempting to use the `#super-admin` route is redirected back to the customer app and denied access.
+- Existing Supabase RLS/database protections remain in place; no database migration is required for this release.
+- No invoice, customer, quote, job-costing, report, subscription or PDF functionality was changed.
+
+## v32 – Module enforcement + account suspension
+- Business-level module switches now override plan-included modules. Turning Job Costing off for one company creates a suspended module override instead of deleting the row and falling back to the plan.
+- Normal users re-check module access when the app loads and when the browser regains focus.
+- Suspended/canceled businesses are blocked from the application with a clear account-unavailable screen and Sign out option.
+- Super Admin Suspend/Activate now updates both the subscription and business status and reports database errors instead of failing silently.
+- No database migration required; existing business_modules.status already supports suspended.

@@ -61,9 +61,13 @@
     await migrateLegacyLocalData();
     q('authShell').classList.remove('open'); document.body.classList.remove('auth-locked');
     setupAccountUI();
+    // A customer must never be able to retain or enter the owner route manually.
+    if(location.hash==='#super-admin' && state.profile?.is_super_admin!==true){
+      history.replaceState(null,'',location.pathname+location.search);
+    }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=30'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=30';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=32'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=32';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -119,8 +123,29 @@
     if(migrationFailures){localStorage.setItem('v22_migration_warning',String(migrationFailures));return;}localStorage.setItem(marker,'1');localStorage.setItem('v22_legacy_claimed_by',state.business.id);
   }
 
-  function openAdminPortal(){
+  async function openAdminPortal(){
     closeAccountPopover();
+
+    // Never trust the visibility of a button for platform-owner access.
+    // Re-check the authenticated user's current profile before opening Admin.
+    const {data:permissionProfile,error}=await state.client
+      .from('profiles')
+      .select('id,is_super_admin')
+      .eq('id',state.user.id)
+      .maybeSingle();
+
+    const allowed=!error && permissionProfile?.id===state.user.id && permissionProfile?.is_super_admin===true;
+    state.profile.is_super_admin=allowed;
+    applyAdminVisibility();
+
+    if(!allowed){
+      document.body.classList.remove('admin-portal-active');
+      if(q('adminPortalBar'))q('adminPortalBar').hidden=true;
+      if(location.hash==='#super-admin')history.replaceState(null,'',location.pathname+location.search);
+      alert('Super Admin access is restricted to the platform owner.');
+      return;
+    }
+
     document.body.classList.add('admin-portal-active');
     if(q('adminPortalBar'))q('adminPortalBar').hidden=false;
     if(window.switchView)window.switchView('admin');
@@ -134,14 +159,19 @@
     if(window.switchView)window.switchView('create');
   }
 
+  function applyAdminVisibility(){
+    const isAdmin=state.profile?.is_super_admin===true;
+    if(q('adminNav'))q('adminNav').hidden=!isAdmin;
+    if(q('accountAdminNav'))q('accountAdminNav').hidden=!isAdmin;
+  }
+
   function setupAccountUI(){
     const initials=(state.profile.full_name||state.business.name||'A').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
     if(q('accountInitials'))q('accountInitials').textContent=initials||'A';
     if(q('accountAvatarLarge'))q('accountAvatarLarge').textContent=initials||'A';
     if(q('accountDisplayName'))q('accountDisplayName').textContent=state.profile.full_name||state.business.name||'Account';
     if(q('accountPopoverEmail'))q('accountPopoverEmail').textContent=state.user.email||'';
-    if(q('adminNav'))q('adminNav').hidden=!state.profile.is_super_admin;
-    if(q('accountAdminNav'))q('accountAdminNav').hidden=!state.profile.is_super_admin;
+    applyAdminVisibility();
     if(q('accountChip'))q('accountChip').onclick=e=>{e.stopPropagation();const pop=q('accountPopover');if(pop)pop.hidden=!pop.hidden};
     if(q('openAccountSettings'))q('openAccountSettings').onclick=()=>openAccountSettings();
     if(q('accountManagePlan'))q('accountManagePlan').onclick=()=>{closeAccountPopover();showPlans()};
@@ -264,21 +294,37 @@
   }
 
   async function openModuleManager(businessId,businessName){
-    const [{data:mods},{data:enabled}]=await Promise.all([state.client.from('modules').select('*').order('name'),state.client.from('business_modules').select('module_id,status').eq('business_id',businessId)]);
-    const on=new Map((enabled||[]).map(x=>[x.module_id,x.status]));q('moduleModal').dataset.businessId=businessId;q('moduleBusinessName').textContent=businessName;
-    q('moduleChecklist').innerHTML=(mods||[]).map(m=>`<label class="module-toggle"><span><strong>${escapeHtml(m.name)}</strong><small>${escapeHtml(m.description||'')}</small></span><input type="checkbox" data-module-id="${m.id}" ${['active','trialing'].includes(on.get(m.id))?'checked':''}></label>`).join('')||'<p>No modules have been configured yet.</p>';
+    const [{data:mods},{data:enabled},{data:sub}]=await Promise.all([
+      state.client.from('modules').select('*').order('name'),
+      state.client.from('business_modules').select('module_id,status').eq('business_id',businessId),
+      state.client.from('subscriptions').select('plans(included_modules)').eq('business_id',businessId).maybeSingle()
+    ]);
+    const overrides=new Map((enabled||[]).map(x=>[x.module_id,x.status]));
+    const included=new Set(sub?.plans?.included_modules||[]);
+    q('moduleModal').dataset.businessId=businessId;q('moduleBusinessName').textContent=businessName;
+    q('moduleChecklist').innerHTML=(mods||[]).map(m=>{
+      const explicit=overrides.get(m.id);
+      const inherited=included.has(m.slug);
+      const checked=explicit?['active','trialing'].includes(explicit):inherited;
+      const source=explicit==='suspended'?'Blocked for this business':(explicit?'Enabled for this business':(inherited?'Included by subscription plan':'Not included'));
+      return `<label class="module-toggle"><span><strong>${escapeHtml(m.name)}</strong><small>${escapeHtml(m.description||'')} · ${source}</small></span><input type="checkbox" data-module-id="${m.id}" ${checked?'checked':''}></label>`;
+    }).join('')||'<p>No modules have been configured yet.</p>';
     q('moduleModal').classList.add('open');
   }
 
   async function saveBusinessModules(){
     const bid=q('moduleModal').dataset.businessId;if(!bid)return;const boxes=[...q('moduleChecklist').querySelectorAll('[data-module-id]')];
-    for(const box of boxes){if(box.checked)await state.client.from('business_modules').upsert({business_id:bid,module_id:box.dataset.moduleId,status:'active'},{onConflict:'business_id,module_id'});else await state.client.from('business_modules').delete().eq('business_id',bid).eq('module_id',box.dataset.moduleId)}
+    for(const box of boxes){
+      const status=box.checked?'active':'suspended';
+      const {error}=await state.client.from('business_modules').upsert({business_id:bid,module_id:box.dataset.moduleId,status},{onConflict:'business_id,module_id'});
+      if(error){alert('Could not update module access: '+error.message);return}
+    }
     q('moduleModal').classList.remove('open');await renderAdmin();
   }
 
   async function renderAdmin(){
     if(!state.profile?.is_super_admin)return;
-    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles(id,full_name,email,role),subscriptions(id,status,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
+    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles(id,full_name,email,role),subscriptions(id,status,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
     if(error){console.warn(error);return}
     const qtxt=(q('adminSearch')?.value||'').toLowerCase(),sf=q('adminStatusFilter')?.value||'';
     let rows=(businesses||[]).filter(b=>{const owner=(b.profiles||[]).find(p=>p.role==='owner')||b.profiles?.[0]||{};const sub=b.subscriptions?.[0]||{};return(!qtxt||[b.name,owner.full_name,owner.email].join(' ').toLowerCase().includes(qtxt))&&(!sf||sub.status===sf)});
@@ -286,14 +332,34 @@
     const {data:plans}=await state.client.from('plans').select('id,name,slug,invoice_limit').order('sort_order');
     const body=q('adminBusinessRows'); body.innerHTML='';
     for(const b of rows){
-      const owner=(b.profiles||[]).find(p=>p.role==='owner')||b.profiles?.[0]||{}, sub=b.subscriptions?.[0]||{}, plan=sub.plans||{}, mods=(b.business_modules||[]).filter(x=>x.status==='active'||x.status==='trialing').map(x=>x.modules?.name).filter(Boolean);
+      const owner=(b.profiles||[]).find(p=>p.role==='owner')||b.profiles?.[0]||{}, sub=b.subscriptions?.[0]||{}, plan=sub.plans||{};
+      const overrideBySlug=new Map((b.business_modules||[]).map(x=>[x.modules?.slug,x.status]));
+      const moduleNames=new Map((b.business_modules||[]).map(x=>[x.modules?.slug,x.modules?.name]));
+      const effectiveSlugs=new Set(plan.included_modules||[]);
+      for(const [slug,status] of overrideBySlug){if(!slug)continue;if(['active','trialing'].includes(status))effectiveSlugs.add(slug);else if(['suspended','canceled'].includes(status))effectiveSlugs.delete(slug)}
+      const mods=[...effectiveSlugs].map(slug=>moduleNames.get(slug)||human(slug));
       let countQ=state.client.from('invoices').select('id',{count:'exact',head:true}).eq('business_id',b.id);if(sub.current_period_start)countQ=countQ.gte('created_at',sub.current_period_start);if(sub.current_period_end)countQ=countQ.lt('created_at',sub.current_period_end);const {count}=await countQ;
       const tr=document.createElement('tr'); tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong><small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}" data-sub="${sub.id||''}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}" data-sub="${sub.id||''}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-sub="${sub.id||''}">${sub.status==='suspended'?'Activate':'Suspend'}</button></div></td>`; body.appendChild(tr);
     }
-    body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{const bid=btn.dataset.adminSave,sid=btn.dataset.sub,planId=body.querySelector(`[data-admin-plan="${bid}"]`).value,status=body.querySelector(`[data-admin-status="${bid}"]`).value;await state.client.from('subscriptions').update({plan_id:planId,status,updated_at:new Date().toISOString()}).eq('id',sid);btn.textContent='Saved';setTimeout(()=>btn.textContent='Save',900)});
+    body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
+      const bid=btn.dataset.adminSave,sid=btn.dataset.sub,planId=body.querySelector(`[data-admin-plan="${bid}"]`).value,status=body.querySelector(`[data-admin-status="${bid}"]`).value;
+      const {error}=await state.client.from('subscriptions').update({plan_id:planId,status,updated_at:new Date().toISOString()}).eq('id',sid);
+      if(error){alert('Could not update subscription: '+error.message);return}
+      const businessStatus=status==='suspended'?'suspended':(status==='canceled'?'closed':'active');
+      await state.client.from('businesses').update({status:businessStatus,updated_at:new Date().toISOString()}).eq('id',bid);
+      btn.textContent='Saved';setTimeout(()=>btn.textContent='Save',900);await renderAdmin();
+    });
     body.querySelectorAll('[data-admin-modules]').forEach(btn=>btn.onclick=()=>openModuleManager(btn.dataset.adminModules,btn.dataset.businessName));
     body.querySelectorAll('[data-admin-trial]').forEach(btn=>btn.onclick=async()=>{const d=new Date();d.setDate(d.getDate()+14);await state.client.from('subscriptions').update({status:'trialing',trial_ends_at:d.toISOString(),current_period_start:new Date().toISOString(),current_period_end:d.toISOString(),updated_at:new Date().toISOString()}).eq('id',btn.dataset.sub);renderAdmin()});
-    body.querySelectorAll('[data-admin-suspend]').forEach(btn=>btn.onclick=async()=>{const current=body.querySelector(`[data-admin-status="${btn.dataset.adminSuspend}"]`)?.value;await state.client.from('subscriptions').update({status:current==='suspended'?'active':'suspended',updated_at:new Date().toISOString()}).eq('id',btn.dataset.sub);renderAdmin()});
+    body.querySelectorAll('[data-admin-suspend]').forEach(btn=>btn.onclick=async()=>{
+      const bid=btn.dataset.adminSuspend,sid=btn.dataset.sub,current=body.querySelector(`[data-admin-status="${bid}"]`)?.value;
+      const next=current==='suspended'?'active':'suspended';
+      const {error}=await state.client.from('subscriptions').update({status:next,updated_at:new Date().toISOString()}).eq('id',sid);
+      if(error){alert('Could not change account status: '+error.message);return}
+      const {error:bErr}=await state.client.from('businesses').update({status:next==='suspended'?'suspended':'active',updated_at:new Date().toISOString()}).eq('id',bid);
+      if(bErr){alert('Subscription changed, but business status could not be updated: '+bErr.message);return}
+      await renderAdmin();
+    });
     renderAdminPlans();
     renderAdminModules();
   }
@@ -319,9 +385,45 @@
   async function hasModule(slug){
     if(slug==='invoice_manager')return true;
     const {data}=await state.client.from('business_modules').select('status,modules!inner(slug)').eq('business_id',state.business.id).eq('modules.slug',slug).maybeSingle();
-    if(data&&['active','trialing'].includes(data.status))return true;
+    if(data){
+      if(['active','trialing'].includes(data.status))return true;
+      if(['suspended','canceled'].includes(data.status))return false;
+    }
     const sub=state.subscription||await getSubscription();
     return Array.isArray(sub?.plans?.included_modules)&&sub.plans.included_modules.includes(slug);
+  }
+
+  function ensureAccountLock(){
+    let el=q('accountAccessBlock');
+    if(el)return el;
+    el=document.createElement('div');el.id='accountAccessBlock';el.hidden=true;
+    el.innerHTML=`<div class="account-lock-card"><div class="account-lock-icon">🔒</div><h2>Account unavailable</h2><p id="accountAccessMessage">This business account is currently unavailable.</p><button class="primary" id="accountAccessSignOut" type="button">Sign out</button></div>`;
+    document.body.appendChild(el);
+    q('accountAccessSignOut').onclick=()=>state.client.auth.signOut();
+    return el;
+  }
+
+  async function refreshEntitlements(){
+    if(!state.client||!state.business||state.profile?.is_super_admin===true)return;
+    const [{data:sub},{data:biz}]=await Promise.all([
+      state.client.from('subscriptions').select('*,plans(*)').eq('business_id',state.business.id).maybeSingle(),
+      state.client.from('businesses').select('id,status').eq('id',state.business.id).maybeSingle()
+    ]);
+    if(sub){state.subscription=sub;state.plan=sub.plans||null}
+    if(biz?.status)state.business.status=biz.status;
+    const locked=biz?.status==='suspended'||biz?.status==='closed'||['suspended','canceled'].includes(sub?.status);
+    const lock=ensureAccountLock();
+    if(locked){
+      const reason=(biz?.status==='suspended'||sub?.status==='suspended')?'This business account has been suspended by the platform administrator.':'This business account is not active.';
+      q('accountAccessMessage').textContent=reason+' Please contact the platform owner if you believe this is an error.';
+      lock.hidden=false;document.body.classList.add('account-suspended');
+    }else{lock.hidden=true;document.body.classList.remove('account-suspended')}
+    if(q('jobCostingNav')){
+      const allowed=await hasModule('job_costing');
+      q('jobCostingNav').hidden=!allowed;
+      if(!allowed && document.getElementById('view-jobcosting')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(allowed)window.JobCosting?.init?.();
+    }
   }
 
   async function bindAfterAppLoad(){
@@ -329,6 +431,11 @@
     if(q('adminBackToApp'))q('adminBackToApp').onclick=closeAdminPortal;
     if(q('saveSettings')) q('saveSettings').addEventListener('click',()=>setTimeout(()=>saveBusinessSettings(appSettings()),100));
     if(q('jobCostingNav')){const allowed=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
+    await refreshEntitlements();
+    let entitlementTimer=0;
+    const recheck=()=>{const now=Date.now();if(now-entitlementTimer<2500)return;entitlementTimer=now;refreshEntitlements().catch(console.warn)};
+    window.addEventListener('focus',recheck);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')recheck()});
     // Keep infrastructure config automatic and hidden from customers.
     if(q('sSupabaseUrl'))q('sSupabaseUrl').value=C.supabaseUrl;if(q('sSupabaseKey'))q('sSupabaseKey').value=C.supabaseKey;
   }
