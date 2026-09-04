@@ -404,3 +404,10 @@ Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super A
 - Existing customer names continue to link to the existing customer record.
 - No database migration is required.
 - No other app behaviour was changed.
+
+
+## v41 – Super Admin duplicate row display fix
+- Fixed the Super Admin portal rendering the same business twice because the admin table was being rendered twice at the same time when the Admin view opened.
+- No business, subscription, customer, invoice, quote or other database records are changed or deleted.
+- No database migration is required.
+- No other app behaviour was changed.

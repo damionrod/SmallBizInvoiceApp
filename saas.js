@@ -226,8 +226,8 @@
     document.body.classList.add('admin-portal-active');
     if(q('adminPortalBar'))q('adminPortalBar').hidden=false;
     if(window.switchView)window.switchView('admin');
+    else renderAdmin();
     history.replaceState(null,'','#super-admin');
-    renderAdmin();
   }
   function closeAdminPortal(){
     document.body.classList.remove('admin-portal-active');
