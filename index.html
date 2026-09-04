@@ -117,7 +117,7 @@
               <label>Costing number<input id="jcNumber" readonly></label><label>Job date<input id="jcDate" type="date"></label>
               <label class="jc-customer-field">Customer / business<div class="jc-customer-picker"><input id="jcCustomerName" list="jcCustomerOptions" autocomplete="off" placeholder="Start typing an existing customer"><button type="button" class="secondary jc-create-customer" id="jcCreateCustomer">+ Create Customer</button></div><datalist id="jcCustomerOptions"></datalist><small id="jcCustomerHint">Linked to My Customers.</small></label>
               <label class="jc-job-name">Job name / description<input id="jcDescription" placeholder="Describe the job or service"></label><label class="jc-job-address">Job address<input id="jcAddress" placeholder="Job/site address"></label>
-              <label>Expected duration (hours)<input id="jcDuration" type="number" min="0" step="0.25" placeholder="0"></label><label class="jc-notes">Internal job notes<textarea id="jcNotes" rows="2"></textarea></label>
+              <input id="jcDuration" type="hidden" value="0"><label class="jc-notes">Internal job notes<textarea id="jcNotes" rows="2"></textarea></label>
             </div></div>
 
             <div class="card jc-compact-card"><div class="card-title"><div><h2>Labour</h2><p class="hint no-margin">Rates come from Labour Settings but can be changed for this costing.</p></div><button class="secondary" id="jcAddLabour">+ Add Labour</button></div><div id="jcLabourRows"></div></div>

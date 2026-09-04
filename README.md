@@ -411,3 +411,9 @@ Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super A
 - No business, subscription, customer, invoice, quote or other database records are changed or deleted.
 - No database migration is required.
 - No other app behaviour was changed.
+
+
+## v43 – Optional job name and simplified duration input
+- Job name / description is no longer required to save a costing or create a quote.
+- Expected duration (hours) has been removed from the Job Costing input screen.
+- No database migration is required.
