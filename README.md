@@ -374,3 +374,10 @@ v34 adds a secure **Super Admin → Payment gateway settings** section.
 7. Test a new paid signup in an Incognito/private browser window.
 
 The Stripe webhook URL is shown directly in the Super Admin payment card so it can be copied into the Stripe Dashboard when the account is configured.
+
+## v35 — Signup and payment UX hardening
+- Paid plans are disabled on signup and in Change Plan while Stripe is disabled or the selected plan has no Stripe Price ID.
+- Customers see friendly payment-unavailable wording instead of a raw Edge Function error.
+- Create Account now includes **Already have an account? Log in** and duplicate-user errors route back to login.
+- Super Admin flags repeated owner-email business records with a **Duplicate record** badge; it does not auto-delete data.
+- Run `V35-SIGNUP-PAYMENT-UX.sql` once in Supabase SQL Editor, then deploy the website ZIP.

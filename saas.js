@@ -1,7 +1,7 @@
 (() => {
   const C = window.APP_CONFIG || {};
   const q = id => document.getElementById(id);
-  const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false };
+  const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false, checkoutAvailable:null };
 
   function message(text, kind=''){
     const el=q('authMessage'); if(!el)return; el.textContent=text||''; el.className='auth-message '+kind;
@@ -27,11 +27,30 @@
     });
   }
 
+  function switchAuthTab(tab,email=''){
+    document.querySelectorAll('[data-auth-tab]').forEach(x=>x.classList.toggle('active',x.dataset.authTab===tab));
+    q('loginForm').hidden=tab!=='login';
+    q('signupForm').hidden=tab!=='signup';
+    if(tab==='login'&&email&&q('loginEmail'))q('loginEmail').value=email;
+  }
+
+  function existingAccountMessage(email){
+    switchAuthTab('login',email);
+    message('An account already exists with this email. Log in below, or use Forgot password if you cannot remember your password.','error');
+    q('loginPassword')?.focus();
+  }
+
+  async function getCheckoutAvailability(force=false){
+    if(!state.client)return false;
+    if(!force&&typeof state.checkoutAvailable==='boolean')return state.checkoutAvailable;
+    const {data,error}=await state.client.rpc('v35_checkout_available');
+    state.checkoutAvailable=!error&&data===true;
+    return state.checkoutAvailable;
+  }
+
   function bindAuthUI(){
-    document.querySelectorAll('[data-auth-tab]').forEach(btn=>btn.onclick=()=>{
-      document.querySelectorAll('[data-auth-tab]').forEach(x=>x.classList.toggle('active',x===btn));
-      q('loginForm').hidden=btn.dataset.authTab!=='login'; q('signupForm').hidden=btn.dataset.authTab!=='signup'; message('');
-    });
+    document.querySelectorAll('[data-auth-tab]').forEach(btn=>btn.onclick=()=>{switchAuthTab(btn.dataset.authTab);message('');});
+    if(q('alreadyAccountBtn'))q('alreadyAccountBtn').onclick=()=>{const email=q('signupEmail')?.value.trim()||'';switchAuthTab('login',email);message('Log in with your existing account.');};
     q('loginForm').onsubmit=async e=>{
       e.preventDefault(); message('Logging in…');
       const {error}=await state.client.auth.signInWithPassword({email:q('loginEmail').value.trim(),password:q('loginPassword').value});
@@ -50,7 +69,14 @@
         options:{data:{full_name:q('signupName').value.trim(),business_name:q('signupBusiness').value.trim(),business_address:q('signupAddress').value.trim(),phone:q('signupPhone').value.trim(),selected_plan_slug:selectedPlan}}
       });
       if(submit){submit.disabled=false;submit.textContent='Create account'}
-      if(error){message(error.message,'error');return}
+      if(error){
+        if(/already registered|already exists|user exists/i.test(error.message||'')){existingAccountMessage(email);return}
+        message(error.message,'error');return
+      }
+      // With Supabase email confirmation enabled, an existing confirmed account can return
+      // an obfuscated user instead of an explicit duplicate-user error. An empty identities
+      // collection is the safe client-side signal Supabase exposes for this case.
+      if(data?.user && Array.isArray(data.user.identities) && data.user.identities.length===0){existingAccountMessage(email);return}
       if(data.session){
         message(selectedPlan==='trial'?'Account created. Loading your business…':'Account created. Opening secure payment…','success');
         await enter(data.session);
@@ -67,16 +93,25 @@
 
   async function loadSignupPlans(){
     const select=q('signupPlan'); if(!select||!state.client)return;
-    const {data:plans,error}=await state.client.from('plans').select('id,slug,name,description,monthly_price,invoice_limit,is_public,sort_order,stripe_price_id').order('sort_order');
+    const [{data:plans,error},checkoutReady]=await Promise.all([
+      state.client.from('plans').select('id,slug,name,description,monthly_price,invoice_limit,is_public,sort_order,stripe_price_id').order('sort_order'),
+      getCheckoutAvailability(true)
+    ]);
     if(error){select.innerHTML='<option value="trial">Trial</option>'; if(q('signupPlanSummary'))q('signupPlanSummary').textContent='Plan list could not be loaded. Trial is available.'; return}
     const available=(plans||[]).filter(p=>p.slug==='trial'||p.is_public);
-    select.innerHTML=available.map(p=>`<option value="${escapeHtml(p.slug)}">${escapeHtml(p.name)} — ${p.slug==='trial'?'Free trial':('$'+Number(p.monthly_price||0).toFixed(2)+'/month')}</option>`).join('');
+    select.innerHTML=available.map(p=>{
+      const paid=p.slug!=='trial';
+      const purchasable=!paid||(checkoutReady&&!!p.stripe_price_id);
+      const suffix=p.slug==='trial'?'Free trial':('$'+Number(p.monthly_price||0).toFixed(2)+'/month'+(purchasable?'':' — unavailable'));
+      return `<option value="${escapeHtml(p.slug)}" ${purchasable?'':'disabled'}>${escapeHtml(p.name)} — ${suffix}</option>`;
+    }).join('');
     if(available.some(p=>p.slug==='trial'))select.value='trial';
     const update=()=>{
       const plan=available.find(p=>p.slug===select.value);
       if(!q('signupPlanSummary')||!plan)return;
       const limit=plan.invoice_limit==null?'Unlimited invoices':`${plan.invoice_limit} invoices per period`;
-      const pay=plan.slug==='trial'?'No payment required.':(plan.stripe_price_id?'Secure online payment follows account creation.':'Payment will be available once the plan and payment gateway are configured by the platform owner.');
+      let pay='No payment required.';
+      if(plan.slug!=='trial')pay=checkoutReady&&plan.stripe_price_id?'Secure online payment follows account creation.':'Online paid subscriptions are not available yet. Please choose Trial for now.';
       q('signupPlanSummary').textContent=`${plan.description||''}${plan.description?' · ':''}${limit} · ${pay}`;
     };
     select.onchange=update; update();
@@ -310,19 +345,36 @@
   }
 
   async function showPlans(){
-    const {data:plans}=await state.client.from('plans').select('*').eq('is_public',true).order('sort_order'); await getSubscription();
-    const root=q('customerPlanGrid'); root.innerHTML=(plans||[]).map(p=>`<div class="plan-card ${state.plan?.id===p.id?'current':''}"><span class="plan-name">${escapeHtml(p.name)}</span><strong>$${Number(p.monthly_price||0).toFixed(0)}<small>/month</small></strong><p>${escapeHtml(p.description||'')}</p><div class="plan-limit">${p.invoice_limit==null?'Unlimited':p.invoice_limit} invoices / period</div><div class="plan-modules">${(p.included_modules||[]).map(m=>`<span>${escapeHtml(human(m))}</span>`).join('')}</div><button class="${state.plan?.id===p.id?'secondary':'primary'}" data-choose-plan="${p.slug}" ${state.plan?.id===p.id?'disabled':''}>${state.plan?.id===p.id?'Current plan':'Choose '+escapeHtml(p.name)}</button></div>`).join('');
-    root.querySelectorAll('[data-choose-plan]').forEach(b=>b.onclick=()=>startCheckout(b.dataset.choosePlan,b)); q('planModal').classList.add('open');
+    const [{data:plans},checkoutReady]=await Promise.all([
+      state.client.from('plans').select('*').eq('is_public',true).order('sort_order'),
+      getCheckoutAvailability(true)
+    ]);
+    await getSubscription();
+    const root=q('customerPlanGrid');
+    root.innerHTML=(plans||[]).map(p=>{
+      const current=state.plan?.id===p.id;
+      const purchasable=current||(checkoutReady&&!!p.stripe_price_id);
+      const buttonText=current?'Current plan':(!checkoutReady?'Online subscriptions unavailable':(!p.stripe_price_id?'Plan payment not configured':'Choose '+escapeHtml(p.name)));
+      return `<div class="plan-card ${current?'current':''} ${purchasable?'':'unavailable'}"><span class="plan-name">${escapeHtml(p.name)}</span><strong>$${Number(p.monthly_price||0).toFixed(0)}<small>/month</small></strong><p>${escapeHtml(p.description||'')}</p><div class="plan-limit">${p.invoice_limit==null?'Unlimited':p.invoice_limit} invoices / period</div><div class="plan-modules">${(p.included_modules||[]).map(m=>`<span>${escapeHtml(human(m))}</span>`).join('')}</div>${!purchasable?'<p class="plan-unavailable-note">Online payment is not available yet. Your trial remains active.</p>':''}<button class="${current?'secondary':'primary'}" data-choose-plan="${p.slug}" ${purchasable&&!current?'':'disabled'}>${buttonText}</button></div>`;
+    }).join('');
+    root.querySelectorAll('[data-choose-plan]:not([disabled])').forEach(b=>b.onclick=()=>startCheckout(b.dataset.choosePlan,b));
+    q('planModal').classList.add('open');
   }
 
   async function startCheckout(slug,btn,opts={}){
+    const ready=await getCheckoutAvailability(true);
+    if(!ready){
+      if(!opts.silent)alert('Online paid subscriptions are not available yet. Please continue using the Trial plan for now.');
+      else message('Online paid subscriptions are not available yet.','error');
+      return false;
+    }
     const original=btn?.textContent||'Choose plan';
     if(btn){btn.disabled=true;btn.textContent='Opening checkout…'}
     const {data,error}=await state.client.functions.invoke('create-checkout',{body:{planSlug:slug,returnUrl:location.origin}});
     if(error||!data?.url){
       if(btn){btn.disabled=false;btn.textContent=original}
       const text=error?.message||data?.error||'Billing is not configured yet.';
-      if(!opts.silent)alert(text+'\n\nConfigure an enabled payment gateway and the plan payment ID in Super Admin to activate purchases.');
+      if(!opts.silent)alert('We could not open online checkout right now. Please try again later or contact support.');
       else message(text,'error');
       return false;
     }
@@ -467,6 +519,11 @@
     const {data:plans,error:planError}=await state.client.from('plans').select('id,name,slug,invoice_limit').order('sort_order');
     if(planError){alert('Could not load subscription plans: '+planError.message);return}
     const body=q('adminBusinessRows'); body.innerHTML='';
+    const ownerEmailCounts=new Map();
+    for(const b of (businesses||[])){
+      const ps=getProfiles(b),o=ps.find(p=>p.role==='owner')||ps[0]||{},key=(o.email||'').trim().toLowerCase();
+      if(key)ownerEmailCounts.set(key,(ownerEmailCounts.get(key)||0)+1);
+    }
     for(const b of rows){
       const profiles=getProfiles(b),owner=profiles.find(p=>p.role==='owner')||profiles[0]||{},sub=getSub(b),plan=sub.plans||{};
       const overrideBySlug=new Map(asArray(b.business_modules).map(x=>[x.modules?.slug,x.status]));
@@ -476,7 +533,9 @@
       const mods=[...effectiveSlugs].map(slug=>moduleNames.get(slug)||human(slug));
       let countQ=state.client.from('invoices').select('id',{count:'exact',head:true}).eq('business_id',b.id);if(sub.current_period_start)countQ=countQ.gte('created_at',sub.current_period_start);if(sub.current_period_end)countQ=countQ.lt('created_at',sub.current_period_end);const {count}=await countQ;
       const tr=document.createElement('tr');
-      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong><small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button></div></td>`;
+      const ownerKey=(owner.email||'').trim().toLowerCase();
+      const duplicateBadge=ownerKey&&ownerEmailCounts.get(ownerKey)>1?'<span class="duplicate-account-badge" title="More than one business record is linked to this owner email">Duplicate record</span>':'';
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button></div></td>`;
       body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
