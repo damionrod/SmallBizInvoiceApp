@@ -230,3 +230,24 @@ Run `V24-JOB-COSTING-UPGRADE.sql` after the v23 migration. This upgrade preserve
 - Create Invoice layout made denser on desktop/tablet while preserving all existing fields and behaviour.
 - Mobile navigation normalized to four primary modules; invoice sub-navigation remains touch-friendly.
 - No database migration is required for v28.
+
+
+## v29 – Account Menu & Quote Designer
+
+This release is a UI/settings-structure upgrade over v28. Existing invoicing, customers, reports, job costing calculations, saved costings, quote workflow, email, PDF and SaaS data structures remain in place.
+
+### Account menu
+- The top-right account initial now opens a dedicated account menu instead of sending the user to Invoice Settings.
+- Account Settings contains user name, login email, business account details, subscription status/usage, Change Plan, Billing Portal (when available), Sign Out and Super Admin access for authorized users.
+- Account/subscription controls were removed from Invoice Settings.
+- On mobile, the account button remains available in the top-right while the four primary modules remain in the bottom navigation.
+
+### Quote Design
+- Job Costing → Cost Settings now includes a Quote Design tab.
+- Users can customize quotation title, accent colour, customer/date/table headings, subtotal/GST/total labels, terms heading, default note and whether the business logo is shown.
+- A live quotation preview updates while settings are edited.
+- The saved design is used by the customer-facing quote preview and generated quote PDF.
+- Internal costing, overhead, contingency, profit and margin remain excluded from customer quotations.
+
+### Database
+No new Supabase SQL migration is required for v29. Quote design settings are stored inside the existing business settings JSON.

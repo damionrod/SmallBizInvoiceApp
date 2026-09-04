@@ -63,7 +63,7 @@
     setupAccountUI();
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=25'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=25';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw){setTimeout(()=>alert(`${mw} existing record${mw===1?'':'s'} could not be migrated to the cloud yet. Your original browser data has not been deleted. Reload after checking the v22 database migration.`),300)}};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=29'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=29';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw){setTimeout(()=>alert(`${mw} existing record${mw===1?'':'s'} could not be migrated to the cloud yet. Your original browser data has not been deleted. Reload after checking the v22 database migration.`),300)}};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -122,11 +122,23 @@
   function setupAccountUI(){
     const initials=(state.profile.full_name||state.business.name||'A').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
     if(q('accountInitials'))q('accountInitials').textContent=initials||'A';
+    if(q('accountAvatarLarge'))q('accountAvatarLarge').textContent=initials||'A';
+    if(q('accountDisplayName'))q('accountDisplayName').textContent=state.profile.full_name||state.business.name||'Account';
+    if(q('accountPopoverEmail'))q('accountPopoverEmail').textContent=state.user.email||'';
     if(q('adminNav'))q('adminNav').hidden=!state.profile.is_super_admin;
-    if(q('accountChip'))q('accountChip').onclick=()=>{ if(window.switchView)window.switchView('settings'); else q('view-settings')?.scrollIntoView() };
+    if(q('accountAdminNav'))q('accountAdminNav').hidden=!state.profile.is_super_admin;
+    if(q('accountChip'))q('accountChip').onclick=e=>{e.stopPropagation();const pop=q('accountPopover');if(pop)pop.hidden=!pop.hidden};
+    if(q('openAccountSettings'))q('openAccountSettings').onclick=()=>openAccountSettings();
+    if(q('accountManagePlan'))q('accountManagePlan').onclick=()=>{closeAccountPopover();showPlans()};
+    if(q('accountAdminNav'))q('accountAdminNav').onclick=()=>{closeAccountPopover();if(window.switchView)window.switchView('admin');renderAdmin()};
+    if(q('accountSignOut'))q('accountSignOut').onclick=()=>state.client.auth.signOut();
     if(q('signOutBtn'))q('signOutBtn').onclick=()=>state.client.auth.signOut();
     if(q('manageSubscription'))q('manageSubscription').onclick=showPlans;
     if(q('billingPortalBtn'))q('billingPortalBtn').onclick=openBillingPortal;
+    if(q('closeAccountModal'))q('closeAccountModal').onclick=()=>q('accountModal').classList.remove('open');
+    if(q('accountModal'))q('accountModal').onclick=e=>{if(e.target===q('accountModal'))q('accountModal').classList.remove('open')};
+    if(q('saveAccountProfile'))q('saveAccountProfile').onclick=saveAccountProfile;
+    document.addEventListener('click',e=>{const pop=q('accountPopover');if(pop&&!pop.hidden&&!pop.contains(e.target)&&e.target!==q('accountChip')&&!q('accountChip')?.contains(e.target))pop.hidden=true});
     if(q('closePlanModal'))q('closePlanModal').onclick=()=>q('planModal').classList.remove('open');
     if(q('adminRefresh'))q('adminRefresh').onclick=renderAdmin;
     if(q('adminReloadPlans'))q('adminReloadPlans').onclick=renderAdminPlans;
@@ -142,6 +154,32 @@
     if(q('saveModules'))q('saveModules').onclick=saveBusinessModules;
   }
 
+  function closeAccountPopover(){const pop=q('accountPopover');if(pop)pop.hidden=true}
+  async function openAccountSettings(){
+    closeAccountPopover();
+    if(q('accountProfileName'))q('accountProfileName').value=state.profile?.full_name||'';
+    if(q('accountProfileEmail'))q('accountProfileEmail').value=state.user?.email||'';
+    if(q('accountBusinessName'))q('accountBusinessName').value=state.business?.name||'';
+    if(q('accountBusinessPhone'))q('accountBusinessPhone').value=state.business?.phone||'';
+    if(q('accountBusinessAddress'))q('accountBusinessAddress').value=state.business?.address||'';
+    await refreshUsage();
+    q('accountModal')?.classList.add('open');
+  }
+  async function saveAccountProfile(){
+    const full_name=q('accountProfileName')?.value.trim()||'';
+    const name=q('accountBusinessName')?.value.trim()||state.business.name;
+    const phone=q('accountBusinessPhone')?.value.trim()||'';
+    const address=q('accountBusinessAddress')?.value.trim()||'';
+    const p1=state.client.from('profiles').update({full_name}).eq('id',state.user.id);
+    const p2=state.client.from('businesses').update({name,phone,address,updated_at:new Date().toISOString()}).eq('id',state.business.id);
+    const [a,b]=await Promise.all([p1,p2]);
+    if(a.error||b.error)return alert(a.error?.message||b.error?.message||'Could not save account details.');
+    state.profile.full_name=full_name;state.business.name=name;state.business.phone=phone;state.business.address=address;
+    setupAccountUI();
+    if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Invoice Manager');
+    q('accountModal')?.classList.remove('open');
+  }
+
   async function getSubscription(){
     const {data}=await state.client.from('subscriptions').select('*,plans(*)').eq('business_id',state.business.id).maybeSingle();
     state.subscription=data||null; state.plan=data?.plans||null; return data;
@@ -154,6 +192,7 @@
     const {count}=await query; const used=count||0; const limit=sub.invoice_limit_override??sub.plans?.invoice_limit;
     const label=limit==null?`${used} / Unlimited`:`${used} / ${limit}`;
     if(q('accountPlan'))q('accountPlan').textContent=sub.plans?.name||'—'; if(q('accountUsage'))q('accountUsage').textContent=label;
+    if(q('accountMenuPlan'))q('accountMenuPlan').textContent=`${sub.plans?.name||'Plan'} · ${label}`;
     if(q('accountStatus'))q('accountStatus').textContent=sub.status==='trialing'?'Trial':sub.status.replace('_',' ');
     if(q('accountEmail'))q('accountEmail').textContent=state.user.email||'';
     if(q('usageBar')){const pct=limit?Math.min(100,Math.round(used/limit*100)):0;q('usageBar').style.width=pct+'%'}
