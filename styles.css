@@ -750,3 +750,118 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 
 /* v40: keep the customer editor above the quick-quote modal when opened from Create Quote. */
 #customerModal{z-index:45}
+
+/* ============================================================
+   v44 — Job Costing alignment polish only
+   Visual/layout refinements; no business logic changes.
+   ============================================================ */
+@media (min-width:1181px){
+  #jc-panel-costing .jc-job-grid{
+    grid-template-columns:minmax(150px,.72fr) minmax(170px,.78fr) minmax(0,1.25fr) minmax(0,1.25fr);
+    column-gap:10px;
+    row-gap:9px;
+    align-items:start;
+  }
+  #jc-panel-costing .jc-notes{grid-column:1/-1}
+}
+
+#jc-panel-costing .jc-job-grid label,
+#jc-panel-costing .jc-pricing-card label{min-width:0}
+
+#jc-panel-costing .jc-job-grid small{
+  margin-top:1px;
+  line-height:1.25;
+}
+
+#jc-panel-costing .jc-pricing-card{
+  padding:13px 16px;
+}
+
+#jc-panel-costing .jc-pricing-card h2{
+  margin:0 0 11px;
+}
+
+#jc-panel-costing .jc-pricing-card .form-grid.compact{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px 12px;
+  align-items:end;
+}
+
+#jc-panel-costing .jc-pricing-card label{
+  gap:5px;
+  line-height:1.25;
+}
+
+#jc-panel-costing .jc-pricing-card input[type="number"]{
+  min-height:42px;
+}
+
+#jc-panel-costing .jc-pricing-card .quote-price-field{
+  grid-column:1/-1;
+  margin-top:1px;
+}
+
+#jc-panel-costing .jc-pricing-card .quote-price-field input{
+  min-height:46px;
+}
+
+#jc-panel-costing .jc-pricing-card .tick-option{
+  min-height:42px;
+  padding:0 2px;
+  align-self:end;
+  justify-content:flex-start;
+  flex-direction:row;
+  gap:8px;
+}
+
+#jc-panel-costing .jc-pricing-card .tick-option input{
+  flex:0 0 auto;
+  width:18px;
+  height:18px;
+  min-height:18px;
+  margin:0;
+}
+
+#jc-panel-costing .jc-pricing-card .tick-option span{
+  line-height:1.25;
+}
+
+#jc-panel-costing .jc-pricing-card > .hint{
+  margin:10px 0 0;
+  line-height:1.4;
+}
+
+@media(max-width:1180px) and (min-width:901px){
+  #jc-panel-costing .jc-job-grid{gap:9px 10px}
+  #jc-panel-costing .jc-notes{grid-column:1/-1}
+}
+
+@media(max-width:900px){
+  #jc-panel-costing .jc-pricing-card .form-grid.compact{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:600px){
+  #jc-panel-costing .jc-job-grid,
+  #jc-panel-costing .jc-pricing-card .form-grid.compact{
+    grid-template-columns:1fr;
+  }
+
+  #jc-panel-costing .jc-customer-field,
+  #jc-panel-costing .jc-job-name,
+  #jc-panel-costing .jc-job-address,
+  #jc-panel-costing .jc-notes,
+  #jc-panel-costing .jc-pricing-card .quote-price-field{
+    grid-column:1/-1;
+  }
+
+  #jc-panel-costing .jc-pricing-card{
+    padding:12px;
+  }
+
+  #jc-panel-costing .jc-pricing-card .tick-option{
+    min-height:auto;
+    padding:4px 0 2px;
+  }
+}

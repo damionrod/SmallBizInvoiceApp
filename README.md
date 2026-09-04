@@ -1,4 +1,7 @@
-# Invoice Manager v23 — SaaS + Job Costing
+# Invoice Manager v44
+
+This version contains **layout-only refinements to the New Costing customer/job details and Pricing decision sections**. It does not change calculations, validation, database behaviour, or any other app functionality. The alignment is tightened on desktop and remains responsive on tablet/mobile.
+
 
 # Invoice Manager v22 — SaaS Foundation
 
