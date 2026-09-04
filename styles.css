@@ -690,3 +690,32 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 .product-picker-toggle{display:flex;align-items:center;justify-content:center;font-size:0;padding:0;line-height:1}
 .product-picker-toggle::before{content:"";width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid currentColor;transform:translateY(1px)}
 @media(max-width:760px){.actual-invoice-preview{padding:18px}.actual-invoice-preview .preview-totals{width:100%}}
+
+/* v38 — PDF uses the exact same invoice HTML renderer as the live/actual preview. */
+.invoice-pdf-render-host{
+  position:fixed;
+  left:-12000px;
+  top:0;
+  width:794px;
+  z-index:-9999;
+  background:#fff;
+  pointer-events:none;
+}
+.invoice-pdf-render-host .invoice-pdf-sheet{
+  box-sizing:border-box;
+  width:794px;
+  min-width:794px;
+  margin:0;
+  padding:28px;
+  border-radius:0;
+  box-shadow:none;
+  font-size:13px;
+}
+.invoice-pdf-render-host .invoice-pdf-sheet .preview-top img{width:125px;height:76px}
+.invoice-pdf-render-host .invoice-pdf-sheet .preview-company strong{font-size:16px}
+.invoice-pdf-render-host .invoice-pdf-sheet .preview-title h3{font-size:31px}
+.invoice-pdf-render-host .invoice-pdf-sheet table{font-size:12px}
+.invoice-pdf-render-host .invoice-pdf-sheet th,
+.invoice-pdf-render-host .invoice-pdf-sheet td{padding:9px}
+.invoice-pdf-render-host .invoice-pdf-sheet .preview-totals{width:300px}
+.invoice-pdf-render-host .invoice-pdf-sheet .preview-grand{font-size:16px}

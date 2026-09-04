@@ -384,3 +384,8 @@ The Stripe webhook URL is shown directly in the Super Admin payment card so it c
 
 ## v36 – Super Admin permanent account deletion
 Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super Admin **Delete** button. The action requires two confirmations and permanently removes the selected business, its linked users, and business-owned database records. The currently logged-in Super Admin business cannot be deleted from its own session.
+
+## v38 — exact invoice preview/PDF renderer
+- PDF generation now captures the same HTML invoice renderer used for the actual invoice preview.
+- Logo, selected template, colours, headings, table styling, totals and payment section now stay visually aligned between preview and PDF.
+- No database migration is required for v38.
