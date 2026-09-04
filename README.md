@@ -195,3 +195,12 @@ Existing v22 businesses receive Job Costing access when the v23 migration runs s
 
 ## v24 — Universal Job Costing Upgrade
 Run `V24-JOB-COSTING-UPGRADE.sql` after the v23 migration. This upgrade preserves existing invoice/customer/quote data and adds overhead allocation, labour roles, variable rates including fuel, direct costs, contingency, minimum charge, true gross-margin pricing, profit/margin feedback, snapshot-based historical costings, duplication, and the two overhead allocation bases.
+
+
+## v25 — Compact Job Costing Layout & Editing Fix
+- Makes the New Costing screen substantially denser on desktop, with a two-column workspace and sticky pricing/cost summary.
+- Keeps the existing mobile stacking behaviour and improves mobile action placement.
+- Adds a Create Customer button directly in New Costing using the existing My Customers editor; the newly saved customer is automatically selected in the costing.
+- Makes saved costing quote-price editing explicit and enabled.
+- Improves Edit Quote so the ex-GST price is clearly editable and GST/customer total update live before saving.
+- No database migration is required for v25; it uses the existing v24 schema.

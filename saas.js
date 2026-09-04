@@ -63,7 +63,7 @@
     setupAccountUI();
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=24'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=24';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw){setTimeout(()=>alert(`${mw} existing record${mw===1?'':'s'} could not be migrated to the cloud yet. Your original browser data has not been deleted. Reload after checking the v22 database migration.`),300)}};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=25'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=25';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw){setTimeout(()=>alert(`${mw} existing record${mw===1?'':'s'} could not be migrated to the cloud yet. Your original browser data has not been deleted. Reload after checking the v22 database migration.`),300)}};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 

@@ -430,3 +430,67 @@ tbody tr:last-child td{border-bottom:0}
 /* v24 universal job costing */
 .jcs-panel{display:none}.jcs-panel.active{display:block}.jc-settings-tabs{margin-bottom:16px}.help-tip{display:inline-flex;width:17px;height:17px;border-radius:50%;align-items:center;justify-content:center;background:#eaf4fb;color:#176fae;font-size:11px;cursor:help}.jc-labour-head,.jc-labour-row{grid-template-columns:1.4fr .65fr .65fr .85fr .85fr 38px}.jc-variable-head,.jc-variable-row{grid-template-columns:1.5fr .65fr .7fr .85fr .85fr 38px}.jc-divider{border-top:1px solid #a9bcc8;margin-top:7px;padding-top:11px!important}.true-cost{background:#edf5fa;margin:5px -10px;padding:12px 10px!important;border-radius:4px;font-size:16px}.true-cost strong,.quote-price-summary strong,.profit-line strong{color:#143f5d}.jc-summary-heading{font-size:13px!important;text-transform:uppercase;letter-spacing:.05em;margin:16px 0 5px;color:#687b87!important}.quote-price-field input{font-size:20px;font-weight:750;border:2px solid #1976bd}.quote-price-summary{background:#f0f7fc;margin:4px -10px;padding:12px 10px!important}.profit-line{font-weight:700}.overhead-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.overhead-summary>div{background:#f1f7fb;border:1px solid #d7e5ee;border-radius:5px;padding:14px;display:flex;justify-content:space-between;gap:12px}.jc-setting-card{border-top:1px solid #e7edf0;padding:10px 0}.jc-setting-card:first-child{border-top:0}.jc-setting-card .settings-row{display:grid;grid-template-columns:1.2fr .75fr .8fr 1.2fr auto auto;gap:8px;align-items:center}.variable-setting{grid-template-columns:1.1fr 1fr .65fr .7fr 1fr auto auto!important}.inline-check{display:flex!important;flex-direction:row!important;align-items:center;gap:5px;white-space:nowrap;font-size:11px}.inline-check input{width:auto!important}.fuel-settings{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:#f6f9fb;padding:10px;border-radius:5px;margin-top:8px}.fuel-settings>div{display:flex;flex-direction:column;justify-content:end}.fuel-settings strong{font-size:18px;color:#176fae}.jc-totals h2{margin:0 0 10px}
 @media(max-width:760px){.jc-labour-row,.jc-variable-row{grid-template-columns:1fr 1fr!important}.jc-labour-row>select:first-child,.jc-variable-row>select:first-child{grid-column:1/-1}.jc-setting-card .settings-row,.variable-setting{grid-template-columns:1fr 1fr!important}.jc-setting-card .settings-row>input:first-child,.variable-setting>input:first-child{grid-column:1/-1}.fuel-settings{grid-template-columns:1fr 1fr}.overhead-summary{grid-template-columns:1fr}.overhead-summary>div{flex-direction:column}.jc-settings-tabs{overflow-x:auto;display:flex}.jc-settings-tabs .module-tab{white-space:nowrap;flex:0 0 auto}.quote-price-field input{font-size:18px}}
+
+/* ============================================================
+   v25 COMPACT JOB COSTING WORKSPACE
+   Layout-only improvements plus quick customer creation.
+   ============================================================ */
+#jc-panel-costing{--jc-gap:10px}
+#jc-panel-costing .jc-workspace{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(340px,.8fr);gap:14px;align-items:start}
+#jc-panel-costing .jc-main-column{min-width:0}
+#jc-panel-costing .jc-side-column{min-width:0}
+#jc-panel-costing .jc-sticky-summary{position:sticky;top:82px}
+#jc-panel-costing .jc-compact-card{padding:12px 14px;margin-bottom:10px}
+#jc-panel-costing .jc-compact-card .card-title{min-height:0;margin-bottom:6px;padding-bottom:4px}
+#jc-panel-costing .jc-compact-card .card-title h2{font-size:14px;margin:0}
+#jc-panel-costing .jc-compact-card .hint{font-size:10px;line-height:1.35}
+#jc-panel-costing .jc-job-grid{grid-template-columns:.7fr .7fr 1.15fr 1.15fr;gap:8px 10px}
+#jc-panel-costing .jc-job-grid label{margin:0}
+#jc-panel-costing .jc-job-grid input,#jc-panel-costing .jc-job-grid textarea,#jc-panel-costing .jc-job-grid select{padding:8px 9px}
+#jc-panel-costing .jc-customer-field{grid-column:3/5}
+#jc-panel-costing .jc-job-name{grid-column:1/3}
+#jc-panel-costing .jc-job-address{grid-column:3/5}
+#jc-panel-costing .jc-notes{grid-column:2/5}
+#jc-panel-costing .jc-notes textarea{min-height:42px;resize:vertical}
+#jc-panel-costing .jc-customer-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center}
+#jc-panel-costing .jc-create-customer{white-space:nowrap;padding:8px 10px;font-size:11px}
+#jc-panel-costing .jc-row-head{padding:5px 4px}
+#jc-panel-costing .jc-cost-row{padding:5px 0;gap:7px}
+#jc-panel-costing .jc-cost-row input,#jc-panel-costing .jc-cost-row select{padding:7px 8px;min-height:35px}
+#jc-panel-costing .jc-pricing-card{padding:12px 14px;margin-bottom:9px}
+#jc-panel-costing .jc-pricing-card h2,#jc-panel-costing .jc-totals h2{font-size:14px}
+#jc-panel-costing .jc-pricing-card .form-grid{gap:8px}
+#jc-panel-costing .jc-pricing-card input{padding:8px 9px}
+#jc-panel-costing .quote-price-field input{font-size:17px;padding:8px 9px}
+#jc-panel-costing .jc-totals{padding:12px 14px;margin-bottom:9px}
+#jc-panel-costing .jc-totals>div{padding:4px 0;font-size:12px}
+#jc-panel-costing .jc-totals .true-cost,#jc-panel-costing .jc-totals .quote-price-summary,#jc-panel-costing .jc-totals .balance-due{padding:8px 9px!important;margin-top:3px;margin-bottom:3px}
+#jc-panel-costing .jc-summary-heading{margin:9px 0 3px}
+#jc-panel-costing .jc-divider{margin-top:3px;padding-top:7px!important}
+#jc-panel-costing .jc-sticky-actions{display:grid;grid-template-columns:1fr 1fr 1.2fr;gap:7px;margin:0}
+#jc-panel-costing .jc-sticky-actions button{width:100%;padding:9px 7px;font-size:11px}
+.quote-edit-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f3f8fb;border:1px solid #d9e7ef;border-radius:5px;padding:10px 12px}
+.quote-edit-summary span{display:flex;justify-content:space-between;gap:10px;color:#506572}
+.quote-edit-summary strong{color:#173f5c;font-size:15px}
+
+@media(max-width:1180px){
+  #jc-panel-costing .jc-workspace{grid-template-columns:minmax(0,1fr) 330px}
+  #jc-panel-costing .jc-job-grid{grid-template-columns:1fr 1fr}
+  #jc-panel-costing .jc-customer-field,#jc-panel-costing .jc-job-name,#jc-panel-costing .jc-job-address,#jc-panel-costing .jc-notes{grid-column:1/-1}
+}
+
+@media(max-width:900px){
+  #jc-panel-costing .jc-workspace{grid-template-columns:1fr}
+  #jc-panel-costing .jc-sticky-summary{position:static}
+  #jc-panel-costing .jc-side-column{order:2}
+}
+
+@media(max-width:760px){
+  #jc-panel-costing .jc-compact-card{padding:11px;margin-bottom:9px}
+  #jc-panel-costing .jc-job-grid{grid-template-columns:1fr 1fr;gap:8px}
+  #jc-panel-costing .jc-customer-field,#jc-panel-costing .jc-job-name,#jc-panel-costing .jc-job-address,#jc-panel-costing .jc-notes{grid-column:1/-1}
+  #jc-panel-costing .jc-customer-picker{grid-template-columns:1fr}
+  #jc-panel-costing .jc-create-customer{width:100%}
+  #jc-panel-costing .jc-sticky-actions{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom));z-index:5;background:rgba(241,244,246,.96);padding:8px 0 4px}
+  .quote-edit-summary{grid-template-columns:1fr}
+}
