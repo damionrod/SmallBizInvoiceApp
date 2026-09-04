@@ -719,3 +719,31 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 .invoice-pdf-render-host .invoice-pdf-sheet td{padding:9px}
 .invoice-pdf-render-host .invoice-pdf-sheet .preview-totals{width:300px}
 .invoice-pdf-render-host .invoice-pdf-sheet .preview-grand{font-size:16px}
+
+
+/* v39 — quote PDF uses the exact same quote HTML renderer as live/actual preview. */
+.quote-pdf-render-host{
+  position:fixed;
+  left:-12000px;
+  top:0;
+  width:794px;
+  z-index:-9999;
+  background:#fff;
+  pointer-events:none;
+}
+.quote-pdf-render-host .quote-pdf-sheet{
+  box-sizing:border-box;
+  width:794px;
+  min-width:794px;
+  margin:0;
+  padding:28px;
+  border-radius:0;
+  box-shadow:none;
+  font-size:13px;
+}
+.quote-pdf-render-host .quote-pdf-sheet .quote-preview-logo{width:66px;height:44px}
+.quote-pdf-render-host .quote-pdf-sheet .quote-preview-head>div:last-child strong{font-size:23px}
+.quote-pdf-render-host .quote-pdf-sheet .inv-table{font-size:12px}
+.quote-pdf-render-host .quote-pdf-sheet .inv-table th,
+.quote-pdf-render-host .quote-pdf-sheet .inv-table td{padding:9px}
+.quote-pdf-render-host .quote-pdf-sheet .inv-summary{width:330px}

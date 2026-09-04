@@ -389,3 +389,10 @@ Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super A
 - PDF generation now captures the same HTML invoice renderer used for the actual invoice preview.
 - Logo, selected template, colours, headings, table styling, totals and payment section now stay visually aligned between preview and PDF.
 - No database migration is required for v38.
+
+
+## v39 – Quote preview/PDF consistency
+- Quote PDFs are now rendered from the exact same quotation HTML/template used by the live quotation preview and the customer-facing quote preview.
+- Logo, template, colours, customer/date cards, table styling, totals, payment details, notes and terms now use one renderer.
+- No database migration is required for v39.
+- No other app functionality was intentionally changed.
