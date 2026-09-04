@@ -396,3 +396,11 @@ Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super A
 - Logo, template, colours, customer/date cards, table styling, totals, payment details, notes and terms now use one renderer.
 - No database migration is required for v39.
 - No other app functionality was intentionally changed.
+
+
+## v40 – Quick quote customer fix
+- Fixed **+ Create Customer** from the Create Quote window so the customer editor opens above the quote.
+- A quote can now be issued by typing only a new customer/business name. When the quote is saved, that name is automatically created in My Customers and linked to the quote.
+- Existing customer names continue to link to the existing customer record.
+- No database migration is required.
+- No other app behaviour was changed.
