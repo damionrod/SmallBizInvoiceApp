@@ -502,3 +502,8 @@ alter table public.job_costings add column if not exists expected_profit numeric
 alter table public.job_costings add column if not exists expected_margin_percent numeric(9,4) not null default 0;
 alter table public.job_costings add column if not exists costing_snapshot jsonb not null default '{}'::jsonb;
 alter table public.quotes add column if not exists quote_items jsonb not null default '[]'::jsonb;
+
+-- v30 quotation advance-payment support
+alter table public.quotes add column if not exists advance_enabled boolean not null default false;
+alter table public.quotes add column if not exists advance_percent numeric(7,3) not null default 0;
+alter table public.quotes add column if not exists advance_amount numeric(12,2) not null default 0;

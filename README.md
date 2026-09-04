@@ -251,3 +251,35 @@ This release is a UI/settings-structure upgrade over v28. Existing invoicing, cu
 
 ### Database
 No new Supabase SQL migration is required for v29. Quote design settings are stored inside the existing business settings JSON.
+
+## v30 – Quote Templates, Advances, Quick Quotes & Admin Portal
+
+### Quotation templates
+- Quote Design now offers the same core template choices as invoices: Classic, Minimal, Modern, Pastel Cute and Pastel Elegant.
+- The selected quote template is used in the live preview and quote PDF.
+- Quote branding/labels/logo controls remain configurable.
+- Quotations now show the business's default bank/account details by default.
+
+### Advance payments
+- Quote settings include a default advance toggle and default advance percentage.
+- New job costings inherit the default advance setting, but the user can turn it off or change the percentage for that job before creating the quote.
+- Manually created quotes and saved quote editing also allow the advance setting/percentage to be changed or removed.
+- The advance amount is calculated from the customer total including GST and shown separately on the quotation.
+
+### Quick Create Quote
+- Job Costing → Quotes now includes **+ Create Quote**.
+- A quote can be created without creating a Job Costing first.
+- The form links to My Customers and the existing Product/Service list and supports multiple quote items.
+- Approved quick quotes progress to the existing invoice screen with all quoted items pre-filled.
+
+### Simplified Cost Settings
+- General, Business Overheads, Labour Roles, Variable Cost Rates and Cost Presets are now on one Cost Settings page.
+- Quote Design remains a separate sub-tab so the operational costing settings stay easy to scan.
+
+### Super Admin portal
+- Super Admin now opens in a separate platform-owner portal mode at `#super-admin` with its own header and Back to App control.
+- Normal customer application navigation is hidden while the Super Admin portal is open.
+- Access remains restricted to accounts flagged as Super Admin.
+
+### Database migration
+Run `V30-QUOTE-UPGRADE.sql` once before using the v30 quote advance feature. It safely adds `advance_enabled`, `advance_percent`, and `advance_amount` to existing quotes. Historical quotes remain unchanged with no advance requirement.

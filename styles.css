@@ -602,3 +602,32 @@ tbody tr:last-child td{border-bottom:0}
   .quote-design-grid{grid-template-columns:1fr}
   .quote-design-preview{margin-left:-3px;margin-right:-3px}
 }
+
+/* ============================================================
+   v30 QUOTES + ADMIN PORTAL
+   ============================================================ */
+.admin-portal-bar{max-width:none;margin:0;padding:14px 24px;background:#102f49;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:18px;box-shadow:0 2px 10px rgba(0,0,0,.16)}
+.admin-portal-bar>div{display:flex;flex-direction:column;gap:2px}.admin-portal-bar strong{font-size:18px}.admin-portal-bar span{font-size:11px;color:rgba(255,255,255,.72);text-transform:uppercase;letter-spacing:.05em}.admin-portal-bar .secondary{background:#fff;color:#173f5c}
+body.admin-portal-active .topbar,body.admin-portal-active #invoiceModuleNav{display:none!important}
+body.admin-portal-active main{max-width:1500px;padding-top:24px}
+body.admin-portal-active .view{display:none!important}body.admin-portal-active #view-admin{display:block!important}
+body.admin-portal-active #view-admin .page-head{margin-top:0}
+.quote-list-controls{grid-template-columns:minmax(220px,1fr) 180px auto auto;align-items:end}
+.quick-quote-modal-box{max-width:980px}.quick-quote-items{padding:14px;margin:14px 0}.quick-quote-head,.quick-quote-row{grid-template-columns:minmax(260px,2fr) 90px 140px 130px 40px}.quick-quote-summary{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px 28px;margin:12px 0;padding:13px 15px;background:#f6f9fb;border:1px solid var(--border);border-radius:5px}.quick-quote-summary span{display:flex;gap:8px}.quick-quote-summary strong{color:#173f5c}
+.quote-advance-line{background:#edf6fc;border-radius:4px;padding:8px 10px!important;margin-top:4px}.quote-payment{background:#f8fafb;border:1px solid #e1e8ed;border-radius:5px;padding:12px;margin-top:12px}.quote-payment p{margin:5px 0 0}
+.quote-preview.quote-template-classic{border-top:4px solid var(--quote-accent)}
+.quote-preview.quote-template-minimal{border:0;box-shadow:none}.quote-template-minimal .quote-preview-head{border-bottom:1px solid #cfd8df}.quote-template-minimal .inv-table th{background:#fff;color:#334b5b;border-bottom:2px solid #7d8d97}.quote-template-minimal .inv-table td{border-color:#edf1f3}
+.quote-preview.quote-template-modern .quote-preview-head{background:var(--quote-accent);color:#fff;margin:-18px -18px 18px;padding:20px;border-radius:5px 5px 0 0}.quote-template-modern .quote-preview-head small,.quote-template-modern .quote-preview-head span{color:rgba(255,255,255,.8)}.quote-template-modern .quote-preview-head>div:last-child strong{color:#fff}
+.quote-preview.quote-template-pastel-cute{background:#fffafd;border-color:#eed5e4}.quote-template-pastel-cute .quote-preview-head{border-color:#efd5e3}.quote-template-pastel-cute .inv-table th{background:#fbecf4;color:#6c465d}.quote-template-pastel-cute .grand{color:#8d4e71}
+.quote-preview.quote-template-pastel-elegant{background:#fbfcfd;border-color:#dbe3e9}.quote-template-pastel-elegant .inv-table th{background:#eaf0f4;color:#465c6c}.quote-template-pastel-elegant .quote-preview-head{border-color:#cfdce5}
+#jcs-costs>.card{margin-bottom:12px}#jcs-costs .card-title{margin-bottom:8px}.jc-settings-tabs{margin-bottom:14px}
+#jcAdvanceEnabled+span,#jcQuoteAdvanceEnabled+span,#qqAdvanceEnabled+span,#qeAdvanceEnabled+span{font-weight:650}
+
+@media(max-width:760px){
+  .admin-portal-bar{padding:11px 12px calc(11px + env(safe-area-inset-top));position:sticky;top:0;z-index:80}.admin-portal-bar strong{font-size:15px}.admin-portal-bar span{font-size:9px}.admin-portal-bar .secondary{padding:8px 10px;font-size:11px}
+  body.admin-portal-active{padding-bottom:20px}body.admin-portal-active main{padding:12px 8px 30px}
+  .quote-list-controls{display:grid;grid-template-columns:1fr 1fr}.quote-list-controls label:first-child{grid-column:1/-1}.quote-list-controls #jcQuickQuote{grid-column:1/-1}
+  .quick-quote-modal-box{width:100%;max-height:92vh;overflow:auto}.quick-quote-head{display:none}.quick-quote-row{display:grid;grid-template-columns:1fr 80px;gap:8px;padding:12px;border:1px solid var(--border);border-radius:7px;margin-bottom:8px}.quick-quote-row input:first-child{grid-column:1/-1}.quick-quote-row strong{display:flex;align-items:center;justify-content:flex-end}.quick-quote-row .remove{position:absolute;right:12px;margin-top:-5px}
+  .quick-quote-summary{justify-content:stretch;display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick-quote-summary span{justify-content:space-between}
+  .quote-design-grid{grid-template-columns:1fr!important}
+}

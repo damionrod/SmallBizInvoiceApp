@@ -63,7 +63,7 @@
     setupAccountUI();
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=29'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=29';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw){setTimeout(()=>alert(`${mw} existing record${mw===1?'':'s'} could not be migrated to the cloud yet. Your original browser data has not been deleted. Reload after checking the v22 database migration.`),300)}};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=30'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=30';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -119,6 +119,21 @@
     if(migrationFailures){localStorage.setItem('v22_migration_warning',String(migrationFailures));return;}localStorage.setItem(marker,'1');localStorage.setItem('v22_legacy_claimed_by',state.business.id);
   }
 
+  function openAdminPortal(){
+    closeAccountPopover();
+    document.body.classList.add('admin-portal-active');
+    if(q('adminPortalBar'))q('adminPortalBar').hidden=false;
+    if(window.switchView)window.switchView('admin');
+    history.replaceState(null,'','#super-admin');
+    renderAdmin();
+  }
+  function closeAdminPortal(){
+    document.body.classList.remove('admin-portal-active');
+    if(q('adminPortalBar'))q('adminPortalBar').hidden=true;
+    history.replaceState(null,'',location.pathname+location.search);
+    if(window.switchView)window.switchView('create');
+  }
+
   function setupAccountUI(){
     const initials=(state.profile.full_name||state.business.name||'A').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
     if(q('accountInitials'))q('accountInitials').textContent=initials||'A';
@@ -130,7 +145,7 @@
     if(q('accountChip'))q('accountChip').onclick=e=>{e.stopPropagation();const pop=q('accountPopover');if(pop)pop.hidden=!pop.hidden};
     if(q('openAccountSettings'))q('openAccountSettings').onclick=()=>openAccountSettings();
     if(q('accountManagePlan'))q('accountManagePlan').onclick=()=>{closeAccountPopover();showPlans()};
-    if(q('accountAdminNav'))q('accountAdminNav').onclick=()=>{closeAccountPopover();if(window.switchView)window.switchView('admin');renderAdmin()};
+    if(q('accountAdminNav'))q('accountAdminNav').onclick=openAdminPortal;
     if(q('accountSignOut'))q('accountSignOut').onclick=()=>state.client.auth.signOut();
     if(q('signOutBtn'))q('signOutBtn').onclick=()=>state.client.auth.signOut();
     if(q('manageSubscription'))q('manageSubscription').onclick=showPlans;
@@ -310,7 +325,8 @@
   }
 
   async function bindAfterAppLoad(){
-    if(q('adminNav')) q('adminNav').onclick=()=>{ if(window.switchView)window.switchView('admin'); renderAdmin() };
+    if(q('adminNav')) q('adminNav').onclick=openAdminPortal;
+    if(q('adminBackToApp'))q('adminBackToApp').onclick=closeAdminPortal;
     if(q('saveSettings')) q('saveSettings').addEventListener('click',()=>setTimeout(()=>saveBusinessSettings(appSettings()),100));
     if(q('jobCostingNav')){const allowed=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
     // Keep infrastructure config automatic and hidden from customers.

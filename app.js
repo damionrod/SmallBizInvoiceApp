@@ -251,9 +251,14 @@ window.prefillInvoiceFromQuote=async function(q){
   }else if(q?.customer_name){
     $('customerName').value=q.customer_name||'';$('customerAddress').value=q.customer_address||'';$('customerEmail').value=q.customer_email||'';
   }
-  const description=String(q?.description||q?.job_description||'Quoted service').trim()||'Quoted service';
-  const price=num(q?.quoted_price_ex_gst);
-  items=[{description,custom:q?.quote_number?`From quote ${q.quote_number}`:'',qty:1,unit_price:price}];
+  const quotedItems=Array.isArray(q?.quote_items)&&q.quote_items.length?q.quote_items:null;
+  if(quotedItems){
+    items=quotedItems.map((x,i)=>({description:String(x.description||'Quoted service').trim()||'Quoted service',custom:i===0&&q?.quote_number?`From quote ${q.quote_number}`:'',qty:Math.max(1,num(x.qty)||1),unit_price:num(x.unit_price)}));
+  }else{
+    const description=String(q?.description||q?.job_description||'Quoted service').trim()||'Quoted service';
+    const price=num(q?.quoted_price_ex_gst);
+    items=[{description,custom:q?.quote_number?`From quote ${q.quote_number}`:'',qty:1,unit_price:price}];
+  }
   $('reference').value=q?.quote_number?`Quote ${q.quote_number}`:'';
   renderItems();recalc();switchView('create');
   toast('Quote loaded into a new invoice. Review it, then save or email the invoice.');
