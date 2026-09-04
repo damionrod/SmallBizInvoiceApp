@@ -18,19 +18,20 @@
 <body>
   <header class="topbar">
     <div class="brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Invoice Manager</strong><span>Invoice Manager</span></div></div>
-    <nav><button class="nav-btn active" data-view="create">Create Invoice</button><button class="nav-btn" data-view="invoices">My Invoices</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn module-nav" data-view="jobcosting" id="jobCostingNav" hidden>Job Costing</button><button class="nav-btn" data-view="reports">Reports</button><button class="nav-btn" data-view="settings">Settings</button><button class="nav-btn admin-only" data-view="admin" id="adminNav" hidden>Admin</button><button class="account-chip" id="accountChip" type="button" title="Account"><span id="accountInitials">A</span></button></nav>
+    <nav><button class="nav-btn active" data-module="invoicing">Invoicing</button><button class="nav-btn module-nav" data-view="jobcosting" id="jobCostingNav" hidden>Job Costing</button><button class="nav-btn" data-view="customers">My Customers</button><button class="nav-btn" data-view="reports">Reports</button><button class="account-chip" id="accountChip" type="button" title="Account"><span id="accountInitials">A</span></button></nav>
   </header>
   <main>
+    <div class="module-tabs invoice-module-tabs" id="invoiceModuleNav"><button class="module-tab active" data-invoice-view="create">Create Invoice</button><button class="module-tab" data-invoice-view="invoices">My Invoices</button><button class="module-tab" data-invoice-view="settings">Settings</button></div>
     <section id="view-create" class="view active">
       <div class="page-head"><div><h1>Create Invoice</h1><p>Taxes and optional service fees are calculated automatically from Settings.</p></div><button class="secondary" id="clearInvoice">Clear</button></div>
       <div class="notice" id="configNotice">Add your GST number in Settings before sending invoices.</div>
-      <div class="card form-grid">
+      <div class="card form-grid invoice-details-card">
         <label>Invoice number<input id="invoiceNumber" readonly></label>
         <label>Invoice date<input id="invoiceDate" type="date"></label>
         <label>Due date<input id="dueDate" type="date"></label>
-        <label>Customer / business name<div class="customer-pick"><input id="customerName" list="customerNameOptions" autocomplete="off" placeholder="Start typing a customer name"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameOptions"></datalist><small id="selectedCustomerHint">Select an existing customer or type a new one.</small></label>
+        <label class="invoice-customer-name">Customer / business name<div class="customer-pick"><input id="customerName" list="customerNameOptions" autocomplete="off" placeholder="Start typing a customer name"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameOptions"></datalist><small id="selectedCustomerHint">Select an existing customer or type a new one.</small></label>
         <label>Customer category<input id="invoiceCustomerCategory" list="customerCategoryOptions" placeholder="Residential / Commercial"><datalist id="customerCategoryOptions"></datalist></label>
-        <label class="wide">Billing address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
+        <label class="wide invoice-address">Billing address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
         <label>Billing contact<input id="invoiceBillingContact" placeholder="Contact person"></label>
         <label>Customer email<input id="customerEmail" type="email" placeholder="name@example.com"></label>
         <label>Phone<input id="invoiceCustomerPhone" type="tel" placeholder="Phone"></label>
@@ -66,7 +67,7 @@
       </div>
 
       <div class="totals-wrap">
-        <div class="card notes-card"><label>Message to customer<textarea id="customerNote" rows="4"></textarea></label></div>
+        <div class="card notes-card"><label>Message to customer<textarea id="customerNote" rows="3"></textarea></label></div>
         <div class="card totals">
           <div><span>Subtotal (excl. GST)</span><strong id="subtotal">$0.00</strong></div>
           <div id="discountRow" style="display:none"><span>Discount</span><strong id="discount">-$0.00</strong></div>
@@ -232,7 +233,7 @@
         </div>
         <div class="usage-track"><span id="usageBar"></span></div>
         <p class="hint" id="accountPlanHint">Your invoices, customers and business settings are securely synced to your business account.</p>
-        <div class="head-actions"><button class="secondary" id="billingPortalBtn" type="button" hidden>Billing portal</button><button class="secondary" id="signOutBtn" type="button">Sign out</button></div>
+        <div class="head-actions"><button class="secondary admin-only" id="adminNav" type="button" hidden>Super Admin</button><button class="secondary" id="billingPortalBtn" type="button" hidden>Billing portal</button><button class="secondary" id="signOutBtn" type="button">Sign out</button></div>
       </div>
 
       <div class="card">

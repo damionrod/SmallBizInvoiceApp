@@ -222,3 +222,11 @@ Run `V24-JOB-COSTING-UPGRADE.sql` after the v23 migration. This upgrade preserve
 - Inactive settings remain available in Cost Settings but are not preloaded on new costings.
 - Existing saved costings still use their historical snapshots and are not changed by current settings.
 - No database migration is required from v24-v26.
+
+## v28 — Module navigation + compact invoice layout
+- Main navigation simplified to four primary modules: Invoicing, Job Costing, My Customers, Reports.
+- Invoicing now contains Create Invoice, My Invoices and Settings as internal module tabs.
+- Super Admin access moved into Account & subscription so it remains available without occupying main navigation.
+- Create Invoice layout made denser on desktop/tablet while preserving all existing fields and behaviour.
+- Mobile navigation normalized to four primary modules; invoice sub-navigation remains touch-friendly.
+- No database migration is required for v28.

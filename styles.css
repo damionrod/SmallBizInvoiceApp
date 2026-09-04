@@ -504,3 +504,64 @@ tbody tr:last-child td{border-bottom:0}
 .jc-overhead-item small{color:#87959e;font-size:10px}
 .jc-overhead-item strong{color:#2c4657;font-size:11px}
 @media(max-width:760px){.jc-overhead-item{grid-template-columns:minmax(0,1fr) auto}.jc-overhead-item small{display:none}}
+
+/* ============================================================
+   v28 MODULE NAVIGATION + COMPACT INVOICE WORKSPACE
+   Structural/layout-only refresh. Existing workflows unchanged.
+   ============================================================ */
+.invoice-module-tabs{margin-top:-8px;margin-bottom:16px}
+#invoiceModuleNav[hidden]{display:none!important}
+
+/* Make Create Invoice denser on desktop without removing any fields. */
+@media(min-width:901px){
+  #view-create .page-head{margin-bottom:11px;padding-bottom:10px}
+  #view-create .notice{padding:8px 11px;margin-bottom:10px;font-size:12px}
+  #view-create>.card{padding:14px 16px;margin-bottom:11px}
+  #view-create .invoice-details-card{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px 11px}
+  #view-create .invoice-details-card .wide{grid-column:span 2}
+  #view-create .invoice-details-card .invoice-customer-name{grid-column:span 2}
+  #view-create .invoice-details-card label{gap:4px}
+  #view-create .invoice-details-card input,
+  #view-create .invoice-details-card textarea,
+  #view-create .invoice-details-card select{min-height:38px;padding:8px 9px}
+  #view-create .invoice-details-card textarea{min-height:38px;height:38px;resize:vertical}
+  #view-create .card-title{min-height:28px;padding-bottom:4px}
+  #view-create .items-header{padding:7px 8px 4px}
+  #view-create .item-row{padding:7px 5px}
+  #view-create .item-row input{min-height:38px;padding:8px 9px}
+  #view-create .invoice-options-grid{gap:11px;padding:12px 15px}
+  #view-create .invoice-options-grid h2{margin-bottom:6px}
+  #view-create .invoice-options-grid .hint{font-size:11px;line-height:1.3;margin:5px 0 0}
+  #view-create .invoice-options-grid input,
+  #view-create .invoice-options-grid select{min-height:38px;padding:8px 9px}
+  #view-create .totals-wrap{grid-template-columns:minmax(0,1fr) 340px;gap:11px}
+  #view-create .notes-card,#view-create .totals{padding:12px 15px}
+  #view-create .notes-card textarea{min-height:78px}
+  #view-create .totals div{padding:6px 0}
+  #view-create .totals .grand{margin-top:4px;padding-top:9px}
+  #view-create .balance-due{padding:9px 10px!important}
+  #view-create>.actions{margin-top:11px}
+}
+
+/* Tablet keeps a useful two-column invoice layout. */
+@media(max-width:900px) and (min-width:761px){
+  #view-create .invoice-details-card{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #view-create .invoice-details-card .wide,#view-create .invoice-details-card .invoice-customer-name{grid-column:1/-1}
+  #view-create>.card{padding:15px;margin-bottom:12px}
+  #view-create .totals-wrap{gap:12px}
+}
+
+/* Main mobile navigation is now exactly the four primary modules. */
+@media(max-width:760px){
+  nav,
+  nav:has(#jobCostingNav:not([hidden])),
+  nav:has(#adminNav:not([hidden])),
+  nav:has(#adminNav:not([hidden])):has(#jobCostingNav:not([hidden])){grid-template-columns:repeat(4,1fr)!important}
+  .invoice-module-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:0 0 12px;border-bottom:0}
+  .invoice-module-tabs .module-tab{border:1px solid #d7e0e6;border-radius:6px;background:#fff;padding:9px 4px;font-size:11px}
+  .invoice-module-tabs .module-tab.active{border-color:#1976bd;background:#edf6fc}
+  #view-create .page-head{margin-bottom:10px}
+  #view-create>.card{margin-bottom:10px}
+  #view-create .invoice-details-card{gap:9px}
+  #view-create .invoice-options-grid .hint{margin-bottom:4px}
+}
