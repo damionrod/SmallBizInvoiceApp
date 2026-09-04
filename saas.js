@@ -535,7 +535,7 @@
       const tr=document.createElement('tr');
       const ownerKey=(owner.email||'').trim().toLowerCase();
       const duplicateBadge=ownerKey&&ownerEmailCounts.get(ownerKey)>1?'<span class="duplicate-account-badge" title="More than one business record is linked to this owner email">Duplicate record</span>':'';
-      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button></div></td>`;
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
       body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
@@ -562,6 +562,26 @@
       const {error}=await state.client.rpc('v33_admin_set_suspension',{p_business_id:bid,p_suspend:suspend});
       btn.disabled=false;
       if(error){btn.textContent=suspend?'Suspend':'Activate';alert('Could not change account status: '+error.message);return}
+      await renderAdmin();
+    });
+    body.querySelectorAll('[data-admin-delete]').forEach(btn=>btn.onclick=async()=>{
+      const bid=btn.dataset.adminDelete;
+      const businessName=btn.dataset.businessName||'';
+      if(!bid||!businessName)return alert('Business information is missing. Reload the admin page and try again.');
+      const warning=`Permanently delete ${businessName}?
+
+This will permanently remove the business account, its users, invoices, customers, recurring rules, job costings, quotes, subscriptions, module settings and all other database records linked to this business. This cannot be undone.`;
+      if(!confirm(warning))return;
+      const typed=prompt(`Type the business name exactly to confirm deletion:
+
+${businessName}`,'');
+      if(typed===null)return;
+      if(typed.trim()!==businessName.trim())return alert('Business name did not match. Nothing was deleted.');
+      btn.disabled=true;btn.textContent='Deleting…';
+      const {data,error}=await state.client.rpc('v36_admin_delete_business',{p_business_id:bid,p_confirmation_name:typed.trim()});
+      btn.disabled=false;
+      if(error){btn.textContent='Delete';alert('Could not delete account: '+error.message);return}
+      alert(`${businessName} and its linked database information have been permanently deleted.`);
       await renderAdmin();
     });
     renderAdminPlans();

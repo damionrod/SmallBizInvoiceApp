@@ -381,3 +381,6 @@ The Stripe webhook URL is shown directly in the Super Admin payment card so it c
 - Create Account now includes **Already have an account? Log in** and duplicate-user errors route back to login.
 - Super Admin flags repeated owner-email business records with a **Duplicate record** badge; it does not auto-delete data.
 - Run `V35-SIGNUP-PAYMENT-UX.sql` once in Supabase SQL Editor, then deploy the website ZIP.
+
+## v36 – Super Admin permanent account deletion
+Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super Admin **Delete** button. The action requires two confirmations and permanently removes the selected business, its linked users, and business-owned database records. The currently logged-in Super Admin business cannot be deleted from its own session.
