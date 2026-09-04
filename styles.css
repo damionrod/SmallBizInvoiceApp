@@ -494,3 +494,13 @@ tbody tr:last-child td{border-bottom:0}
   #jc-panel-costing .jc-sticky-actions{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom));z-index:5;background:rgba(241,244,246,.96);padding:8px 0 4px}
   .quote-edit-summary{grid-template-columns:1fr}
 }
+
+/* v27 — business-specific costing template */
+.jc-overhead-details{margin:5px 0 8px;padding-top:3px;border-top:1px dashed #d9e2e8;font-size:11px}
+.jc-overhead-details summary{cursor:pointer;color:#557080;font-weight:700;padding:5px 0;user-select:none}
+#jcActiveOverheads{display:grid;gap:3px;padding:2px 0 4px}
+.jc-overhead-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;color:#52646f}
+.jc-overhead-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jc-overhead-item small{color:#87959e;font-size:10px}
+.jc-overhead-item strong{color:#2c4657;font-size:11px}
+@media(max-width:760px){.jc-overhead-item{grid-template-columns:minmax(0,1fr) auto}.jc-overhead-item small{display:none}}

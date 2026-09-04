@@ -204,3 +204,21 @@ Run `V24-JOB-COSTING-UPGRADE.sql` after the v23 migration. This upgrade preserve
 - Makes saved costing quote-price editing explicit and enabled.
 - Improves Edit Quote so the ex-GST price is clearly editable and GST/customer total update live before saving.
 - No database migration is required for v25; it uses the existing v24 schema.
+
+
+## v26 – Live line total fix
+- Job Costing Labour line totals now update immediately when hours, workers, or cost/hour change.
+- Travel / Variable Cost line totals now update immediately when quantity or rate changes.
+- Direct Job Cost line totals now update immediately when quantity or unit cost changes.
+- Overall costing summary continues to recalculate at the same time.
+- No database migration is required from v25.
+
+## v27 — Custom New Costing Template
+- Every Active Labour Role is automatically shown on a new costing with its saved hourly cost.
+- Every Active Variable Cost Rate is automatically shown with its saved rate/calculation.
+- Every Active Cost Preset is automatically shown with its saved unit cost.
+- Optional variable/direct quantities and labour hours start at zero, so visible template rows do not accidentally add cost until used.
+- Active Business Overheads continue to be allocated automatically and can now be expanded in the Cost Breakdown to see which overheads are included and each job allocation.
+- Inactive settings remain available in Cost Settings but are not preloaded on new costings.
+- Existing saved costings still use their historical snapshots and are not changed by current settings.
+- No database migration is required from v24-v26.
