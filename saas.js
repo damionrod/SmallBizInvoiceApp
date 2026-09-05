@@ -6,10 +6,14 @@
   function message(text, kind=''){
     const el=q('authMessage'); if(!el)return; el.textContent=text||''; el.className='auth-message '+kind;
   }
-  function appSettings(){ try{return JSON.parse(localStorage.getItem('invoice_app_settings')||'{}')||{}}catch{return{}} }
+  function businessSettingsKey(businessId=state.business?.id){return businessId?`invoice_app_settings:${businessId}`:'invoice_app_settings'}
+  function readJsonStorage(key){try{return JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{return{}}}
+  function appSettings(){const bid=state.business?.id;return bid?readJsonStorage(businessSettingsKey(bid)):readJsonStorage('invoice_app_settings')}
+  function writeBusinessSettingsCache(s,businessId=state.business?.id){const value=JSON.stringify(injectInfra(s||{}));if(businessId)localStorage.setItem(businessSettingsKey(businessId),value);localStorage.setItem('invoice_app_settings',value)}
   function stripInfra(s){ const x={...(s||{})}; delete x.supabaseUrl; delete x.supabaseKey; return x }
   function injectInfra(s={}){ return {...s,supabaseUrl:C.supabaseUrl||'',supabaseKey:C.supabaseKey||''} }
   function meaningfulLegacySettings(s){ return !!(s.company||s.trading||s.address||s.phone||s.email||s.gstNumber||s.logoData||((s.products||[]).some(p=>p&&p.name&&!['Service','Product','Other'].includes(p.name)))) }
+  function sameJson(a,b){try{return JSON.stringify(a??null)===JSON.stringify(b??null)}catch{return false}}
 
   async function init(){
     document.body.classList.add('auth-locked');
@@ -131,7 +135,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=47'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=47';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=48'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=48';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -145,14 +149,37 @@
   }
 
   async function loadBusinessSettings(){
-    const cloud=state.business?.settings||{}; const local=appSettings();
-    let chosen=cloud;
+    const businessId=state.business?.id;
+    const cloud=state.business?.settings||{};
+    const tenantLocal=readJsonStorage(businessSettingsKey(businessId));
+    const legacyLocal=readJsonStorage('invoice_app_settings');
+    const claimed=localStorage.getItem('v22_settings_claimed_by')||localStorage.getItem('v22_legacy_claimed_by');
+    let chosen={...(cloud||{})};
+    let needsCloudSave=false;
+
     if(!cloud||Object.keys(cloud).length===0){
-      chosen=meaningfulLegacySettings(local)?stripInfra(local):{company:state.business?.name||'',trading:state.business?.name||'',address:state.business?.address||'',phone:state.business?.phone||'',email:state.user?.email||'',invoicePrefix:'INV'};
-      await state.client.from('businesses').update({settings:chosen,updated_at:new Date().toISOString()}).eq('id',state.business.id);
+      const mayClaimLegacy=!claimed||claimed===businessId;
+      const source=Object.keys(tenantLocal).length?tenantLocal:(mayClaimLegacy&&meaningfulLegacySettings(legacyLocal)?legacyLocal:null);
+      chosen=source?stripInfra(source):{company:state.business?.name||'',trading:state.business?.name||'',address:state.business?.address||'',phone:state.business?.phone||'',email:state.user?.email||'',invoicePrefix:'INV'};
+      if(source&&!claimed)localStorage.setItem('v22_settings_claimed_by',businessId);
+      needsCloudSave=true;
+    }else if(!chosen._settingsBusinessId){
+      // v47 and earlier could seed a new business from another business's browser settings.
+      // Only remove the two business-specific sections when they exactly match the legacy
+      // settings claimed by a different business; otherwise preserve existing cloud data.
+      if(claimed&&claimed!==businessId&&meaningfulLegacySettings(legacyLocal)){
+        if(chosen.products&&sameJson(chosen.products,legacyLocal.products))delete chosen.products;
+        if(chosen.jobCostingSettings&&sameJson(chosen.jobCostingSettings,legacyLocal.jobCostingSettings))delete chosen.jobCostingSettings;
+      }
+      needsCloudSave=true;
+    }
+
+    chosen={...chosen,_settingsBusinessId:businessId};
+    if(needsCloudSave){
+      await state.client.from('businesses').update({settings:chosen,updated_at:new Date().toISOString()}).eq('id',businessId);
       state.business.settings=chosen;
     }
-    localStorage.setItem('invoice_app_settings',JSON.stringify(injectInfra(chosen||{})));
+    writeBusinessSettingsCache(chosen,businessId);
   }
 
   async function migrateLegacyLocalData(){
@@ -261,6 +288,7 @@
     if(q('accountModal'))q('accountModal').onclick=e=>{if(e.target===q('accountModal'))q('accountModal').classList.remove('open')};
     if(q('saveAccountProfile'))q('saveAccountProfile').onclick=saveAccountProfile;
     if(q('saveAccountPreferences'))q('saveAccountPreferences').onclick=saveAccountPreferences;
+    if(q('saveAccountEmail'))q('saveAccountEmail').onclick=saveAccountPreferences;
     if(q('exportMyData'))q('exportMyData').onclick=()=>exportBusinessData(state.business.id,state.business.name,q('exportMyData'));
     document.addEventListener('click',e=>{const pop=q('accountPopover');if(pop&&!pop.hidden&&!pop.contains(e.target)&&e.target!==q('accountChip')&&!q('accountChip')?.contains(e.target))pop.hidden=true});
     if(q('closePlanModal'))q('closePlanModal').onclick=()=>q('planModal').classList.remove('open');
@@ -280,6 +308,10 @@
   }
 
   function closeAccountPopover(){const pop=q('accountPopover');if(pop)pop.hidden=true}
+  const FALLBACK_CURRENCIES='AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BOV BRL BSD BTN BWP BYN BZD CAD CDF CHE CHF CHW CLF CLP CNY COP COU CRC CUC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HRK HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MXV MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SLL SOS SRD SSP STN SVC SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD USN UYI UYU UYW UZS VED VES VND VUV WST XAF XAG XAU XBA XBB XBC XBD XCD XDR XOF XPD XPF XPT XSU XTS XUA XXX YER ZAR ZMW ZWL'.split(' ');
+  function currencyCodes(){try{const a=Intl.supportedValuesOf?.('currency');if(Array.isArray(a)&&a.length)return a}catch{}return FALLBACK_CURRENCIES}
+  function currencyName(code){try{return new Intl.DisplayNames([navigator.language||'en'],{type:'currency'}).of(code)||code}catch{return code}}
+  function populateCurrencySelect(){const el=q('accountCurrency');if(!el)return;const current=String(state.business?.settings?.currency||el.value||'NZD').toUpperCase();el.innerHTML=currencyCodes().map(code=>`<option value="${code}">${code} — ${escapeHtml(currencyName(code))}</option>`).join('');el.value=current;if(!el.value){const o=document.createElement('option');o.value=current;o.textContent=`${current} — ${currencyName(current)}`;el.prepend(o);el.value=current}}
   async function openAccountSettings(){
     closeAccountPopover();
     if(q('accountProfileName'))q('accountProfileName').value=state.profile?.full_name||'';
@@ -288,6 +320,7 @@
     if(q('accountBusinessPhone'))q('accountBusinessPhone').value=state.business?.phone||'';
     if(q('accountBusinessAddress'))q('accountBusinessAddress').value=state.business?.address||'';
     if(q('accountSenderEmail'))q('accountSenderEmail').value=state.business?.settings?.outboundEmail||'';
+    populateCurrencySelect();
     if(q('accountCurrency'))q('accountCurrency').value=String(state.business?.settings?.currency||'NZD').toUpperCase();
     await refreshUsage();
     q('accountModal')?.classList.add('open');
@@ -312,14 +345,14 @@
     const senderEmail=q('accountSenderEmail')?.value.trim()||'';
     const currency=String(q('accountCurrency')?.value||'NZD').trim().toUpperCase();
     if(senderEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail))return alert('Please enter a valid sender email address.');
-    const nextSettings={...(state.business.settings||{}),outboundEmail:senderEmail,currency};
-    const btn=q('saveAccountPreferences');if(btn){btn.disabled=true;btn.textContent='Saving…'}
+    const nextSettings={...(state.business.settings||{}),outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id};
+    const buttons=[q('saveAccountPreferences'),q('saveAccountEmail')].filter(Boolean);buttons.forEach(btn=>{btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='Saving…'});
     const {error}=await state.client.from('businesses').update({settings:nextSettings,updated_at:new Date().toISOString()}).eq('id',state.business.id);
-    if(btn){btn.disabled=false;btn.textContent='Save business preferences'}
+    buttons.forEach(btn=>{btn.disabled=false;btn.textContent=btn.dataset.oldText||'Save'});
     if(error)return alert('Could not save business preferences: '+error.message);
     state.business.settings=nextSettings;
-    localStorage.setItem('invoice_app_settings',JSON.stringify(injectInfra(nextSettings)));
-    window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency});
+    writeBusinessSettingsCache(nextSettings,state.business.id);
+    window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id});
     alert('Business preferences saved.');
   }
 
@@ -386,8 +419,8 @@
   }
 
   async function saveBusinessSettings(s){
-    const clean=stripInfra(s); const {error}=await state.client.from('businesses').update({settings:clean,name:clean.company||clean.trading||state.business.name,address:clean.address||state.business.address,phone:clean.phone||state.business.phone,updated_at:new Date().toISOString()}).eq('id',state.business.id);
-    if(!error){state.business.settings=clean;return true} console.warn('Business settings cloud sync failed',error);return false;
+    const clean={...stripInfra(s),_settingsBusinessId:state.business.id}; const {error}=await state.client.from('businesses').update({settings:clean,name:clean.company||clean.trading||state.business.name,address:clean.address||state.business.address,phone:clean.phone||state.business.phone,updated_at:new Date().toISOString()}).eq('id',state.business.id);
+    if(!error){state.business.settings=clean;writeBusinessSettingsCache(clean,state.business.id);return true} console.warn('Business settings cloud sync failed',error);return false;
   }
 
   async function openBillingPortal(){

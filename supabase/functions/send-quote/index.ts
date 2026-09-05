@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(x:any,status=200)=>new Response(JSON.stringify(x),{status,headers:{...cors,"Content-Type":"application/json"}});
 const esc=(s:any)=>String(s??'').replace(/[&<>"']/g,(m)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':'&quot;',"'":"&#039;"}[m]||m));
-const money=(n:any,currency='NZD')=>{try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency:String(currency||'NZD').toUpperCase(),currencyDisplay:'narrowSymbol'}).format(Number(n||0))}catch{return `$${Number(n||0).toFixed(2)}`}};
+const money=(n:any,currency='NZD')=>{try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency:String(currency||'NZD').toUpperCase(),currencyDisplay:'code'}).format(Number(n||0))}catch{return `${String(currency||'NZD').toUpperCase()} ${Number(n||0).toFixed(2)}`}};
 
 Deno.serve(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});

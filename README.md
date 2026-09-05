@@ -1,3 +1,10 @@
+# v48 — currency, email settings, tenant isolation
+
+- Full browser-supported ISO currency list in Account Settings (with comprehensive fallback).
+- Currency code is displayed on monetary amounts across invoicing, quotations, reports and job costing.
+- Dedicated Email Sending card in Account Settings.
+- Products/default prices and Job Costing settings remain scoped to the active business; legacy cross-business browser seeding is blocked and conservatively cleaned when detected.
+
 # Invoice Manager v44
 
 This version contains **layout-only refinements to the New Costing customer/job details and Pricing decision sections**. It does not change calculations, validation, database behaviour, or any other app functionality. The alignment is tightened on desktop and remains responsive on tablet/mobile.
