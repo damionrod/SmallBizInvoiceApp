@@ -425,3 +425,11 @@ Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super A
 - Removed only the help/question-mark icon beneath Default Target Gross Margin % in Cost Settings > General.
 - Existing form-grid alignment now applies consistently to the field.
 - No calculations, behaviour, data, or other UI changed.
+
+## v47 — Business export, sender email and currency
+
+- Added **Export My Data** in Account Settings. It downloads a JSON copy of the selected business's database data, including business settings, profiles, subscription, module assignments, customers, invoices, recurring rules, job costings and quotes. Authentication passwords/tokens and payment gateway secrets are excluded.
+- Added **Export** to each Super Admin business row, exporting only that business's data.
+- Added **Invoice & quote sender email** to Account Settings. If configured, the send-invoice/send-quote Edge Functions use it as the From address. Its domain must be verified in Resend. Blank continues using the platform `EMAIL_FROM_ADDRESS`.
+- Added **Currency** to Account Settings. Currency formatting applies to invoice, quote and job-costing amounts.
+- No SQL migration is required for v47.

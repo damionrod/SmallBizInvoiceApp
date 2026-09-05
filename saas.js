@@ -131,7 +131,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=40'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=40';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=47'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=47';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -260,6 +260,8 @@
     if(q('closeAccountModal'))q('closeAccountModal').onclick=()=>q('accountModal').classList.remove('open');
     if(q('accountModal'))q('accountModal').onclick=e=>{if(e.target===q('accountModal'))q('accountModal').classList.remove('open')};
     if(q('saveAccountProfile'))q('saveAccountProfile').onclick=saveAccountProfile;
+    if(q('saveAccountPreferences'))q('saveAccountPreferences').onclick=saveAccountPreferences;
+    if(q('exportMyData'))q('exportMyData').onclick=()=>exportBusinessData(state.business.id,state.business.name,q('exportMyData'));
     document.addEventListener('click',e=>{const pop=q('accountPopover');if(pop&&!pop.hidden&&!pop.contains(e.target)&&e.target!==q('accountChip')&&!q('accountChip')?.contains(e.target))pop.hidden=true});
     if(q('closePlanModal'))q('closePlanModal').onclick=()=>q('planModal').classList.remove('open');
     if(q('adminRefresh'))q('adminRefresh').onclick=renderAdmin;
@@ -285,6 +287,8 @@
     if(q('accountBusinessName'))q('accountBusinessName').value=state.business?.name||'';
     if(q('accountBusinessPhone'))q('accountBusinessPhone').value=state.business?.phone||'';
     if(q('accountBusinessAddress'))q('accountBusinessAddress').value=state.business?.address||'';
+    if(q('accountSenderEmail'))q('accountSenderEmail').value=state.business?.settings?.outboundEmail||'';
+    if(q('accountCurrency'))q('accountCurrency').value=String(state.business?.settings?.currency||'NZD').toUpperCase();
     await refreshUsage();
     q('accountModal')?.classList.add('open');
   }
@@ -301,6 +305,54 @@
     setupAccountUI();
     if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Invoice Manager');
     q('accountModal')?.classList.remove('open');
+  }
+
+
+  async function saveAccountPreferences(){
+    const senderEmail=q('accountSenderEmail')?.value.trim()||'';
+    const currency=String(q('accountCurrency')?.value||'NZD').trim().toUpperCase();
+    if(senderEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail))return alert('Please enter a valid sender email address.');
+    const nextSettings={...(state.business.settings||{}),outboundEmail:senderEmail,currency};
+    const btn=q('saveAccountPreferences');if(btn){btn.disabled=true;btn.textContent='Saving…'}
+    const {error}=await state.client.from('businesses').update({settings:nextSettings,updated_at:new Date().toISOString()}).eq('id',state.business.id);
+    if(btn){btn.disabled=false;btn.textContent='Save business preferences'}
+    if(error)return alert('Could not save business preferences: '+error.message);
+    state.business.settings=nextSettings;
+    localStorage.setItem('invoice_app_settings',JSON.stringify(injectInfra(nextSettings)));
+    window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency});
+    alert('Business preferences saved.');
+  }
+
+  function safeFileName(value){return String(value||'business').trim().replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase()||'business'}
+  function downloadJson(data,filename){
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  async function collectBusinessData(businessId){
+    const queries={
+      business:state.client.from('businesses').select('*').eq('id',businessId).single(),
+      profiles:state.client.from('profiles').select('id,business_id,full_name,email,role,is_super_admin,created_at').eq('business_id',businessId),
+      subscriptions:state.client.from('subscriptions').select('*,plans(*)').eq('business_id',businessId),
+      business_modules:state.client.from('business_modules').select('*,modules(*)').eq('business_id',businessId),
+      customers:state.client.from('customers').select('*').eq('business_id',businessId).order('created_at'),
+      invoices:state.client.from('invoices').select('*').eq('business_id',businessId).order('created_at'),
+      recurring_rules:state.client.from('recurring_rules').select('*').eq('business_id',businessId).order('next_invoice_date'),
+      job_costings:state.client.from('job_costings').select('*').eq('business_id',businessId).order('created_at'),
+      quotes:state.client.from('quotes').select('*').eq('business_id',businessId).order('created_at')
+    };
+    const entries=await Promise.all(Object.entries(queries).map(async([key,promise])=>{const result=await promise;if(result.error)throw new Error(`${key}: ${result.error.message}`);return [key,result.data]}));
+    const data=Object.fromEntries(entries);
+    return {export_version:'1.0',exported_at:new Date().toISOString(),business_id:businessId,note:'Passwords, authentication tokens and payment gateway secrets are intentionally excluded.',...data};
+  }
+  async function exportBusinessData(businessId,businessName,button){
+    if(!businessId)return alert('Business information is missing.');
+    const original=button?.textContent||'Export';if(button){button.disabled=true;button.textContent='Exporting…'}
+    try{
+      const payload=await collectBusinessData(businessId);
+      const date=new Date().toISOString().slice(0,10);
+      downloadJson(payload,`${safeFileName(businessName)}-business-data-${date}.json`);
+    }catch(e){alert('Could not export business data: '+(e instanceof Error?e.message:'Unknown export error'));}
+    finally{if(button){button.disabled=false;button.textContent=original}}
   }
 
   async function getSubscription(){
@@ -535,7 +587,7 @@
       const tr=document.createElement('tr');
       const ownerKey=(owner.email||'').trim().toLowerCase();
       const duplicateBadge=ownerKey&&ownerEmailCounts.get(ownerKey)>1?'<span class="duplicate-account-badge" title="More than one business record is linked to this owner email">Duplicate record</span>':'';
-      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
       body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
@@ -564,6 +616,7 @@
       if(error){btn.textContent=suspend?'Suspend':'Activate';alert('Could not change account status: '+error.message);return}
       await renderAdmin();
     });
+    body.querySelectorAll('[data-admin-export]').forEach(btn=>btn.onclick=()=>exportBusinessData(btn.dataset.adminExport,btn.dataset.businessName,btn));
     body.querySelectorAll('[data-admin-delete]').forEach(btn=>btn.onclick=async()=>{
       const bid=btn.dataset.adminDelete;
       const businessName=btn.dataset.businessName||'';

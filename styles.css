@@ -886,3 +886,11 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
     display:flex;
   }
 }
+
+/* v47: Account settings preferences/export layout only */
+.account-preferences-card h3,.account-export-card h3{margin:0}
+.account-preferences-card label small{line-height:1.35;margin-top:1px}
+@media(max-width:760px){
+  .account-export-card .card-title{align-items:stretch;flex-direction:column}
+  .account-export-card .card-title button{width:100%}
+}
