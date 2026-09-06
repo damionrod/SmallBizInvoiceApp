@@ -270,7 +270,7 @@
       </div>
 
       <div class="card">
-        <h2>Email wording</h2>
+        <h2>Invoice email wording</h2>
         <p class="hint">These templates are used for invoice emails. Available placeholders: {customerName}, {invoiceNumber}, {tradingName}, {companyName}, {total}, {balanceDue}, {dueDate}, {phone}, {email}.</p>
         <div class="form-grid compact">
           <label>Sender display name<input id="sEmailSenderName" placeholder="{tradingName} Accounts"></label>
@@ -278,6 +278,18 @@
           <label class="wide">Email body<textarea id="sEmailBody" rows="8" placeholder="Hi {customerName},
 
 Please find attached invoice {invoiceNumber}."></textarea></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Quotation email wording</h2>
+        <p class="hint">These templates are used for quotation emails. Available placeholders: {customerName}, {quoteNumber}, {tradingName}, {companyName}, {amountExGst}, {gst}, {total}, {validUntil}, {phone}, {email}.</p>
+        <div class="form-grid compact">
+          <label>Sender display name<input id="sQuoteEmailSenderName" placeholder="{tradingName}"></label>
+          <label>Email subject<input id="sQuoteEmailSubject" placeholder="Quote {quoteNumber} from {tradingName}"></label>
+          <label class="wide">Email body<textarea id="sQuoteEmailBody" rows="8" placeholder="Hi {customerName},
+
+Please find attached quote {quoteNumber}."></textarea></label>
         </div>
       </div>
 
@@ -336,6 +348,6 @@ Please find attached invoice {invoiceNumber}."></textarea></label>
   <div class="modal" id="quickQuoteModal"><div class="modal-box quick-quote-modal-box"><button class="close" id="closeQuickQuoteModal">×</button><div class="page-head compact-head"><div><h2>Create Quote</h2><p>Create a customer quotation without creating a job costing first.</p></div></div><div class="form-grid compact"><label>Quote number<input id="qqNumber" readonly></label><label>Quote date<input id="qqDate" type="date"></label><label>Valid until<input id="qqValid" type="date"></label><label class="wide">Customer / business<div class="jc-customer-picker"><input id="qqCustomer" list="qqCustomerOptions" autocomplete="off" placeholder="Start typing a customer"><button type="button" class="secondary" id="qqCreateCustomer">+ Create Customer</button></div><datalist id="qqCustomerOptions"></datalist><small id="qqCustomerHint">Linked to My Customers.</small></label></div><div class="card quick-quote-items"><div class="card-title"><h3>Quote items</h3><button class="secondary" id="qqAddItem">+ Add Item</button></div><div id="qqItems"></div></div><div class="form-grid compact"><label>GST rate %<input id="qqGst" type="number" min="0" step="0.01"></label><label class="tick-option"><input id="qqAdvanceEnabled" type="checkbox"> <span>Require advance payment</span></label><label>Advance %<input id="qqAdvancePercent" type="number" min="0" max="100" step="1"></label><label class="wide">Notes<textarea id="qqNotes" rows="2"></textarea></label><label class="wide">Terms<textarea id="qqTerms" rows="3"></textarea></label></div><div class="quote-edit-summary quick-quote-summary"><span>Subtotal <strong id="qqSubtotal">$0.00</strong></span><span>GST <strong id="qqGstAmount">$0.00</strong></span><span>Total <strong id="qqTotal">$0.00</strong></span><span id="qqAdvanceSummary">Advance <strong id="qqAdvanceAmount">$0.00</strong></span></div><div class="actions"><button class="secondary" id="qqCancel">Cancel</button><button class="primary" id="qqSave">Save Quote</button></div></div></div>
   <div class="modal" id="planModal"><div class="modal-box plan-modal-box"><button class="close" id="closePlanModal">×</button><h2>Choose your plan</h2><p class="hint">Upgrade whenever you need more invoices or additional modules.</p><div id="customerPlanGrid" class="plan-grid"></div></div></div>
   <div id="toast"></div>
-  <script src="saas.js?v=48"></script>
+  <script src="saas.js?v=49"></script>
 </body>
 </html>

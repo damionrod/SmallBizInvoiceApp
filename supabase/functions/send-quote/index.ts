@@ -4,6 +4,7 @@ const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"au
 const json=(x:any,status=200)=>new Response(JSON.stringify(x),{status,headers:{...cors,"Content-Type":"application/json"}});
 const esc=(s:any)=>String(s??'').replace(/[&<>"']/g,(m)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':'&quot;',"'":"&#039;"}[m]||m));
 const money=(n:any,currency='NZD')=>{try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency:String(currency||'NZD').toUpperCase(),currencyDisplay:'code'}).format(Number(n||0))}catch{return `${String(currency||'NZD').toUpperCase()} ${Number(n||0).toFixed(2)}`}};
+const fill=(tpl:string,v:Record<string,string>)=>String(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]??`{${k}}`);
 
 Deno.serve(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
@@ -25,9 +26,11 @@ Deno.serve(async(req)=>{
     const s=b?.settings||{}, trading=s.trading||s.company||b?.name||'Your Business';
     const currency=s.currency||'NZD';
     const fromEmail=String(s.outboundEmail||FROM_EMAIL).trim();
-    const senderName=String(s.emailSettings?.senderName||`${trading} Accounts`).replace(/\{tradingName\}/g,trading).replace(/[<>]/g,'');
-    const subject=`Quote ${q.quote_number} from ${trading}`;
-    const body=`Hi ${q.customer_name||'Customer'},\n\nPlease find attached quote ${q.quote_number}.\n\nAmount (ex GST): ${money(q.quoted_price_ex_gst,currency)}\nGST: ${money(q.gst_amount,currency)}\nTotal: ${money(q.total_incl_gst,currency)}\nValid until: ${q.valid_until||'—'}\n\nKind regards,\n${trading}${s.phone?`\n${s.phone}`:''}${s.email?`\n${s.email}`:''}`;
+    const e=s.quoteEmailSettings||{};
+    const values={customerName:q.customer_name||'Customer',quoteNumber:q.quote_number||'Quote',tradingName:trading,companyName:s.company||b?.name||trading,amountExGst:money(q.quoted_price_ex_gst,currency),gst:money(q.gst_amount,currency),total:money(q.total_incl_gst,currency),validUntil:q.valid_until||'—',phone:s.phone||'',email:s.email||''};
+    const senderName=fill(e.senderName||'{tradingName}',values).trim().replace(/[<>]/g,'')||trading;
+    const subject=fill(e.subject||'Quote {quoteNumber} from {tradingName}',values);
+    const body=fill(e.body||'Hi {customerName},\n\nPlease find attached quote {quoteNumber}.\n\nAmount (ex GST): {amountExGst}\nGST: {gst}\nTotal: {total}\nValid until: {validUntil}\n\nKind regards,\n{tradingName}\n{phone}\n{email}',values);
     const payload:any={from:`${senderName} <${fromEmail}>`,to:[to],subject,html:`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a">${body.split(/\r?\n/).map((line:string)=>line?esc(line):'&nbsp;').join('<br>')}</div>`};
     if(s.email)payload.reply_to=s.email;
     if(pdfBase64)payload.attachments=[{filename:filename||`${q.quote_number}.pdf`,content:pdfBase64}];

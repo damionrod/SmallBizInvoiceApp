@@ -440,3 +440,9 @@ Run `V36-DELETE-ACCOUNT.sql` in Supabase SQL Editor before using the new Super A
 - Added **Invoice & quote sender email** to Account Settings. If configured, the send-invoice/send-quote Edge Functions use it as the From address. Its domain must be verified in Resend. Blank continues using the platform `EMAIL_FROM_ADDRESS`.
 - Added **Currency** to Account Settings. Currency formatting applies to invoice, quote and job-costing amounts.
 - No SQL migration is required for v47.
+
+
+## v49
+- Invoice email identity and wording now come from the current business settings rather than an old invoice snapshot.
+- Added separate per-business quotation email wording settings.
+- Removed cross-business branding risk in invoice/quote email subject and body.
