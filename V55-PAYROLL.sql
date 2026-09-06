@@ -46,6 +46,7 @@ create table if not exists public.payroll_settings (
   country_code char(2) not null default 'NZ',
   currency char(3) not null default 'NZD',
   default_pay_frequency text not null default 'fortnightly',
+  default_pay_day smallint not null default 5 check(default_pay_day between 0 and 6),
   week_start_day smallint not null default 1 check(week_start_day between 0 and 6),
   default_weekly_hours numeric(7,2) not null default 40,
   default_working_days numeric(4,2) not null default 5,
