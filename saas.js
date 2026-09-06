@@ -135,7 +135,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=52'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=52';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=52';e.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=55'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=55';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=55';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=55';p.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -383,7 +383,23 @@
       batch_payment_items:state.client.from('batch_payment_items').select('*').eq('business_id',businessId).order('created_at'),
       supplier_credits:state.client.from('supplier_credits').select('*').eq('business_id',businessId).order('created_at'),
       recurring_expense_rules:state.client.from('recurring_expense_rules').select('*').eq('business_id',businessId).order('created_at'),
-      expense_audit_log:state.client.from('expense_audit_log').select('*').eq('business_id',businessId).order('created_at')
+      expense_audit_log:state.client.from('expense_audit_log').select('*').eq('business_id',businessId).order('created_at'),
+      payroll_settings:state.client.from('payroll_settings').select('*').eq('business_id',businessId),
+      payroll_country_rules:state.client.from('payroll_country_rules').select('*').eq('business_id',businessId).order('effective_from'),
+      payroll_employees:state.client.from('payroll_employees').select('*').eq('business_id',businessId).order('created_at'),
+      payroll_document_types:state.client.from('payroll_document_types').select('*').eq('business_id',businessId).order('sort_order'),
+      payroll_employee_documents:state.client.from('payroll_employee_documents').select('*').eq('business_id',businessId).order('uploaded_at'),
+      payroll_pay_items:state.client.from('payroll_pay_items').select('*').eq('business_id',businessId).order('created_at'),
+      payroll_leave_types:state.client.from('payroll_leave_types').select('*').eq('business_id',businessId).order('created_at'),
+      payroll_employee_leave:state.client.from('payroll_employee_leave').select('*').eq('business_id',businessId).order('updated_at'),
+      payroll_leave_transactions:state.client.from('payroll_leave_transactions').select('*').eq('business_id',businessId).order('transaction_date'),
+      payroll_timesheets:state.client.from('payroll_timesheets').select('*').eq('business_id',businessId).order('work_date'),
+      payroll_pay_runs:state.client.from('payroll_pay_runs').select('*').eq('business_id',businessId).order('pay_date'),
+      payroll_pay_run_employees:state.client.from('payroll_pay_run_employees').select('*').eq('business_id',businessId).order('created_at'),
+      payroll_pay_run_lines:state.client.from('payroll_pay_run_lines').select('*').eq('business_id',businessId).order('created_at'),
+      payroll_payslips:state.client.from('payroll_payslips').select('*').eq('business_id',businessId).order('generated_at'),
+      payroll_financial_transactions:state.client.from('payroll_financial_transactions').select('*').eq('business_id',businessId).order('created_at'),
+      payroll_audit_log:state.client.from('payroll_audit_log').select('*').eq('business_id',businessId).order('created_at')
     };
     const entries=await Promise.all(Object.entries(queries).map(async([key,promise])=>{const result=await promise;if(result.error)throw new Error(`${key}: ${result.error.message}`);return [key,result.data]}));
     const data=Object.fromEntries(entries);
@@ -676,27 +692,28 @@ ${businessName}`,'');
       if(typed===null)return;
       if(typed.trim()!==businessName.trim())return alert('Business name did not match. Nothing was deleted.');
       btn.disabled=true;btn.textContent='Deleting…';
-      // Expense documents live in Supabase Storage, not in Postgres, so database
-      // ON DELETE CASCADE cannot remove the physical receipt/PDF objects. Remove
-      // the tenant's known attachment paths first; abort account deletion if this
-      // cleanup fails so "permanent delete" never knowingly leaves documents behind.
+      // Financial and payroll documents live in Supabase Storage, not Postgres.
+      // Remove known tenant files first; abort database deletion if storage cleanup fails.
       try{
-        const {data:attachments,error:attachmentError}=await state.client.from('expense_attachments').select('stored_path').eq('business_id',bid);
-        if(attachmentError)throw attachmentError;
-        const paths=[...new Set((attachments||[]).map(x=>String(x.stored_path||'').trim()).filter(Boolean))];
-        for(let i=0;i<paths.length;i+=100){
-          const {error:storageError}=await state.client.storage.from('expense-documents').remove(paths.slice(i,i+100));
-          if(storageError)throw storageError;
-        }
+        const [{data:attachments,error:attachmentError},{data:employeeDocs,error:payrollDocError}]=await Promise.all([
+          state.client.from('expense_attachments').select('stored_path').eq('business_id',bid),
+          state.client.from('payroll_employee_documents').select('storage_path').eq('business_id',bid)
+        ]);
+        if(attachmentError)throw attachmentError;if(payrollDocError)throw payrollDocError;
+        const cleanup=[
+          {bucket:'expense-documents',paths:[...new Set((attachments||[]).map(x=>String(x.stored_path||'').trim()).filter(Boolean))]},
+          {bucket:'payroll-documents',paths:[...new Set((employeeDocs||[]).map(x=>String(x.storage_path||'').trim()).filter(Boolean))]}
+        ];
+        for(const item of cleanup)for(let i=0;i<item.paths.length;i+=100){const {error:storageError}=await state.client.storage.from(item.bucket).remove(item.paths.slice(i,i+100));if(storageError)throw storageError;}
       }catch(storageCleanupError){
         btn.disabled=false;btn.textContent='Delete';
-        alert('Could not delete the business because its expense documents could not be removed safely. No database account deletion was performed. '+(storageCleanupError?.message||storageCleanupError));
+        alert('Could not delete the business because its stored expense/payroll documents could not be removed safely. No database account deletion was performed. '+(storageCleanupError?.message||storageCleanupError));
         return;
       }
       const {data,error}=await state.client.rpc('v36_admin_delete_business',{p_business_id:bid,p_confirmation_name:typed.trim()});
       btn.disabled=false;
       if(error){btn.textContent='Delete';alert('Could not delete account: '+error.message);return}
-      alert(`${businessName}, its linked database information and its expense documents have been permanently deleted.`);
+      alert(`${businessName}, its linked database information and stored expense/payroll documents have been permanently deleted.`);
       await renderAdmin();
     });
     renderAdminPlans();
@@ -800,6 +817,14 @@ ${businessName}`,'');
       if(!allowed && document.getElementById('view-expenses')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.Expenses?.init?.();
     }
+    if(q('payrollNav')){
+      const allowed=await hasModule('payroll');
+      q('payrollNav').hidden=!allowed;
+      if(q('payrollReportTab'))q('payrollReportTab').hidden=!allowed;
+      if(q('payrollSettingsCard'))q('payrollSettingsCard').hidden=!allowed;
+      if(!allowed && document.getElementById('view-payroll')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(allowed)window.Payroll?.init?.();
+    }
   }
 
   async function bindAfterAppLoad(){
@@ -808,6 +833,7 @@ ${businessName}`,'');
     if(q('saveSettings')) q('saveSettings').addEventListener('click',()=>setTimeout(()=>saveBusinessSettings(appSettings()),100));
     if(q('jobCostingNav')){const allowed=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
     if(q('expensesNav')){const allowed=state.profile?.is_super_admin||await hasModule('expenses');q('expensesNav').hidden=!allowed;if(allowed)window.Expenses?.init?.()}
+    if(q('payrollNav')){const allowed=state.profile?.is_super_admin||await hasModule('payroll');q('payrollNav').hidden=!allowed;if(allowed)window.Payroll?.init?.()}
     await refreshEntitlements();
     let entitlementTimer=0;
     const recheck=()=>{const now=Date.now();if(now-entitlementTimer<2500)return;entitlementTimer=now;refreshEntitlements().catch(console.warn)};
