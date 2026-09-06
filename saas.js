@@ -135,7 +135,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=49'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=49';j.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=52'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=52';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=52';e.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -371,7 +371,19 @@
       invoices:state.client.from('invoices').select('*').eq('business_id',businessId).order('created_at'),
       recurring_rules:state.client.from('recurring_rules').select('*').eq('business_id',businessId).order('next_invoice_date'),
       job_costings:state.client.from('job_costings').select('*').eq('business_id',businessId).order('created_at'),
-      quotes:state.client.from('quotes').select('*').eq('business_id',businessId).order('created_at')
+      quotes:state.client.from('quotes').select('*').eq('business_id',businessId).order('created_at'),
+      expense_categories:state.client.from('expense_categories').select('*').eq('business_id',businessId).order('sort_order'),
+      suppliers:state.client.from('suppliers').select('*').eq('business_id',businessId).order('created_at'),
+      expenses:state.client.from('expenses').select('*').eq('business_id',businessId).order('created_at'),
+      expense_lines:state.client.from('expense_lines').select('*').eq('business_id',businessId).order('created_at'),
+      expense_attachments:state.client.from('expense_attachments').select('*').eq('business_id',businessId).order('uploaded_at'),
+      expense_payments:state.client.from('expense_payments').select('*').eq('business_id',businessId).order('created_at'),
+      expense_reconciliations:state.client.from('expense_reconciliations').select('*').eq('business_id',businessId).order('created_at'),
+      batch_payments:state.client.from('batch_payments').select('*').eq('business_id',businessId).order('created_at'),
+      batch_payment_items:state.client.from('batch_payment_items').select('*').eq('business_id',businessId).order('created_at'),
+      supplier_credits:state.client.from('supplier_credits').select('*').eq('business_id',businessId).order('created_at'),
+      recurring_expense_rules:state.client.from('recurring_expense_rules').select('*').eq('business_id',businessId).order('created_at'),
+      expense_audit_log:state.client.from('expense_audit_log').select('*').eq('business_id',businessId).order('created_at')
     };
     const entries=await Promise.all(Object.entries(queries).map(async([key,promise])=>{const result=await promise;if(result.error)throw new Error(`${key}: ${result.error.message}`);return [key,result.data]}));
     const data=Object.fromEntries(entries);
@@ -664,10 +676,27 @@ ${businessName}`,'');
       if(typed===null)return;
       if(typed.trim()!==businessName.trim())return alert('Business name did not match. Nothing was deleted.');
       btn.disabled=true;btn.textContent='Deleting…';
+      // Expense documents live in Supabase Storage, not in Postgres, so database
+      // ON DELETE CASCADE cannot remove the physical receipt/PDF objects. Remove
+      // the tenant's known attachment paths first; abort account deletion if this
+      // cleanup fails so "permanent delete" never knowingly leaves documents behind.
+      try{
+        const {data:attachments,error:attachmentError}=await state.client.from('expense_attachments').select('stored_path').eq('business_id',bid);
+        if(attachmentError)throw attachmentError;
+        const paths=[...new Set((attachments||[]).map(x=>String(x.stored_path||'').trim()).filter(Boolean))];
+        for(let i=0;i<paths.length;i+=100){
+          const {error:storageError}=await state.client.storage.from('expense-documents').remove(paths.slice(i,i+100));
+          if(storageError)throw storageError;
+        }
+      }catch(storageCleanupError){
+        btn.disabled=false;btn.textContent='Delete';
+        alert('Could not delete the business because its expense documents could not be removed safely. No database account deletion was performed. '+(storageCleanupError?.message||storageCleanupError));
+        return;
+      }
       const {data,error}=await state.client.rpc('v36_admin_delete_business',{p_business_id:bid,p_confirmation_name:typed.trim()});
       btn.disabled=false;
       if(error){btn.textContent='Delete';alert('Could not delete account: '+error.message);return}
-      alert(`${businessName} and its linked database information have been permanently deleted.`);
+      alert(`${businessName}, its linked database information and its expense documents have been permanently deleted.`);
       await renderAdmin();
     });
     renderAdminPlans();
@@ -765,6 +794,12 @@ ${businessName}`,'');
       if(!allowed && document.getElementById('view-jobcosting')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.JobCosting?.init?.();
     }
+    if(q('expensesNav')){
+      const allowed=await hasModule('expenses');
+      q('expensesNav').hidden=!allowed;
+      if(!allowed && document.getElementById('view-expenses')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(allowed)window.Expenses?.init?.();
+    }
   }
 
   async function bindAfterAppLoad(){
@@ -772,6 +807,7 @@ ${businessName}`,'');
     if(q('adminBackToApp'))q('adminBackToApp').onclick=closeAdminPortal;
     if(q('saveSettings')) q('saveSettings').addEventListener('click',()=>setTimeout(()=>saveBusinessSettings(appSettings()),100));
     if(q('jobCostingNav')){const allowed=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
+    if(q('expensesNav')){const allowed=state.profile?.is_super_admin||await hasModule('expenses');q('expensesNav').hidden=!allowed;if(allowed)window.Expenses?.init?.()}
     await refreshEntitlements();
     let entitlementTimer=0;
     const recheck=()=>{const now=Date.now();if(now-entitlementTimer<2500)return;entitlementTimer=now;refreshEntitlements().catch(console.warn)};
