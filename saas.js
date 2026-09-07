@@ -135,7 +135,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=60'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=58';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=58';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=60';f.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=60'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=58';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=60.2';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=60.1';f.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -297,6 +297,9 @@
     if(q('adminReloadPayments'))q('adminReloadPayments').onclick=renderPaymentSettings;
     if(q('adminReloadModules'))q('adminReloadModules').onclick=renderAdminModules;
     if(q('adminAddModule'))q('adminAddModule').onclick=addAdminModule;
+    if(q('adminReloadCountryPayrollRules'))q('adminReloadCountryPayrollRules').onclick=renderAdminCountryPayrollRules;
+    if(q('adminAddCountryPayrollRule'))q('adminAddCountryPayrollRule').onclick=addAdminCountryPayrollRule;
+    if(q('adminPayrollRuleCountry'))q('adminPayrollRuleCountry').onchange=renderAdminCountryPayrollRules;
     if(q('adminSearch'))q('adminSearch').oninput=renderAdmin;
     if(q('adminStatusFilter'))q('adminStatusFilter').onchange=renderAdmin;
     if(q('adminAddBusiness'))q('adminAddBusiness').onclick=openAdminUserModal;
@@ -719,6 +722,7 @@ ${businessName}`,'');
     renderAdminPlans();
     renderPaymentSettings();
     renderAdminModules();
+    renderAdminCountryPayrollRules();
   }
 
   function planEditorCard(p,isNew=false){
@@ -768,6 +772,28 @@ ${businessName}`,'');
     const name=q('adminModuleName').value.trim(),slug=q('adminModuleSlug').value.trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_'),description=q('adminModuleDescription').value.trim(),monthly_price=Number(q('adminModulePrice').value||0),stripe_price_id=q('adminModuleStripe').value.trim()||null;if(!name||!slug)return alert('Enter a module name and slug.');
     const {error}=await state.client.from('modules').insert({name,slug,description,monthly_price,stripe_price_id,is_active:true});if(error)return alert(error.message);['adminModuleName','adminModuleSlug','adminModuleDescription','adminModuleStripe'].forEach(id=>q(id).value='');q('adminModulePrice').value='0';renderAdminModules();
   }
+
+  function payrollRuleValue(r){if(r.numeric_value!=null)return String(r.numeric_value);if(r.json_value!=null)return JSON.stringify(r.json_value);return r.text_value??''}
+  function payrollRuleValueType(r){return r.numeric_value!=null?'numeric':r.json_value!=null?'json':'text'}
+  async function renderAdminCountryPayrollRules(){
+    if(!state.profile?.is_super_admin||!q('adminCountryPayrollRuleRows'))return;
+    const {data,error}=await state.client.from('country_payroll_rules').select('*').order('country_code').order('rule_type').order('rule_key').order('effective_from',{ascending:false});
+    if(error){q('adminPayrollRuleMessage').textContent='Could not load country payroll rules: '+error.message;q('adminCountryPayrollRuleRows').innerHTML='';return}
+    const countries=[...new Set((data||[]).map(r=>String(r.country_code||'').toUpperCase()).filter(Boolean))];if(!countries.includes('NZ'))countries.unshift('NZ');
+    const select=q('adminPayrollRuleCountry'),selected=select.value||countries[0]||'NZ';select.innerHTML=countries.map(c=>`<option value="${escapeHtml(c)}" ${c===selected?'selected':''}>${escapeHtml(c)}</option>`).join('');
+    if(q('adminPayrollRuleNewCountry')&&!q('adminPayrollRuleNewCountry').value)q('adminPayrollRuleNewCountry').value=select.value||'NZ';const country=select.value;const rows=(data||[]).filter(r=>!country||String(r.country_code).toUpperCase()===country);
+    q('adminCountryPayrollRuleRows').innerHTML=rows.map(r=>`<tr data-country-rule-row="${r.id}"><td><input data-cr-country="${r.id}" maxlength="2" value="${escapeHtml(r.country_code)}"></td><td><input data-cr-type="${r.id}" value="${escapeHtml(r.rule_type)}"><small><input data-cr-key="${r.id}" value="${escapeHtml(r.rule_key)}"></small></td><td><input type="date" data-cr-from="${r.id}" value="${escapeHtml(r.effective_from||'')}"><small>to <input type="date" data-cr-to="${r.id}" value="${escapeHtml(r.effective_to||'')}"></small></td><td><select data-cr-value-type="${r.id}"><option value="numeric" ${payrollRuleValueType(r)==='numeric'?'selected':''}>Number</option><option value="json" ${payrollRuleValueType(r)==='json'?'selected':''}>JSON</option><option value="text" ${payrollRuleValueType(r)==='text'?'selected':''}>Text</option></select><textarea rows="2" data-cr-value="${r.id}">${escapeHtml(payrollRuleValue(r))}</textarea><small><input data-cr-source="${r.id}" value="${escapeHtml(r.source_note||'')}" placeholder="Source / note"></small></td><td><label class="tick-option"><input type="checkbox" data-cr-active="${r.id}" ${r.active?'checked':''}><span>${r.active?'Active':'Inactive'}</span></label></td><td><button class="secondary compact-btn" data-cr-save="${r.id}">Save</button></td></tr>`).join('')||'<tr><td colspan="6">No rules for this country yet. Add the first effective-dated rule version above.</td></tr>';
+    q('adminCountryPayrollRuleRows').querySelectorAll('[data-cr-save]').forEach(btn=>btn.onclick=()=>saveAdminCountryPayrollRule(btn.dataset.crSave));
+    q('adminPayrollRuleMessage').textContent=rows.length?`${rows.length} rule version${rows.length===1?'':'s'} shown.`:'No rules configured for this country.';
+  }
+  function countryRulePayload(idPrefix='adminPayrollRule'){
+    const find=sel=>document.querySelector(sel),country=(idPrefix==='adminPayrollRule'?q('adminPayrollRuleNewCountry').value:find(`[data-cr-country="${idPrefix}"]`).value).trim().toUpperCase();
+    const type=idPrefix==='adminPayrollRule'?q('adminPayrollRuleType').value.trim().toLowerCase():find(`[data-cr-type="${idPrefix}"]`).value.trim().toLowerCase(),key=idPrefix==='adminPayrollRule'?q('adminPayrollRuleKey').value.trim().toLowerCase():find(`[data-cr-key="${idPrefix}"]`).value.trim().toLowerCase(),from=idPrefix==='adminPayrollRule'?q('adminPayrollRuleFrom').value:find(`[data-cr-from="${idPrefix}"]`).value,to=idPrefix==='adminPayrollRule'?q('adminPayrollRuleTo').value:find(`[data-cr-to="${idPrefix}"]`).value,valueType=idPrefix==='adminPayrollRule'?q('adminPayrollRuleValueType').value:find(`[data-cr-value-type="${idPrefix}"]`).value,raw=(idPrefix==='adminPayrollRule'?q('adminPayrollRuleValue').value:find(`[data-cr-value="${idPrefix}"]`).value).trim(),source=(idPrefix==='adminPayrollRule'?q('adminPayrollRuleSource').value:find(`[data-cr-source="${idPrefix}"]`).value).trim(),active=idPrefix==='adminPayrollRule'?true:find(`[data-cr-active="${idPrefix}"]`).checked;
+    if(!/^[A-Z]{2}$/.test(country))throw new Error('Country must be a 2-letter code such as NZ or AU.');if(!type||!key||!from)throw new Error('Country, rule type, rule key and effective-from date are required.');if(to&&to<from)throw new Error('Effective-to date cannot be before effective-from date.');
+    const payload={country_code:country,rule_type:type,rule_key:key,effective_from:from,effective_to:to||null,numeric_value:null,text_value:null,json_value:null,active,source_note:source||null,updated_at:new Date().toISOString()};if(valueType==='numeric'){const n=Number(raw);if(!Number.isFinite(n))throw new Error('Enter a valid numeric value.');payload.numeric_value=n}else if(valueType==='json'){try{payload.json_value=JSON.parse(raw)}catch{throw new Error('JSON value is not valid JSON.')}}else payload.text_value=raw;return payload
+  }
+  async function addAdminCountryPayrollRule(){try{const payload=countryRulePayload();const {error}=await state.client.from('country_payroll_rules').insert({...payload,created_at:new Date().toISOString()});if(error)throw error;q('adminPayrollRuleCountry').value=payload.country_code;['adminPayrollRuleType','adminPayrollRuleKey','adminPayrollRuleFrom','adminPayrollRuleTo','adminPayrollRuleValue','adminPayrollRuleSource'].forEach(id=>q(id).value='');q('adminPayrollRuleMessage').textContent='Rule version added.';await renderAdminCountryPayrollRules()}catch(e){alert(e.message||e)}}
+  async function saveAdminCountryPayrollRule(id){try{const payload=countryRulePayload(id);const {error}=await state.client.from('country_payroll_rules').update(payload).eq('id',id);if(error)throw error;q('adminPayrollRuleMessage').textContent='Rule saved.';await renderAdminCountryPayrollRules()}catch(e){alert(e.message||e)}}
 
   async function hasModule(slug){
     if(slug==='invoice_manager')return true;
