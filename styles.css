@@ -965,3 +965,67 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 /* v60.2 — Super Admin country payroll rules only */
 .admin-tax-rule-table input,.admin-tax-rule-table select,.admin-tax-rule-table textarea{min-width:120px;width:100%}.admin-tax-rule-table textarea{resize:vertical}.admin-tax-rule-table small{display:block;margin-top:6px}.admin-tax-rule-table td{vertical-align:top}.admin-tax-rule-table td:nth-child(1){min-width:80px}.admin-tax-rule-table td:nth-child(2){min-width:170px}.admin-tax-rule-table td:nth-child(3){min-width:155px}.admin-tax-rule-table td:nth-child(4){min-width:260px}
 @media(max-width:700px){#adminCountryPayrollRules .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}#adminCountryPayrollRules .form-grid{grid-template-columns:1fr}#adminCountryPayrollRules .wide{grid-column:auto}.admin-tax-rule-table{min-width:880px}}
+
+/* =========================================================
+   v61 — concise invoice/payroll UI + visible financial tabs
+   ========================================================= */
+#view-create{max-width:1280px;margin:0 auto}
+#view-create .page-head{align-items:center}
+#view-create .invoice-details-card{align-items:start}
+#view-create .invoice-options-grid>div{min-width:0}
+#view-create .actions{gap:8px;flex-wrap:wrap}
+
+.timesheet-modal-box{max-width:760px!important;max-height:92vh;overflow:auto}
+.timesheet-expenses{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.timesheet-expenses .card-title{align-items:flex-start;margin-bottom:8px}
+.timesheet-expenses .card-title h3{margin:0 0 3px}
+.timesheet-expenses .hint{margin:0;max-width:520px}
+#ptExpenseRows{display:grid;gap:8px}
+.timesheet-expense-row{display:grid;grid-template-columns:minmax(0,1fr) 150px auto;gap:8px;align-items:end}
+.timesheet-expense-row label{min-width:0}
+.timesheet-expense-total{display:flex;justify-content:flex-end;gap:14px;padding-top:9px;margin-top:5px;border-top:1px solid #edf1f5}
+.timesheet-expense-total strong{min-width:110px;text-align:right}
+
+.payroll-run-modal>.page-head{margin-bottom:8px;padding-bottom:6px}
+.payroll-run-modal>.form-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.payroll-run-modal .payroll-calculation-card{margin-top:10px;padding:13px}
+.payroll-run-modal .payroll-quick-item{padding:10px 0 8px}
+.payroll-run-modal .payroll-quick-item .form-grid{grid-template-columns:1fr 1.35fr .7fr 1.2fr;gap:8px}
+.payroll-run-modal .payroll-quick-item .hint{margin:6px 0 0}
+.payroll-run-modal>.summary-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}
+.payroll-run-modal>.summary-grid .metric{padding:10px}
+.payroll-run-modal>.summary-grid .metric strong{font-size:1.05rem}
+.payroll-run-modal>.actions{margin-top:8px}
+.payslip h3{margin:20px 0 8px;font-size:1rem}
+.payslip-final th,.payslip-final td{font-size:1.08rem}
+
+.financial-module-tabs{overflow-x:auto;white-space:nowrap;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.financial-module-tabs .module-tab{flex:0 0 auto}
+.financial-more-control{display:none!important}
+
+@media(max-width:760px){
+  #view-create .page-head{align-items:flex-start}
+  #view-create .page-head p{margin-bottom:0}
+  #view-create>.card{padding:12px;margin-bottom:10px}
+  #view-create .invoice-details-card{grid-template-columns:1fr 1fr!important;gap:8px}
+  #view-create .invoice-details-card .wide,#view-create .invoice-details-card .invoice-customer-name{grid-column:1/-1}
+  #view-create .invoice-options-grid{grid-template-columns:1fr!important;gap:8px}
+  #view-create .invoice-options-grid>div{padding-bottom:8px;border-bottom:1px solid #edf1f5}
+  #view-create .invoice-options-grid>div:last-child{border-bottom:0;padding-bottom:0}
+  #view-create>.actions{display:grid;grid-template-columns:1fr 1fr}
+  #view-create>.actions .primary{grid-column:1/-1}
+  .timesheet-modal-box{width:calc(100vw - 18px)!important;max-height:94dvh}
+  .timesheet-expense-row{grid-template-columns:minmax(0,1fr) 110px}
+  .timesheet-expense-row button{grid-column:1/-1;width:100%}
+  .payroll-run-modal>.form-grid{grid-template-columns:1fr 1fr!important}
+  .payroll-run-modal .payroll-quick-item .form-grid{grid-template-columns:1fr!important}
+  .payroll-run-modal>.summary-grid{grid-template-columns:1fr 1fr}
+  .financial-module-tabs{display:flex!important;gap:4px;margin-bottom:12px;padding-bottom:4px}
+}
+@media(max-width:480px){
+  #view-create .invoice-details-card{grid-template-columns:1fr!important}
+  #view-create .invoice-details-card>*{grid-column:auto!important}
+  #view-create>.actions{grid-template-columns:1fr}
+  #view-create>.actions .primary{grid-column:auto}
+  .payroll-run-modal>.form-grid,.payroll-run-modal>.summary-grid{grid-template-columns:1fr!important}
+}
