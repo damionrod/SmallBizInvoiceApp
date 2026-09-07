@@ -2078,3 +2078,27 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   #payrollPayslipContent{position:absolute!important;left:0!important;top:0!important;width:100%!important}
   .payslip{max-width:none!important;width:100%!important;padding:10mm!important;box-shadow:none!important}
 }
+
+/* ============================================================
+   v61.10 PAYSLIP TABLE WIDTH FIX
+   Payslip-only override: prevent the app-wide 900px table minimum
+   from clipping the Pay and calculation value columns.
+   No payroll data/calculation logic changed.
+   ============================================================ */
+#payrollPayslipContent .payslip table{
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+}
+#payrollPayslipContent .payslip tbody,
+#payrollPayslipContent .payslip thead,
+#payrollPayslipContent .payslip tr{
+  width:100%;
+}
+#payrollPayslipContent .payslip table:not(:first-of-type) th{
+  width:60%;
+}
+#payrollPayslipContent .payslip table:not(:first-of-type) td{
+  width:40%;
+  text-align:right !important;
+}
