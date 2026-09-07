@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Invoice Manager" />
   <title>Invoice Manager</title>
-  <link rel="stylesheet" href="styles.css?v=61.5" />
+  <link rel="stylesheet" href="styles.css?v=61.6" />
   <script src="app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -519,7 +519,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
 
     <div class="payrun-topbar">
       <div><h2 id="payrollRunTitle">New Pay Run</h2><p>Create a new pay run and pay your team.</p></div>
-      <div class="payrun-top-actions"><button class="secondary" id="prCancelTop" type="button">Cancel</button><button class="primary" id="prSaveContinue" type="button">Save &amp; Continue</button></div>
+      <div class="payrun-top-actions"><button class="secondary" id="prCancelTop" type="button">Cancel</button><button class="primary" id="prSaveContinue" type="button">Save Pay Run</button></div>
     </div>
 
     <input id="prId" type="hidden">
@@ -544,9 +544,9 @@ Please find attached quote {quoteNumber}."></textarea></label>
         </section>
 
         <section class="card payrun-section" id="prEmployeesSection">
-          <div class="payrun-section-head payrun-section-head-actions"><div class="payrun-section-title"><div class="payrun-section-number">2</div><div><h3>Select Employees</h3><p>Choose employees to include. Approved timesheets are loaded using the existing payroll rules.</p></div></div><button class="secondary compact-btn" id="prCalculate" type="button">Load Employees</button></div>
+          <div class="payrun-section-head payrun-section-head-actions"><div class="payrun-section-title"><div class="payrun-section-number">2</div><div><h3>Select Employees</h3><p>Choose employees to include. Approved timesheets are loaded using the existing payroll rules.</p></div></div><button class="secondary compact-btn" id="prCalculate" type="button">Load / Calculate</button></div>
           <div class="payrun-employee-tools"><div class="payrun-search"><span>⌕</span><input id="prEmployeeSearch" type="search" placeholder="Search employee..."></div><label class="payrun-select-all"><input id="prSelectAll" type="checkbox"><span>Select all eligible employees</span></label></div>
-          <div class="payrun-employee-table-wrap"><table class="payrun-employee-table"><thead><tr><th class="select-col"></th><th>Employee</th><th>Hours</th><th>Ordinary Earnings</th><th>Taxable Allowances</th><th>Reimbursements<br><small>Non-Taxable</small></th><th>Total to Pay</th></tr></thead><tbody id="prEmployeeRows"></tbody></table></div>
+          <div class="payrun-employee-table-wrap"><table class="payrun-employee-table"><thead><tr><th class="select-col"></th><th>Employee</th><th>Hours</th><th>Ordinary Earnings</th><th>Taxable Allowances</th><th>Reimbursements<br><small>Non-taxable</small></th><th>Total to Pay</th></tr></thead><tbody id="prEmployeeRows"></tbody></table></div>
           <div class="payrun-employee-footer"><span id="prEmployeeShowing">No employees loaded</span><strong id="prSelectedCount">0 employees selected</strong></div>
         </section>
 
@@ -562,7 +562,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
         </section>
 
         <details class="card payrun-employer-costs" id="prEmployerCostsDetails">
-          <summary>Employer Costs <span>Optional breakdown</span></summary>
+          <summary>Employer Costs <span>Optional details</span></summary>
           <div class="payrun-employer-grid"><div><span>Employer Contributions</span><strong id="prEmployer">—</strong></div><div><span>Total Employment Cost</span><strong id="prCost">—</strong></div></div>
         </details>
       </main>
@@ -581,19 +581,19 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <div class="payrun-summary-pair"><span>KiwiSaver (Employee)</span><strong id="prSummaryKiwi">—</strong></div>
         <div class="payrun-summary-pair"><span>Other Deductions</span><strong id="prSummaryOtherDeductions">—</strong></div>
         <div class="payrun-summary-pair strong summary-net"><span>Net Wages</span><strong id="prNet">—</strong></div>
-        <div class="payrun-summary-pair reimbursement"><span>Non-Taxable Reimbursements</span><strong id="prSummaryReimbursements">—</strong></div>
+        <div class="payrun-summary-pair reimbursement"><span>Non-taxable Reimbursements</span><strong id="prSummaryReimbursements">—</strong></div>
         <div class="payrun-total-box"><span>Total Amount to Pay</span><strong id="prSummaryTotalPay">—</strong></div>
         <div class="payrun-summary-note">ⓘ Non-taxable reimbursements are shown separately and are not included in PAYE calculations.</div>
         <span id="prDeductions" hidden>—</span>
       </aside>
     </div>
 
-    <div class="payrun-footer-actions"><button class="secondary" id="prSaveDraft">Save Draft</button><button class="primary" id="prFinalise">Finalise Pay Run</button></div>
+    <div class="payrun-footer-actions"><button class="secondary" id="prSaveDraft">Save Pay Run</button><button class="primary" id="prFinalise">Finalise Pay Run</button></div>
   </div></div>
   <div class="modal" id="payrollPayslipModal"><div class="modal-box payroll-modal-box"><button class="close" id="payrollClosePayslip">×</button><div id="payrollPayslipContent"></div><div class="actions"><button class="secondary" id="payrollPayslipPdf">Download PDF</button><button class="primary" id="payrollPayslipEmail">Email Payslip</button></div></div></div>
 
   <div class="modal" id="planModal"><div class="modal-box plan-modal-box"><button class="close" id="closePlanModal">×</button><h2>Choose your plan</h2><p class="hint">Upgrade whenever you need more invoices or additional modules.</p><div id="customerPlanGrid" class="plan-grid"></div></div></div>
   <div id="toast"></div>
-  <script src="saas.js?v=60.2"></script>
+  <script src="saas.js?v=61.6"></script>
 </body>
 </html>
