@@ -2126,3 +2126,175 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   width:40% !important;
   text-align:right !important;
 }
+
+/* ============================================================
+   v61.13 NEW PAY RUN — VIEWPORT / SCROLL / RESPONSIVE FIX
+   Layout only. No payroll functionality or calculations changed.
+   ============================================================ */
+
+/* Prevent the page behind the pay-run modal from keeping its own scrollbar. */
+body:has(#payrollRunModal.open){
+  overflow:hidden;
+}
+
+/* The overlay itself should not be a second scrolling surface. */
+#payrollRunModal{
+  overflow:hidden !important;
+  padding:12px !important;
+}
+
+/* One contained scrolling surface for the entire New Pay Run workflow. */
+#payrollRunModal .payroll-run-modal.payroll-run-workflow{
+  width:min(1220px, calc(100vw - 24px)) !important;
+  max-width:1220px !important;
+  height:auto !important;
+  max-height:calc(100dvh - 24px) !important;
+  margin:0 auto !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  overscroll-behavior:contain;
+}
+
+/* CRITICAL: this is a <main> inside a modal. Do not inherit global page-main sizing. */
+#payrollRunModal main.payrun-main{
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+#payrollRunModal .payrun-layout{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  grid-template-columns:minmax(0, 1fr) 286px;
+  gap:12px;
+  padding:12px 14px 8px;
+}
+
+#payrollRunModal .payrun-main,
+#payrollRunModal .payrun-section,
+#payrollRunModal .payrun-summary,
+#payrollRunModal .payrun-employee-table-wrap,
+#payrollRunModal .payrun-review-list,
+#payrollRunModal .payrun-review-card{
+  min-width:0;
+  max-width:100%;
+}
+
+/* Keep desktop tables inside their own card instead of widening the whole modal. */
+#payrollRunModal .payrun-employee-table-wrap{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+
+#payrollRunModal .payrun-employee-table{
+  width:100%;
+  min-width:690px;
+}
+
+/* Slightly tighter modal chrome so more payroll content fits vertically. */
+#payrollRunModal .payrun-topbar{
+  padding:14px 42px 10px 16px;
+}
+#payrollRunModal .payrun-topbar h2{font-size:1.35rem}
+#payrollRunModal .payrun-steps{padding:8px 16px}
+#payrollRunModal .payrun-step:not(:last-child):after{left:108px;right:12px}
+#payrollRunModal .payrun-footer-actions{padding:8px 14px 12px}
+
+/* Medium screens: summary moves below the workflow before space gets cramped. */
+@media(max-width:1080px){
+  #payrollRunModal .payrun-layout{
+    grid-template-columns:1fr;
+    padding:10px 12px 8px;
+  }
+  #payrollRunModal .payrun-summary{
+    position:static;
+    width:100%;
+  }
+  #payrollRunModal .payrun-employee-table{min-width:650px}
+}
+
+/* Tablet / mobile: one page, one scrollbar, no sideways page movement. */
+@media(max-width:700px){
+  #payrollRunModal{
+    padding:0 !important;
+  }
+
+  #payrollRunModal .payroll-run-modal.payroll-run-workflow{
+    width:100vw !important;
+    max-width:100vw !important;
+    height:100dvh !important;
+    max-height:100dvh !important;
+    margin:0 !important;
+    border-radius:0 !important;
+  }
+
+  #payrollRunModal .payrun-topbar{
+    padding:12px 40px 9px 10px;
+  }
+
+  #payrollRunModal .payrun-top-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+  }
+
+  /* No horizontal step-navigation scrollbar on phones. */
+  #payrollRunModal .payrun-steps{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:2px;
+    overflow:visible !important;
+    padding:7px 8px;
+  }
+
+  #payrollRunModal .payrun-step{
+    min-width:0;
+    width:auto;
+    grid-template-columns:1fr;
+    justify-items:center;
+    text-align:center;
+    gap:3px;
+    font-size:.55rem;
+    line-height:1.15;
+  }
+
+  #payrollRunModal .payrun-step strong{
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+
+  #payrollRunModal .payrun-layout{
+    width:100%;
+    padding:7px;
+    gap:7px;
+  }
+
+  #payrollRunModal .payrun-details-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  /* Employee table is already converted to cards by the existing mobile rules. */
+  #payrollRunModal .payrun-employee-table-wrap{
+    overflow:visible;
+  }
+  #payrollRunModal .payrun-employee-table{
+    min-width:0;
+  }
+
+  #payrollRunModal .payrun-summary{
+    width:100%;
+  }
+}
+
+@media(max-width:430px){
+  #payrollRunModal .payrun-details-grid{
+    grid-template-columns:1fr;
+  }
+  #payrollRunModal .payrun-step{font-size:.51rem}
+  #payrollRunModal .payrun-step span{width:22px;height:22px}
+}
