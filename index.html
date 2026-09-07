@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Invoice Manager" />
   <title>Invoice Manager</title>
-  <link rel="stylesheet" href="styles.css?v=61.3" />
+  <link rel="stylesheet" href="styles.css?v=61.4" />
   <script src="app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -37,18 +37,39 @@
     <section id="view-create" class="view active">
       <div class="page-head"><div><h1>Create Invoice</h1><p>Taxes and optional service fees are calculated automatically from Settings.</p></div><button class="secondary" id="clearInvoice">Clear</button></div>
       <div class="notice" id="configNotice">Add your GST number in Settings before sending invoices.</div>
-      <div class="card form-grid invoice-details-card">
-        <label>Invoice number<input id="invoiceNumber" readonly></label>
-        <label>Invoice date<input id="invoiceDate" type="date"></label>
-        <label>Due date<input id="dueDate" type="date"></label>
-        <label class="invoice-customer-name">Customer / business name<div class="customer-pick"><input id="customerName" list="customerNameOptions" autocomplete="off" placeholder="Start typing a customer name"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameOptions"></datalist><small id="selectedCustomerHint">Select an existing customer or type a new one.</small></label>
-        <label>Customer category<input id="invoiceCustomerCategory" list="customerCategoryOptions" placeholder="Residential / Commercial"><datalist id="customerCategoryOptions"></datalist></label>
-        <label class="wide invoice-address">Billing address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
-        <label>Billing contact<input id="invoiceBillingContact" placeholder="Contact person"></label>
-        <label>Customer email<input id="customerEmail" type="email" placeholder="name@example.com"></label>
-        <label>Phone<input id="invoiceCustomerPhone" type="tel" placeholder="Phone"></label>
-        <label>Mobile<input id="invoiceCustomerMobile" type="tel" placeholder="Mobile"></label>
-        <label>Reference / notes<input id="reference" placeholder="Optional internal note"></label>
+      <div class="card invoice-details-card invoice-details-compact">
+        <section class="invoice-meta-panel">
+          <div class="compact-section-title">
+            <div>
+              <h2>Invoice details</h2>
+              <p>Number and dates</p>
+            </div>
+          </div>
+          <div class="invoice-meta-fields">
+            <label>Invoice number<input id="invoiceNumber" readonly></label>
+            <label>Invoice date<input id="invoiceDate" type="date"></label>
+            <label>Due date<input id="dueDate" type="date"></label>
+          </div>
+        </section>
+
+        <section class="invoice-customer-panel">
+          <div class="compact-section-title">
+            <div>
+              <h2>Customer details</h2>
+              <p>Billing and contact information</p>
+            </div>
+          </div>
+          <div class="invoice-customer-fields">
+            <label class="invoice-customer-name">Customer / business name<div class="customer-pick"><input id="customerName" list="customerNameOptions" autocomplete="off" placeholder="Start typing a customer name"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameOptions"></datalist><small id="selectedCustomerHint">Select an existing customer or type a new one.</small></label>
+            <label class="invoice-category">Customer category<input id="invoiceCustomerCategory" list="customerCategoryOptions" placeholder="Residential / Commercial"><datalist id="customerCategoryOptions"></datalist></label>
+            <label class="invoice-address">Billing address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
+            <label class="invoice-billing-contact">Billing contact<input id="invoiceBillingContact" placeholder="Contact person"></label>
+            <label class="invoice-email">Customer email<input id="customerEmail" type="email" placeholder="name@example.com"></label>
+            <label class="invoice-phone">Phone<input id="invoiceCustomerPhone" type="tel" placeholder="Phone"></label>
+            <label class="invoice-mobile">Mobile<input id="invoiceCustomerMobile" type="tel" placeholder="Mobile"></label>
+            <label class="invoice-reference">Reference / notes<input id="reference" placeholder="Optional internal note"></label>
+          </div>
+        </section>
       </div>
 
       <div class="card">

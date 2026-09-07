@@ -1665,3 +1665,230 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   #view-create > .actions{grid-template-columns:1fr !important}
   #view-create > .actions .primary{grid-column:auto !important}
 }
+
+
+/* ============================================================
+   v61.4 CREATE INVOICE — COMPACT ORGANIZED CUSTOMER PANEL
+   Scope: top Create Invoice details card only.
+   No invoice JS, IDs, calculations, persistence or other modules changed.
+   ============================================================ */
+
+/* Neutralise all earlier direct-child grid rules for this redesigned card. */
+#view-create .invoice-details-card.invoice-details-compact{
+  display:grid !important;
+  grid-template-columns:260px minmax(0,1fr) !important;
+  gap:0 !important;
+  padding:0 !important;
+  margin:0 0 10px !important;
+  align-items:stretch !important;
+  overflow:hidden;
+  border-top:3px solid #72bf2e !important;
+  background:#fff;
+}
+
+#view-create .invoice-details-card.invoice-details-compact > section{
+  min-width:0;
+}
+
+#view-create .invoice-meta-panel{
+  padding:14px 15px 13px;
+  background:#f7f9fb;
+  border-right:1px solid #e4e9ed;
+}
+
+#view-create .invoice-customer-panel{
+  padding:14px 15px 13px;
+}
+
+#view-create .compact-section-title{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  margin:0 0 10px;
+  padding:0 0 8px;
+  border-bottom:1px solid #e6ebef;
+}
+
+#view-create .compact-section-title h2{
+  margin:0;
+  font-size:14px;
+  line-height:1.2;
+  color:#193f5c;
+  font-weight:800;
+}
+
+#view-create .compact-section-title p{
+  margin:2px 0 0;
+  font-size:10.5px;
+  line-height:1.25;
+  color:#7a8994;
+  font-weight:500;
+}
+
+/* Left invoice metadata: compact vertical stack */
+#view-create .invoice-meta-fields{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+
+/* Right customer data: deliberately compact two-row structure */
+#view-create .invoice-customer-fields{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:8px 10px;
+  align-items:start;
+}
+
+#view-create .invoice-customer-fields .invoice-customer-name{grid-column:span 7 !important}
+#view-create .invoice-customer-fields .invoice-category{grid-column:span 5 !important}
+
+#view-create .invoice-customer-fields .invoice-address{grid-column:span 7 !important}
+#view-create .invoice-customer-fields .invoice-billing-contact{grid-column:span 5 !important}
+
+#view-create .invoice-customer-fields .invoice-email{grid-column:span 5 !important}
+#view-create .invoice-customer-fields .invoice-phone{grid-column:span 3 !important}
+#view-create .invoice-customer-fields .invoice-mobile{grid-column:span 4 !important}
+
+#view-create .invoice-customer-fields .invoice-reference{grid-column:1/-1 !important}
+
+/* Override earlier nth-child rules safely because labels are no longer card children. */
+#view-create .invoice-details-card.invoice-details-compact label{
+  display:flex !important;
+  flex-direction:column !important;
+  min-width:0 !important;
+  gap:4px !important;
+  margin:0 !important;
+  font-size:11.5px !important;
+  line-height:1.2 !important;
+  font-weight:700;
+  color:#344f62;
+}
+
+#view-create .invoice-details-card.invoice-details-compact input,
+#view-create .invoice-details-card.invoice-details-compact select,
+#view-create .invoice-details-card.invoice-details-compact textarea{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+  height:36px !important;
+  min-height:36px !important;
+  padding:6px 9px !important;
+  border-radius:7px !important;
+  font-size:13px !important;
+  line-height:1.2 !important;
+}
+
+#view-create .invoice-details-card.invoice-details-compact textarea{
+  resize:none !important;
+  overflow:hidden !important;
+}
+
+#view-create .invoice-details-card.invoice-details-compact small{
+  margin:0 !important;
+  min-height:12px;
+  font-size:10px !important;
+  line-height:1.15 !important;
+  color:#778892;
+  font-weight:500;
+}
+
+#view-create .invoice-details-card.invoice-details-compact .customer-pick{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto !important;
+  gap:6px !important;
+  min-width:0 !important;
+}
+
+#view-create .invoice-details-card.invoice-details-compact .customer-pick .mini-btn{
+  height:36px !important;
+  min-height:36px !important;
+  padding:6px 12px !important;
+  border-radius:7px !important;
+  white-space:nowrap !important;
+  font-size:12px !important;
+}
+
+/* Keep read-only invoice number visually quieter. */
+#view-create .invoice-details-card.invoice-details-compact #invoiceNumber{
+  background:#eef2f5;
+  font-weight:750;
+  color:#385266;
+}
+
+/* Tablet */
+@media(max-width:980px) and (min-width:641px){
+  #view-create .invoice-details-card.invoice-details-compact{
+    grid-template-columns:220px minmax(0,1fr) !important;
+  }
+
+  #view-create .invoice-customer-fields .invoice-customer-name{grid-column:span 12 !important}
+  #view-create .invoice-customer-fields .invoice-category{grid-column:span 4 !important}
+  #view-create .invoice-customer-fields .invoice-billing-contact{grid-column:span 4 !important}
+  #view-create .invoice-customer-fields .invoice-email{grid-column:span 4 !important}
+  #view-create .invoice-customer-fields .invoice-address{grid-column:span 12 !important}
+  #view-create .invoice-customer-fields .invoice-phone{grid-column:span 4 !important}
+  #view-create .invoice-customer-fields .invoice-mobile{grid-column:span 4 !important}
+  #view-create .invoice-customer-fields .invoice-reference{grid-column:span 4 !important}
+}
+
+/* Mobile: sections stack cleanly, all controls stay touch-friendly. */
+@media(max-width:640px){
+  #view-create .invoice-details-card.invoice-details-compact{
+    grid-template-columns:1fr !important;
+  }
+
+  #view-create .invoice-meta-panel{
+    padding:12px !important;
+    border-right:0 !important;
+    border-bottom:1px solid #e4e9ed;
+  }
+
+  #view-create .invoice-customer-panel{
+    padding:12px !important;
+  }
+
+  #view-create .compact-section-title{
+    margin-bottom:8px;
+    padding-bottom:7px;
+  }
+
+  #view-create .invoice-meta-fields{
+    grid-template-columns:1fr 1fr !important;
+    gap:8px !important;
+  }
+
+  #view-create .invoice-meta-fields > label:first-child{
+    grid-column:1/-1 !important;
+  }
+
+  #view-create .invoice-customer-fields{
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+  }
+
+  #view-create .invoice-customer-fields > label{
+    grid-column:1/-1 !important;
+  }
+
+  #view-create .invoice-details-card.invoice-details-compact input,
+  #view-create .invoice-details-card.invoice-details-compact select,
+  #view-create .invoice-details-card.invoice-details-compact textarea{
+    height:44px !important;
+    min-height:44px !important;
+    padding:9px 10px !important;
+    font-size:16px !important;
+  }
+
+  #view-create .invoice-details-card.invoice-details-compact .customer-pick .mini-btn{
+    height:44px !important;
+    min-height:44px !important;
+    padding:8px 11px !important;
+    font-size:13px !important;
+  }
+
+  #view-create .invoice-details-card.invoice-details-compact textarea{
+    height:48px !important;
+  }
+}
