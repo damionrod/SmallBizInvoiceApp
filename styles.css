@@ -1029,3 +1029,154 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   #view-create>.actions .primary{grid-column:auto}
   .payroll-run-modal>.form-grid,.payroll-run-modal>.summary-grid{grid-template-columns:1fr!important}
 }
+
+
+/* ============================================================
+   v61.1 CREATE INVOICE UI POLISH
+   Layout-only. No invoice fields, IDs, calculations or actions changed.
+   ============================================================ */
+
+/* Desktop: clearer visual hierarchy and tighter use of space. */
+@media (min-width: 901px){
+  #view-create .page-head{
+    margin-bottom:10px;
+    padding-bottom:6px;
+  }
+  #view-create .page-head h1{font-size:27px;line-height:1.15}
+  #view-create .page-head p{font-size:13px;margin-top:3px}
+  #view-create .page-head #clearInvoice{padding:8px 14px}
+
+  #view-create>.card{
+    padding:13px 16px;
+    margin-bottom:10px;
+  }
+
+  /* 12-column grid lets related customer fields sit together with no dead space. */
+  #view-create .invoice-details-card{
+    display:grid;
+    grid-template-columns:repeat(12,minmax(0,1fr));
+    gap:9px 12px;
+    align-items:start;
+  }
+  #view-create .invoice-details-card>label{grid-column:span 3}
+  #view-create .invoice-details-card>label:nth-child(1),
+  #view-create .invoice-details-card>label:nth-child(2),
+  #view-create .invoice-details-card>label:nth-child(3){grid-column:span 4}
+
+  #view-create .invoice-details-card .invoice-customer-name{grid-column:span 6}
+  #view-create .invoice-details-card>label:nth-child(5){grid-column:span 3}
+  #view-create .invoice-details-card>label:nth-child(11){grid-column:span 3}
+
+  #view-create .invoice-details-card .invoice-address{grid-column:span 6}
+  #view-create .invoice-details-card>label:nth-child(7),
+  #view-create .invoice-details-card>label:nth-child(8){grid-column:span 3}
+
+  #view-create .invoice-details-card>label:nth-child(9),
+  #view-create .invoice-details-card>label:nth-child(10){grid-column:span 3}
+
+  #view-create .invoice-details-card label{gap:3px}
+  #view-create .invoice-details-card small{font-size:11px;line-height:1.2;margin-top:1px}
+  #view-create .invoice-details-card input,
+  #view-create .invoice-details-card select,
+  #view-create .invoice-details-card textarea{
+    min-height:36px;
+    padding:7px 9px;
+  }
+  #view-create .invoice-details-card textarea{height:36px;min-height:36px}
+
+  #view-create .customer-pick{gap:7px}
+  #view-create .customer-pick .mini-btn{
+    min-width:72px;
+    min-height:36px;
+    padding:7px 10px;
+  }
+
+  #view-create .card-title{min-height:26px;padding-bottom:3px}
+  #view-create .card-title h2{font-size:17px}
+  #view-create #addItem{padding:8px 12px}
+  #view-create .items-header{padding:6px 8px 3px}
+  #view-create .item-row{padding:6px 5px}
+  #view-create .item-row input,
+  #view-create .item-row select{min-height:36px;padding:7px 9px}
+}
+
+/* Tablet: preserve two-column flow but keep related information compact. */
+@media (max-width:900px) and (min-width:761px){
+  #view-create .page-head{margin-bottom:9px}
+  #view-create .invoice-details-card{gap:9px 10px}
+  #view-create .invoice-details-card input,
+  #view-create .invoice-details-card select,
+  #view-create .invoice-details-card textarea{min-height:40px;padding:8px 9px}
+  #view-create .invoice-details-card textarea{height:40px}
+}
+
+/* Phone: single-column, touch-friendly, no horizontal overflow. */
+@media (max-width:760px){
+  #view-create{overflow-x:hidden}
+  #view-create .page-head{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px;
+    align-items:start;
+    margin-bottom:8px;
+  }
+  #view-create .page-head h1{font-size:23px;line-height:1.15}
+  #view-create .page-head p{font-size:12px;line-height:1.35;margin-top:3px}
+  #view-create .page-head #clearInvoice{padding:8px 11px}
+
+  #view-create .notice{padding:8px 10px;margin-bottom:9px;font-size:12px}
+  #view-create>.card{padding:12px;margin-bottom:9px;border-radius:10px}
+
+  #view-create .invoice-details-card{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:9px;
+  }
+  #view-create .invoice-details-card>label,
+  #view-create .invoice-details-card .wide,
+  #view-create .invoice-details-card .invoice-customer-name,
+  #view-create .invoice-details-card .invoice-address{grid-column:1/-1}
+
+  #view-create .invoice-details-card label{gap:4px}
+  #view-create .invoice-details-card input,
+  #view-create .invoice-details-card select,
+  #view-create .invoice-details-card textarea{
+    min-height:44px;
+    padding:10px;
+    font-size:16px; /* prevents iOS form zoom */
+  }
+  #view-create .invoice-details-card textarea{height:52px;min-height:52px}
+  #view-create .invoice-details-card small{font-size:11px;line-height:1.25}
+
+  #view-create .customer-pick{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px;
+  }
+  #view-create .customer-pick .mini-btn{
+    min-height:44px;
+    padding:9px 11px;
+    white-space:nowrap;
+  }
+
+  #view-create .card-title{gap:8px;padding-bottom:5px}
+  #view-create .card-title h2{font-size:17px}
+  #view-create #addItem{padding:8px 10px;white-space:nowrap}
+
+  /* Each invoice line becomes a clean mobile card while retaining all controls. */
+  #view-create .item-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 76px 34px;
+    gap:7px;
+    padding:10px 0;
+    align-items:end;
+  }
+  #view-create .item-row .desc-wrap{grid-column:1/-1}
+  #view-create .item-row input,
+  #view-create .item-row select{min-height:44px;font-size:16px}
+  #view-create .item-row .line-total{padding:10px 2px;white-space:nowrap}
+  #view-create .item-row .remove{min-height:44px}
+  #view-create .invoice-options-grid{padding:12px;gap:9px}
+  #view-create .totals-wrap{gap:9px}
+  #view-create .notes-card,#view-create .totals{padding:12px}
+}
