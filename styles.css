@@ -2102,3 +2102,27 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   width:40%;
   text-align:right !important;
 }
+
+
+/* ============================================================
+   v61.12 PAYSLIP EMAIL PDF CONSISTENCY FIX
+   Ensure off-screen payslip PDF rendering uses the same compact table
+   widths as the visible payslip. No payroll data/logic changed.
+   ============================================================ */
+.payslip table{
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+}
+.payslip tbody,
+.payslip thead,
+.payslip tr{
+  width:100%;
+}
+.payslip table:not(:first-of-type) th{
+  width:60% !important;
+}
+.payslip table:not(:first-of-type) td{
+  width:40% !important;
+  text-align:right !important;
+}
