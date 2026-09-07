@@ -215,39 +215,103 @@
     setTab('runs');
     toast(finalise?'Pay run finalised. Payslips are ready in Pay Runs.':'Pay run saved.');
   }
-  function renderRuns(){if(!$('payrollRunRows'))return;const arr=state.runs;$('payrollRunRows').innerHTML=arr.map(r=>`<tr><td><strong>${esc(r.pay_run_number)}</strong></td><td>${iso(r.period_start)} – ${iso(r.period_end)}</td><td>${iso(r.pay_date)}</td><td>${esc(human(r.pay_frequency))}</td><td>${money(r.gross_pay)}</td><td>${money(r.net_pay)}</td><td><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span></td><td><div class="row-actions"><button class="secondary" data-pr-view="${r.id}">${r.status==='finalised'?'View':'Edit'}</button><button class="danger" data-pr-delete="${r.id}">Delete</button>${r.status==='finalised'?`<button class="secondary" data-pr-payslips="${r.id}">Payslips</button><button class="secondary" data-pr-payday="${r.id}">Payday CSV</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="8">No pay runs yet. Create your first payroll when you are ready.</td></tr>';$('payrollRunCards').innerHTML=arr.map(r=>`<div class="payroll-mobile-card"><strong>${esc(r.pay_run_number)}</strong><span>${iso(r.period_start)} – ${iso(r.period_end)}</span><small>Pay date ${iso(r.pay_date)} · Gross ${money(r.gross_pay)} · Net ${money(r.net_pay)}</small><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span><div class="row-actions"><button class="secondary" data-pr-view="${r.id}">${r.status==='finalised'?'View':'Edit'}</button><button class="danger" data-pr-delete="${r.id}">Delete</button></div></div>`).join('');document.querySelectorAll('[data-pr-view]').forEach(b=>b.onclick=()=>openRun(state.runs.find(r=>r.id===b.dataset.prView)));document.querySelectorAll('[data-pr-delete]').forEach(b=>b.onclick=()=>deletePayRun(b.dataset.prDelete));document.querySelectorAll('[data-pr-payslips]').forEach(b=>b.onclick=()=>openPayslipChooser(b.dataset.prPayslips));document.querySelectorAll('[data-pr-payday]').forEach(b=>b.onclick=()=>exportPaydayData(b.dataset.prPayday));const r=arr[0];$('payrollGrossSummary').textContent=r?money(r.gross_pay):'—';$('payrollNetSummary').textContent=r?money(r.net_pay):'—';$('payrollEmployerSummary').textContent=r?money(r.employer_contributions):'—';$('payrollCostSummary').textContent=r?money(r.total_employment_cost):'—'}
+  function renderRuns(){if(!$('payrollRunRows'))return;const arr=state.runs;$('payrollRunRows').innerHTML=arr.map(r=>`<tr><td><strong>${esc(r.pay_run_number)}</strong></td><td>${iso(r.period_start)} – ${iso(r.period_end)}</td><td>${iso(r.pay_date)}</td><td>${esc(human(r.pay_frequency))}</td><td>${money(r.gross_pay)}</td><td>${money(r.net_pay)}</td><td><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span></td><td><div class="row-actions"><button class="secondary" data-pr-view="${r.id}">${r.status==='finalised'?'View':'Edit'}</button><button class="danger" data-pr-delete="${r.id}">Delete</button>${r.status==='finalised'?`<button class="secondary" data-pr-payslips="${r.id}">Payslips</button><button class="secondary" data-pr-email-payslips="${r.id}">Email Payslips</button><button class="secondary" data-pr-payday="${r.id}">Payday CSV</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="8">No pay runs yet. Create your first payroll when you are ready.</td></tr>';$('payrollRunCards').innerHTML=arr.map(r=>`<div class="payroll-mobile-card"><strong>${esc(r.pay_run_number)}</strong><span>${iso(r.period_start)} – ${iso(r.period_end)}</span><small>Pay date ${iso(r.pay_date)} · Gross ${money(r.gross_pay)} · Net ${money(r.net_pay)}</small><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span><div class="row-actions"><button class="secondary" data-pr-view="${r.id}">${r.status==='finalised'?'View':'Edit'}</button><button class="danger" data-pr-delete="${r.id}">Delete</button></div></div>`).join('');document.querySelectorAll('[data-pr-view]').forEach(b=>b.onclick=()=>openRun(state.runs.find(r=>r.id===b.dataset.prView)));document.querySelectorAll('[data-pr-delete]').forEach(b=>b.onclick=()=>deletePayRun(b.dataset.prDelete));document.querySelectorAll('[data-pr-payslips]').forEach(b=>b.onclick=()=>openPayslipChooser(b.dataset.prPayslips));document.querySelectorAll('[data-pr-email-payslips]').forEach(b=>b.onclick=()=>emailRunPayslips(b.dataset.prEmailPayslips));document.querySelectorAll('[data-pr-payday]').forEach(b=>b.onclick=()=>exportPaydayData(b.dataset.prPayday));const r=arr[0];$('payrollGrossSummary').textContent=r?money(r.gross_pay):'—';$('payrollNetSummary').textContent=r?money(r.net_pay):'—';$('payrollEmployerSummary').textContent=r?money(r.employer_contributions):'—';$('payrollCostSummary').textContent=r?money(r.total_employment_cost):'—'}
   function exportPaydayData(runId){const run=state.runs.find(r=>r.id===runId);if(!run)return;const rows=[['Employee ID','Employee','IRD Number','Tax Code','Pay Period Start','Pay Period End','Pay Date','Gross Earnings','PAYE','Student Loan','KiwiSaver Employee','KiwiSaver Employer Gross','ESCT','Net Pay']];state.runEmployees.filter(x=>x.pay_run_id===runId).forEach(x=>{const e=state.employees.find(e=>e.id===x.employee_id)||{};rows.push([e.employee_number||x.employee_snapshot?.employee_number||'',displayName(e)||x.employee_snapshot?.name||'',e.ird_number||'',e.tax_code||x.employee_snapshot?.tax_code||'',run.period_start,run.period_end,run.pay_date,x.gross_pay,x.paye,x.student_loan,x.kiwisaver_employee,x.kiwisaver_employer_gross,x.esct,x.net_pay])});const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${run.pay_run_number}-payday-data.csv`;a.click();URL.revokeObjectURL(a.href);toast('Payday filing data exported. Review it before using it for government reporting.')}
 
   async function deletePayRun(id){const r=state.runs.find(x=>x.id===id);if(!r)return;const warning=r.status==='finalised'?`Permanently delete finalised pay run ${r.pay_run_number}? This will also permanently remove its payslips, payroll lines and financial payroll transactions. This cannot be undone.`:`Delete pay run ${r.pay_run_number}?`;if(!confirm(warning))return;const {error}=await client().from('payroll_pay_runs').delete().eq('id',id);if(error)return toast(error.message);await audit('pay_run',id,'deleted',r,null);await load();toast('Pay run deleted.')}
   async function openPayslipChooser(runId){const {data,error}=await client().from('payroll_payslips').select('*').eq('pay_run_id',runId);if(error)return toast(error.message);if(!(data||[]).length)return toast('No payslips found.');if(data.length===1)return showPayslip(data[0]);const choice=prompt('Enter employee name or number:\n'+data.map(p=>`${p.payslip_data.employee.number} – ${p.payslip_data.employee.name}`).join('\n'));if(!choice)return;const p=data.find(x=>[x.payslip_data.employee.name,x.payslip_data.employee.number].some(v=>String(v).toLowerCase().includes(choice.toLowerCase())));if(p)showPayslip(p);else toast('Payslip not found')}
   function payslipHtml(p){const d=p.payslip_data,pay=d.pay,b=d.business,e=d.employee,r=d.run,adjust=pay.adjustments||[],taxable=adjust.filter(l=>l.type==='earning'||(l.type==='allowance'&&l.taxable!==false)),nonTax=adjust.filter(l=>(l.type==='allowance'&&l.taxable===false)||l.type==='reimbursement'),deductions=adjust.filter(l=>l.type==='deduction'),netTaxable=trunc2(num(pay.gross)-num(pay.paye)-num(pay.kiwisaver_employee)-num(pay.student_loan)-num(pay.other_deductions)),finalPaid=num(pay.net);return `<div class="payslip"><div class="payslip-head"><div><h2>${esc(b.name)}</h2><p>${esc(b.address||'')}</p></div><div><strong>PAYSLIP</strong><span>${esc(p.payslip_number)}</span></div></div><div class="payslip-meta"><div><span>Employee</span><strong>${esc(e.name)}</strong><small>${esc(e.number)}</small></div><div><span>Pay period</span><strong>${iso(r.period_start)} – ${iso(r.period_end)}</strong><small>Pay date ${iso(r.pay_date)}</small></div></div>${(pay.work_details||[]).length?`<h3>Jobs & Hours</h3><table><thead><tr><th>Date</th><th>Job</th><th>Hours</th><th>Rate</th><th>Pay</th></tr></thead><tbody>${pay.work_details.map(w=>`<tr><td>${iso(w.date)}</td><td>${esc(w.job)}</td><td>${num(w.hours).toFixed(2)}</td><td>${w.rate?money(w.rate):'—'}</td><td>${w.amount?money(w.amount):'Included'}</td></tr>`).join('')}</tbody></table>`:''}<h3>Pay Calculation</h3><table><tbody><tr><th>Ordinary / salary earnings</th><td>${money(pay.ordinary)}</td></tr>${pay.holiday?`<tr><th>Holiday pay</th><td>${money(pay.holiday)}</td></tr>`:''}${taxable.map(l=>`<tr><th>${esc(l.description)}${l.type==='allowance'?' (taxable allowance)':''}</th><td>${money(l.amount)}</td></tr>`).join('')}<tr class="total"><th>Gross taxable earnings</th><td>${money(pay.gross)}</td></tr><tr><th>PAYE / tax deducted</th><td>-${money(pay.paye)}</td></tr>${pay.kiwisaver_employee?`<tr><th>KiwiSaver employee</th><td>-${money(pay.kiwisaver_employee)}</td></tr>`:''}${pay.student_loan?`<tr><th>Student loan</th><td>-${money(pay.student_loan)}</td></tr>`:''}${deductions.map(l=>`<tr><th>${esc(l.description)}</th><td>-${money(l.amount)}</td></tr>`).join('')}<tr><th>Net taxable wages</th><td>${money(netTaxable)}</td></tr>${nonTax.map(l=>`<tr><th>${esc(l.description)} (non-taxable ${l.type==='reimbursement'?'reimbursement':'allowance'})</th><td>${money(l.amount)}</td></tr>`).join('')}<tr class="total payslip-final"><th>Final amount paid</th><td>${money(finalPaid)}</td></tr><tr><th>Employer KiwiSaver (net)</th><td>${money(pay.kiwisaver_employer)}</td></tr></tbody></table></div>`}
   function showPayslip(p){state.currentPayslip=p;$('payrollPayslipContent').innerHTML=payslipHtml(p);open('payrollPayslipModal')}
-  async function buildPayslipPdf(){
-    if(!state.currentPayslip)return null;
-    const node=$('payrollPayslipContent')?.querySelector('.payslip');
-    if(!node)throw new Error('Payslip content is not available.');
-    const canvas=await html2canvas(node,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,scrollX:0,scrollY:0});
-    const {jsPDF}=window.jspdf,pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-    const pageW=210,pageH=297,margin=10,printW=pageW-(margin*2),printH=pageH-(margin*2);
-    const imgH=canvas.height*printW/canvas.width;
-    const img=canvas.toDataURL('image/png');
-    if(imgH<=printH){
-      pdf.addImage(img,'PNG',margin,margin,printW,imgH,undefined,'FAST');
-    }else{
-      let y=margin,remaining=imgH;
-      pdf.addImage(img,'PNG',margin,y,printW,imgH,undefined,'FAST');
-      remaining-=printH;
-      while(remaining>0){
-        pdf.addPage();
-        y=margin-(imgH-remaining);
+  async function buildPayslipPdf(payslip=null){
+    const target=payslip||state.currentPayslip;
+    if(!target)return null;
+    let node=null,temp=null;
+    if(payslip){
+      temp=document.createElement('div');
+      temp.style.cssText='position:fixed;left:-10000px;top:0;width:820px;background:#fff;z-index:-1;';
+      temp.innerHTML=payslipHtml(target);
+      document.body.appendChild(temp);
+      node=temp.querySelector('.payslip');
+    }else node=$('payrollPayslipContent')?.querySelector('.payslip');
+    if(!node){if(temp)temp.remove();throw new Error('Payslip content is not available.');}
+    try{
+      const canvas=await html2canvas(node,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,scrollX:0,scrollY:0});
+      const {jsPDF}=window.jspdf,pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+      const pageW=210,pageH=297,margin=10,printW=pageW-(margin*2),printH=pageH-(margin*2);
+      const imgH=canvas.height*printW/canvas.width;
+      const img=canvas.toDataURL('image/png');
+      if(imgH<=printH){
+        pdf.addImage(img,'PNG',margin,margin,printW,imgH,undefined,'FAST');
+      }else{
+        let y=margin,remaining=imgH;
         pdf.addImage(img,'PNG',margin,y,printW,imgH,undefined,'FAST');
         remaining-=printH;
+        while(remaining>0){
+          pdf.addPage();
+          y=margin-(imgH-remaining);
+          pdf.addImage(img,'PNG',margin,y,printW,imgH,undefined,'FAST');
+          remaining-=printH;
+        }
       }
-    }
-    return pdf;
+      return pdf;
+    }finally{if(temp)temp.remove()}
   }
   async function downloadPayslip(){if(!state.currentPayslip)return;try{const pdf=await buildPayslipPdf();if(pdf)pdf.save(`${state.currentPayslip.payslip_number}.pdf`)}catch(e){console.error(e);toast('Could not download payslip: '+(e?.message||e))}}
-  async function emailPayslip(){const p=state.currentPayslip;if(!p)return;const to=p.payslip_data.employee.email;if(!to)return toast('This employee does not have an email address.');try{const pdf=await buildPayslipPdf();if(!pdf)return;const base64=pdf.output('datauristring').split(',')[1];const {error}=await client().functions.invoke('send-payslip',{body:{payslipId:p.id,to,pdfBase64:base64,filename:`${p.payslip_number}.pdf`}});if(error)return toast('Email failed: '+error.message);await client().from('payroll_payslips').update({emailed_at:new Date().toISOString(),emailed_to:to}).eq('id',p.id);toast('Payslip emailed to '+to)}catch(e){console.error(e);toast('Could not prepare payslip: '+(e?.message||e))}}
+  async function currentEmployeeEmail(p){
+    if(!p)return '';
+    const employeeId=p.employee_id||p.payslip_data?.employee?.id;
+    const local=state.employees.find(e=>e.id===employeeId);
+    if(local?.email)return String(local.email).trim();
+    if(employeeId){
+      const {data,error}=await client().from('payroll_employees').select('email').eq('business_id',state.businessId).eq('id',employeeId).maybeSingle();
+      if(!error&&data?.email)return String(data.email).trim();
+    }
+    return String(p.payslip_data?.employee?.email||'').trim();
+  }
+  async function sendPayslipEmail(p,to){
+    const pdf=await buildPayslipPdf(p);
+    if(!pdf)throw new Error('Could not prepare payslip PDF.');
+    const base64=pdf.output('datauristring').split(',')[1];
+    const {error}=await client().functions.invoke('send-payslip',{body:{payslipId:p.id,to,pdfBase64:base64,filename:`${p.payslip_number}.pdf`}});
+    if(error)throw error;
+    const update=await client().from('payroll_payslips').update({emailed_at:new Date().toISOString(),emailed_to:to}).eq('id',p.id);
+    if(update.error)throw update.error;
+  }
+  async function emailPayslip(){
+    const p=state.currentPayslip;if(!p)return;
+    try{
+      const to=await currentEmployeeEmail(p);
+      if(!to)return toast('This employee does not have an email address.');
+      await sendPayslipEmail(p,to);
+      if(p.payslip_data?.employee)p.payslip_data.employee.email=to;
+      toast('Payslip emailed to '+to);
+    }catch(e){console.error(e);toast('Email failed: '+(e?.message||e))}
+  }
+  async function emailRunPayslips(runId){
+    const run=state.runs.find(r=>r.id===runId);
+    if(!run||run.status!=='finalised')return toast('Only finalised pay runs can email payslips.');
+    const {data,error}=await client().from('payroll_payslips').select('*').eq('pay_run_id',runId).order('payslip_number');
+    if(error)return toast('Could not load payslips: '+error.message);
+    const payslips=data||[];
+    if(!payslips.length)return toast('No payslips found for this pay run.');
+    if(!confirm(`Email ${payslips.length} payslip${payslips.length===1?'':'s'} for ${run.pay_run_number}?`))return;
+    const sent=[],missing=[],failed=[];
+    for(const p of payslips){
+      const name=p.payslip_data?.employee?.name||p.payslip_number;
+      try{
+        const to=await currentEmployeeEmail(p);
+        if(!to){missing.push(name);continue}
+        await sendPayslipEmail(p,to);
+        sent.push(name);
+      }catch(e){console.error('Payslip email failed',p.id,e);failed.push(`${name}: ${e?.message||e}`)}
+    }
+    if(sent.length&& !missing.length && !failed.length)return toast(`${sent.length} payslip${sent.length===1?'':'s'} emailed successfully.`);
+    const parts=[];
+    if(sent.length)parts.push(`${sent.length} sent`);
+    if(missing.length)parts.push(`No email: ${missing.join(', ')}`);
+    if(failed.length)parts.push(`Failed: ${failed.join('; ')}`);
+    toast(parts.join(' · '));
+  }
 
   function renderSettings(){if(!$('payrollSettingsCard'))return;const countrySelect=$('payrollSettingCountry'),currentCountry=String(state.settings.country_code||'NZ').toUpperCase(),countries=state.ruleCountries.length?state.ruleCountries:[currentCountry];countrySelect.innerHTML=countries.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');countrySelect.value=currentCountry;$('payrollSettingCurrency').value=currency();$('payrollSettingFrequency').value=state.settings.default_pay_frequency||'fortnightly';if($('payrollSettingPayDay'))$('payrollSettingPayDay').value=String(state.settings.default_pay_day??5);$('payrollSettingWeekStart').value=String(state.settings.week_start_day??1);$('payrollSettingHours').value=state.settings.default_weekly_hours??40;$('payrollSettingDays').value=state.settings.default_working_days??5;$('payrollSettingPrefix').value=state.settings.employee_prefix||'EMP';$('payrollSettingPayslipNote').value=state.settings.payslip_note||'';if($('payrollTaxRuleSettings')){const date=today(),active=activeRuleSnapshot(date);$('payrollTaxRuleSettings').innerHTML=`<p class="hint"><strong>${esc(currentCountry)}</strong> statutory rules are centrally managed by the Super Admin and selected automatically by pay date. Business users cannot change statutory rates here.</p><div class="table-scroll"><table><thead><tr><th>Rule</th><th>Value</th><th>Effective</th></tr></thead><tbody>${active.map(r=>`<tr><td>${esc(human(r.type)+' · '+r.key)}</td><td>${esc(r.numeric_value!=null?String(r.numeric_value):r.json_value!=null?JSON.stringify(r.json_value):r.text_value||'')}</td><td>${esc(r.effective_from)} – ${esc(r.effective_to||'Open')}</td></tr>`).join('')||'<tr><td colspan="3">No effective country rules found for today.</td></tr>'}</tbody></table></div>`;}$('payrollPayItemSettings').innerHTML=state.payItems.map(i=>`<div class="settings-row"><label>Type<select data-pi-type="${i.id}"><option value="earning" ${i.item_type==='earning'?'selected':''}>Earning</option><option value="allowance" ${i.item_type==='allowance'?'selected':''}>Allowance</option><option value="reimbursement" ${i.item_type==='reimbursement'?'selected':''}>Reimbursement</option><option value="deduction" ${i.item_type==='deduction'?'selected':''}>Deduction</option><option value="contribution" ${i.item_type==='contribution'?'selected':''}>Contribution</option></select></label><label>Name<input data-pi-name="${i.id}" value="${esc(i.name)}"></label><label>Calculation<select data-pi-calc="${i.id}"><option value="fixed">Fixed</option><option value="per_hour">Per Hour</option><option value="per_day">Per Day</option><option value="per_job">Per Job</option><option value="percent">Percent</option></select></label><label>Default Rate<input type="number" step="0.01" data-pi-rate="${i.id}" value="${num(i.default_rate)}"></label><label class="tick-option"><input type="checkbox" data-pi-taxfree="${i.id}" ${i.taxable===false?'checked':''}><span>Non-taxable (paid in full)</span></label><button class="danger" data-pi-archive="${i.id}">Archive</button></div>`).join('');state.payItems.forEach(i=>{const el=document.querySelector(`[data-pi-calc="${i.id}"]`);if(el)el.value=i.calculation_type});$('payrollLeaveTypeSettings').innerHTML=state.leaveTypes.map(l=>`<div class="settings-row"><label>Name<input data-lt-name="${l.id}" value="${esc(l.name)}"></label><label class="tick-option"><input type="checkbox" data-lt-paid="${l.id}" ${l.paid?'checked':''}><span>Paid leave</span></label><button class="danger" data-lt-archive="${l.id}">Archive</button></div>`).join('');$('payrollDocumentTypeSettings').innerHTML=state.docTypes.map(d=>`<div class="settings-row"><label>Name<input data-dt-name="${d.id}" value="${esc(d.name)}"></label><label class="tick-option"><input type="checkbox" data-dt-required="${d.id}" ${d.required?'checked':''}><span>Required</span></label><button class="danger" data-dt-archive="${d.id}">Archive</button></div>`).join('');document.querySelectorAll('[data-pi-archive]').forEach(b=>b.onclick=async()=>{await client().from('payroll_pay_items').update({archived:true}).eq('id',b.dataset.piArchive);await load()});document.querySelectorAll('[data-lt-archive]').forEach(b=>b.onclick=async()=>{await client().from('payroll_leave_types').update({archived:true}).eq('id',b.dataset.ltArchive);await load()});document.querySelectorAll('[data-dt-archive]').forEach(b=>b.onclick=async()=>{await client().from('payroll_document_types').update({archived:true}).eq('id',b.dataset.dtArchive);await load()})}
   async function savePayrollSettings(){const payload={business_id:state.businessId,country_code:$('payrollSettingCountry').value,currency:appSettings().currency||currency(),default_pay_frequency:$('payrollSettingFrequency').value,default_pay_day:num($('payrollSettingPayDay').value),week_start_day:num($('payrollSettingWeekStart').value),default_weekly_hours:num($('payrollSettingHours').value),default_working_days:num($('payrollSettingDays').value),employee_prefix:$('payrollSettingPrefix').value.trim().toUpperCase()||'EMP',payslip_note:$('payrollSettingPayslipNote').value.trim()||null,updated_at:new Date().toISOString(),updated_by:window.SAAS.state.user.id};const {error}=await client().from('payroll_settings').upsert(payload,{onConflict:'business_id'});if(error)return toast(error.message);for(const i of state.payItems){await client().from('payroll_pay_items').update({item_type:document.querySelector(`[data-pi-type="${i.id}"]`).value,name:document.querySelector(`[data-pi-name="${i.id}"]`).value.trim(),calculation_type:document.querySelector(`[data-pi-calc="${i.id}"]`).value,default_rate:num(document.querySelector(`[data-pi-rate="${i.id}"]`).value),taxable:document.querySelector(`[data-pi-type="${i.id}"]`).value==='reimbursement'?false:!document.querySelector(`[data-pi-taxfree="${i.id}"]`).checked,updated_at:new Date().toISOString()}).eq('id',i.id)}for(const l of state.leaveTypes){await client().from('payroll_leave_types').update({name:document.querySelector(`[data-lt-name="${l.id}"]`).value.trim(),paid:document.querySelector(`[data-lt-paid="${l.id}"]`).checked}).eq('id',l.id)}for(const d of state.docTypes){await client().from('payroll_document_types').update({name:document.querySelector(`[data-dt-name="${d.id}"]`).value.trim(),required:document.querySelector(`[data-dt-required="${d.id}"]`).checked}).eq('id',d.id)}await load();toast('Payroll settings saved')}
