@@ -1491,3 +1491,177 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 @media (min-width:1400px){
   #view-create{max-width:1160px}
 }
+
+
+/* ============================================================
+   v61.3 CREATE INVOICE STABLE COMPACT LAYOUT
+   Restores original proven form DOM. CSS scoped to Create Invoice only.
+   ============================================================ */
+
+/* Cancel v61.2 nested-layout styling completely. */
+#view-create .invoice-create-card,
+#view-create .invoice-form-section,
+#view-create .invoice-meta-grid,
+#view-create .invoice-customer-grid{all:unset}
+
+#view-create{
+  max-width:1240px !important;
+  margin:0 auto !important;
+}
+
+#view-create .page-head{
+  margin:0 0 8px !important;
+  padding:4px 0 8px !important;
+  align-items:center;
+}
+#view-create .page-head h1{font-size:25px !important;line-height:1.15;margin:0 0 2px}
+#view-create .page-head p{font-size:12.5px !important;line-height:1.3;margin:0}
+#view-create .page-head #clearInvoice{padding:7px 12px !important;min-height:36px}
+#view-create #configNotice{margin:0 0 8px !important;padding:7px 10px !important}
+
+/* Reliable 12-column form; no empty columns or nested competing grids. */
+#view-create .invoice-details-card{
+  display:grid !important;
+  grid-template-columns:repeat(12,minmax(0,1fr)) !important;
+  gap:8px 10px !important;
+  padding:12px 14px !important;
+  margin:0 0 9px !important;
+  align-items:start !important;
+  border-top:3px solid #72bf2e;
+}
+
+/* Row 1 */
+#view-create .invoice-details-card > label:nth-child(1),
+#view-create .invoice-details-card > label:nth-child(2),
+#view-create .invoice-details-card > label:nth-child(3){grid-column:span 4 !important}
+
+/* Row 2 */
+#view-create .invoice-details-card > label:nth-child(4){grid-column:span 6 !important}
+#view-create .invoice-details-card > label:nth-child(5){grid-column:span 3 !important}
+#view-create .invoice-details-card > label:nth-child(7){grid-column:span 3 !important}
+
+/* Row 3 */
+#view-create .invoice-details-card > label:nth-child(6){grid-column:span 6 !important}
+#view-create .invoice-details-card > label:nth-child(8){grid-column:span 3 !important}
+#view-create .invoice-details-card > label:nth-child(9){grid-column:span 3 !important}
+
+/* Row 4 */
+#view-create .invoice-details-card > label:nth-child(10){grid-column:span 3 !important}
+#view-create .invoice-details-card > label:nth-child(11){grid-column:span 9 !important}
+
+#view-create .invoice-details-card label{
+  min-width:0;
+  gap:3px !important;
+  font-size:12px !important;
+  line-height:1.2;
+}
+#view-create .invoice-details-card input,
+#view-create .invoice-details-card select,
+#view-create .invoice-details-card textarea{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+  min-height:38px !important;
+  height:38px !important;
+  padding:7px 9px !important;
+  border-radius:7px;
+}
+#view-create .invoice-details-card textarea{
+  resize:none !important;
+  overflow:hidden;
+}
+#view-create .invoice-details-card small{
+  margin-top:0 !important;
+  font-size:10.5px !important;
+  line-height:1.2;
+}
+#view-create .customer-pick{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto !important;
+  gap:6px !important;
+  min-width:0;
+}
+#view-create .customer-pick .mini-btn{
+  min-height:38px !important;
+  height:38px !important;
+  padding:6px 11px !important;
+  white-space:nowrap;
+}
+
+/* Compact invoice items card. */
+#view-create > .card:not(.invoice-details-card){margin-bottom:9px !important}
+#view-create .card-title{min-height:28px !important;padding-bottom:4px !important}
+#view-create .card-title h2{font-size:16px !important}
+#view-create #addItem{padding:7px 11px !important;min-height:36px}
+#view-create .items-header{padding:6px 6px 3px !important}
+#view-create .item-row{padding:6px 2px !important;gap:7px !important}
+#view-create .item-row input{min-height:38px !important;padding:7px 8px !important}
+#view-create .invoice-options-grid{padding:11px 13px !important;gap:10px !important}
+#view-create .totals-wrap{gap:9px !important}
+#view-create .notes-card,#view-create .totals{padding:11px 13px !important}
+#view-create .actions{margin-top:8px !important}
+
+/* Tablet */
+@media(max-width:900px) and (min-width:621px){
+  #view-create .invoice-details-card{
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+  }
+  #view-create .invoice-details-card > label:nth-child(1),
+  #view-create .invoice-details-card > label:nth-child(2),
+  #view-create .invoice-details-card > label:nth-child(3){grid-column:span 2 !important}
+  #view-create .invoice-details-card > label:nth-child(4){grid-column:span 4 !important}
+  #view-create .invoice-details-card > label:nth-child(5){grid-column:span 2 !important}
+  #view-create .invoice-details-card > label:nth-child(6){grid-column:span 6 !important}
+  #view-create .invoice-details-card > label:nth-child(7),
+  #view-create .invoice-details-card > label:nth-child(8),
+  #view-create .invoice-details-card > label:nth-child(9),
+  #view-create .invoice-details-card > label:nth-child(10){grid-column:span 3 !important}
+  #view-create .invoice-details-card > label:nth-child(11){grid-column:span 6 !important}
+}
+
+/* Phone */
+@media(max-width:620px){
+  #view-create{width:100% !important;overflow-x:hidden}
+  #view-create .page-head{
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+    gap:7px !important;
+    align-items:start !important;
+  }
+  #view-create .page-head h1{font-size:22px !important}
+  #view-create .page-head p{font-size:11.5px !important}
+  #view-create .invoice-details-card{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+    padding:10px !important;
+  }
+  #view-create .invoice-details-card > label{
+    grid-column:1/-1 !important;
+  }
+  #view-create .invoice-details-card input,
+  #view-create .invoice-details-card select,
+  #view-create .invoice-details-card textarea{
+    min-height:44px !important;
+    height:44px !important;
+    padding:9px 10px !important;
+    font-size:16px !important;
+  }
+  #view-create .invoice-details-card textarea{height:50px !important}
+  #view-create .customer-pick .mini-btn{height:44px !important;min-height:44px !important}
+  #view-create .items-header{display:none !important}
+  #view-create .item-row{
+    display:grid !important;
+    grid-template-columns:72px minmax(0,1fr) 38px !important;
+    gap:7px !important;
+    padding:9px 0 !important;
+  }
+  #view-create .item-row .desc-wrap{grid-column:1/-1 !important}
+  #view-create .item-row .line-total{grid-column:1/3 !important;padding:4px 2px 0}
+  #view-create .item-row .remove{grid-column:3 !important;grid-row:2/4 !important;align-self:center}
+  #view-create .item-row input{min-height:44px !important;font-size:16px !important}
+  #view-create .invoice-options-grid{grid-template-columns:1fr !important;padding:10px !important}
+  #view-create .totals-wrap{grid-template-columns:1fr !important}
+  #view-create > .actions{grid-template-columns:1fr !important}
+  #view-create > .actions .primary{grid-column:auto !important}
+}
