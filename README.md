@@ -1,20 +1,16 @@
-Invoice Manager v58.1 — Financials SQL installation hotfix
+# Invoice Manager v60 — Financial Integrity Corrections
 
-This is the same v58 Financials module with a corrected tenant-guard migration so Supabase SQL Editor seeding can complete safely. Existing application module behaviour is unchanged.
+Targeted update from v59. Existing module structure/design retained.
 
-# Invoice Manager v58
+Key corrections:
+- Financials uses the same merged invoice dataset as My Invoices for P&L reconciliation.
+- Archived historical expenses remain in Financials reporting.
+- Dated customer payments added for future Cash Flow and payments-basis GST accuracy.
+- Payments-basis GST uses actual recorded customer/supplier payment dates and proportional GST.
+- Legacy pre-v60 customer payments are preserved and explicitly marked as estimated-date records.
+- Payroll P&L costs derive from finalised pay-run detail: job-linked labour = direct, non-job salary/wages = operating, tax-free allowances/reimbursements included, employer contributions allocated consistently.
+- NZ estimated income tax uses entity-aware planning logic for company/sole trader/trust; other entity/country cases retain configured estimate rate.
+- Existing month-by-month P&L and mobile-friendly layout retained.
 
-v58 adds a new standalone **Financials** module on top of v57. Existing Invoicing, Job Costing, My Expenses, Payroll, My Customers, Reports, Settings, PDFs and email Edge Functions are preserved.
-
-Financials includes:
-- Super Admin module enable/disable
-- Overview with sales, direct/indirect costs, profit, estimated tax and liabilities
-- Profit & Loss with drill-down
-- Cash Flow and Cash Book using available payment records
-- simple supported-data Balance Sheet
-- detailed GST Return with sales/expense detail, snapshots and PDF/CSV/Excel-compatible export
-- annual/monthly Budget and Budget vs Actual
-- Settings → Financials category classification
-- strict Financials tenant RLS
-
-See `V58-DEPLOYMENT-STEPS.md`.
+Run V60-FINANCIAL-CORRECTIONS.sql before deploying the site.
+No Edge Function changes.
