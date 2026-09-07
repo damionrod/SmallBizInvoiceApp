@@ -1,5 +1,20 @@
-# Invoice Manager v56
+Invoice Manager v58.1 — Financials SQL installation hotfix
 
-V56 is a targeted Payroll usability update on top of v55. Existing application modules and invoice/quote email functions are preserved.
+This is the same v58 Financials module with a corrected tenant-guard migration so Supabase SQL Editor seeding can complete safely. Existing application module behaviour is unchanged.
 
-See `V56-DEPLOYMENT-STEPS.md` for deployment. Existing V55 installations only need `V56-PAYROLL-USABILITY.sql` plus the Netlify deployment.
+# Invoice Manager v58
+
+v58 adds a new standalone **Financials** module on top of v57. Existing Invoicing, Job Costing, My Expenses, Payroll, My Customers, Reports, Settings, PDFs and email Edge Functions are preserved.
+
+Financials includes:
+- Super Admin module enable/disable
+- Overview with sales, direct/indirect costs, profit, estimated tax and liabilities
+- Profit & Loss with drill-down
+- Cash Flow and Cash Book using available payment records
+- simple supported-data Balance Sheet
+- detailed GST Return with sales/expense detail, snapshots and PDF/CSV/Excel-compatible export
+- annual/monthly Budget and Budget vs Actual
+- Settings → Financials category classification
+- strict Financials tenant RLS
+
+See `V58-DEPLOYMENT-STEPS.md`.

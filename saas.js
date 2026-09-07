@@ -135,7 +135,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=56'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=56';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=56';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=56';p.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=58'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=58';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=58';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=58';f.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -825,6 +825,13 @@ ${businessName}`,'');
       if(!allowed && document.getElementById('view-payroll')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.Payroll?.init?.();
     }
+    if(q('financialsNav')){
+      const allowed=await hasModule('financials');
+      q('financialsNav').hidden=!allowed;
+      if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed;
+      if(!allowed && document.getElementById('view-financials')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(allowed)window.Financials?.init?.();
+    }
   }
 
   async function bindAfterAppLoad(){
@@ -834,6 +841,7 @@ ${businessName}`,'');
     if(q('jobCostingNav')){const allowed=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
     if(q('expensesNav')){const allowed=state.profile?.is_super_admin||await hasModule('expenses');q('expensesNav').hidden=!allowed;if(allowed)window.Expenses?.init?.()}
     if(q('payrollNav')){const allowed=state.profile?.is_super_admin||await hasModule('payroll');q('payrollNav').hidden=!allowed;if(allowed)window.Payroll?.init?.()}
+    if(q('financialsNav')){const allowed=state.profile?.is_super_admin||await hasModule('financials');q('financialsNav').hidden=!allowed;if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed;if(allowed)window.Financials?.init?.()}
     await refreshEntitlements();
     let entitlementTimer=0;
     const recheck=()=>{const now=Date.now();if(now-entitlementTimer<2500)return;entitlementTimer=now;refreshEntitlements().catch(console.warn)};
