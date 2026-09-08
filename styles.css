@@ -2417,3 +2417,10 @@ body:has(#payrollRunModal.open){
   #payroll-panel-settings .payroll-rule-kv{grid-template-columns:1fr 1fr}
 }
 @media(max-width:430px){#payroll-panel-settings .payroll-rule-kv{grid-template-columns:1fr}}
+
+/* V61.28 - Quote list actions only */
+.quote-list-actions{display:flex;flex-direction:column;gap:8px;min-width:310px}
+.quote-email-send{display:flex;align-items:center;gap:8px}
+.quote-email-send input{min-width:210px;width:100%;height:42px;padding:8px 10px}
+.quote-email-send button{white-space:nowrap}
+@media(max-width:900px){.quote-list-actions{min-width:260px}.quote-email-send{align-items:stretch;flex-direction:column}.quote-email-send input{min-width:0}.quote-email-send button{width:100%}}
