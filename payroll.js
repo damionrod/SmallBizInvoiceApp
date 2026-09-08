@@ -87,7 +87,50 @@
   function annualIncomeTax(a,date){a=Math.max(0,a);const brackets=ruleJson('paye','annual_brackets',date);let tax=0,lower=0;for(const b of brackets){const upper=b.max==null?a:Math.min(a,num(b.max));if(upper>lower)tax+=(upper-lower)*num(b.rate);if(b.max==null||a<=num(b.max))break;lower=num(b.max)}return tax}
   function ietc(a,date){const r=ruleJson('paye','ietc',date);if(a<num(r.min_income)||a>=num(r.max_income))return 0;if(a<=num(r.full_to))return num(r.credit);return Math.max(0,num(r.credit)-(a-num(r.full_to))*num(r.abatement))}
   function esctRate(a,date){const rows=ruleJson('esct','annual_rates',date);return num((rows.find(x=>x.max==null||a<=num(x.max))||rows[rows.length-1]).rate)}
-  function taxCodeProfiles(date=today()){let value=ruleJson('paye','tax_codes',date);if(typeof value==='string'){try{value=JSON.parse(value)}catch{}}if(Array.isArray(value))return value;if(value&&typeof value==='object'){for(const key of ['codes','tax_codes','profiles','items']){if(Array.isArray(value[key]))return value[key]}const entries=Object.entries(value);if(entries.length){const objectProfiles=entries.filter(([,v])=>v&&typeof v==='object'&&!Array.isArray(v)).map(([code,v])=>({code,label:v.label||code,...v}));if(objectProfiles.length===entries.length)return objectProfiles;const numericMap=entries.every(([,v])=>v!==null&&v!==''&&!Number.isNaN(Number(v)));if(numericMap){const primary=[{code:'M',label:'M',mode:'primary',ietc:false,student_loan:false,student_loan_threshold:true},{code:'ME',label:'ME',mode:'primary',ietc:true,student_loan:false,student_loan_threshold:true},{code:'M SL',label:'M SL',mode:'primary',ietc:false,student_loan:true,student_loan_threshold:true},{code:'ME SL',label:'ME SL',mode:'primary',ietc:true,student_loan:true,student_loan_threshold:true}];const secondary=[];for(const [rawCode] of entries){const code=String(rawCode||'').toUpperCase().trim();if(!code)continue;secondary.push({code,label:code,mode:'secondary',secondary_key:code,student_loan:false,student_loan_threshold:false});if(!code.endsWith(' SL'))secondary.push({code:`${code} SL`,label:`${code} SL`,mode:'secondary',secondary_key:code,student_loan:true,student_loan_threshold:false})}return [...primary,...secondary]}}}throw new Error(`Payroll tax rule paye.tax_codes is not a valid tax-code list for ${date}. Ask the Super Admin to check Country Payroll Tax Rules.`)}
+  function taxCodeProfiles(date=today()){
+    let value=ruleJson('paye','tax_codes',date);
+    // Supabase JSONB normally arrives as an array/object, but older migrated rows can be JSON-encoded strings.
+    // Unwrap those strings without changing the stored country rule.
+    for(let i=0;i<3&&typeof value==='string';i++){try{value=JSON.parse(value)}catch{break}}
+    const normalize=(v)=>{
+      if(Array.isArray(v))return v;
+      if(!v||typeof v!=='object')return null;
+      for(const key of ['codes','tax_codes','profiles','items']){
+        let nested=v[key];
+        for(let i=0;i<3&&typeof nested==='string';i++){try{nested=JSON.parse(nested)}catch{break}}
+        const normalized=normalize(nested);
+        if(normalized?.length)return normalized;
+      }
+      const entries=Object.entries(v);
+      if(!entries.length)return null;
+      const objectProfiles=entries.filter(([,x])=>x&&typeof x==='object'&&!Array.isArray(x)).map(([code,x])=>({code,label:x.label||code,...x}));
+      if(objectProfiles.length===entries.length)return objectProfiles;
+      const numericMap=entries.every(([,x])=>x!==null&&x!==''&&!Number.isNaN(Number(x)));
+      if(numericMap){
+        const primary=[{code:'M',label:'M',mode:'primary',ietc:false,student_loan:false,student_loan_threshold:true},{code:'ME',label:'ME',mode:'primary',ietc:true,student_loan:false,student_loan_threshold:true},{code:'M SL',label:'M SL',mode:'primary',ietc:false,student_loan:true,student_loan_threshold:true},{code:'ME SL',label:'ME SL',mode:'primary',ietc:true,student_loan:true,student_loan_threshold:true}];
+        const secondary=[];
+        for(const [rawCode] of entries){const code=String(rawCode||'').toUpperCase().trim();if(!code)continue;secondary.push({code,label:code,mode:'secondary',secondary_key:code,student_loan:false,student_loan_threshold:false});if(!code.endsWith(' SL'))secondary.push({code:`${code} SL`,label:`${code} SL`,mode:'secondary',secondary_key:code,student_loan:true,student_loan_threshold:false})}
+        return [...primary,...secondary];
+      }
+      return null;
+    };
+    const profiles=normalize(value);
+    if(profiles?.length)return profiles;
+    // Compatibility fallback: if an older tax_codes row is malformed but the active secondary-rate map is valid,
+    // rebuild the same NZ tax-code profiles in memory. No database values or rates are changed.
+    const country=String(state.settings?.country_code||'').toUpperCase();
+    if(country==='NZ'){
+      let secondary=ruleJson('paye','secondary_rates',date,{});
+      for(let i=0;i<3&&typeof secondary==='string';i++){try{secondary=JSON.parse(secondary)}catch{break}}
+      if(secondary&&typeof secondary==='object'&&!Array.isArray(secondary)&&Object.keys(secondary).length){
+        const primary=[{code:'M',label:'M',mode:'primary',ietc:false,student_loan:false,student_loan_threshold:true},{code:'ME',label:'ME',mode:'primary',ietc:true,student_loan:false,student_loan_threshold:true},{code:'M SL',label:'M SL',mode:'primary',ietc:false,student_loan:true,student_loan_threshold:true},{code:'ME SL',label:'ME SL',mode:'primary',ietc:true,student_loan:true,student_loan_threshold:true}];
+        const extra=[];
+        for(const rawCode of Object.keys(secondary)){const code=String(rawCode||'').toUpperCase().trim();if(!code)continue;extra.push({code,label:code,mode:'secondary',secondary_key:code,student_loan:false,student_loan_threshold:false});if(!code.endsWith(' SL'))extra.push({code:`${code} SL`,label:`${code} SL`,mode:'secondary',secondary_key:code,student_loan:true,student_loan_threshold:false})}
+        return [...primary,...extra];
+      }
+    }
+    throw new Error(`Payroll tax rule paye.tax_codes is not a valid tax-code list for ${date}. Ask the Super Admin to check Country Payroll Tax Rules.`);
+  }
   function taxCodeProfile(code,date=today()){const normalized=String(code||'').toUpperCase().replace(/\s+/g,' ').trim(),profiles=taxCodeProfiles(date);return profiles.find(x=>String(x?.code||'').toUpperCase()===normalized)||null}
   function populateTaxCodeOptions(selected=''){const el=$('peTaxCode');if(!el)return;let profiles=[];try{profiles=taxCodeProfiles(today())}catch{}const current=selected||el.value||profiles[0]?.code||'';el.innerHTML=profiles.map(x=>`<option value="${esc(x.code)}">${esc(x.label||x.code)}</option>`).join('');if(current&&profiles.some(x=>x.code===current))el.value=current}
   function payeFor(e,gross,frequency,payDate=today()){const pay=Math.floor(Math.max(0,gross)),ppy=paysPerYear(frequency),code=String(e.tax_code||'').toUpperCase().replace(/\s+/g,' ').trim(),profile=taxCodeProfile(code,payDate);if(!profile)throw new Error(`Tax code ${code||'(blank)'} is not configured for ${String(state.settings?.country_code||'').toUpperCase()} on ${payDate}.`);const acc=ruleNum('acc','earners_levy_rate',payDate,0)/100,accMax=ruleNum('acc','max_earnings',payDate,0),secondary=ruleJson('paye','secondary_rates',payDate,{});let paye=0;if(profile.mode==='secondary'){const key=profile.secondary_key||code;if(!Object.prototype.hasOwnProperty.call(secondary,key))throw new Error(`Secondary tax rate ${key} is not configured for ${payDate}.`);paye=pay*num(secondary[key])}else{const annual=pay*ppy,tax=annualIncomeTax(annual,payDate),levy=Math.min(annual,accMax)*acc,credit=profile.ietc?ietc(annual,payDate):0,weekly=trunc2((tax+levy-credit)/52);paye=weekly*52/ppy}paye=trunc2(paye);let student=0;const sl=!!e.student_loan||!!profile.student_loan;if(sl){const slRate=ruleNum('student_loan','standard_rate',payDate)/100,slThreshold=ruleNum('student_loan','annual_threshold',payDate);if(profile.student_loan_threshold!==false){const threshold=slThreshold/ppy;student=pay>threshold?trunc2((pay-threshold)*slRate):0}else student=trunc2(pay*slRate)}return{paye,student}}
