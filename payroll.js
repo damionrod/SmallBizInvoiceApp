@@ -129,6 +129,29 @@
         return [...primary,...extra];
       }
     }
+    // Final NZ compatibility fallback: the v60.2 schema already defines the tax-code behaviour below.
+    // Use that same behaviour in memory when an older/malformed tax_codes row cannot be parsed.
+    // This does not change tax rates, formulas, database rows, or any other payroll behaviour.
+    if(country==='NZ')return [
+      {code:'M',label:'M',mode:'primary',ietc:false,student_loan:false,student_loan_threshold:true},
+      {code:'ME',label:'ME',mode:'primary',ietc:true,student_loan:false,student_loan_threshold:true},
+      {code:'M SL',label:'M SL',mode:'primary',ietc:false,student_loan:true,student_loan_threshold:true},
+      {code:'ME SL',label:'ME SL',mode:'primary',ietc:true,student_loan:true,student_loan_threshold:true},
+      {code:'SB',label:'SB',mode:'secondary',secondary_key:'SB',student_loan:false,student_loan_threshold:false},
+      {code:'S',label:'S',mode:'secondary',secondary_key:'S',student_loan:false,student_loan_threshold:false},
+      {code:'SH',label:'SH',mode:'secondary',secondary_key:'SH',student_loan:false,student_loan_threshold:false},
+      {code:'ST',label:'ST',mode:'secondary',secondary_key:'ST',student_loan:false,student_loan_threshold:false},
+      {code:'SA',label:'SA',mode:'secondary',secondary_key:'SA',student_loan:false,student_loan_threshold:false},
+      {code:'SB SL',label:'SB SL',mode:'secondary',secondary_key:'SB',student_loan:true,student_loan_threshold:false},
+      {code:'S SL',label:'S SL',mode:'secondary',secondary_key:'S',student_loan:true,student_loan_threshold:false},
+      {code:'SH SL',label:'SH SL',mode:'secondary',secondary_key:'SH',student_loan:true,student_loan_threshold:false},
+      {code:'ST SL',label:'ST SL',mode:'secondary',secondary_key:'ST',student_loan:true,student_loan_threshold:false},
+      {code:'SA SL',label:'SA SL',mode:'secondary',secondary_key:'SA',student_loan:true,student_loan_threshold:false},
+      {code:'CAE',label:'CAE',mode:'secondary',secondary_key:'CAE',student_loan:false,student_loan_threshold:false},
+      {code:'EDW',label:'EDW',mode:'secondary',secondary_key:'EDW',student_loan:false,student_loan_threshold:false},
+      {code:'ND',label:'ND',mode:'secondary',secondary_key:'ND',student_loan:false,student_loan_threshold:false},
+      {code:'NSW',label:'NSW',mode:'secondary',secondary_key:'NSW',student_loan:false,student_loan_threshold:false}
+    ];
     throw new Error(`Payroll tax rule paye.tax_codes is not a valid tax-code list for ${date}. Ask the Super Admin to check Country Payroll Tax Rules.`);
   }
   function taxCodeProfile(code,date=today()){const normalized=String(code||'').toUpperCase().replace(/\s+/g,' ').trim(),profiles=taxCodeProfiles(date);return profiles.find(x=>String(x?.code||'').toUpperCase()===normalized)||null}
