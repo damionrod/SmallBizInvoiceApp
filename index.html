@@ -164,7 +164,7 @@
 
     <section id="view-payroll" class="view">
       <div class="page-head"><div><h1>Payroll</h1><p>Manage employees, timesheets and payroll.</p></div><button class="primary" id="payrollAddEmployee">+ Add Employee</button></div>
-      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button></div>
+      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button><button class="module-tab" data-payroll-tab="newrun">New Pay Run</button></div>
 
       <div class="payroll-panel active" id="payroll-panel-employees">
         <div class="summary-grid payroll-mini-summary payroll-summary-grid"><div class="metric"><span>Active Employees</span><strong id="payrollActiveCount">0</strong></div><div class="metric"><span>Next Pay Date</span><strong id="payrollNextPayDate">—</strong></div><div class="metric"><span>Timesheets Awaiting Approval</span><strong id="payrollAwaitingCount">0</strong></div></div>
@@ -183,6 +183,8 @@
         <div class="summary-grid"><div class="metric"><span>Current Gross</span><strong id="payrollGrossSummary">—</strong></div><div class="metric"><span>Current Net</span><strong id="payrollNetSummary">—</strong></div><div class="metric"><span>Employer Contributions</span><strong id="payrollEmployerSummary">—</strong></div><div class="metric"><span>Total Employment Cost</span><strong id="payrollCostSummary">—</strong></div></div>
         <div class="card table-card"><div class="table-scroll"><table class="payroll-desktop-table"><thead><tr><th>Pay Run</th><th>Period</th><th>Pay Date</th><th>Frequency</th><th>Gross</th><th>Net</th><th>Status</th><th>Actions</th></tr></thead><tbody id="payrollRunRows"></tbody></table></div><div id="payrollRunCards" class="payroll-mobile-cards"></div></div>
       </div>
+
+      <div class="payroll-panel" id="payroll-panel-newrun"></div>
     </section>
 
 
@@ -524,13 +526,6 @@ Please find attached quote {quoteNumber}."></textarea></label>
 
     <input id="prId" type="hidden">
 
-    <div class="payrun-steps" aria-label="Pay run workflow">
-      <div class="payrun-step active"><span>1</span><strong>Pay Run Details</strong></div>
-      <div class="payrun-step"><span>2</span><strong>Select Employees</strong></div>
-      <div class="payrun-step"><span>3</span><strong>Review &amp; Adjust</strong></div>
-      <div class="payrun-step"><span>4</span><strong>Finalise</strong></div>
-    </div>
-
     <div class="payrun-layout">
       <main class="payrun-main">
         <section class="card payrun-section" id="prDetailsSection">
@@ -594,6 +589,6 @@ Please find attached quote {quoteNumber}."></textarea></label>
 
   <div class="modal" id="planModal"><div class="modal-box plan-modal-box"><button class="close" id="closePlanModal">×</button><h2>Choose your plan</h2><p class="hint">Upgrade whenever you need more invoices or additional modules.</p><div id="customerPlanGrid" class="plan-grid"></div></div></div>
   <div id="toast"></div>
-  <script src="saas.js?v=61.14"></script>
+  <script src="saas.js?v=61.16"></script>
 </body>
 </html>

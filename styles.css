@@ -2298,3 +2298,54 @@ body:has(#payrollRunModal.open){
   #payrollRunModal .payrun-step{font-size:.51rem}
   #payrollRunModal .payrun-step span{width:22px;height:22px}
 }
+
+
+/* ============================================================
+   v61.16 NEW PAY RUN TAB + CLEANUP
+   Scope: payroll new-pay-run presentation only.
+   ============================================================ */
+#payroll-panel-newrun{min-width:0}
+#payroll-panel-newrun #payrollRunModal{
+  display:block!important;
+  position:static!important;
+  inset:auto!important;
+  background:transparent!important;
+  padding:0!important;
+  overflow:visible!important;
+  z-index:auto!important;
+}
+#payroll-panel-newrun #payrollRunModal .payroll-run-modal{
+  width:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  background:transparent!important;
+}
+#payroll-panel-newrun #payrollRunModal .payrun-topbar{
+  border:1px solid var(--border);
+  border-radius:8px;
+  margin-bottom:12px;
+}
+#payroll-panel-newrun #payrollCloseRun{display:none!important}
+#payroll-panel-newrun #payrollRunModal .payrun-layout{
+  padding-left:0!important;
+  padding-right:0!important;
+}
+#payroll-panel-newrun #payrollRunModal .payrun-footer-actions{
+  position:sticky;
+  bottom:0;
+  z-index:12;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:8px;
+  margin-top:10px;
+}
+@media(max-width:700px){
+  #payroll-panel-newrun #payrollRunModal .payroll-run-modal{width:100%!important}
+  #payroll-panel-newrun #payrollRunModal .payrun-topbar{margin-bottom:8px}
+  #payroll-panel-newrun #payrollRunModal .payrun-layout{padding:0!important}
+}
