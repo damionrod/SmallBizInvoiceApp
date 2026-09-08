@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Invoice Manager" />
   <title>Invoice Manager</title>
-  <link rel="stylesheet" href="styles.css?v=61.13" />
+  <link rel="stylesheet" href="styles.css?v=61.17" />
   <script src="app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -164,7 +164,7 @@
 
     <section id="view-payroll" class="view">
       <div class="page-head"><div><h1>Payroll</h1><p>Manage employees, timesheets and payroll.</p></div><button class="primary" id="payrollAddEmployee">+ Add Employee</button></div>
-      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button><button class="module-tab" data-payroll-tab="newrun">New Pay Run</button></div>
+      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button><button class="module-tab" data-payroll-tab="newrun">New Pay Run</button><button class="module-tab" data-payroll-tab="settings">Settings</button></div>
 
       <div class="payroll-panel active" id="payroll-panel-employees">
         <div class="summary-grid payroll-mini-summary payroll-summary-grid"><div class="metric"><span>Active Employees</span><strong id="payrollActiveCount">0</strong></div><div class="metric"><span>Next Pay Date</span><strong id="payrollNextPayDate">—</strong></div><div class="metric"><span>Timesheets Awaiting Approval</span><strong id="payrollAwaitingCount">0</strong></div></div>
@@ -185,6 +185,27 @@
       </div>
 
       <div class="payroll-panel" id="payroll-panel-newrun"></div>
+
+      <div class="payroll-panel" id="payroll-panel-settings">
+        <div class="page-head compact-head"><div><h2>Payroll Settings</h2><p>Manage business payroll defaults and pay items. Statutory rates are shown for reference and are managed centrally by the Super Admin.</p></div></div>
+        <div class="card" id="payrollSettingsCard">
+          <div class="card-title"><div><h3>Pay Run Defaults</h3><p class="hint">Business-specific defaults used when creating employees and pay runs.</p></div></div>
+          <div class="form-grid compact"><label>Country<select id="payrollSettingCountry"></select><small>Selects the centrally managed statutory rule set applicable to this business.</small></label><label>Currency<input id="payrollSettingCurrency" readonly></label><label>Default Pay Frequency<select id="payrollSettingFrequency"><option value="weekly">Weekly</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option></select></label><label>Default Pay Day<select id="payrollSettingPayDay"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select><small>New weekly/fortnightly pay runs default to this weekday. The Pay Date can still be changed on an individual run.</small></label><label>Week Starts<select id="payrollSettingWeekStart"><option value="1">Monday</option><option value="0">Sunday</option></select></label><label>Default Weekly Hours<input id="payrollSettingHours" type="number" min="0" step="0.25"></label><label>Default Working Days<input id="payrollSettingDays" type="number" min="0" max="7" step="0.5"></label><label>Employee ID Prefix<input id="payrollSettingPrefix" maxlength="8"></label><label class="wide">Default Payslip Note<textarea id="payrollSettingPayslipNote" rows="2"></textarea></label></div>
+        </div>
+
+        <div class="settings-grid payroll-statutory-grid">
+          <div class="card"><div class="card-title"><div><h3>Tax &amp; Statutory Rates</h3><p class="hint">Read-only rates currently applicable to this business. Managed by the Super Admin and selected automatically by country and pay date.</p></div></div><div id="payrollTaxRuleSettings"></div></div>
+          <div class="card"><div class="card-title"><div><h3>KiwiSaver &amp; ACC</h3><p class="hint">Read-only KiwiSaver and ACC settings currently applicable to this business. Master rates are centrally managed.</p></div></div><div id="payrollKiwiAccSettings"></div></div>
+        </div>
+
+        <div class="card"><div class="card-title"><div><h3>Pay Items</h3><p class="hint">Manage the earnings, allowances, reimbursements, deductions and contributions available in payroll and New Pay Run.</p></div><button class="secondary" id="payrollAddPayItem" type="button">+ Add Pay Item</button></div><div id="payrollPayItemSettings" class="payroll-settings-grid"></div></div>
+
+        <div class="settings-grid payroll-settings-subgrid">
+          <div class="card"><div class="card-title"><div><h3>Leave Types</h3><p class="hint">Business-specific leave types available for employees.</p></div><button class="secondary" id="payrollAddLeaveType" type="button">+ Add Leave Type</button></div><div id="payrollLeaveTypeSettings"></div></div>
+          <div class="card"><div class="card-title"><div><h3>Document Types</h3><p class="hint">Business-specific employee document categories.</p></div><button class="secondary" id="payrollAddDocumentType" type="button">+ Add Document Type</button></div><div id="payrollDocumentTypeSettings"></div></div>
+        </div>
+        <div class="actions"><button class="primary" id="payrollSaveSettings" type="button">Save Payroll Settings</button></div>
+      </div>
     </section>
 
 
@@ -438,13 +459,6 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <div class="form-grid compact"><label>Country<input id="finSetCountry" readonly></label><label>Currency<input id="finSetCurrency" readonly></label><label>Financial Year Start Month<select id="finSetFyMonth"><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select></label><label>Start Day<input id="finSetFyDay" type="number" min="1" max="28"></label><label>Default Report Period<select id="finSetReportPeriod"><option value="this_month">This Month</option><option value="fytd">Financial Year to Date</option><option value="current_fy">Current Financial Year</option><option value="12">Last 12 Months</option></select></label><label>Business Entity Type<select id="finSetEntity"><option value="company">Company</option><option value="sole_trader">Sole Trader</option><option value="partnership">Partnership</option><option value="trust">Trust</option><option value="other">Other</option></select></label><label>Estimated Income Tax Rate %<input id="finSetTaxRate" type="number" min="0" max="100" step="0.01"><small>Planning estimate only unless your tax rules are fully configured.</small></label><label class="tick-option"><input id="finSetProvisional" type="checkbox"><span>Provisional tax planning enabled</span></label><label class="tick-option"><input id="finSetGstRegistered" type="checkbox"><span>GST / Sales Tax Registered</span></label><label>GST Number<input id="finSetGstNumber" readonly></label><label>GST Rate %<input id="finSetGstRate" readonly></label><label>GST Filing Frequency<select id="finSetGstFrequency"><option value="monthly">Monthly</option><option value="two_monthly">Two-monthly</option><option value="six_monthly">Six-monthly</option><option value="other">Other</option></select></label><label>GST Accounting Basis<select id="finSetGstBasis"><option value="invoice">Invoice / Accrual</option><option value="payments">Payments / Cash</option><option value="hybrid" disabled>Hybrid — future</option></select><small>Invoice basis uses invoice/bill dates. Payments basis uses recorded customer and supplier payment dates. Legacy customer payments migrated from older versions use the invoice date as an estimated payment date and are marked accordingly.</small></label></div>
         <div class="card"><div class="card-title"><div><h3>Financial Classifications</h3><p class="hint">Map existing expense and payroll categories. This does not change the source modules.</p></div></div><div id="finMappingSettings"></div></div>
         <div class="actions"><button class="primary" id="financialSaveSettings" type="button">Save Financial Settings</button></div>
-      </div>
-
-      <div class="card" id="payrollSettingsCard" hidden>
-        <div class="card-title"><div><h2>Payroll</h2><p class="hint">Payroll-specific settings. Business name, address, logo and contact details are reused from your existing business settings.</p></div></div>
-        <div class="form-grid compact"><label>Country<select id="payrollSettingCountry"></select><small>Uses the Super Admin statutory rule set for this country.</small></label><label>Currency<input id="payrollSettingCurrency" readonly></label><label>Default Pay Frequency<select id="payrollSettingFrequency"><option value="weekly">Weekly</option><option value="fortnightly">Fortnightly</option><option value="monthly">Monthly</option></select></label><label>Default Pay Day<select id="payrollSettingPayDay"><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option></select><small>New weekly/fortnightly pay runs default to this weekday. The Pay Date can still be changed on an individual run.</small></label><label>Week Starts<select id="payrollSettingWeekStart"><option value="1">Monday</option><option value="0">Sunday</option></select></label><label>Default Weekly Hours<input id="payrollSettingHours" type="number" min="0" step="0.25"></label><label>Default Working Days<input id="payrollSettingDays" type="number" min="0" max="7" step="0.5"></label><label>Employee ID Prefix<input id="payrollSettingPrefix" maxlength="8"></label><label class="wide">Default Payslip Note<textarea id="payrollSettingPayslipNote" rows="2"></textarea></label></div>
-        <div class="card"><div class="card-title"><div><h3>Country Tax Rules</h3><p class="hint">Read-only statutory rules selected from the business Payroll country. Super Admin manages country rule versions centrally.</p></div></div><div id="payrollTaxRuleSettings"></div></div><div class="settings-grid payroll-settings-subgrid"><div><h3>Pay Items</h3><div id="payrollPayItemSettings"></div><button class="secondary" id="payrollAddPayItem" type="button">+ Add Pay Item</button></div><div><h3>Leave Types</h3><div id="payrollLeaveTypeSettings"></div><button class="secondary" id="payrollAddLeaveType" type="button">+ Add Leave Type</button></div><div><h3>Document Types</h3><div id="payrollDocumentTypeSettings"></div><button class="secondary" id="payrollAddDocumentType" type="button">+ Add Document Type</button></div></div>
-        <div class="actions"><button class="primary" id="payrollSaveSettings" type="button">Save Payroll Settings</button></div>
       </div>
 
       <div class="infra-config" aria-hidden="true">

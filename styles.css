@@ -2349,3 +2349,20 @@ body:has(#payrollRunModal.open){
   #payroll-panel-newrun #payrollRunModal .payrun-topbar{margin-bottom:8px}
   #payroll-panel-newrun #payrollRunModal .payrun-layout{padding:0!important}
 }
+
+/* ============================================================
+   v61.17 PAYROLL SETTINGS TAB
+   Payroll-only settings presentation. No payroll calculation logic changed.
+   ============================================================ */
+#payroll-panel-settings .card{margin-bottom:16px}
+#payroll-panel-settings .card-title{align-items:flex-start;gap:12px}
+#payroll-panel-settings .card-title .hint{margin-bottom:0}
+.payroll-statutory-grid{margin-bottom:16px}
+.payroll-managed-note{display:inline-flex;align-items:center;padding:5px 9px;border-radius:999px;background:#eef4f8;color:#476276;font-size:12px;font-weight:700;margin:0 0 10px}
+.payroll-settings-rule-table{min-width:0!important}
+.payroll-settings-rule-table th,.payroll-settings-rule-table td{vertical-align:top}
+.payroll-settings-rule-table td small{display:block;margin-top:3px;color:var(--muted)}
+#payroll-panel-settings .payroll-settings-subgrid{align-items:start;margin-bottom:16px}
+#payroll-panel-settings .payroll-settings-grid .settings-row{grid-template-columns:minmax(120px,.8fr) minmax(170px,1.3fr) minmax(120px,.8fr) minmax(110px,.7fr) minmax(170px,1fr) auto}
+@media(max-width:1100px){#payroll-panel-settings .payroll-settings-grid .settings-row{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:760px){#payroll-panel-settings .payroll-settings-grid .settings-row{grid-template-columns:1fr!important}.payroll-statutory-grid{grid-template-columns:1fr}#payroll-panel-settings .card-title{flex-direction:column}#payroll-panel-settings .card-title>button{width:100%}.payroll-settings-rule-table{font-size:.9rem}}
