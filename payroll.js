@@ -448,13 +448,13 @@
   function ruleMoney(v){const n=Number(v);return Number.isFinite(n)?new Intl.NumberFormat('en-NZ',{style:'currency',currency:currency(),maximumFractionDigits:0}).format(n):'—'}
   function rulePct(v,decimal=true){const n=Number(v);if(!Number.isFinite(n))return '—';const pct=decimal?n*100:n;return `${Number(pct.toFixed(3))}%`}
   function ruleEffective(r){return `${iso(r.effective_from)}${r.effective_to?` – ${iso(r.effective_to)}`:' onward'}`}
-  function ruleJson(r){
+  function ruleDisplayJson(r){
     if(r.json_value==null)return null;
     if(typeof r.json_value==='string'){try{return JSON.parse(r.json_value)}catch(_){return r.json_value}}
     return r.json_value;
   }
   function ruleFriendlyValue(r){
-    const type=String(r.type||'').toLowerCase(),key=String(r.key||'').toLowerCase(),j=ruleJson(r);
+    const type=String(r.type||'').toLowerCase(),key=String(r.key||'').toLowerCase(),j=ruleDisplayJson(r);
     if(key==='annual_brackets'||(type==='esct'&&key==='annual_rates')){
       const rows=Array.isArray(j)?j:[];let previous=0;
       return `<div class="payroll-rule-bands">${rows.map((b,idx)=>{const max=b?.max==null?null:Number(b.max),from=idx===0?0:previous+1,label=max==null?`Over ${ruleMoney(previous)}`:(idx===0?`Up to ${ruleMoney(max)}`:`${ruleMoney(from)} – ${ruleMoney(max)}`);if(max!=null)previous=max;return `<div><span>${esc(label)}</span><strong>${esc(rulePct(b?.rate,true))}</strong></div>`}).join('')||'<span class="hint">No bracket values configured.</span>'}</div>`;
