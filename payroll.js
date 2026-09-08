@@ -370,17 +370,48 @@
     toast(parts.join(' · '));
   }
 
-  function ruleValue(r){
-    if(r.numeric_value!=null){
-      const key=String(r.key||'').toLowerCase();
-      const pct=/rate|percent|percentage|levy/.test(key);
-      return `${r.numeric_value}${pct?'%':''}`;
+  const payrollRuleLabels={
+    'paye.annual_brackets':'PAYE tax brackets','paye.secondary_rates':'Secondary tax rates','paye.ietc':'Independent Earner Tax Credit (IETC)','paye.tax_codes':'Employee tax codes',
+    'esct.annual_rates':'ESCT rates','student_loan.annual_threshold':'Student loan annual threshold','student_loan.standard_rate':'Student loan deduction rate',
+    'kiwisaver.default_employee_rate':'Default employee contribution','kiwisaver.default_employer_rate':'Default employer contribution',
+    'acc.earners_levy_rate':'ACC earners’ levy','acc.max_earnings':'ACC maximum liable earnings'
+  };
+  function payrollRuleLabel(r){return payrollRuleLabels[`${String(r.type||'').toLowerCase()}.${String(r.key||'').toLowerCase()}`]||human(r.key||r.type||'Setting')}
+  function ruleMoney(v){const n=Number(v);return Number.isFinite(n)?new Intl.NumberFormat('en-NZ',{style:'currency',currency:currency(),maximumFractionDigits:0}).format(n):'—'}
+  function rulePct(v,decimal=true){const n=Number(v);if(!Number.isFinite(n))return '—';const pct=decimal?n*100:n;return `${Number(pct.toFixed(3))}%`}
+  function ruleEffective(r){return `${iso(r.effective_from)}${r.effective_to?` – ${iso(r.effective_to)}`:' onward'}`}
+  function ruleJson(r){
+    if(r.json_value==null)return null;
+    if(typeof r.json_value==='string'){try{return JSON.parse(r.json_value)}catch(_){return r.json_value}}
+    return r.json_value;
+  }
+  function ruleFriendlyValue(r){
+    const type=String(r.type||'').toLowerCase(),key=String(r.key||'').toLowerCase(),j=ruleJson(r);
+    if(key==='annual_brackets'||(type==='esct'&&key==='annual_rates')){
+      const rows=Array.isArray(j)?j:[];let previous=0;
+      return `<div class="payroll-rule-bands">${rows.map((b,idx)=>{const max=b?.max==null?null:Number(b.max),from=idx===0?0:previous+1,label=max==null?`Over ${ruleMoney(previous)}`:(idx===0?`Up to ${ruleMoney(max)}`:`${ruleMoney(from)} – ${ruleMoney(max)}`);if(max!=null)previous=max;return `<div><span>${esc(label)}</span><strong>${esc(rulePct(b?.rate,true))}</strong></div>`}).join('')||'<span class="hint">No bracket values configured.</span>'}</div>`;
     }
-    if(r.json_value!=null)return JSON.stringify(r.json_value);
-    return r.text_value||'—';
+    if(key==='secondary_rates'&&j&&typeof j==='object'&&!Array.isArray(j)){
+      return `<div class="payroll-rule-chips">${Object.entries(j).map(([code,rate])=>`<span><b>${esc(code)}</b> ${esc(rulePct(rate,true))}</span>`).join('')}</div>`;
+    }
+    if(key==='ietc'&&j&&typeof j==='object'){
+      const entries=[['Full credit',j.credit!=null?ruleMoney(j.credit):'—'],['Income from',j.min_income!=null?ruleMoney(j.min_income):'—'],['Full credit to',j.full_to!=null?ruleMoney(j.full_to):'—'],['Maximum income',j.max_income!=null?ruleMoney(j.max_income):'—'],['Abatement rate',j.abatement!=null?rulePct(j.abatement,true):'—']];
+      return `<div class="payroll-rule-kv">${entries.map(([a,b])=>`<span>${esc(a)}<strong>${esc(b)}</strong></span>`).join('')}</div>`;
+    }
+    if(key==='tax_codes'&&Array.isArray(j)){
+      const codes=j.map(x=>x?.code||x?.label).filter(Boolean);return `<div class="payroll-rule-chips payroll-tax-code-chips">${codes.map(c=>`<span>${esc(c)}</span>`).join('')}</div>`;
+    }
+    if(r.numeric_value!=null){
+      const n=Number(r.numeric_value),isRate=/rate|percent|percentage|levy/.test(key),isMoney=/threshold|max_earnings|income|amount/.test(key);
+      if(isRate)return `<strong class="payroll-rule-single">${esc(rulePct(n,false))}</strong>`;
+      if(isMoney)return `<strong class="payroll-rule-single">${esc(ruleMoney(n))}</strong>`;
+      return `<strong class="payroll-rule-single">${esc(String(r.numeric_value))}</strong>`;
+    }
+    if(j!=null)return `<span>${esc(typeof j==='string'?j:'Configured')}</span>`;
+    return `<strong class="payroll-rule-single">${esc(r.text_value||'—')}</strong>`;
   }
   function ruleTable(rows,emptyText){
-    return `<div class="payroll-managed-note">Managed by system administrator</div><div class="table-scroll"><table class="payroll-settings-rule-table"><thead><tr><th>Setting</th><th>Current value</th><th>Effective</th></tr></thead><tbody>${rows.map(r=>`<tr><td><strong>${esc(human(r.type))}</strong><small>${esc(human(r.key))}</small></td><td>${esc(ruleValue(r))}</td><td>${esc(iso(r.effective_from))}${r.effective_to?` – ${esc(iso(r.effective_to))}`:' onward'}</td></tr>`).join('')||`<tr><td colspan="3">${esc(emptyText)}</td></tr>`}</tbody></table></div>`;
+    return `<div class="payroll-managed-note">Managed by system administrator</div><div class="payroll-rule-list">${rows.map(r=>`<section class="payroll-rule-item"><div class="payroll-rule-head"><strong>${esc(payrollRuleLabel(r))}</strong><small>Effective ${esc(ruleEffective(r))}</small></div>${ruleFriendlyValue(r)}</section>`).join('')||`<div class="payroll-settings-empty">${esc(emptyText)}</div>`}</div>`;
   }
   function renderSettings(){
     if(!$('payrollSettingsCard'))return;
