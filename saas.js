@@ -951,9 +951,11 @@ ${businessName}`,'');
     window.Referrals?.renderAdmin?.();
   }
 
-  function planEditorCard(p,isNew=false){
+  function planEditorCard(p,isNew=false,availableModules=[]){
     const id=isNew?'new':p.id;
-    return `<div class="plan-card ${isNew?'new-plan-card':''}" data-plan-card="${id}"><span class="plan-name">${isNew?'Create new plan':escapeHtml(p.name)}</span><label>Name<input data-plan-name="${id}" value="${escapeHtml(p.name||'')}" placeholder="Business"></label><label>Slug<input data-plan-slug="${id}" value="${escapeHtml(p.slug||'')}" placeholder="business"></label><label>Description<input data-plan-description="${id}" value="${escapeHtml(p.description||'')}" placeholder="Plan description"></label><label>Monthly price<input type="number" min="0" step="0.01" data-plan-price="${id}" value="${Number(p.monthly_price||0)}"></label><label>Invoice limit<input type="number" min="0" data-plan-limit="${id}" value="${p.invoice_limit??''}" placeholder="Blank = unlimited"></label><label>Stripe Price ID<input data-plan-stripe="${id}" value="${escapeHtml(p.stripe_price_id||'')}" placeholder="price_..."></label><label>Included modules<input data-plan-modules="${id}" value="${escapeHtml((p.included_modules||['invoice_manager']).join(', '))}" placeholder="invoice_manager, job_costing"></label><label>Sort order<input type="number" step="1" data-plan-sort="${id}" value="${Number(p.sort_order||0)}"></label><label class="tick-option"><input type="checkbox" data-plan-public="${id}" ${p.is_public?'checked':''}> <span>Visible to customers</span></label><button class="${isNew?'primary':'secondary'}" data-plan-save="${id}">${isNew?'+ Create plan':'Save plan'}</button></div>`;
+    const selected=new Set(Array.isArray(p.included_modules)&&p.included_modules.length?p.included_modules:['invoice_manager']);
+    const moduleOptions=(availableModules||[]).map(m=>`<label class="tick-option plan-module-option"><input type="checkbox" data-plan-module="${id}" value="${escapeHtml(m.slug)}" ${selected.has(m.slug)?'checked':''}><span>${escapeHtml(m.name)} <small>${escapeHtml(m.slug)}</small></span></label>`).join('');
+    return `<div class="plan-card ${isNew?'new-plan-card':''}" data-plan-card="${id}"><span class="plan-name">${isNew?'Create new plan':escapeHtml(p.name)}</span><label>Name<input data-plan-name="${id}" value="${escapeHtml(p.name||'')}" placeholder="Business"></label><label>Slug<input data-plan-slug="${id}" value="${escapeHtml(p.slug||'')}" placeholder="business"></label><label>Description<input data-plan-description="${id}" value="${escapeHtml(p.description||'')}" placeholder="Plan description"></label><label>Monthly price<input type="number" min="0" step="0.01" data-plan-price="${id}" value="${Number(p.monthly_price||0)}"></label><label>Invoice limit<input type="number" min="0" data-plan-limit="${id}" value="${p.invoice_limit??''}" placeholder="Blank = unlimited"></label><label>Stripe Price ID<input data-plan-stripe="${id}" value="${escapeHtml(p.stripe_price_id||'')}" placeholder="price_..."></label><div class="plan-module-picker"><span class="plan-module-picker-title">Included modules</span><div class="plan-module-options">${moduleOptions||'<span class="hint">No active modules are configured.</span>'}</div></div><label>Sort order<input type="number" step="1" data-plan-sort="${id}" value="${Number(p.sort_order||0)}"></label><label class="tick-option"><input type="checkbox" data-plan-public="${id}" ${p.is_public?'checked':''}> <span>Visible to customers</span></label><button class="${isNew?'primary':'secondary'}" data-plan-save="${id}">${isNew?'+ Create plan':'Save plan'}</button></div>`;
   }
 
   async function savePlanFromCard(id){
@@ -964,7 +966,7 @@ ${businessName}`,'');
     const monthlyPrice=Number(card.querySelector(`[data-plan-price="${id}"]`).value||0);
     const lv=card.querySelector(`[data-plan-limit="${id}"]`).value;
     const stripe=card.querySelector(`[data-plan-stripe="${id}"]`).value.trim();
-    const modules=card.querySelector(`[data-plan-modules="${id}"]`).value.split(',').map(x=>x.trim()).filter(Boolean);
+    const modules=[...card.querySelectorAll(`[data-plan-module="${id}"]:checked`)].map(x=>x.value).filter(Boolean);
     const sortOrder=Number(card.querySelector(`[data-plan-sort="${id}"]`).value||0);
     const isPublic=card.querySelector(`[data-plan-public="${id}"]`).checked;
     if(!name||!slug)return alert('Plan name and slug are required.');
@@ -981,9 +983,12 @@ ${businessName}`,'');
 
   async function renderAdminPlans(){
     if(!state.profile?.is_super_admin||!q('adminPlanGrid'))return;
-    const {data:plans,error}=await state.client.from('plans').select('*').order('sort_order');
-    if(error){if(q('adminPlanMessage')){q('adminPlanMessage').textContent='Could not load plans: '+error.message;q('adminPlanMessage').className='admin-inline-message error'}return}
-    q('adminPlanGrid').innerHTML=planEditorCard({name:'',slug:'',description:'',monthly_price:0,invoice_limit:null,included_modules:['invoice_manager'],stripe_price_id:null,is_public:true,sort_order:40},true)+(plans||[]).map(p=>planEditorCard(p,false)).join('');
+    const [{data:plans,error},{data:availableModules,error:moduleError}]=await Promise.all([
+      state.client.from('plans').select('*').order('sort_order'),
+      state.client.from('modules').select('id,slug,name,is_active').eq('is_active',true).order('name')
+    ]);
+    if(error||moduleError){if(q('adminPlanMessage')){q('adminPlanMessage').textContent='Could not load plans: '+(error?.message||moduleError?.message||'Unknown error');q('adminPlanMessage').className='admin-inline-message error'}return}
+    q('adminPlanGrid').innerHTML=planEditorCard({name:'',slug:'',description:'',monthly_price:0,invoice_limit:null,included_modules:['invoice_manager'],stripe_price_id:null,is_public:true,sort_order:40},true,availableModules)+(plans||[]).map(p=>planEditorCard(p,false,availableModules)).join('');
     q('adminPlanGrid').querySelectorAll('[data-plan-save]').forEach(btn=>btn.onclick=()=>savePlanFromCard(btn.dataset.planSave));
   }
 
