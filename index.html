@@ -16,6 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -342,7 +343,7 @@
 
     <section id="view-reports" class="view">
       <div class="page-head"><div><h1>Reports</h1><p>Review sales, expenses and payroll by period.</p></div></div>
-      <div class="module-tabs report-module-tabs" id="reportTabs"><button class="module-tab active" data-report-tab="sales">Sales Report</button><button class="module-tab" data-report-tab="expenses" id="expenseReportTab" hidden>Expense Report</button><button class="module-tab" data-report-tab="payroll" id="payrollReportTab" hidden>Payroll</button></div>
+      <div class="module-tabs report-module-tabs" id="reportTabs"><button class="module-tab active" data-report-tab="sales">Sales Report</button><button class="module-tab" data-report-tab="expenses" id="expenseReportTab" hidden>Expense Report</button><button class="module-tab" data-report-tab="payroll" id="payrollReportTab" hidden>Payroll</button><button class="module-tab" data-report-tab="accountant">Accountant Centre</button></div>
 
       <div class="report-panel active" id="report-panel-sales">
         <div class="page-head compact-head"><div><h2>Sales Report</h2><p>Review invoiced sales by period and month.</p></div><button class="secondary" id="reportExportCsv">Export report CSV</button></div>
@@ -384,6 +385,27 @@
         <div class="report-widget-grid" data-report-layout="payroll">
           <div class="card report-widget report-widget-wide table-card" data-report-widget="payroll-employee"><div class="report-widget-handle" title="Drag to rearrange" aria-label="Drag to rearrange">⋮⋮</div><h2>Payroll by Employee</h2><div class="table-scroll"><table><thead><tr><th scope="col">Employee</th><th scope="col">Gross</th><th scope="col">PAYE</th><th scope="col">KiwiSaver</th><th scope="col">Net</th><th scope="col">Employer Cost</th></tr></thead><tbody id="payrollReportRows"></tbody></table></div></div>
         </div>
+      </div>
+
+      <div class="report-panel" id="report-panel-accountant" hidden>
+        <div class="page-head compact-head"><div><h2>Accountant Centre</h2><p>Prepare Finlo records for your accountant or accounting software.</p></div></div>
+        <div class="card accountant-period-card">
+          <div class="card-title"><div><h3>Accounting Period</h3><p class="hint">Choose the records to include.</p></div></div>
+          <div class="quick-range accountant-quick-range"><button class="secondary" data-accountant-range="this_month">This month</button><button class="secondary" data-accountant-range="last_month">Last month</button><button class="secondary" data-accountant-range="fy">Current financial year</button><button class="secondary" data-accountant-range="previous_fy">Previous financial year</button></div>
+          <div class="accountant-date-grid"><label>From<input id="accountantFrom" type="date"></label><label>To<input id="accountantTo" type="date"></label></div>
+        </div>
+        <div class="accountant-action-grid">
+          <div class="card accountant-action-card"><div><h3>Xero Export</h3><p class="hint">Validates account and GST mappings before creating Xero-compatible CSV files.</p></div><label>Export<select id="accountantXeroType"><option value="all">Sales invoices + supplier bills</option><option value="sales">Sales invoices only</option><option value="purchases">Supplier bills / expenses only</option></select></label><button class="primary" id="prepareXeroExport">Prepare Xero Export</button></div>
+          <div class="card accountant-action-card"><div><h3>Generic Accountant Pack</h3><p class="hint">ZIP of source transaction CSVs suitable for an accountant or another accounting platform.</p></div><button class="primary" id="downloadAccountantPack">Download Accountant Pack</button></div>
+          <div class="card accountant-action-card"><div><h3>Accounting Mapping</h3><p class="hint">Map Finlo categories and GST treatments to your accountant's Xero organisation.</p><strong id="accountingMappingProgress">0% complete</strong></div><button class="secondary" id="toggleAccountingMapping">Configure Accounting Mapping</button></div>
+        </div>
+        <div class="card" id="accountantValidation"><div class="hint">Select a period to check export readiness.</div></div>
+        <div id="accountingMappingSection" hidden>
+          <div class="card table-card"><div class="card-title"><div><h3>Xero Accounts</h3><p class="hint">Add the account codes from this business's Xero Chart of Accounts. These are saved for this business only.</p></div></div><div class="form-grid compact"><label>Account code<input id="newXeroAccountCode" inputmode="numeric" placeholder="e.g. 200"></label><label>Account name<input id="newXeroAccountName" placeholder="e.g. Sales"></label><label>Type<select id="newXeroAccountType"><option value="income">Income</option><option value="expense">Expense</option><option value="asset">Asset</option><option value="liability">Liability</option><option value="equity">Equity</option><option value="bank">Bank</option><option value="other">Other</option></select></label><div class="actions"><button class="primary" id="addXeroAccount" type="button">+ Add Account</button></div></div><div class="table-scroll"><table><thead><tr><th>Account code</th><th>Account name</th><th>Type</th><th>Actions</th></tr></thead><tbody id="xeroAccountRows"></tbody></table></div></div>
+          <div class="card table-card"><div class="card-title"><div><h3>Xero Account Mapping</h3><p class="hint">Choose from the Xero accounts added above. Mappings are saved per business and Finlo source categories are not changed.</p></div></div><div class="table-scroll"><table><thead><tr><th>Finlo category</th><th>Type</th><th colspan="2">Xero account</th><th>Status</th></tr></thead><tbody id="accountingMappingRows"></tbody></table></div></div>
+          <div class="card table-card"><div class="card-title"><div><h3>GST / Tax Mapping</h3><p class="hint">Enter the TaxType display names recognised by the destination Xero organisation.</p></div></div><div class="table-scroll"><table><thead><tr><th>Finlo GST treatment</th><th>Xero TaxType</th><th>Status</th></tr></thead><tbody id="accountingTaxRows"></tbody></table></div><div class="actions"><button class="primary" id="saveAccountingMappings">Save Accounting Mapping</button></div></div>
+        </div>
+        <div class="card table-card"><div class="card-title"><div><h3>Export History</h3><p class="hint">Recent accountant and Xero exports for this business.</p></div></div><div class="table-scroll"><table><thead><tr><th>Date</th><th>Accounting period</th><th>Destination</th><th>Type</th><th>Records</th><th>Status</th></tr></thead><tbody id="accountingExportHistory"></tbody></table></div></div>
       </div>
 
     </section>

@@ -47,10 +47,21 @@ begin
   from public.profiles
   where business_id=p_business_id;
 
-  -- Deleting the business cascades all business-owned data through the existing
-  -- foreign keys: subscriptions, business modules, invoices, customers,
-  -- recurring rules, job costings and quotes. Profiles are temporarily detached
-  -- by their ON DELETE SET NULL relationship and are removed below with auth users.
+  -- Financials tables have AFTER DELETE audit triggers. Delete these rows while
+  -- the parent business still exists so their audit rows can satisfy the
+  -- financial_audit_log.business_id foreign key. Remove those audit rows before
+  -- deleting the business itself.
+  delete from public.financial_budget_month_values where business_id=p_business_id;
+  delete from public.financial_budget_lines where business_id=p_business_id;
+  delete from public.financial_budgets where business_id=p_business_id;
+  delete from public.financial_category_mappings where business_id=p_business_id;
+  delete from public.gst_returns where business_id=p_business_id;
+  delete from public.financial_settings where business_id=p_business_id;
+  delete from public.financial_audit_log where business_id=p_business_id;
+
+  -- Remaining business-owned data continues to cascade through the existing
+  -- foreign keys. Profiles are detached by their ON DELETE SET NULL relationship
+  -- and their auth users are removed below.
   delete from public.businesses
   where id=p_business_id;
 

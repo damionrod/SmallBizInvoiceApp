@@ -141,7 +141,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=60'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.55';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.27';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61';f.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.35';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=60'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.55';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.27';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61';f.onload=()=>{const ac=document.createElement('script');ac.src='accountant-centre.js?v=61.56';ac.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.35';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(ac)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -846,7 +846,7 @@
 
   async function renderAdmin(){
     if(!state.profile?.is_super_admin)return;
-    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles(id,full_name,email,role),subscriptions(id,status,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
+    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles!profiles_business_id_fkey(id,full_name,email,role),subscriptions(id,status,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
     if(error){console.warn(error);alert('Could not load Super Admin businesses: '+error.message);return}
     const asArray=x=>Array.isArray(x)?x:(x?[x]:[]);
     const getSub=b=>asArray(b.subscriptions)[0]||{};
