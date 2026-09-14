@@ -141,7 +141,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=60'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.55';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.27';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61';f.onload=()=>{const ac=document.createElement('script');ac.src='accountant-centre.js?v=61.56';ac.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.35';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(ac)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=61.63'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=61.63';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.55';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.63';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61';f.onload=()=>{const ac=document.createElement('script');ac.src='accountant-centre.js?v=61.56';ac.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.35';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(ac)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -478,7 +478,7 @@
   }
 
   function publicAppUrl(){try{const u=new URL(location.href);if(u.protocol==='http:'||u.protocol==='https:'){u.search='';u.hash='';return u.toString()}}catch{}return ''}
-  async function inviteApi(body){const {data,error}=await state.client.functions.invoke('business-invite',{body});if(error){let detail=error.message||'Invitation service error';try{const payload=await error.context?.json?.();if(payload?.error)detail=payload.error}catch{}return {error:detail}}return data||{}}
+  async function inviteApi(body){const result=body?.action==='inspect'?await state.client.functions.invoke('business-invite',{body}):await invokeAuthenticatedFunction('business-invite',body);const {data,error}=result;if(error){let detail=error.message||'Invitation service error';try{const payload=await error.context?.clone?.().json?.();if(payload?.error)detail=payload.error}catch{}return {error:detail}}return data||{}}
   async function prepareInviteMode(){
     if(!state.inviteToken)return;
     const data=await inviteApi({action:'inspect',token:state.inviteToken});
@@ -1114,9 +1114,29 @@ ${businessName}`,'');
     if(q('sSupabaseUrl'))q('sSupabaseUrl').value=C.supabaseUrl;if(q('sSupabaseKey'))q('sSupabaseKey').value=C.supabaseKey;
   }
 
+
+  async function invokeAuthenticatedFunction(functionName,body){
+    if(!state.client)throw new Error('Email requires Supabase setup.');
+    let session=null;
+    try{const {data}=await state.client.auth.getSession();session=data?.session||null}catch{}
+    let accessToken=session?.access_token||state.session?.access_token||'';
+    if(accessToken){
+      try{const {data,error}=await state.client.auth.getUser(accessToken);if(error||!data?.user)accessToken=''}catch{accessToken=''}
+    }
+    if(!accessToken){
+      try{const {data,error}=await state.client.auth.refreshSession();if(!error&&data?.session){session=data.session;state.session=session;state.user=session.user;accessToken=session.access_token||''}}catch{}
+    }
+    if(!accessToken)throw new Error('Not authenticated. Please sign out and sign in again.');
+    const url=`${String(C.supabaseUrl||'').replace(/\/$/,'')}/functions/v1/${encodeURIComponent(functionName)}`;
+    const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,apikey:C.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+    let data=null;try{data=await response.clone().json()}catch{try{data={error:await response.clone().text()}}catch{data=null}}
+    if(!response.ok){const err=new Error(data?.error||data?.message||`Edge Function returned ${response.status}`);err.context=response;return {data:null,error:err}}
+    return {data,error:null};
+  }
+
   function human(s){return String(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
   function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 
-  window.SAAS={state,client:()=>state.client,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule};
+  window.SAAS={state,client:()=>state.client,invokeAuthenticatedFunction,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule};
   init().catch(err=>{console.error(err);q('authShell')?.classList.add('open');message(err.message||'Unable to start application.','error')});
 })();
