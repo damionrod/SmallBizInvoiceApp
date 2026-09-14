@@ -1,7 +1,7 @@
 (() => {
   const C = window.APP_CONFIG || {};
   const q = id => document.getElementById(id);
-  const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false, checkoutAvailable:null };
+  const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false, checkoutAvailable:null, inviteToken:new URLSearchParams(location.search).get('invite')||'', inviteInfo:null, businessMemberships:[], effectiveAccess:{}, referralCode:new URLSearchParams(location.search).get('ref')||'', referralInviteToken:new URLSearchParams(location.search).get('rid')||'' };
 
   function message(text, kind=''){
     const el=q('authMessage'); if(!el)return; el.textContent=text||''; el.className='auth-message '+kind;
@@ -23,6 +23,8 @@
     state.client=window.supabase.createClient(C.supabaseUrl,C.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     bindAuthUI();
     await loadSignupPlans();
+    await prepareInviteMode();
+    if(state.referralCode&&!state.inviteToken){switchAuthTab('signup');message('You were referred to Finlo. Create your business account to continue.');}
     const {data:{session}}=await state.client.auth.getSession();
     if(session) await enter(session); else q('authShell').classList.add('open');
     state.client.auth.onAuthStateChange(async (event,session)=>{
@@ -62,16 +64,18 @@
     };
     q('signupForm').onsubmit=async e=>{
       e.preventDefault();
-      const selectedPlan=q('signupPlan')?.value||'trial';
+      const selectedPlan=state.inviteToken?'invite':(q('signupPlan')?.value||'trial');
       const submit=q('signupSubmitBtn');
       if(!selectedPlan){message('Choose a subscription plan first.','error');return}
       if(submit){submit.disabled=true;submit.textContent=selectedPlan==='trial'?'Creating account…':'Creating account…'}
-      message(selectedPlan==='trial'?'Creating your trial account…':'Creating your account…');
+      message(state.inviteToken?'Creating your invited Finlo account…':(selectedPlan==='trial'?'Creating your trial account…':'Creating your account…'));
       const email=q('signupEmail').value.trim();
-      const {data,error}=await state.client.auth.signUp({
-        email,password:q('signupPassword').value,
-        options:{data:{full_name:q('signupName').value.trim(),business_name:q('signupBusiness').value.trim(),business_address:q('signupAddress').value.trim(),phone:q('signupPhone').value.trim(),selected_plan_slug:selectedPlan}}
-      });
+      const signupData=state.inviteToken
+        ? {full_name:q('signupName').value.trim(),business_invite_token:state.inviteToken}
+        : {full_name:q('signupName').value.trim(),business_name:q('signupBusiness').value.trim(),business_address:q('signupAddress').value.trim(),phone:q('signupPhone').value.trim(),selected_plan_slug:selectedPlan,referral_code:state.referralCode||undefined,referral_invite_token:state.referralInviteToken||undefined};
+      const signUpOptions={data:signupData};
+      const redirect=publicAppUrl();if(redirect)signUpOptions.emailRedirectTo=redirect;
+      const {data,error}=await state.client.auth.signUp({email,password:q('signupPassword').value,options:signUpOptions});
       if(submit){submit.disabled=false;submit.textContent='Create account'}
       if(error){
         if(/already registered|already exists|user exists/i.test(error.message||'')){existingAccountMessage(email);return}
@@ -82,10 +86,10 @@
       // collection is the safe client-side signal Supabase exposes for this case.
       if(data?.user && Array.isArray(data.user.identities) && data.user.identities.length===0){existingAccountMessage(email);return}
       if(data.session){
-        message(selectedPlan==='trial'?'Account created. Loading your business…':'Account created. Opening secure payment…','success');
+        message(state.inviteToken?'Account created. Joining the invited business…':(selectedPlan==='trial'?'Account created. Loading your business…':'Account created. Opening secure payment…'),'success');
         await enter(data.session);
       } else {
-        message(selectedPlan==='trial'?'Account created. Check your email to confirm your address, then log in.':'Account created. Confirm your email, then log in to continue to secure Stripe payment.','success');
+        message(state.inviteToken?'Account created for the invited business. Check your email to confirm your address, then log in.':(selectedPlan==='trial'?'Account created. Check your email to confirm your address, then log in.':'Account created. Confirm your email, then log in to continue to secure Stripe payment.'),'success');
       }
     };
     q('forgotPasswordBtn').onclick=async()=>{
@@ -123,11 +127,13 @@
 
   async function enter(session){
     state.session=session; state.user=session.user;
+    if(state.inviteToken){const accepted=await acceptInvitationIfPresent();if(!accepted){q('authShell').classList.add('open');return}}
     const ok=await loadAccount(); if(!ok){q('authShell').classList.add('open');return}
     await loadBusinessSettings();
     await migrateLegacyLocalData();
     q('authShell').classList.remove('open'); document.body.classList.remove('auth-locked');
     setupAccountUI();
+    await window.Referrals?.init?.();
     if(await maybeContinueSignupCheckout())return;
     // A customer must never be able to retain or enter the owner route manually.
     if(location.hash==='#super-admin' && state.profile?.is_super_admin!==true){
@@ -135,17 +141,30 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=60'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=58';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.27';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61';f.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=60'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=58';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.55';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.27';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61';f.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.35';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
   async function loadAccount(){
     for(let attempt=0;attempt<8;attempt++){
-      const {data,error}=await state.client.from('profiles').select('id,business_id,full_name,email,role,is_super_admin,businesses(id,name,address,phone,status,settings)').eq('id',state.user.id).maybeSingle();
-      if(!error&&data){state.profile=data;state.business=data.businesses;return true}
+      const {data,error}=await state.client.from('profiles').select('id,business_id,active_business_id,full_name,email,role,is_super_admin').eq('id',state.user.id).maybeSingle();
+      if(!error&&data){
+        const {data:currentId,error:ctxError}=await state.client.rpc('current_business_id');
+        if(!ctxError&&currentId){
+          const {data:business,error:bError}=await state.client.from('businesses').select('id,name,address,phone,status,settings').eq('id',currentId).maybeSingle();
+          if(!bError&&business){
+            const [{data:accessRole},{data:effectiveAccess}]=await Promise.all([
+              state.client.rpc('v6147_current_business_role',{p_business_id:currentId}),
+              state.client.rpc('v6148_my_effective_access',{p_business_id:currentId})
+            ]);
+            state.profile=data;state.business=business;state.accessRole=accessRole||(data.is_super_admin?'owner':data.role||'viewer');
+            state.effectiveAccess={};(Array.isArray(effectiveAccess)?effectiveAccess:[]).forEach(x=>{state.effectiveAccess[x.area]={read:!!x.can_read,write:!!x.can_write}});return true
+          }
+        }
+      }
       await new Promise(r=>setTimeout(r,300));
     }
-    message('Your account exists, but the SaaS database migration has not been completed. Run V22-SAAS-MIGRATION.sql in Supabase, then reload.','error'); return false;
+    message('Your account has no active business access. Ask the business Owner or Admin to restore your access.','error'); return false;
   }
 
   async function loadBusinessSettings(){
@@ -290,6 +309,24 @@
     if(q('saveAccountPreferences'))q('saveAccountPreferences').onclick=saveAccountPreferences;
     if(q('saveAccountEmail'))q('saveAccountEmail').onclick=saveAccountPreferences;
     if(q('exportMyData'))q('exportMyData').onclick=()=>exportBusinessData(state.business.id,state.business.name,q('exportMyData'));
+    if(q('refreshTeamAccess'))q('refreshTeamAccess').onclick=renderTeamAccess;
+    if(q('inviteTeamUser'))q('inviteTeamUser').onclick=openInviteUserModal;
+    if(q('closeInviteUserModal'))q('closeInviteUserModal').onclick=closeInviteUserModal;
+    if(q('cancelInviteUser'))q('cancelInviteUser').onclick=closeInviteUserModal;
+    if(q('sendInviteUser'))q('sendInviteUser').onclick=sendTeamInvitation;
+    if(q('closeCustomAccessModal'))q('closeCustomAccessModal').onclick=closeCustomAccessModal;
+    if(q('cancelCustomAccess'))q('cancelCustomAccess').onclick=closeCustomAccessModal;
+    if(q('saveCustomAccess'))q('saveCustomAccess').onclick=saveCustomAccess;
+    if(q('resetCustomAccess'))q('resetCustomAccess').onclick=resetCustomAccess;
+    if(q('rolePermissionsBtn'))q('rolePermissionsBtn').onclick=openRolePermissionsModal;
+    if(q('closeRolePermissionsModal'))q('closeRolePermissionsModal').onclick=closeRolePermissionsModal;
+    if(q('cancelRolePermissions'))q('cancelRolePermissions').onclick=closeRolePermissionsModal;
+    if(q('rolePermissionsRole'))q('rolePermissionsRole').onchange=loadRolePermissions;
+    if(q('saveRolePermissions'))q('saveRolePermissions').onclick=saveRolePermissions;
+    if(q('resetRolePermissions'))q('resetRolePermissions').onclick=resetRolePermissions;
+    if(q('switchBusinessBtn'))q('switchBusinessBtn').onclick=openSwitchBusinessModal;
+    if(q('closeSwitchBusinessModal'))q('closeSwitchBusinessModal').onclick=()=>q('switchBusinessModal')?.classList.remove('open');
+    refreshBusinessSwitcher();
     document.addEventListener('click',e=>{const pop=q('accountPopover');if(pop&&!pop.hidden&&!pop.contains(e.target)&&e.target!==q('accountChip')&&!q('accountChip')?.contains(e.target))pop.hidden=true});
     if(q('closePlanModal'))q('closePlanModal').onclick=()=>q('planModal').classList.remove('open');
     if(q('adminRefresh'))q('adminRefresh').onclick=renderAdmin;
@@ -326,21 +363,207 @@
     populateCurrencySelect();
     if(q('accountCurrency'))q('accountCurrency').value=String(state.business?.settings?.currency||'NZD').toUpperCase();
     await refreshUsage();
+    if(['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))await renderTeamAccess();
+    applyRoleAccessUI();
     q('accountModal')?.classList.add('open');
   }
+  function teamRoleLabel(role){return ({owner:'Owner',admin:'Admin',accountant:'Accountant',bookkeeper:'Bookkeeper',staff:'Staff',viewer:'Viewer'})[role]||role||'—'}
+  function teamStatusLabel(status){return ({active:'Active',suspended:'Suspended',removed:'Removed'})[status]||status||'—'}
+  function roleCanRead(area){
+    if(state.profile?.is_super_admin)return true;
+    if(state.effectiveAccess?.[area])return !!state.effectiveAccess[area].read;
+    const r=state.accessRole||'viewer';
+    if(r==='owner'||r==='admin')return true;
+    if(area==='core')return ['accountant','bookkeeper','staff','viewer'].includes(r);
+    if(area==='expenses'||area==='bank')return ['accountant','bookkeeper'].includes(r);
+    if(area==='financials')return ['accountant','bookkeeper'].includes(r);
+    if(area==='reports')return ['accountant','bookkeeper','viewer'].includes(r);
+    return false;
+  }
+  function roleCanWrite(area){
+    if(state.profile?.is_super_admin)return true;
+    if(state.effectiveAccess?.[area])return !!state.effectiveAccess[area].write;
+    const r=state.accessRole||'viewer';
+    if(r==='owner')return true;
+    if(r==='admin')return area!=='billing';
+    if(area==='core')return ['accountant','bookkeeper','staff'].includes(r);
+    if(area==='expenses'||area==='bank')return ['accountant','bookkeeper'].includes(r);
+    if(area==='financials')return r==='accountant';
+    return false;
+  }
+  function applyRoleAccessUI(){
+    const role=state.profile?.is_super_admin?'owner':(state.accessRole||'viewer');
+    const setHidden=(el,hidden)=>{if(el)el.hidden=!!hidden};
+    setHidden(document.querySelector('[data-module="invoicing"]'),!roleCanRead('core'));
+    setHidden(q('jobCostingNav'),!roleCanRead('core')||q('jobCostingNav')?.dataset.entitlementBlocked==='1');
+    setHidden(q('expensesNav'),!roleCanRead('expenses')||q('expensesNav')?.dataset.entitlementBlocked==='1');
+    setHidden(q('bankReconciliationNav'),!roleCanRead('bank')||q('bankReconciliationNav')?.dataset.entitlementBlocked==='1');
+    setHidden(q('financialsNav'),!roleCanRead('financials')||q('financialsNav')?.dataset.entitlementBlocked==='1');
+    setHidden(q('payrollNav'),!roleCanRead('payroll')||q('payrollNav')?.dataset.entitlementBlocked==='1');
+    setHidden(document.querySelector('[data-view="reports"]'),!roleCanRead('reports'));
+    if(q('teamAccessCard'))q('teamAccessCard').hidden=!['owner','admin'].includes(role);
+    const businessWrite=['owner','admin'].includes(role);
+    ['accountBusinessName','accountBusinessPhone','accountBusinessAddress','accountSenderEmail','accountCurrency'].forEach(id=>{const el=q(id);if(el)el.disabled=!businessWrite});
+    ['saveAccountEmail','saveAccountPreferences'].forEach(id=>{const el=q(id);if(el)el.hidden=!businessWrite});
+    if(q('manageSubscription'))q('manageSubscription').hidden=role!=='owner';
+    if(q('billingPortalBtn')&&role!=='owner')q('billingPortalBtn').hidden=true;
+    if(q('accountManagePlan'))q('accountManagePlan').hidden=role!=='owner';
+    document.querySelectorAll('[data-invoice-view="settings"],[data-jc-tab="settings"]').forEach(el=>el.hidden=!businessWrite);
+    if(q('exportMyData'))q('exportMyData').hidden=!businessWrite;
+    if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!roleCanWrite('financials');
+  }
+  async function renderTeamAccess(){
+    const rows=q('teamAccessRows'),msg=q('teamAccessMessage');if(!rows||!state.business?.id)return;
+    rows.innerHTML='<tr><td colspan="5">Loading team…</td></tr>';if(msg)msg.textContent='';
+    const {data,error}=await state.client.rpc('v6145_list_business_team',{p_business_id:state.business.id});
+    if(error){rows.innerHTML='<tr><td colspan="5">Team & Access is unavailable.</td></tr>';if(msg)msg.textContent=error.message||'';return}
+    const team=Array.isArray(data)?data:[];
+    const self=team.find(x=>x.is_self),actorRole=self?.role||'';
+    rows.innerHTML=team.length?team.map(m=>{
+      const protectedOwner=m.role==='owner',selfRow=!!m.is_self,adminProtected=actorRole==='admin'&&m.role==='admin';
+      const canManage=!protectedOwner&&!selfRow&&!adminProtected&&(actorRole==='owner'||actorRole==='admin');
+      const roleOptions=['admin','accountant','bookkeeper','staff','viewer'].map(r=>`<option value="${r}" ${m.role===r?'selected':''}>${teamRoleLabel(r)}</option>`).join('');
+      const statusOptions=['active','suspended','removed'].map(st=>`<option value="${st}" ${m.status===st?'selected':''}>${teamStatusLabel(st)}</option>`).join('');
+      return `<tr><td><strong>${escapeHtml(m.full_name||'—')}</strong>${selfRow?' <small>(You)</small>':''}</td><td>${escapeHtml(m.email||'—')}</td><td>${canManage?`<select data-team-role="${m.membership_id}">${roleOptions}</select>`:escapeHtml(teamRoleLabel(m.role))}</td><td>${canManage?`<select data-team-status="${m.membership_id}">${statusOptions}</select>`:escapeHtml(teamStatusLabel(m.status))}</td><td>${canManage?`<button class="secondary" data-team-save="${m.membership_id}" type="button">Save</button> <button class="secondary" data-team-access="${m.membership_id}" data-team-name="${escapeHtml(m.full_name||m.email||'User')}" type="button">Access</button>`:'—'}</td></tr>`;
+    }).join(''):'<tr><td colspan="5">No team members found.</td></tr>';
+    rows.querySelectorAll('[data-team-save]').forEach(btn=>btn.onclick=()=>saveTeamMember(btn.dataset.teamSave,btn));
+    rows.querySelectorAll('[data-team-access]').forEach(btn=>btn.onclick=()=>openCustomAccessModal(btn.dataset.teamAccess,btn.dataset.teamName));
+    if(msg)msg.textContent=actorRole==='owner'?'You are the business Owner.':actorRole==='admin'?'You have Admin team-management access.':'Team management is restricted to Owners and Admins.';
+    const inviteBtn=q('inviteTeamUser');if(inviteBtn)inviteBtn.hidden=!['owner','admin'].includes(actorRole);
+    const roleBtn=q('rolePermissionsBtn');if(roleBtn)roleBtn.hidden=actorRole!=='owner';
+    await renderPendingInvites(actorRole);
+  }
+  const customAccessAreas=[
+    ['core','Invoicing, Customers & Job Costing'],['expenses','Expenses & Suppliers'],['bank','Bank Reconciliation'],['financials','Financials'],['payroll','Payroll'],['reports','Reports']
+  ];
+
+  function closeRolePermissionsModal(){q('rolePermissionsModal')?.classList.remove('open')}
+  async function openRolePermissionsModal(){q('rolePermissionsModal')?.classList.add('open');await loadRolePermissions()}
+  async function loadRolePermissions(){
+    const role=q('rolePermissionsRole')?.value||'accountant',body=q('rolePermissionsRows'),msg=q('rolePermissionsMessage');if(!body)return;
+    body.innerHTML='<tr><td colspan="3">Loading role permissions…</td></tr>';if(msg)msg.textContent='';
+    const {data,error}=await state.client.rpc('v6149_list_role_permissions',{p_business_id:state.business.id,p_role:role});
+    if(error){body.innerHTML='<tr><td colspan="3">Role permissions are unavailable.</td></tr>';if(msg)msg.textContent=error.message||'';return}
+    const map=Object.fromEntries((Array.isArray(data)?data:[]).map(x=>[x.area,x]));
+    body.innerHTML=customAccessAreas.map(([area,label])=>{const x=map[area]||{};const level=x.custom_level||'default';const system=x.system_write?'Read & Write':x.system_read?'Read only':'No access';const effective=x.effective_write?'Read & Write':x.effective_read?'Read only':'No access';return `<tr><td><strong>${label}</strong><small>System default: ${system}</small></td><td><select data-role-area="${area}"><option value="default" ${level==='default'?'selected':''}>Use system default</option><option value="none" ${level==='none'?'selected':''}>No access</option><option value="read" ${level==='read'?'selected':''}>Read only</option><option value="write" ${level==='write'?'selected':''}>Read & Write</option></select></td><td>${effective}</td></tr>`}).join('');
+    if(msg)msg.textContent='These defaults apply to users with this role unless that individual has a custom Access override.';
+  }
+  async function saveRolePermissions(){
+    const role=q('rolePermissionsRole')?.value||'',btn=q('saveRolePermissions'),sels=[...q('rolePermissionsRows').querySelectorAll('[data-role-area]')];if(btn){btn.disabled=true;btn.textContent='Saving…'}
+    for(const el of sels){const {error}=await state.client.rpc('v6149_set_role_permission',{p_business_id:state.business.id,p_role:role,p_area:el.dataset.roleArea,p_level:el.value});if(error){if(q('rolePermissionsMessage'))q('rolePermissionsMessage').textContent=error.message;if(btn){btn.disabled=false;btn.textContent='Save Role Defaults'};return}}
+    if(btn){btn.disabled=false;btn.textContent='Save Role Defaults'};await loadRolePermissions();
+  }
+  async function resetRolePermissions(){
+    const role=q('rolePermissionsRole')?.value||'';if(!role||!confirm(`Reset ${teamRoleLabel(role)} to Finlo system defaults? Individual user overrides will not be changed.`))return;
+    const {error}=await state.client.rpc('v6149_reset_role_permissions',{p_business_id:state.business.id,p_role:role});if(error){if(q('rolePermissionsMessage'))q('rolePermissionsMessage').textContent=error.message;return}await loadRolePermissions();
+  }
+
+  function closeCustomAccessModal(){q('customAccessModal')?.classList.remove('open');state.customAccessMembershipId=null}
+  async function openCustomAccessModal(membershipId,name='User'){
+    state.customAccessMembershipId=membershipId;if(q('customAccessUserName'))q('customAccessUserName').textContent=name;if(q('customAccessMessage'))q('customAccessMessage').textContent='Loading access…';
+    q('customAccessModal')?.classList.add('open');
+    const {data,error}=await state.client.rpc('v6148_list_member_access',{p_business_id:state.business.id,p_membership_id:membershipId});
+    const body=q('customAccessRows');if(error||!body){if(q('customAccessMessage'))q('customAccessMessage').textContent=error?.message||'Access settings are unavailable.';return}
+    const map=Object.fromEntries((Array.isArray(data)?data:[]).map(x=>[x.area,x]));
+    body.innerHTML=customAccessAreas.map(([area,label])=>{const x=map[area]||{};const effective=x.effective_write?'write':x.effective_read?'read':'none';const override=x.override_level||'default';const defaultLevel=x.default_write?'Read & Write':x.default_read?'Read only':'No access';return `<tr><td><strong>${label}</strong><small>Role default: ${defaultLevel}</small></td><td><select data-custom-area="${area}"><option value="default" ${override==='default'?'selected':''}>Use role default</option><option value="none" ${override==='none'?'selected':''}>No access</option><option value="read" ${override==='read'?'selected':''}>Read only</option><option value="write" ${override==='write'?'selected':''}>Read & Write</option></select></td><td>${effective==='write'?'Read & Write':effective==='read'?'Read only':'No access'}</td></tr>`}).join('');
+    if(q('customAccessMessage'))q('customAccessMessage').textContent='Changes override this user’s role defaults only. Team, billing and business-settings permissions remain protected by role.';
+  }
+  async function saveCustomAccess(){
+    const membershipId=state.customAccessMembershipId,btn=q('saveCustomAccess');if(!membershipId)return;const selects=[...q('customAccessRows').querySelectorAll('[data-custom-area]')];if(btn){btn.disabled=true;btn.textContent='Saving…'}
+    for(const el of selects){const {error}=await state.client.rpc('v6148_set_member_access',{p_business_id:state.business.id,p_membership_id:membershipId,p_area:el.dataset.customArea,p_level:el.value});if(error){if(btn){btn.disabled=false;btn.textContent='Save Access'};if(q('customAccessMessage'))q('customAccessMessage').textContent=error.message;return}}
+    if(btn){btn.disabled=false;btn.textContent='Save Access'};closeCustomAccessModal();await renderTeamAccess();
+  }
+  async function resetCustomAccess(){
+    const membershipId=state.customAccessMembershipId;if(!membershipId||!confirm('Reset all custom access for this user back to their role defaults?'))return;const {error}=await state.client.rpc('v6148_reset_member_access',{p_business_id:state.business.id,p_membership_id:membershipId});if(error){if(q('customAccessMessage'))q('customAccessMessage').textContent=error.message;return}await openCustomAccessModal(membershipId,q('customAccessUserName')?.textContent||'User');
+  }
+
+  function publicAppUrl(){try{const u=new URL(location.href);if(u.protocol==='http:'||u.protocol==='https:'){u.search='';u.hash='';return u.toString()}}catch{}return ''}
+  async function inviteApi(body){const {data,error}=await state.client.functions.invoke('business-invite',{body});if(error){let detail=error.message||'Invitation service error';try{const payload=await error.context?.json?.();if(payload?.error)detail=payload.error}catch{}return {error:detail}}return data||{}}
+  async function prepareInviteMode(){
+    if(!state.inviteToken)return;
+    const data=await inviteApi({action:'inspect',token:state.inviteToken});
+    if(data?.error){message(data.error,'error');state.inviteToken='';return}
+    state.inviteInfo=data;
+    const note=`${data.businessName} has invited you to join as ${teamRoleLabel(data.role)}. Log in if you already have Finlo, or create an account below.`;
+    message(note,'success');
+    if(q('loginEmail'))q('loginEmail').value=data.email||'';
+    if(q('signupEmail')){q('signupEmail').value=data.email||'';q('signupEmail').readOnly=true}
+    ['signupBusiness','signupAddress','signupPhone','signupPlan'].forEach(id=>{const el=q(id);if(el){const lab=el.closest('label');if(lab)lab.hidden=true;el.required=false}});
+    const h=q('signupForm')?.querySelector('h1'),p=q('signupForm')?.querySelector('p');if(h)h.textContent='Join '+data.businessName;if(p)p.textContent=`Create your Finlo login to join ${data.businessName} as ${teamRoleLabel(data.role)}.`;
+  }
+  async function acceptInvitationIfPresent(){
+    if(!state.inviteToken)return true;
+    const data=await inviteApi({action:'accept',token:state.inviteToken});
+    if(data?.error){message(data.error,'error');return false}
+    const u=new URL(location.href);u.searchParams.delete('invite');history.replaceState(null,'',u.pathname+(u.searchParams.toString()?('?'+u.searchParams.toString()):'')+u.hash);state.inviteToken='';return true;
+  }
+  function openInviteUserModal(){
+    if(q('inviteUserEmail'))q('inviteUserEmail').value='';if(q('inviteUserRole'))q('inviteUserRole').value='staff';if(q('inviteUserMessage'))q('inviteUserMessage').textContent='';q('inviteUserModal')?.classList.add('open');q('inviteUserEmail')?.focus();
+  }
+  function closeInviteUserModal(){q('inviteUserModal')?.classList.remove('open')}
+  async function sendTeamInvitation(){
+    const email=q('inviteUserEmail')?.value.trim()||'',role=q('inviteUserRole')?.value||'staff',btn=q('sendInviteUser'),msg=q('inviteUserMessage');
+    if(!email)return msg&&(msg.textContent='Enter an email address.');
+    if(!publicAppUrl())return msg&&(msg.textContent='Open Finlo from its deployed Netlify URL before sending invitations. Local file mode cannot create a usable email link.');
+    if(btn){btn.disabled=true;btn.textContent='Sending…'};if(msg)msg.textContent='';
+    const data=await inviteApi({action:'create',businessId:state.business.id,email,role,redirectUrl:publicAppUrl()});
+    if(btn){btn.disabled=false;btn.textContent='Send Invitation'};
+    if(data?.error){if(msg)msg.textContent=data.error;return}
+    closeInviteUserModal();await renderPendingInvites();
+  }
+  async function renderPendingInvites(actorRole=''){
+    const rows=q('teamInviteRows'),wrap=q('teamPendingWrap');if(!rows||!state.business?.id)return;
+    if(actorRole&&!['owner','admin'].includes(actorRole)){if(wrap)wrap.hidden=true;return}if(wrap)wrap.hidden=false;
+    rows.innerHTML='<tr><td colspan="4">Loading invitations…</td></tr>';
+    const data=await inviteApi({action:'list',businessId:state.business.id});
+    if(data?.error){rows.innerHTML='<tr><td colspan="4">Pending invitations are unavailable.</td></tr>';return}
+    const invites=data.invites||[];rows.innerHTML=invites.length?invites.map(i=>`<tr><td>${escapeHtml(i.email)}</td><td>${escapeHtml(teamRoleLabel(i.role))}</td><td>${escapeHtml(new Date(i.expires_at).toLocaleDateString())}</td><td><button class="secondary" data-invite-resend="${i.id}" type="button">Resend</button> <button class="danger" data-invite-revoke="${i.id}" type="button">Revoke</button></td></tr>`).join(''):'<tr><td colspan="4">No pending invitations.</td></tr>';
+    rows.querySelectorAll('[data-invite-resend]').forEach(b=>b.onclick=()=>manageInvite('resend',b.dataset.inviteResend,b));rows.querySelectorAll('[data-invite-revoke]').forEach(b=>b.onclick=()=>manageInvite('revoke',b.dataset.inviteRevoke,b));
+  }
+  async function manageInvite(action,id,btn){
+    if(action==='revoke'&&!confirm('Revoke this pending invitation?'))return;if(action==='resend'&&!publicAppUrl())return alert('Open Finlo from its deployed Netlify URL before resending invitations.');
+    btn.disabled=true;const old=btn.textContent;btn.textContent=action==='resend'?'Sending…':'Revoking…';const data=await inviteApi({action,businessId:state.business.id,inviteId:id,redirectUrl:publicAppUrl()});btn.disabled=false;btn.textContent=old;if(data?.error)return alert(data.error);await renderPendingInvites();
+  }
+  async function refreshBusinessSwitcher(){
+    if(!state.user)return;const data=await inviteApi({action:'my-businesses'});if(data?.error)return;state.businessMemberships=data.businesses||[];const btn=q('switchBusinessBtn');if(btn)btn.hidden=state.businessMemberships.length<=1;if(q('switchBusinessHint'))q('switchBusinessHint').textContent=state.businessMemberships.length>1?`${state.businessMemberships.length} authorised businesses`:'Choose another authorised business';
+  }
+  async function openSwitchBusinessModal(){
+    closeAccountPopover();const list=q('switchBusinessList');if(!list)return;const data=await inviteApi({action:'my-businesses'});if(data?.error)return alert(data.error);const businesses=data.businesses||[];list.innerHTML=businesses.map(b=>`<button class="secondary business-switch-option" data-business-switch="${b.id}" type="button"><span><strong>${escapeHtml(b.name)}</strong><small>${escapeHtml(teamRoleLabel(b.role))}</small></span>${b.id===data.currentBusinessId?'<span>Current</span>':''}</button>`).join('');list.querySelectorAll('[data-business-switch]').forEach(btn=>btn.onclick=()=>switchBusiness(btn.dataset.businessSwitch));q('switchBusinessModal')?.classList.add('open');
+  }
+  async function switchBusiness(businessId){
+    if(!businessId||businessId===state.business?.id){q('switchBusinessModal')?.classList.remove('open');return}const data=await inviteApi({action:'switch',businessId});if(data?.error)return alert(data.error);location.reload();
+  }
+
+  async function saveTeamMember(membershipId,btn){
+    const role=q('teamAccessRows')?.querySelector(`[data-team-role="${membershipId}"]`)?.value;
+    const status=q('teamAccessRows')?.querySelector(`[data-team-status="${membershipId}"]`)?.value;
+    if(!role||!status)return;
+    const action=status==='removed'?'remove this user from the business':status==='suspended'?'suspend this user':'save these access changes';
+    if(!confirm(`Are you sure you want to ${action}?`))return;
+    btn.disabled=true;const old=btn.textContent;btn.textContent='Saving…';
+    const {error}=await state.client.rpc('v6145_update_business_member',{p_business_id:state.business.id,p_membership_id:membershipId,p_role:role,p_status:status});
+    btn.disabled=false;btn.textContent=old;
+    if(error)return alert('Could not update team member: '+error.message);
+    await renderTeamAccess();
+  }
+
   async function saveAccountProfile(){
     const full_name=q('accountProfileName')?.value.trim()||'';
-    const name=q('accountBusinessName')?.value.trim()||state.business.name;
-    const phone=q('accountBusinessPhone')?.value.trim()||'';
-    const address=q('accountBusinessAddress')?.value.trim()||'';
-    const p1=state.client.from('profiles').update({full_name}).eq('id',state.user.id);
-    const p2=state.client.from('businesses').update({name,phone,address,updated_at:new Date().toISOString()}).eq('id',state.business.id);
-    const [a,b]=await Promise.all([p1,p2]);
-    if(a.error||b.error)return alert(a.error?.message||b.error?.message||'Could not save account details.');
-    state.profile.full_name=full_name;state.business.name=name;state.business.phone=phone;state.business.address=address;
-    setupAccountUI();
-    if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Invoice Manager');
-    q('accountModal')?.classList.remove('open');
+    const role=state.profile?.is_super_admin?'owner':(state.accessRole||'viewer');
+    const canEditBusiness=['owner','admin'].includes(role);
+    const a=await state.client.from('profiles').update({full_name}).eq('id',state.user.id);
+    if(a.error)return alert(a.error.message||'Could not save your profile.');
+    state.profile.full_name=full_name;
+    if(canEditBusiness){
+      const name=q('accountBusinessName')?.value.trim()||state.business.name;
+      const phone=q('accountBusinessPhone')?.value.trim()||'';
+      const address=q('accountBusinessAddress')?.value.trim()||'';
+      const {error}=await state.client.from('businesses').update({name,phone,address,updated_at:new Date().toISOString()}).eq('id',state.business.id);
+      if(error)return alert(error.message||'Could not save business account details.');
+      state.business.name=name;state.business.phone=phone;state.business.address=address;
+      if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Finlo');
+    }
+    setupAccountUI();applyRoleAccessUI();q('accountModal')?.classList.remove('open');
   }
 
 
@@ -514,27 +737,29 @@
   async function openModuleManager(businessId,businessName){
     const [{data:mods},{data:enabled},{data:sub}]=await Promise.all([
       state.client.from('modules').select('*').order('name'),
-      state.client.from('business_modules').select('module_id,status').eq('business_id',businessId),
+      state.client.from('business_modules').select('module_id,status,trial_ends_at').eq('business_id',businessId),
       state.client.from('subscriptions').select('plans(included_modules)').eq('business_id',businessId).maybeSingle()
     ]);
-    const overrides=new Map((enabled||[]).map(x=>[x.module_id,x.status]));
+    const overrides=new Map((enabled||[]).map(x=>[x.module_id,x]));
     const included=new Set(sub?.plans?.included_modules||[]);
     q('moduleModal').dataset.businessId=businessId;q('moduleBusinessName').textContent=businessName;
     q('moduleChecklist').innerHTML=(mods||[]).map(m=>{
-      const explicit=overrides.get(m.id);
+      const override=overrides.get(m.id),explicit=override?.status;
       const inherited=included.has(m.slug);
-      const checked=explicit?['active','trialing'].includes(explicit):inherited;
-      const source=explicit==='suspended'?'Blocked for this business':(explicit?'Enabled for this business':(inherited?'Included by subscription plan':'Not included'));
-      return `<label class="module-toggle"><span><strong>${escapeHtml(m.name)}</strong><small>${escapeHtml(m.description||'')} · ${source}</small></span><input type="checkbox" data-module-id="${m.id}" ${checked?'checked':''}></label>`;
+      const effective=explicit||(inherited?'active':'suspended');
+      const source=explicit==='suspended'?'Blocked for this business':(explicit==='trialing'?'Trial for this business':(explicit==='active'?'Enabled for this business':(inherited?'Included by subscription plan':'Not included')));
+      const trialDate=override?.trial_ends_at?String(override.trial_ends_at).slice(0,10):'';
+      return `<div class="module-toggle module-toggle-access"><span><strong>${escapeHtml(m.name)}</strong><small>${escapeHtml(m.description||'')} · ${source}</small></span><select data-module-id="${m.id}" data-module-status><option value="active" ${effective==='active'?'selected':''}>Enabled</option><option value="trialing" ${effective==='trialing'?'selected':''}>Trial</option><option value="suspended" ${effective==='suspended'?'selected':''}>Disabled</option></select><input type="date" data-module-trial-end="${m.id}" value="${trialDate}" title="Trial end date"></div>`;
     }).join('')||'<p>No modules have been configured yet.</p>';
     q('moduleModal').classList.add('open');
   }
 
   async function saveBusinessModules(){
-    const bid=q('moduleModal').dataset.businessId;if(!bid)return;const boxes=[...q('moduleChecklist').querySelectorAll('[data-module-id]')];
-    for(const box of boxes){
-      const status=box.checked?'active':'suspended';
-      const {error}=await state.client.from('business_modules').upsert({business_id:bid,module_id:box.dataset.moduleId,status},{onConflict:'business_id,module_id'});
+    const bid=q('moduleModal').dataset.businessId;if(!bid)return;const controls=[...q('moduleChecklist').querySelectorAll('[data-module-status]')];
+    for(const control of controls){
+      const status=control.value,moduleId=control.dataset.moduleId,end=q('moduleChecklist').querySelector(`[data-module-trial-end="${moduleId}"]`)?.value||'';
+      let trial_ends_at=null;if(status==='trialing'){const d=end?new Date(end+'T23:59:59'):new Date(Date.now()+14*86400000);trial_ends_at=d.toISOString()}
+      const {error}=await state.client.from('business_modules').upsert({business_id:bid,module_id:moduleId,status,trial_ends_at},{onConflict:'business_id,module_id'});
       if(error){alert('Could not update module access: '+error.message);return}
     }
     q('moduleModal').classList.remove('open');await renderAdmin();
@@ -651,7 +876,7 @@
       const tr=document.createElement('tr');
       const ownerKey=(owner.email||'').trim().toLowerCase();
       const duplicateBadge=ownerKey&&ownerEmailCounts.get(ownerKey)>1?'<span class="duplicate-account-badge" title="More than one business record is linked to this owner email">Duplicate record</span>':'';
-      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Invoice Manager'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Finlo'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
       body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
@@ -723,6 +948,7 @@ ${businessName}`,'');
     renderPaymentSettings();
     renderAdminModules();
     renderAdminCountryPayrollRules();
+    window.Referrals?.renderAdmin?.();
   }
 
   function planEditorCard(p,isNew=false){
@@ -797,9 +1023,10 @@ ${businessName}`,'');
 
   async function hasModule(slug){
     if(slug==='invoice_manager')return true;
-    const {data}=await state.client.from('business_modules').select('status,modules!inner(slug)').eq('business_id',state.business.id).eq('modules.slug',slug).maybeSingle();
+    const {data}=await state.client.from('business_modules').select('status,trial_ends_at,modules!inner(slug)').eq('business_id',state.business.id).eq('modules.slug',slug).maybeSingle();
     if(data){
-      if(['active','trialing'].includes(data.status))return true;
+      if(data.status==='active')return true;
+      if(data.status==='trialing')return !data.trial_ends_at||new Date(data.trial_ends_at)>=new Date();
       if(['suspended','canceled'].includes(data.status))return false;
     }
     const sub=state.subscription||await getSubscription();
@@ -832,43 +1059,53 @@ ${businessName}`,'');
       lock.hidden=false;document.body.classList.add('account-suspended');
     }else{lock.hidden=true;document.body.classList.remove('account-suspended')}
     if(q('jobCostingNav')){
-      const allowed=await hasModule('job_costing');
-      q('jobCostingNav').hidden=!allowed;
+      const entitled=await hasModule('job_costing'),allowed=entitled&&roleCanRead('core');
+      q('jobCostingNav').dataset.entitlementBlocked=entitled?'0':'1';q('jobCostingNav').hidden=!allowed;
       if(!allowed && document.getElementById('view-jobcosting')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.JobCosting?.init?.();
     }
     if(q('expensesNav')){
-      const allowed=await hasModule('expenses');
-      q('expensesNav').hidden=!allowed;
+      const entitled=await hasModule('expenses'),allowed=entitled&&roleCanRead('expenses');
+      q('expensesNav').dataset.entitlementBlocked=entitled?'0':'1';q('expensesNav').hidden=!allowed;
       if(!allowed && document.getElementById('view-expenses')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.Expenses?.init?.();
     }
     if(q('payrollNav')){
-      const allowed=await hasModule('payroll');
-      q('payrollNav').hidden=!allowed;
+      const entitled=await hasModule('payroll'),allowed=entitled&&roleCanRead('payroll');
+      q('payrollNav').dataset.entitlementBlocked=entitled?'0':'1';q('payrollNav').hidden=!allowed;
       if(q('payrollReportTab'))q('payrollReportTab').hidden=!allowed;
       if(q('payrollSettingsCard'))q('payrollSettingsCard').hidden=!allowed;
       if(!allowed && document.getElementById('view-payroll')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.Payroll?.init?.();
     }
     if(q('financialsNav')){
-      const allowed=await hasModule('financials');
-      q('financialsNav').hidden=!allowed;
+      const entitled=await hasModule('financials'),allowed=entitled&&roleCanRead('financials');
+      q('financialsNav').dataset.entitlementBlocked=entitled?'0':'1';q('financialsNav').hidden=!allowed;
       if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed;
       if(!allowed && document.getElementById('view-financials')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.Financials?.init?.();
     }
+    if(q('bankReconciliationNav')){
+      const entitled=await hasModule('bank_reconciliation'),allowed=entitled&&roleCanRead('bank');
+      q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';q('bankReconciliationNav').hidden=!allowed;
+      const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;
+      if(!allowed && view?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(allowed)window.BankReconciliation?.init?.();
+    }
+    applyRoleAccessUI();
   }
 
   async function bindAfterAppLoad(){
     if(q('adminNav')) q('adminNav').onclick=openAdminPortal;
     if(q('adminBackToApp'))q('adminBackToApp').onclick=closeAdminPortal;
     if(q('saveSettings')) q('saveSettings').addEventListener('click',()=>setTimeout(()=>saveBusinessSettings(appSettings()),100));
-    if(q('jobCostingNav')){const allowed=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
-    if(q('expensesNav')){const allowed=state.profile?.is_super_admin||await hasModule('expenses');q('expensesNav').hidden=!allowed;if(allowed)window.Expenses?.init?.()}
-    if(q('payrollNav')){const allowed=state.profile?.is_super_admin||await hasModule('payroll');q('payrollNav').hidden=!allowed;if(allowed)window.Payroll?.init?.()}
-    if(q('financialsNav')){const allowed=state.profile?.is_super_admin||await hasModule('financials');q('financialsNav').hidden=!allowed;if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed;if(allowed)window.Financials?.init?.()}
+    if(q('jobCostingNav')){const entitled=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('core');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
+    if(q('expensesNav')){const entitled=state.profile?.is_super_admin||await hasModule('expenses');q('expensesNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('expenses');q('expensesNav').hidden=!allowed;if(allowed)window.Expenses?.init?.()}
+    if(q('payrollNav')){const entitled=state.profile?.is_super_admin||await hasModule('payroll');q('payrollNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('payroll');q('payrollNav').hidden=!allowed;if(allowed)window.Payroll?.init?.()}
+    if(q('financialsNav')){const entitled=state.profile?.is_super_admin||await hasModule('financials');q('financialsNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('financials');q('financialsNav').hidden=!allowed;if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed||!roleCanWrite('financials');if(allowed)window.Financials?.init?.()}
+    if(q('bankReconciliationNav')){const entitled=state.profile?.is_super_admin||await hasModule('bank_reconciliation');q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('bank');q('bankReconciliationNav').hidden=!allowed;const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;if(allowed)window.BankReconciliation?.init?.()}
     await refreshEntitlements();
+    applyRoleAccessUI();
     let entitlementTimer=0;
     const recheck=()=>{const now=Date.now();if(now-entitlementTimer<2500)return;entitlementTimer=now;refreshEntitlements().catch(console.warn)};
     window.addEventListener('focus',recheck);

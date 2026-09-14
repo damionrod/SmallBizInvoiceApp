@@ -2424,3 +2424,885 @@ body:has(#payrollRunModal.open){
 .quote-email-send input{min-width:210px;width:100%;height:42px;padding:8px 10px}
 .quote-email-send button{white-space:nowrap}
 @media(max-width:900px){.quote-list-actions{min-width:260px}.quote-email-send{align-items:stretch;flex-direction:column}.quote-email-send input{min-width:0}.quote-email-send button{width:100%}}
+
+/* V61.29 Reports: Monthly Revenue, Expenses & Margin chart only */
+.monthly-performance-card{margin-top:18px}.monthly-performance-chart-wrap{height:380px}.monthly-performance-card .card-title{align-items:flex-start}.monthly-performance-card .card-title h2{margin-bottom:4px}
+@media(max-width:760px){.monthly-performance-chart-wrap{height:330px;overflow:hidden}.monthly-performance-card .card-title{display:block}.monthly-performance-card #monthlyPerformancePeriodLabel{display:block;margin-top:6px}}
+@media(max-width:430px){.monthly-performance-chart-wrap{height:300px}}
+
+/* V61.30 Reports: movable widget layout + invoices issued/paid chart only */
+.report-widget-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px;align-items:start}
+.report-widget{position:relative;min-width:0;margin:0!important}
+.report-widget-wide{grid-column:1/-1}
+.report-widget-handle{position:absolute;top:10px;right:12px;z-index:4;width:30px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid #d8e2e9;border-radius:7px;background:#f7f9fb;color:#71808c;font-weight:800;letter-spacing:-2px;cursor:grab;user-select:none;touch-action:none}
+.report-widget-handle:active{cursor:grabbing}
+.report-widget .card-title{padding-right:38px}
+.report-widget-dragging{opacity:.55;outline:2px dashed #9cb8cc;outline-offset:2px}
+.invoice-status-chart-wrap{height:300px}
+#report-panel-sales .report-widget-grid .table-card{min-height:300px}
+#report-panel-expenses .report-widget-grid .chart-wrap{height:280px}
+#report-panel-expenses .report-widget-grid .report-widget{min-height:300px}
+#report-panel-expenses .report-widget-grid .report-widget-wide{min-height:0}
+@media(max-width:900px){.report-widget-grid{grid-template-columns:1fr}.report-widget-wide{grid-column:auto}.report-widget{min-height:0!important}.invoice-status-chart-wrap{height:280px}}
+@media(max-width:760px){.report-widget-grid{gap:12px}.report-widget-handle{top:8px;right:8px}.report-widget .card-title{padding-right:34px}.invoice-status-chart-wrap{height:260px}}
+
+/* ============================================================
+   V61.31 — UNIFIED APPLICATION DESIGN SYSTEM
+   Scope: presentation consistency only. No workflows, calculations,
+   data access, event handlers, or business logic are changed.
+   ============================================================ */
+:root{
+  /* Core palette */
+  --ds-primary:#1976bd;
+  --ds-primary-dark:#125f99;
+  --ds-primary-soft:#eaf4fb;
+  --ds-success:#2f7d32;
+  --ds-danger:#b42318;
+  --ds-warning:#8a5a10;
+  --ds-bg:#f3f6f8;
+  --ds-surface:#ffffff;
+  --ds-surface-soft:#f8fafb;
+  --ds-text:#20313d;
+  --ds-text-strong:#173f5c;
+  --ds-muted:#687985;
+  --ds-border:#d7e0e6;
+  --ds-border-soft:#e9eef2;
+
+  /* Shape, depth and motion */
+  --ds-radius-xs:4px;
+  --ds-radius-sm:6px;
+  --ds-radius:8px;
+  --ds-radius-lg:10px;
+  --ds-shadow:0 2px 8px rgba(30,55,70,.06);
+  --ds-shadow-modal:0 18px 50px rgba(20,44,58,.18);
+  --ds-focus:0 0 0 3px rgba(25,118,189,.14);
+  --ds-transition:.15s ease;
+
+  /* Spacing and type */
+  --ds-space-1:4px;
+  --ds-space-2:8px;
+  --ds-space-3:12px;
+  --ds-space-4:16px;
+  --ds-space-5:20px;
+  --ds-space-6:24px;
+  --ds-space-7:32px;
+  --ds-content-max:1240px;
+  --ds-control-h:42px;
+  --ds-font-xs:11px;
+  --ds-font-sm:12px;
+  --ds-font-md:13px;
+  --ds-font-base:14px;
+  --ds-font-lg:16px;
+  --ds-font-xl:24px;
+
+  /* Map existing app variables to the one system */
+  --navy:var(--ds-text-strong);
+  --blue:var(--ds-primary);
+  --blue-dark:var(--ds-primary-dark);
+  --blue-soft:var(--ds-primary-soft);
+  --bg:var(--ds-bg);
+  --surface:var(--ds-surface);
+  --border:var(--ds-border);
+  --border-soft:var(--ds-border-soft);
+  --text:var(--ds-text);
+  --muted:var(--ds-muted);
+  --danger:var(--ds-danger);
+  --shadow:var(--ds-shadow);
+}
+
+/* App shell and page width */
+body{background:var(--ds-bg);color:var(--ds-text);font-size:var(--ds-font-base);line-height:1.45}
+body > main{
+  width:100%;
+  max-width:var(--ds-content-max);
+  margin:0 auto;
+  padding:28px 24px 72px;
+}
+
+/* Primary navigation stays visually distinct, but uses the same type rhythm. */
+.topbar{min-height:68px}
+.brand strong{font-size:17px;font-weight:750}
+.brand span{font-size:var(--ds-font-xs)}
+.nav-btn{font-size:var(--ds-font-md);font-weight:650}
+
+/* One module/sub-navigation treatment everywhere. */
+.module-tabs{
+  display:flex;
+  align-items:center;
+  gap:var(--ds-space-1);
+  margin:0 0 var(--ds-space-5);
+  padding:4px;
+  border:1px solid var(--ds-border);
+  border-radius:var(--ds-radius);
+  background:var(--ds-surface);
+  box-shadow:none;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.module-tab{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:8px 12px;
+  border:0;
+  border-radius:var(--ds-radius-sm);
+  background:transparent;
+  color:#526774;
+  font-size:var(--ds-font-md);
+  font-weight:650;
+  line-height:1.2;
+  cursor:pointer;
+  transition:background var(--ds-transition),color var(--ds-transition);
+}
+.module-tab:hover{background:var(--ds-surface-soft);color:var(--ds-text-strong)}
+.module-tab.active{background:var(--ds-primary-soft);color:var(--ds-primary-dark);font-weight:750}
+
+/* One page-heading hierarchy across every module and sub-page. */
+.page-head,
+#view-create .page-head,
+#payroll-panel-settings .page-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:var(--ds-space-4);
+  margin:0 0 var(--ds-space-5) !important;
+  padding:0 0 var(--ds-space-4) !important;
+  border-bottom:1px solid var(--ds-border) !important;
+}
+.page-head h1,
+#view-create .page-head h1{
+  margin:0 0 3px !important;
+  color:var(--ds-text-strong) !important;
+  font-size:var(--ds-font-xl) !important;
+  font-weight:720 !important;
+  line-height:1.2 !important;
+  letter-spacing:-.02em;
+}
+.page-head h2,
+.page-head h3,
+#payroll-panel-settings .page-head h2{
+  margin:0 0 3px !important;
+  color:var(--ds-text-strong);
+  font-size:18px;
+  font-weight:720;
+  line-height:1.25;
+}
+.page-head p,
+#view-create .page-head p{
+  margin:0 !important;
+  color:var(--ds-muted) !important;
+  font-size:var(--ds-font-md) !important;
+  line-height:1.45 !important;
+}
+.compact-head{margin-bottom:var(--ds-space-4) !important;padding-bottom:var(--ds-space-3) !important}
+
+/* Cards and panels share one surface, radius and spacing. */
+.card,
+#payroll-panel-settings .card,
+.contact-card,
+.history-row,
+.expense-detail-grid>div,
+.expense-notes,
+.payroll-rule-item,
+#payroll-panel-settings .payroll-rule-item{
+  border:1px solid var(--ds-border) !important;
+  border-radius:var(--ds-radius-lg) !important;
+  background:var(--ds-surface);
+  box-shadow:var(--ds-shadow);
+}
+.card,
+#payroll-panel-settings .card{
+  padding:18px !important;
+  margin-bottom:var(--ds-space-4) !important;
+}
+.card-title{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:var(--ds-space-3);
+  min-height:0;
+  padding-bottom:var(--ds-space-2);
+}
+.card-title h2,.card-title h3,.card>h2,.card>h3,.help h2{
+  margin:0;
+  color:var(--ds-text-strong);
+  font-size:var(--ds-font-lg);
+  font-weight:720;
+  line-height:1.3;
+}
+.hint,small{color:var(--ds-muted)}
+.hint{font-size:var(--ds-font-md);line-height:1.45}
+
+/* Forms: one control height, border, radius, label style and focus state. */
+.form-grid{gap:var(--ds-space-3) var(--ds-space-4)}
+label{gap:6px;color:#526774;font-size:var(--ds-font-sm);font-weight:700;line-height:1.3}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea{
+  width:100%;
+  min-height:var(--ds-control-h);
+  padding:9px 11px;
+  border:1px solid #c9d4db;
+  border-radius:var(--ds-radius-sm);
+  background:var(--ds-surface);
+  color:var(--ds-text);
+  font-size:var(--ds-font-md);
+  line-height:1.35;
+  box-shadow:none;
+  transition:border-color var(--ds-transition),box-shadow var(--ds-transition),background var(--ds-transition);
+}
+textarea{min-height:84px;resize:vertical}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+select:hover,textarea:hover{border-color:#9fb4c1}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,textarea:focus{outline:0;border-color:var(--ds-primary);box-shadow:var(--ds-focus)}
+input[readonly],input:disabled,select:disabled,textarea:disabled{background:#f4f7f9;color:#62737e}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--ds-primary)}
+
+/* Buttons: one visual system with standard and compact size variants. */
+.primary,.secondary,.danger,
+.send-unsent,.send-sent,
+.mini-btn,
+.actions button,.head-actions button,.row-actions button{
+  min-height:var(--ds-control-h);
+  padding:9px 14px;
+  border-radius:var(--ds-radius-sm) !important;
+  font-size:var(--ds-font-md);
+  font-weight:700;
+  line-height:1.2;
+  cursor:pointer;
+  transition:background var(--ds-transition),border-color var(--ds-transition),color var(--ds-transition),box-shadow var(--ds-transition);
+}
+.primary{
+  border:1px solid var(--ds-primary-dark);
+  background:var(--ds-primary);
+  color:#fff;
+  box-shadow:0 1px 2px rgba(18,63,99,.12);
+}
+.primary:hover{background:var(--ds-primary-dark);box-shadow:0 2px 7px rgba(18,63,99,.16)}
+.secondary{
+  border:1px solid #c7d3da;
+  background:#fff;
+  color:#31546b;
+  box-shadow:none;
+}
+.secondary:hover{background:#f5f8fa;border-color:#aebfc9;color:var(--ds-text-strong)}
+.danger,.send-unsent{border:1px solid #efc0bc;background:#fff3f2;color:var(--ds-danger)}
+.danger:hover,.send-unsent:hover{background:#ffe9e7;border-color:#e7aaa4}
+.send-sent{border:1px solid #abd8b2;background:#edf8ef;color:#236a31}
+.send-sent:hover{background:#e2f3e5}
+.compact-btn,.row-actions button,.quote-list-actions button{
+  min-height:34px !important;
+  padding:7px 10px !important;
+  font-size:var(--ds-font-sm) !important;
+}
+button:disabled{opacity:.58;cursor:not-allowed;box-shadow:none}
+
+/* Action rows and repeated layouts use the same rhythm. */
+.actions,.head-actions,.row-actions,.quick-ranges{gap:var(--ds-space-2)}
+.actions{margin-top:var(--ds-space-5)}
+.filters,.report-date-grid,.expense-filters,.expense-report-controls{gap:var(--ds-space-3)}
+.settings-grid,.summary-grid,.expense-dashboard-grid,.report-widget-grid{gap:var(--ds-space-4)}
+
+/* KPI/summary cards use the same card geometry and typography. */
+.metric{
+  border:1px solid var(--ds-border);
+  border-radius:var(--ds-radius-lg);
+  background:var(--ds-surface);
+  padding:16px;
+  box-shadow:var(--ds-shadow);
+}
+.metric span,.metric small{font-size:var(--ds-font-sm);color:var(--ds-muted)}
+.metric strong{margin-top:4px;color:var(--ds-text-strong);font-size:22px;font-weight:750;line-height:1.2}
+
+/* Tables: consistent header, spacing and row separators across modules. */
+.table-card{padding:0 !important;overflow:hidden}
+.table-card>.card-title{padding:18px 18px 10px}
+.table-scroll{overflow:auto;-webkit-overflow-scrolling:touch}
+.table-scroll table{margin:0}
+.table-scroll th,
+.table-scroll td{
+  padding:11px 12px;
+  border-bottom:1px solid var(--ds-border-soft);
+  color:var(--ds-text);
+  font-size:var(--ds-font-md);
+  line-height:1.35;
+  vertical-align:middle;
+}
+.table-scroll th{
+  background:#f7f9fa;
+  color:#657681;
+  font-size:var(--ds-font-xs);
+  font-weight:750;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+.table-scroll tbody tr:hover{background:#fbfcfd}
+
+/* Statuses, notices and badges share the same corner language. */
+.notice,.badge,.customer-number-pill,.expense-status,.payroll-managed-note,
+#payroll-panel-settings .payroll-managed-note{
+  border-radius:999px;
+}
+.notice{border-radius:var(--ds-radius);padding:10px 12px}
+
+/* Modals use one shell; internal printable previews remain untouched. */
+.modal{background:rgba(16,37,50,.52)}
+.modal-box,
+.payroll-employee-modal{
+  border:1px solid var(--ds-border);
+  border-radius:var(--ds-radius-lg) !important;
+  background:var(--ds-surface);
+  box-shadow:var(--ds-shadow-modal);
+}
+.modal-box{padding:24px}
+.close{
+  width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;
+  background:#f2f5f7;
+  color:#526774;
+  font-size:24px;
+  line-height:1;
+}
+.close:hover{background:#e8eef2;color:var(--ds-text-strong)}
+
+/* Reports inherit the same surface system while keeping V61.30 drag behaviour. */
+.report-widget-grid{gap:var(--ds-space-4);margin-top:var(--ds-space-4)}
+.report-widget-handle{
+  border-color:var(--ds-border);
+  border-radius:var(--ds-radius-sm);
+  background:var(--ds-surface-soft);
+  color:#71808c;
+}
+.report-widget-dragging{outline-color:#9cb8cc}
+
+/* Settings and repeated nested rows. */
+.settings-row{gap:var(--ds-space-2);padding:12px 0;border-top:1px solid var(--ds-border-soft)}
+.contact-card,.history-row{padding:12px}
+.profile-grid>div,.custom-profile>div{border-radius:var(--ds-radius);background:var(--ds-surface-soft)}
+
+/* Keep the Create Invoice page aligned with the same system despite legacy scoped overrides. */
+#view-create .invoice-details-card,
+#view-create .card{
+  border-radius:var(--ds-radius-lg) !important;
+}
+#view-create .page-head #clearInvoice,
+#view-create .customer-pick .mini-btn{
+  min-height:var(--ds-control-h) !important;
+  height:auto !important;
+  padding:9px 14px !important;
+  border-radius:var(--ds-radius-sm) !important;
+  font-size:var(--ds-font-md) !important;
+}
+
+/* Payroll Settings had intentionally compact legacy values; align its shell and controls now. */
+#payroll-panel-settings .card-title{margin-bottom:var(--ds-space-2)}
+#payroll-panel-settings #payrollSettingsCard .form-grid{gap:var(--ds-space-3) var(--ds-space-4)}
+#payroll-panel-settings #payrollSettingsCard input,
+#payroll-panel-settings #payrollSettingsCard select,
+#payroll-panel-settings #payrollSettingsCard textarea{padding:9px 11px;min-height:var(--ds-control-h);border-radius:var(--ds-radius-sm)}
+#payroll-panel-settings .payroll-rule-item{padding:10px 12px}
+
+/* Responsive consistency. */
+@media(max-width:900px){
+  body > main{padding:24px 18px 64px}
+  .settings-grid{gap:var(--ds-space-3)}
+}
+@media(max-width:760px){
+  body > main{padding:18px 12px 90px}
+  .module-tabs{margin-bottom:var(--ds-space-4)}
+  .module-tab{min-height:38px;padding:9px 11px}
+  .page-head,#view-create .page-head,#payroll-panel-settings .page-head{
+    gap:var(--ds-space-3);
+    margin-bottom:var(--ds-space-4) !important;
+    padding-bottom:var(--ds-space-3) !important;
+  }
+  .page-head h1,#view-create .page-head h1{font-size:22px !important}
+  .card,#payroll-panel-settings .card{padding:14px !important;margin-bottom:var(--ds-space-3) !important}
+  .table-card{padding:0 !important}
+  .table-card>.card-title{padding:14px 14px 8px}
+  .summary-grid{gap:var(--ds-space-2)}
+  .metric{padding:12px}
+  .metric strong{font-size:19px}
+  .modal-box{padding:42px 14px 22px}
+}
+@media(max-width:430px){
+  body > main{padding-left:10px;padding-right:10px}
+  .page-head{flex-direction:column}
+  .page-head>.secondary,.page-head>.primary,.page-head>.head-actions{width:100%}
+  .head-actions{display:grid;grid-template-columns:1fr 1fr}
+  .head-actions>*{width:100%}
+}
+
+/* ============================================================
+   V61.32 — XERO-INSPIRED COMPACT UI + DASHBOARD CHART STYLING
+   Scope: presentation only. Existing content, modules and workflows
+   are unchanged. Reference direction: compact blue/white accounting UI,
+   flatter controls, tighter spacing and crisp report cards/charts.
+   ============================================================ */
+:root{
+  --ds-primary:#2f8dbc;
+  --ds-primary-dark:#24749c;
+  --ds-primary-soft:#eaf5fa;
+  --ds-bg:#f5f7f8;
+  --ds-surface:#ffffff;
+  --ds-surface-soft:#f7f9fa;
+  --ds-text:#333333;
+  --ds-text-strong:#292929;
+  --ds-muted:#6f7b82;
+  --ds-border:#d6dde1;
+  --ds-border-soft:#e8ecef;
+  --ds-radius-xs:2px;
+  --ds-radius-sm:3px;
+  --ds-radius:4px;
+  --ds-radius-lg:4px;
+  --ds-shadow:none;
+  --ds-focus:0 0 0 2px rgba(47,141,188,.15);
+  --ds-control-h:34px;
+  --ds-font-xs:10px;
+  --ds-font-sm:11px;
+  --ds-font-md:12px;
+  --ds-font-base:13px;
+  --ds-font-lg:15px;
+  --ds-font-xl:22px;
+  --ds-content-max:1280px;
+}
+
+html,body{background:#f5f7f8}
+body{font-family:Arial,"Helvetica Neue",Helvetica,sans-serif;letter-spacing:0}
+body > main{padding:22px 22px 64px}
+
+/* Flatter, denser app chrome inspired by the supplied accounting UI. */
+.topbar{
+  min-height:56px;
+  border-bottom:1px solid #24749c;
+  box-shadow:none!important;
+}
+.brand strong{font-size:15px;font-weight:700}
+.brand span{font-size:10px}
+.nav-btn{min-height:32px!important;padding:7px 10px!important;border-radius:2px!important;font-size:11px;font-weight:600}
+
+.module-tabs{
+  gap:0;
+  margin-bottom:18px;
+  padding:0;
+  border:0;
+  border-bottom:1px solid #d8dde0;
+  border-radius:0;
+  background:transparent;
+}
+.module-tab{
+  min-height:34px;
+  padding:8px 13px;
+  border-radius:0;
+  color:#52616a;
+  font-size:11px;
+  font-weight:600;
+}
+.module-tab:hover{background:#f1f5f7}
+.module-tab.active{
+  background:#fff;
+  color:#267da8;
+  box-shadow:inset 0 -3px 0 #2f8dbc;
+  font-weight:700;
+}
+
+.page-head,#view-create .page-head,#payroll-panel-settings .page-head{
+  margin-bottom:16px!important;
+  padding-bottom:10px!important;
+  border-bottom:1px solid #dfe4e7!important;
+}
+.page-head h1,#view-create .page-head h1{font-size:21px!important;font-weight:600!important;color:#333!important}
+.page-head h2,.page-head h3,#payroll-panel-settings .page-head h2{font-weight:600;color:#333}
+.page-head p,#view-create .page-head p{font-size:11px!important;color:#76838b!important}
+
+.card,#payroll-panel-settings .card,.metric{
+  border:1px solid #d2d9dd!important;
+  border-radius:3px!important;
+  background:#fff;
+  box-shadow:none!important;
+}
+.card,#payroll-panel-settings .card{padding:15px!important;margin-bottom:14px!important}
+.card-title{padding-bottom:8px;gap:10px}
+.card-title h2,.card-title h3,.card>h2,.card>h3,.help h2{font-size:14px;font-weight:600;color:#333}
+.hint{font-size:11px;color:#7b878e}
+
+/* Reference-style compact buttons and controls. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{
+  min-height:34px;
+  padding:7px 9px;
+  border-color:#cbd3d8;
+  border-radius:2px;
+  font-size:12px;
+  background:#fff;
+}
+textarea{min-height:76px}
+label{font-size:11px;font-weight:600;color:#59666e}
+.primary,.secondary,.danger,.send-unsent,.send-sent,.mini-btn,.actions button,.head-actions button,.row-actions button{
+  min-height:32px;
+  padding:7px 11px;
+  border-radius:2px!important;
+  font-size:11px;
+  font-weight:600;
+  box-shadow:none!important;
+}
+.primary{background:#2f8dbc;border-color:#267ca6}
+.primary:hover{background:#277fa9}
+.secondary{background:#fff;border-color:#cbd3d8;color:#397491}
+.secondary:hover{background:#f5f8f9;border-color:#aebbc3}
+.compact-btn,.row-actions button,.quote-list-actions button{min-height:28px!important;padding:5px 8px!important;font-size:10px!important}
+
+.actions{margin-top:16px}
+.form-grid{gap:10px 14px}
+.filters,.report-date-grid,.expense-filters,.expense-report-controls{gap:10px}
+.settings-grid,.summary-grid,.expense-dashboard-grid,.report-widget-grid{gap:12px}
+
+/* Dashboard metrics resemble the strong-number tiles in the first reference. */
+.metric{padding:14px;text-align:left}
+.metric span,.metric small{font-size:10px;color:#687780}
+.metric strong{margin-top:6px;font-size:25px;font-weight:700;color:#111;letter-spacing:-.02em}
+
+/* Crisp accounting tables, compact headers and subtle zebra/hover treatment. */
+.table-card{padding:0!important}
+.table-card>.card-title{padding:13px 14px 8px}
+.table-scroll th,.table-scroll td{padding:8px 9px;font-size:11px;line-height:1.3}
+.table-scroll th{
+  background:#f6f7f8;
+  color:#6d777e;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:0;
+  text-transform:none;
+  border-bottom:1px solid #ccd4d8;
+}
+.table-scroll tbody tr:nth-child(even){background:#fbfbfb}
+.table-scroll tbody tr:hover{background:#f3f8fb}
+
+/* Reporting canvas: pale-blue dashboard field and clean white chart tiles. */
+#report-panel-sales,#report-panel-expenses,#report-panel-payroll{background:#dff1fb;border:1px solid #c6e3f3;padding:12px;border-radius:3px}
+#report-panel-sales .card,#report-panel-expenses .card,#report-panel-payroll .card{
+  background:#fff;
+  border-color:#bfcbd2!important;
+}
+.report-widget-grid{gap:12px;margin-top:12px}
+.report-widget{border-radius:2px!important}
+.report-widget .card-title{border-bottom:0;padding-bottom:4px}
+.report-widget .card-title h2{font-size:12px;text-align:center;width:100%;font-weight:600;color:#222}
+.report-widget .hint{font-size:10px}
+.report-widget-handle{
+  width:24px;height:22px;top:6px;right:7px;
+  border:0;background:transparent;color:#9aa5ab;
+}
+.chart-wrap,.monthly-performance-chart-wrap,.invoice-status-chart-wrap{background:#fff}
+.monthly-performance-chart-wrap{height:330px}
+.invoice-status-chart-wrap{height:280px}
+#report-panel-expenses .report-widget-grid .chart-wrap{height:260px}
+
+/* Report summary values get the bold, black financial emphasis from the supplied dashboard. */
+#report-panel-sales .summary-grid .metric strong,
+#report-panel-expenses .summary-grid .metric strong,
+#report-panel-payroll .summary-grid .metric strong{font-size:24px;color:#080808}
+
+.modal-box,.payroll-employee-modal{border-radius:3px!important;box-shadow:0 12px 35px rgba(0,0,0,.18)!important}
+.close{border-radius:2px;width:30px;height:30px;font-size:20px}
+.notice{border-radius:3px}
+
+@media(max-width:900px){body > main{padding:18px 15px 60px}}
+@media(max-width:760px){
+  body > main{padding:14px 10px 84px}
+  .module-tabs{margin-bottom:14px}
+  .module-tab{min-height:32px;padding:7px 10px}
+  .page-head,#view-create .page-head,#payroll-panel-settings .page-head{margin-bottom:14px!important;padding-bottom:9px!important}
+  .page-head h1,#view-create .page-head h1{font-size:19px!important}
+  .card,#payroll-panel-settings .card{padding:12px!important;margin-bottom:11px!important}
+  .table-card{padding:0!important}
+  .metric{padding:11px}.metric strong{font-size:21px}
+  #report-panel-sales,#report-panel-expenses,#report-panel-payroll{padding:8px}
+  .monthly-performance-chart-wrap{height:300px}.invoice-status-chart-wrap{height:250px}
+}
+
+/* V61.33 My Invoices row layout only */
+#view-invoices .invoice-list-card table{min-width:1540px;table-layout:auto}
+#view-invoices .invoice-list-card th,
+#view-invoices .invoice-list-card td{white-space:nowrap;vertical-align:middle;padding:9px 8px}
+#view-invoices .invoice-list-card th:nth-child(1){width:92px}
+#view-invoices .invoice-list-card th:nth-child(2){width:105px}
+#view-invoices .invoice-list-card th:nth-child(3){width:150px}
+#view-invoices .invoice-list-card th:nth-child(4){width:100px}
+#view-invoices .invoice-list-card th:nth-child(5),
+#view-invoices .invoice-list-card th:nth-child(6),
+#view-invoices .invoice-list-card th:nth-child(7),
+#view-invoices .invoice-list-card th:nth-child(8){width:105px}
+#view-invoices .invoice-list-card th:nth-child(9){width:135px}
+#view-invoices .invoice-list-card th:nth-child(10){width:500px}
+#view-invoices .invoice-number-link{color:var(--ds-primary,#1e6fa8);text-decoration:none;font-weight:700}
+#view-invoices .invoice-number-link:hover{text-decoration:underline}
+#view-invoices .invoice-payment-status{display:inline-flex;align-items:center;justify-content:center;min-width:62px;padding:3px 7px;border-radius:3px;font-size:10px;font-weight:800;margin-right:7px}
+#view-invoices .invoice-payment-status.paid{background:#e9f7ee;color:#17713c;border:1px solid #b9dfc8}
+#view-invoices .invoice-payment-status.part-paid{background:#fff3df;color:#a85b00;border:1px solid #f0cca0}
+#view-invoices .invoice-payment-status.unpaid{background:#fdeaea;color:#b42318;border:1px solid #efc0bc}
+#view-invoices .invoice-balance-amount{font-size:12px}
+#view-invoices .invoice-row-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;white-space:nowrap}
+#view-invoices .invoice-row-actions input{width:176px;min-width:176px;height:30px;padding:4px 7px;font-size:11px}
+#view-invoices .invoice-row-actions button{min-height:30px!important;height:30px;padding:4px 7px!important;font-size:10px!important;white-space:nowrap}
+
+@media(max-width:760px){
+  #view-invoices .invoice-list-card table,#view-invoices .invoice-list-card tbody,#view-invoices .invoice-list-card tr,#view-invoices .invoice-list-card td{display:block;width:100%;min-width:0}
+  #view-invoices .invoice-list-card thead{display:none}
+  #view-invoices .invoice-list-card tr{background:#fff;border:1px solid var(--border);border-radius:8px;padding:11px 12px;margin-bottom:10px}
+  #view-invoices .invoice-list-card td{white-space:normal;border:0;padding:4px 0;display:grid;grid-template-columns:88px 1fr;gap:8px;align-items:start}
+  #view-invoices .invoice-list-card td:before{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase}
+  #view-invoices .invoice-list-card td:nth-child(1):before{content:"Date"}
+  #view-invoices .invoice-list-card td:nth-child(2):before{content:"Invoice"}
+  #view-invoices .invoice-list-card td:nth-child(3):before{content:"Customer"}
+  #view-invoices .invoice-list-card td:nth-child(4):before{content:"Due Date"}
+  #view-invoices .invoice-list-card td:nth-child(5):before{content:"Excl GST"}
+  #view-invoices .invoice-list-card td:nth-child(6):before{content:"GST"}
+  #view-invoices .invoice-list-card td:nth-child(7):before{content:"Total"}
+  #view-invoices .invoice-list-card td:nth-child(8):before{content:"Paid"}
+  #view-invoices .invoice-list-card td:nth-child(9):before{content:"Balance Due"}
+  #view-invoices .invoice-list-card td:nth-child(10){display:block;border-top:1px solid var(--border);margin-top:7px;padding-top:9px;overflow-x:auto}
+  #view-invoices .invoice-list-card td:nth-child(10):before{content:"Email / Actions";display:block;margin-bottom:6px}
+  #view-invoices .invoice-row-actions{min-width:520px}
+}
+
+/* ============================================================
+   V61.34 — MY INVOICES RESPONSIVE TABLE/CARDS ONLY
+   Scope: layout and presentation for My Invoices. No invoice,
+   calculation, database, Supabase, PDF or email backend changes.
+   ============================================================ */
+#view-invoices{min-width:0}
+#view-invoices .invoice-list-card{overflow:visible}
+#view-invoices .invoice-list-card .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#view-invoices .invoice-list-card table{width:100%;min-width:0!important;table-layout:fixed}
+#view-invoices .invoice-list-card th,
+#view-invoices .invoice-list-card td{padding:7px 4px;white-space:nowrap;vertical-align:middle;font-size:10.5px}
+#view-invoices .invoice-list-card th{font-size:9.5px;line-height:1.15}
+#view-invoices .invoice-list-card th:nth-child(1){width:7.3%}
+#view-invoices .invoice-list-card th:nth-child(2){width:12.2%}
+#view-invoices .invoice-list-card th:nth-child(3){width:6.4%}
+#view-invoices .invoice-list-card th:nth-child(4){width:6.4%}
+#view-invoices .invoice-list-card th:nth-child(5){width:8.2%}
+#view-invoices .invoice-list-card th:nth-child(6){width:6.5%}
+#view-invoices .invoice-list-card th:nth-child(7){width:7.7%}
+#view-invoices .invoice-list-card th:nth-child(8){width:7.3%}
+#view-invoices .invoice-list-card th:nth-child(9){width:9.1%}
+#view-invoices .invoice-list-card th:nth-child(10){width:7.2%}
+#view-invoices .invoice-list-card th:nth-child(n+11){width:5.4%;text-align:center}
+#view-invoices .inv-col-money{text-align:right;font-variant-numeric:tabular-nums}
+#view-invoices .inv-col-date{font-variant-numeric:tabular-nums}
+#view-invoices .invoice-customer-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+#view-invoices .invoice-number-link{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+#view-invoices .badge{display:none}
+#view-invoices .invoice-balance-display,
+#view-invoices .invoice-balance-trigger{display:inline-flex;align-items:flex-end;justify-content:flex-end;gap:4px;max-width:100%;margin-left:auto;border:0;background:transparent;padding:0!important;min-height:0!important;height:auto;color:inherit;font:inherit;cursor:default}
+#view-invoices .invoice-balance-trigger{cursor:pointer}
+#view-invoices .invoice-balance-display strong,
+#view-invoices .invoice-balance-trigger strong{font-size:10.5px;white-space:nowrap}
+#view-invoices .invoice-balance-display small,
+#view-invoices .invoice-balance-trigger small{font-size:8.5px;font-weight:700;white-space:nowrap}
+#view-invoices .invoice-balance-display.paid strong,
+#view-invoices .invoice-balance-display.paid small{color:#17713c}
+#view-invoices .invoice-balance-trigger.part-paid strong,
+#view-invoices .invoice-balance-trigger.part-paid small{color:#a85b00}
+#view-invoices .invoice-balance-trigger.unpaid strong,
+#view-invoices .invoice-balance-trigger.unpaid small{color:#b42318}
+#view-invoices .invoice-balance-trigger:hover strong{text-decoration:underline}
+#view-invoices .inv-action-cell{text-align:center;padding-left:2px;padding-right:2px}
+#view-invoices .invoice-icon-action{position:relative;width:28px;min-width:28px;height:28px;min-height:28px!important;padding:5px!important;border:1px solid #cbd3d8;border-radius:2px!important;background:#fff;color:#397491;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+#view-invoices .invoice-icon-action:hover{background:#f1f7fa;border-color:#9db5c2}
+#view-invoices .invoice-icon-action svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+#view-invoices .invoice-icon-action.email-sent{color:#17713c;border-color:#b9dfc8;background:#f4fbf6}
+#view-invoices .invoice-sent-dot{display:none}
+#view-invoices .invoice-icon-delete{color:#b42318;border-color:#efc0bc;background:#fffafa}
+#view-invoices .invoice-empty-row td{text-align:center;padding:18px!important;color:var(--ds-muted,#6f7b82)}
+
+@media(max-width:1100px) and (min-width:901px){
+  #view-invoices .invoice-list-card th,
+  #view-invoices .invoice-list-card td{padding-left:3px;padding-right:3px;font-size:9.5px}
+  #view-invoices .invoice-list-card th{font-size:8.5px}
+  #view-invoices .invoice-balance-display strong,
+  #view-invoices .invoice-balance-trigger strong{font-size:9.5px}
+  #view-invoices .invoice-balance-display small,
+  #view-invoices .invoice-balance-trigger small{font-size:7.5px}
+  #view-invoices .invoice-icon-action{width:26px;min-width:26px;height:26px;min-height:26px!important;padding:5px!important}
+  #view-invoices .invoice-icon-action svg{width:14px;height:14px}
+}
+
+/* Phone and small-tablet invoice cards: never require horizontal scrolling. */
+@media(max-width:900px){
+  #view-invoices{width:100%;max-width:100%;overflow-x:hidden}
+  #view-invoices .invoice-list-card{padding:0!important;border:0!important;background:transparent!important;overflow:visible}
+  #view-invoices .invoice-list-card .table-scroll{overflow:visible!important;width:100%;max-width:100%}
+  #view-invoices .invoice-list-card table,
+  #view-invoices .invoice-list-card tbody{display:block;width:100%;max-width:100%;min-width:0!important}
+  #view-invoices .invoice-list-card thead{display:none}
+  #view-invoices .invoice-list-card tr.invoice-list-row{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;max-width:100%;min-width:0;background:#fff;border:1px solid var(--ds-border,#d6dde1);border-radius:var(--ds-radius-lg,4px);padding:12px;margin:0 0 11px;box-shadow:none;gap:0 10px;overflow:visible}
+  #view-invoices .invoice-list-card tr.invoice-list-row td{display:flex!important;flex-direction:column;align-items:flex-start;justify-content:flex-start;width:auto!important;min-width:0!important;max-width:100%;padding:7px 0!important;border:0!important;white-space:normal!important;overflow:visible;font-size:12px;line-height:1.3}
+  #view-invoices .invoice-list-card tr.invoice-list-row td::before{content:attr(data-label)!important;display:block!important;margin:0 0 3px;font-size:9px;line-height:1.1;font-weight:700;color:var(--ds-muted,#6f7b82);text-transform:uppercase;letter-spacing:.02em}
+  #view-invoices .invoice-list-card .inv-col-invoice{grid-column:1/-1;order:1;padding-top:0!important}
+  #view-invoices .invoice-list-card .inv-col-customer{grid-column:1/-1;order:2;border-bottom:1px solid var(--ds-border-soft,#e8ecef)!important;padding-bottom:10px!important;margin-bottom:2px}
+  #view-invoices .invoice-list-card .inv-col-total{grid-column:span 2;order:3}
+  #view-invoices .invoice-list-card .inv-col-balance{grid-column:span 2;order:4;align-items:flex-end!important;text-align:right}
+  #view-invoices .invoice-list-card .inv-col-date{grid-column:span 2;order:5}
+  #view-invoices .invoice-list-card .inv-col-due{grid-column:span 2;order:6}
+  #view-invoices .invoice-list-card .inv-col-excl{grid-column:span 2;order:7}
+  #view-invoices .invoice-list-card .inv-col-gst{grid-column:span 2;order:8}
+  #view-invoices .invoice-list-card .inv-col-paid{grid-column:span 2;order:9}
+  #view-invoices .invoice-list-card .inv-col-payment-date{grid-column:span 2;order:10}
+  #view-invoices .invoice-list-card .inv-action-cell{grid-column:span 1;order:11;align-items:center!important;text-align:center;border-top:1px solid var(--ds-border-soft,#e8ecef)!important;margin-top:5px;padding-top:11px!important}
+  #view-invoices .invoice-list-card .inv-action-cell::before{display:none!important}
+  #view-invoices .invoice-list-card .inv-col-money{align-items:flex-start;text-align:left}
+  #view-invoices .invoice-list-card .inv-col-balance{align-items:flex-end!important}
+  #view-invoices .invoice-number-link{font-size:15px;line-height:1.2;white-space:nowrap;max-width:100%}
+  #view-invoices .invoice-customer-name{font-size:13px;line-height:1.35;white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #view-invoices .inv-col-total strong{font-size:17px;color:var(--ds-text-strong,#292929)}
+  #view-invoices .invoice-balance-display,
+  #view-invoices .invoice-balance-trigger{margin-left:0;align-items:flex-start;justify-content:flex-start;flex-direction:column;gap:1px;text-align:right}
+  #view-invoices .inv-col-balance .invoice-balance-display,
+  #view-invoices .inv-col-balance .invoice-balance-trigger{align-items:flex-end}
+  #view-invoices .invoice-balance-display strong,
+  #view-invoices .invoice-balance-trigger strong{font-size:17px;line-height:1.15}
+  #view-invoices .invoice-balance-display small,
+  #view-invoices .invoice-balance-trigger small{font-size:10px}
+  #view-invoices .invoice-icon-action{width:44px;min-width:44px;height:44px;min-height:44px!important;padding:11px!important;border-radius:3px!important}
+  #view-invoices .invoice-icon-action svg{width:20px;height:20px}
+  #view-invoices .invoice-empty-row{display:block!important;width:100%}
+  #view-invoices .invoice-empty-row td{display:block!important;width:100%!important}
+}
+
+@media(max-width:430px){
+  #view-invoices .invoice-list-card tr.invoice-list-row{padding:11px 10px;gap:0 8px}
+  #view-invoices .invoice-list-card tr.invoice-list-row td{font-size:11.5px}
+  #view-invoices .invoice-icon-action{width:42px;min-width:42px;height:42px;min-height:42px!important}
+}
+
+@media(max-width:340px){
+  #view-invoices .invoice-list-card tr.invoice-list-row{padding:10px 8px;gap:0 6px}
+  #view-invoices .invoice-icon-action{width:40px;min-width:40px;height:40px;min-height:40px!important;padding:9px!important}
+  #view-invoices .invoice-list-card tr.invoice-list-row td::before{font-size:8.5px}
+}
+
+/* V61.35 Bank Reconciliation — isolated module styles */
+#view-bankreconciliation[hidden]{display:none!important}
+.bank-recon-tabs{margin-bottom:16px;overflow-x:auto;white-space:nowrap}
+.bank-panel{display:none}.bank-panel.active{display:block}
+.bank-progress{font-size:13px;font-weight:700;color:#405462;background:#fff;border:1px solid var(--border);border-radius:7px;padding:8px 11px}
+.bank-toolbar{display:grid;grid-template-columns:minmax(180px,240px) minmax(150px,190px) minmax(240px,1fr) auto;gap:10px;align-items:end}
+.bank-card-list{display:grid;gap:12px}
+.bank-tx-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 16px;box-shadow:0 1px 1px rgba(0,0,0,.025)}
+.bank-tx-card.reconciled{border-left:3px solid #70a98b}
+.bank-tx-main{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.bank-tx-main>div:first-child{min-width:0;display:grid;gap:3px}.bank-tx-main strong{font-size:14px;overflow-wrap:anywhere}.bank-tx-main small{color:var(--muted);font-size:12px;overflow-wrap:anywhere}.bank-date{font-size:11px;color:var(--muted)}
+.bank-amount{font-size:18px;font-weight:800;white-space:nowrap}.money-in{color:#247a3d}.money-out{color:#9a3f34}
+.bank-suggestion{margin-top:12px;background:#f5f9fc;border:1px solid #d9e7f1;border-radius:7px;padding:10px 11px;display:flex;align-items:center;justify-content:space-between;gap:12px}.bank-suggestion>div{display:grid;gap:3px}.bank-suggestion strong{font-size:13px}.bank-suggestion small{font-size:12px;color:var(--muted)}
+.confidence{display:inline-flex;width:max-content;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}.confidence.high{background:#e8f5eb;color:#23723b}.confidence.possible{background:#fff4d9;color:#8c6110}
+.bank-rule-hint,.bank-no-suggestion{margin-top:11px;font-size:12px;color:var(--muted);background:#fafbfc;border:1px solid #e8edf0;border-radius:7px;padding:9px 10px}
+.bank-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.bank-actions button{padding:7px 9px;font-size:12px}
+.bank-empty{text-align:center;padding:34px}.bank-empty h3{margin:0 0 5px}
+.bank-settings-list{display:grid;gap:8px;margin-top:14px}.bank-setting-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid #edf1f3}.bank-setting-row>div:first-child{display:grid;gap:3px;min-width:0}.bank-setting-row small{color:var(--muted);overflow-wrap:anywhere}.module-toggle-access{display:grid!important;grid-template-columns:minmax(0,1fr) 130px 145px!important;gap:10px!important;align-items:center!important}.module-toggle-access>span{min-width:0}.module-toggle-access select,.module-toggle-access input{margin:0!important}
+.bank-mapping{margin-top:16px;border-top:1px solid var(--border);padding-top:14px}.bank-mapping h3{margin:0 0 10px;font-size:15px}
+.bank-import-summary{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 10px}.bank-import-summary span{background:#f3f6f8;border:1px solid #dfe6eb;border-radius:6px;padding:7px 9px;font-size:12px}.bank-import-summary span.warn{background:#fff8e7;border-color:#f0d89d}.bank-import-summary strong{font-size:15px;margin-right:3px}
+.bank-import-list{display:grid;gap:7px}.bank-import-row{display:grid;grid-template-columns:115px minmax(0,1fr) 130px 145px;gap:10px;align-items:center;border:1px solid #e1e7eb;background:#fff;border-radius:7px;padding:9px 10px}.bank-import-row>div:nth-child(2){display:grid;gap:2px;min-width:0}.bank-import-row strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bank-import-row small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bank-import-row>b{text-align:right;white-space:nowrap}.bank-import-check{font-size:12px}.bank-import-check label{display:flex;flex-direction:row;align-items:center;gap:6px}.bank-import-check input{width:auto}
+.bank-dup{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.025em;border-radius:999px;padding:3px 7px;text-align:center;background:#eef2f5;color:#536675}.bank-dup.new{background:#e8f5eb;color:#23723b}.bank-dup.possible_duplicate{background:#fff4d9;color:#8c6110}.bank-dup.already_imported{background:#eef1f3;color:#6c7880}
+.bank-recon-modal{max-width:760px}.bank-find-list{display:grid;gap:7px;margin-top:10px;max-height:420px;overflow:auto}.bank-find-row{width:100%;border:1px solid #dde5ea;background:#fff;border-radius:7px;padding:10px 11px;display:flex;justify-content:space-between;gap:12px;text-align:left;cursor:pointer}.bank-find-row:hover{background:#f7fafc}.bank-find-row span{display:grid;gap:2px;min-width:0}.bank-find-row small{color:var(--muted)}.bank-find-row b{white-space:nowrap}
+.bank-split-row{display:grid;grid-template-columns:minmax(0,1fr) 150px 42px;gap:8px;align-items:end;margin-bottom:8px}.bank-split-row .danger{height:40px;padding:6px}
+.bank-history-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid #edf1f3;color:var(--muted);font-size:11px}
+@media(max-width:980px){.bank-toolbar{grid-template-columns:1fr 1fr}.bank-import-row{grid-template-columns:100px minmax(0,1fr) 120px}.bank-import-row .bank-dup{grid-column:2/4;justify-self:start}.module-toggle-access{grid-template-columns:minmax(0,1fr) 120px!important}.module-toggle-access [data-module-trial-end]{grid-column:2}}
+@media(max-width:700px){#view-bankreconciliation .page-head{align-items:flex-start;gap:10px}.bank-progress{font-size:11px}.bank-toolbar{grid-template-columns:1fr}.bank-tx-card{padding:12px}.bank-tx-main{gap:10px}.bank-amount{font-size:16px}.bank-suggestion{align-items:flex-start;flex-direction:column}.bank-suggestion button{width:100%}.bank-actions{display:grid;grid-template-columns:1fr 1fr}.bank-actions button{min-height:42px}.bank-setting-row{align-items:flex-start;flex-direction:column}.bank-setting-row .row-actions{width:100%;flex-wrap:wrap}.bank-import-row{grid-template-columns:1fr auto;gap:7px}.bank-import-row .bank-import-check{grid-column:1}.bank-import-row>div:nth-child(2){grid-column:1/3}.bank-import-row>b{grid-column:1;text-align:left}.bank-import-row .bank-dup{grid-column:2;grid-row:3;align-self:center}.bank-split-row{grid-template-columns:1fr 100px 42px}.module-toggle-access{grid-template-columns:1fr!important}.module-toggle-access [data-module-trial-end]{grid-column:auto}.bank-history-foot{align-items:flex-start}.bank-recon-tabs{margin-left:-12px;margin-right:-12px;padding:0 12px}.bank-recon-tabs .module-tab{min-height:42px}}
+@media(max-width:430px){.bank-actions{grid-template-columns:1fr}.bank-tx-main{flex-direction:column}.bank-amount{align-self:flex-start}.bank-split-row{grid-template-columns:1fr 80px 40px}.bank-import-summary{display:grid;grid-template-columns:1fr}.bank-import-summary span{width:100%}.bank-find-row{flex-direction:column}.bank-find-row b{align-self:flex-start}}
+@media(max-width:320px){.bank-tx-card{padding:10px}.bank-actions button,.bank-suggestion button{width:100%}.bank-split-row{grid-template-columns:1fr}.bank-split-row .danger{width:100%}}
+
+/* V61.38 Bank Reconciliation: in-app entry dialogs + sample data presentation only */
+#bankReconModal .bank-modal-head{margin-bottom:16px;padding-right:28px}
+#bankReconModal .bank-modal-head h2{margin:0 0 5px;font-size:20px;line-height:1.2;color:var(--text)}
+#bankReconModal .bank-modal-head .hint{margin:0;max-width:620px}
+#bankReconModal .bank-account-form,#bankReconModal .bank-rule-form{margin-top:4px}
+#bankReconModal .bank-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--border)}
+#bankReconModal .bank-sample-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:16px 0 4px}
+#bankReconModal .bank-sample-summary>div{border:1px solid var(--border);background:#f7fafc;border-radius:6px;padding:12px;display:grid;gap:3px}
+#bankReconModal .bank-sample-summary strong{font-size:19px;color:var(--text)}
+#bankReconModal .bank-sample-summary span{font-size:11px;color:var(--muted)}
+.bank-empty #brEmptyLoadSample{margin-top:10px}
+@media(max-width:700px){#bankReconModal .bank-sample-summary{grid-template-columns:1fr 1fr}#bankReconModal .bank-modal-actions{display:grid;grid-template-columns:1fr 1fr}#bankReconModal .bank-modal-actions button{min-height:42px}}
+@media(max-width:430px){#bankReconModal .bank-sample-summary{grid-template-columns:1fr}#bankReconModal .bank-modal-actions{grid-template-columns:1fr}}
+
+/* V61.39 Bank Reconciliation: side-by-side matching workspace only */
+#view-bankreconciliation .bank-card-list{gap:10px}
+.bank-recon-pair{background:#eef3f6;border:1px solid #d7e0e6;border-radius:7px;overflow:hidden}
+.bank-recon-side-labels{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #d7e0e6;background:#f5f8fa;color:#687984;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.045em}
+.bank-recon-side-labels span{padding:7px 11px}.bank-recon-side-labels span+span{border-left:1px solid #d7e0e6}
+.bank-recon-pair-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch}
+.bank-statement-side,.bank-books-side{min-width:0;padding:11px 12px;background:#fff}
+.bank-statement-side{display:grid;gap:4px;border-right:1px solid #d7e0e6}
+.bank-statement-side>strong{font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+.bank-statement-side>small{font-size:11px;color:var(--muted);line-height:1.3;overflow-wrap:anywhere}
+.bank-statement-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.bank-statement-top .bank-amount{font-size:15px}
+.bank-books-side{display:flex;flex-direction:column;gap:7px}
+.bank-recon-book-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center;min-height:70px;border:1px solid #dce6ec;border-radius:5px;background:#f8fafb;padding:8px 9px}
+.bank-recon-book-card.high-match{background:#e9f7ee;border-color:#a9d8b7}
+.bank-recon-book-card.possible-match,.bank-recon-book-card.rule-match{background:#fff9e9;border-color:#ead7a2}
+.bank-recon-book-card.no-match{background:#fafbfc;border-color:#e2e7ea}
+.bank-recon-book-head{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted)}
+.bank-recon-book-card>strong{font-size:12px;line-height:1.25;overflow-wrap:anywhere}
+.bank-recon-book-card>small{grid-column:1;font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.bank-recon-book-actions{grid-column:2;grid-row:2/4;display:flex;gap:5px;align-items:center;justify-content:flex-end}
+.bank-recon-book-actions button,.bank-recon-secondary-actions button{padding:6px 8px;font-size:11px;min-height:31px}
+.bank-recon-secondary-actions{display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap}
+@media(max-width:860px){
+  .bank-recon-side-labels{display:none}
+  .bank-recon-pair-grid{grid-template-columns:1fr}
+  .bank-statement-side{border-right:0;border-bottom:1px solid #d7e0e6}
+  .bank-statement-side::before{content:'Bank statement';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.045em;color:#687984;margin-bottom:2px}
+  .bank-books-side::before{content:'Accounting record';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.045em;color:#687984;margin-bottom:1px}
+}
+@media(max-width:430px){
+  .bank-statement-side,.bank-books-side{padding:10px}
+  .bank-recon-book-card{grid-template-columns:1fr;min-height:0}
+  .bank-recon-book-actions{grid-column:1;grid-row:auto;display:grid;grid-template-columns:1fr 1fr;width:100%;margin-top:4px}
+  .bank-recon-book-card>small{grid-column:1}
+  .bank-recon-secondary-actions{display:grid;grid-template-columns:1fr 1fr 1fr}
+  .bank-recon-book-actions button,.bank-recon-secondary-actions button{min-height:40px;width:100%}
+}
+@media(max-width:320px){.bank-recon-secondary-actions,.bank-recon-book-actions{grid-template-columns:1fr}}
+
+/* V61.43.1 Finlo branding only */
+.finlo-auth-logo{width:46px;height:46px;object-fit:cover;border-radius:10px}
+.app-version{position:fixed;left:14px;bottom:8px;z-index:15;font-size:11px;color:#74838d;pointer-events:none}
+body.auth-locked .app-version{display:none}
+@media(max-width:760px){.app-version{left:10px;bottom:6px;font-size:10px}}
+
+/* V61.45 Team & Access: reuses existing account card/table controls. */
+.account-team-card .table-scroll{margin-top:10px}.account-team-card table{min-width:650px}.account-team-card td select{min-width:112px;padding:7px 9px}.account-team-card td small{color:var(--muted)}
+/* V61.46 invitations and business switching — reuses existing controls. */
+.team-pending-wrap{margin-top:18px}.team-pending-wrap h4{margin:0 0 8px}.business-switch-list{display:grid;gap:8px;margin-top:12px}.business-switch-option{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left}.business-switch-option small{display:block;color:#6b7780;font-weight:400}.invite-auth-note{margin:0 0 12px;padding:10px 12px;border:1px solid #d7e4eb;border-radius:4px;background:#f7fbfd;color:#425466}
+
+/* V61.48 Custom per-user access */
+#customAccessRows td:first-child small{display:block;margin-top:3px;color:var(--muted,#6b7780);font-weight:400}
+#customAccessRows select{min-width:170px}
+/* V61.51 Referral & Finlo Credit */
+.referral-shortcut{white-space:nowrap}.referral-modal-box{max-width:860px}.referral-send-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}.referral-send-card .hint{grid-column:1/-1}.referral-summary{margin:14px 0}.referral-admin-kpis{margin:14px 0}.referral-admin-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin:16px 0}.referral-admin-panel{border:1px solid var(--border,#dbe2e7);border-radius:8px;padding:16px}.referral-report-head{margin-top:20px}.referral-filters{margin:8px 0 12px}.compact-btn{padding:6px 9px!important;font-size:12px!important}
+@media(max-width:760px){.referral-shortcut{order:-1;max-width:150px;overflow:hidden;text-overflow:ellipsis}.referral-send-card{grid-template-columns:1fr}.referral-send-card button{width:100%}.referral-admin-grid{grid-template-columns:1fr}.referral-modal-box{width:calc(100vw - 20px);max-height:92vh;overflow:auto}.referral-filters{display:grid;grid-template-columns:1fr}.referral-admin-panel .form-grid{grid-template-columns:1fr!important}}
+
+/* V61.55 — AI expense scanning. Scoped to My Expenses only. */
+.expense-ai-card .card-title{align-items:flex-start}
+.expense-ai-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:28px;padding:0 9px;border-radius:999px;background:#eef4f8;color:#284d68;font-size:.78rem;font-weight:800;letter-spacing:.04em}
+.expense-ai-state{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;margin-top:14px;padding:12px;border:1px solid #dce5eb;border-radius:10px;background:#f8fafb}
+.expense-ai-state[data-state="loading"]{border-color:#c6d9e8}
+.expense-ai-state[data-state="success"]{background:#f4fbf7;border-color:#cfe8d8}
+.expense-ai-state[data-state="error"]{background:#fff8f7;border-color:#f0d1cc}
+.expense-ai-preview{width:64px;height:64px;border-radius:8px;background:#eef2f5;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.expense-ai-preview img{width:100%;height:100%;object-fit:cover}
+.expense-ai-pdf{font-weight:800;color:#6a7782;font-size:.78rem}
+.expense-ai-state-copy{min-width:0}
+.expense-ai-state-copy strong,.expense-ai-state-copy span{display:block}
+.expense-ai-state-copy span{margin-top:3px;color:#6f7c86;font-size:.86rem}
+.expense-ai-review{margin-top:12px;padding:12px 14px;border:1px solid #dce9df;border-radius:10px;background:#f7fbf8;color:#2e4737}
+.expense-ai-review>strong{display:block;margin-bottom:7px}
+.expense-ai-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 14px;font-size:.84rem;color:#53645a}
+.expense-ai-check{font-size:.76rem;color:#587363;white-space:nowrap}
+.expense-ai-check.warn{color:#8a6418}
+.expense-ai-warning{margin-top:8px;padding-top:8px;border-top:1px solid #e6d9b9;color:#775817;font-size:.84rem}
+.expense-capture-btn:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:650px){.expense-ai-state{grid-template-columns:52px minmax(0,1fr);padding:10px}.expense-ai-preview{width:52px;height:52px}.expense-ai-state .compact-btn{grid-column:1/-1;width:100%}.expense-ai-review-grid{grid-template-columns:1fr}.expense-ai-card .card-title{gap:8px}}
