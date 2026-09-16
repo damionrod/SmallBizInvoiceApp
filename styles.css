@@ -3386,3 +3386,69 @@ body.auth-locked .app-version{display:none}
 .c1-status-badge{display:inline-block;margin:4px 0 0 6px;padding:2px 7px;border-radius:999px;background:#eef3f6;color:var(--navy);font-size:11px;font-weight:700}.c1-protected-action{display:block;max-width:460px;color:var(--muted);font-size:13px;line-height:1.4}.c1-primary-actions button{min-height:44px}
 @media(max-width:430px){.c1-primary-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.c1-primary-actions>*{min-height:44px;min-width:44px}.c1-primary-actions #previewPdf{grid-column:1/-1}.expense-primary-actions button,.expense-primary-actions summary{min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}body{overflow-x:hidden}}
 @media(max-width:390px){.c1-primary-actions{grid-template-columns:1fr}.c1-primary-actions #previewPdf{grid-column:auto}}
+
+
+/* ============================================================
+   V61.70C1P — Invoice & Expense list presentation polish only
+   ============================================================ */
+#view-invoices .invoice-list-card table,
+#expense-panel-bills .expense-list-card table{width:100%;table-layout:auto}
+#view-invoices .invoice-list-card table{min-width:1080px!important}
+#expense-panel-bills .expense-list-card table{min-width:1120px}
+#view-invoices .invoice-list-card th,
+#view-invoices .invoice-list-card td,
+#expense-panel-bills .expense-list-card th,
+#expense-panel-bills .expense-list-card td{vertical-align:middle;padding:9px 7px;white-space:nowrap}
+#view-invoices .inv-col-status,#expense-panel-bills .exp-col-status{min-width:76px}
+#view-invoices .inv-col-customer,#expense-panel-bills .exp-col-supplier{min-width:145px;max-width:220px}
+#view-invoices .inv-col-money,#expense-panel-bills .exp-col-money{text-align:right;font-variant-numeric:tabular-nums}
+#view-invoices .inv-col-balance,#expense-panel-bills .exp-col-balance{font-weight:700}
+#view-invoices .inv-col-actions,#expense-panel-bills .exp-col-actions{width:1%;min-width:138px}
+#view-invoices .invoice-row-actions{display:flex;align-items:center;justify-content:flex-start;gap:5px;min-width:0}
+#view-invoices .invoice-row-actions .invoice-icon-action{flex:0 0 auto}
+#expense-panel-bills .expense-primary-actions{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+#expense-panel-bills .expense-primary-actions>.secondary{padding:7px 9px;font-size:11px;min-height:34px}
+#expense-panel-bills .expense-more-actions summary{padding:7px 9px;font-size:11px;min-height:34px;display:flex;align-items:center}
+#expense-panel-bills .exp-col-ref small{display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+
+@media(max-width:760px){
+  #view-invoices,#view-expenses{max-width:100%;overflow-x:hidden}
+  #view-invoices .invoice-list-card .table-scroll,#expense-panel-bills .expense-list-card .table-scroll{overflow:visible!important;max-width:100%}
+  #view-invoices .invoice-list-card table,#view-invoices .invoice-list-card tbody,
+  #expense-panel-bills .expense-list-card table,#expense-panel-bills .expense-list-card tbody{display:block;width:100%;min-width:0!important;max-width:100%}
+  #view-invoices .invoice-list-card thead,#expense-panel-bills .expense-list-card thead{display:none}
+  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:100%;min-width:0;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;margin:0 0 10px;gap:0 12px;overflow:visible}
+  #view-invoices .invoice-list-card tr.invoice-list-row td,#expense-panel-bills .expense-list-card tr.expense-list-row td{display:flex!important;flex-direction:column;align-items:flex-start;width:auto!important;min-width:0!important;max-width:100%;padding:6px 0!important;border:0!important;white-space:normal!important;font-size:12px;line-height:1.3}
+  #view-invoices .invoice-list-card tr.invoice-list-row td::before,#expense-panel-bills .expense-list-card tr.expense-list-row td::before{content:attr(data-label)!important;display:block!important;margin:0 0 3px;font-size:9px;line-height:1.1;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+  #view-invoices .inv-col-invoice,#expense-panel-bills .exp-col-ref{grid-column:1;order:1;padding-top:0!important}
+  #view-invoices .inv-col-status,#expense-panel-bills .exp-col-status{grid-column:2;order:2;align-items:flex-end!important;padding-top:0!important}
+  #view-invoices .inv-col-customer,#expense-panel-bills .exp-col-supplier{grid-column:1/-1;order:3;max-width:none;border-bottom:1px solid #edf1f3!important;padding-bottom:10px!important;margin-bottom:2px}
+  #view-invoices .inv-col-total,#expense-panel-bills .exp-col-total{grid-column:1;order:4}
+  #view-invoices .inv-col-balance,#expense-panel-bills .exp-col-balance{grid-column:2;order:5;align-items:flex-end!important;text-align:right}
+  #view-invoices .inv-col-date,#expense-panel-bills .exp-col-date{grid-column:1;order:6}
+  #view-invoices .inv-col-due,#expense-panel-bills .exp-col-due{grid-column:2;order:7}
+  #view-invoices .inv-col-excl,#expense-panel-bills .exp-col-ex{grid-column:1;order:8}
+  #view-invoices .inv-col-gst,#expense-panel-bills .exp-col-gst{grid-column:2;order:9}
+  #view-invoices .inv-col-paid,#expense-panel-bills .exp-col-paid{grid-column:1;order:10}
+  #view-invoices .inv-col-payment-date,#expense-panel-bills .exp-col-payment-date{grid-column:2;order:11}
+  #view-invoices .inv-col-actions,#expense-panel-bills .exp-col-actions{grid-column:1/-1;order:12;width:auto;min-width:0;border-top:1px solid #edf1f3!important;margin-top:5px;padding-top:10px!important}
+  #view-invoices .inv-col-actions::before,#expense-panel-bills .exp-col-actions::before{display:none!important}
+  #view-invoices .invoice-row-actions,#expense-panel-bills .expense-primary-actions{width:100%;display:flex!important;flex-wrap:wrap;gap:7px}
+  #view-invoices .invoice-icon-action{width:44px;min-width:44px;height:44px;min-height:44px!important}
+  #expense-panel-bills .expense-primary-actions>.secondary,#expense-panel-bills .expense-more-actions summary{min-height:44px;padding:9px 12px;font-size:12px}
+  #expense-panel-bills .expense-more-actions{min-width:72px}
+  #view-invoices .invoice-customer-name,#expense-panel-bills .exp-col-supplier{overflow-wrap:anywhere;white-space:normal}
+}
+@media(max-width:430px){
+  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{padding:11px 10px;gap:0 10px}
+  #view-invoices .invoice-number-link,#expense-panel-bills .exp-col-ref strong{font-size:14px}
+  #view-invoices .c1-status-badge,#expense-panel-bills .expense-status{max-width:100%;white-space:nowrap}
+}
+@media(max-width:390px){
+  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{gap:0 8px}
+  #view-invoices .invoice-list-card tr.invoice-list-row td,#expense-panel-bills .expense-list-card tr.expense-list-row td{font-size:11.5px}
+}
+@media(max-width:375px){
+  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{padding:10px 9px}
+  #view-invoices .invoice-row-actions,#expense-panel-bills .expense-primary-actions{gap:6px}
+}
