@@ -3315,3 +3315,71 @@ body.auth-locked .app-version{display:none}
 /* V61.65 Super Admin plan module picker */
 #adminPlanGrid .plan-module-picker{margin:9px 0}#adminPlanGrid .plan-module-picker-title{display:block;font-size:12px;font-weight:700;color:#4b5964;margin-bottom:6px}#adminPlanGrid .plan-module-options{border:1px solid var(--border);border-radius:6px;padding:7px 10px;background:#fbfcfd}#adminPlanGrid .plan-module-option{margin:0;padding:5px 0;min-height:34px}#adminPlanGrid .plan-module-option span{font-size:12px;font-weight:650;color:#2f3f49}#adminPlanGrid .plan-module-option small{display:block;font-size:9px;font-weight:500;color:#7a8993}
 @media(max-width:700px){#adminPlanGrid .plan-module-option{min-height:44px}}
+
+
+/* V61.67 Job profitability upgrade — scoped to Job Costing only. */
+.jc-job-cards{display:none}
+.jc-job-card{margin-bottom:12px}
+.jc-job-card .jc-job-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.jc-job-card .jc-job-card-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}
+.jc-job-card .jc-job-card-metrics span{display:block;color:var(--muted,#6b7780);font-size:.82rem}
+.jc-positive{color:#207245}.jc-negative{color:#b42318}.jc-neutral{color:inherit}
+#jobDetailModal .modal-box{width:min(1120px,calc(100vw - 32px));max-height:92vh;overflow:auto}
+.job-detail-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.job-detail-actions,.job-actual-actions{display:flex;gap:8px;flex-wrap:wrap}
+.job-detail-tabs{margin-top:14px;overflow-x:auto;white-space:nowrap}
+.job-detail-panel{display:none}.job-detail-panel.active{display:block}
+.job-detail-metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:14px}
+.job-estimate-actual td,.job-estimate-actual th{white-space:nowrap}
+.jc-source-badge{display:inline-block;border:1px solid var(--border,#d9e0e5);border-radius:999px;padding:2px 7px;font-size:.78rem}
+.jc-actual-section{margin-top:16px}
+.jc-actual-total{display:flex;justify-content:flex-end;gap:14px;align-items:center;font-size:1.05rem;margin-top:14px;padding-top:12px;border-top:1px solid var(--border,#d9e0e5)}
+.job-status-row{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.job-activity-list{display:grid;gap:8px}.job-activity-item{border-bottom:1px solid var(--border,#e1e6ea);padding:8px 0}
+@media(max-width:820px){
+  #jc-panel-saved .jc-jobs-table{display:none}
+  .jc-job-cards{display:block}
+  #jobDetailModal .modal-box{width:calc(100vw - 16px);max-height:96vh;padding:14px}
+  .job-detail-head{display:block}.job-detail-actions{margin-top:12px}
+  .job-detail-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .job-detail-actions button,.job-actual-actions button{min-height:44px}
+}
+@media(max-width:520px){
+  .jc-job-card .jc-job-card-metrics,.job-detail-metrics{grid-template-columns:1fr}
+  .job-detail-actions,.job-actual-actions{display:grid;grid-template-columns:1fr}
+  .job-detail-actions button,.job-actual-actions button{width:100%}
+}
+/* V61.68A Payroll Compliance — scoped Super Admin additions only */
+#adminPayrollCompliance h3{margin:18px 0 8px}#adminPayrollCompliance table small,#adminCountryPayrollRules table small{display:block;margin-top:4px;color:var(--muted,#71808b)}#adminPayrollCompliance .row-actions{display:flex;gap:6px;flex-wrap:wrap}#adminPayrollCompliance a.secondary{display:inline-flex;align-items:center;text-decoration:none}#adminCountryPayrollRules code{white-space:pre-wrap;word-break:break-word;font:inherit}@media(max-width:700px){#adminPayrollCompliance .card-title{align-items:flex-start;gap:10px}#adminPayrollCompliance .card-title>button{width:100%;min-height:44px}#adminPayrollCompliance .table-scroll{overflow-x:auto}}
+
+/* V61.68A IA: Super Admin navigation only; existing management controls retain their styles. */
+.admin-section-nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px;padding:8px;background:#fff;border:1px solid #dfe7ed;border-radius:12px;position:sticky;top:8px;z-index:20}
+.admin-section-nav button{border:0;background:transparent;padding:9px 12px;border-radius:8px;color:#425b6b;font-weight:600;cursor:pointer}
+.admin-section-nav button:hover,.admin-section-nav button.active{background:#eaf4f9;color:#173f5c}
+.admin-view-panel[hidden]{display:none!important}.admin-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin:4px 0 16px}.admin-section-head h2{margin:0 0 4px}.admin-dashboard-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}.admin-summary-card{margin:0}.admin-summary-card h2{margin-top:0}
+@media(max-width:900px){.admin-dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-section-nav{position:static;overflow-x:auto;flex-wrap:nowrap}.admin-section-nav button{white-space:nowrap}}
+@media(max-width:560px){.admin-dashboard-grid{grid-template-columns:1fr}.admin-section-head{flex-direction:column}.admin-section-nav{margin-left:-2px;margin-right:-2px}}
+
+/* V61.68B GST period experience — additive only */
+.financial-gst-period-card{display:grid;gap:16px}.gst-period-shortcuts{flex-wrap:wrap}.gst-period-summary{margin:0}.financial-gst-period-card .notice{margin:0}@media(max-width:700px){.gst-period-shortcuts{display:grid;grid-template-columns:1fr}.gst-period-shortcuts button{width:100%}}
+
+/* V61.68B Settings IA — full-page central settings; existing controls/handlers are reused. */
+.settings-page-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
+.settings-page-nav{position:sticky;top:82px;display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--card,#fff);border:1px solid var(--border,#dfe6ee);border-radius:14px}
+.settings-page-nav button{width:100%;text-align:left;border:0;background:transparent;padding:11px 12px;border-radius:9px;font:inherit;cursor:pointer;color:inherit}
+.settings-page-nav button.active{background:rgba(25,118,189,.10);font-weight:700;color:#135f98}
+.settings-page-content{min-width:0}.settings-page-panel{min-width:0}.settings-section-head{margin:0 0 14px}.settings-section-head h2{margin:0 0 4px}.settings-section-head p{margin:0;color:var(--muted,#667085)}
+#accountModal:not(.open){display:none!important}
+@media(max-width:760px){.settings-page-layout{grid-template-columns:1fr}.settings-page-nav{position:static;display:grid;grid-template-columns:1fr 1fr}.settings-page-nav button{min-height:44px}.settings-page-content{width:100%}}
+@media(max-width:460px){.settings-page-nav{grid-template-columns:1fr}}
+
+/* V61.68B expense business/private allocation - mobile first */
+.expense-allocation{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.expense-allocation-head{display:flex;gap:14px;align-items:end;justify-content:space-between}.expense-allocation-head>div{min-width:0}.expense-allocation-head strong,.expense-allocation-head small{display:block}.expense-allocation-head small{margin-top:3px;color:var(--muted);font-size:.84rem}.expense-allocation-head select{max-width:260px}
+.expense-allocation-method{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:14px 0 10px;padding:4px;background:#f3f6f8;border-radius:10px}.expense-allocation-method button{min-height:44px;border:0;border-radius:8px;background:transparent;font-weight:750;cursor:pointer}.expense-allocation-method button.active{background:#fff;box-shadow:0 1px 4px rgba(20,40,60,.12)}
+.expense-allocation-summary{margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:10px 12px}.expense-allocation-summary>div{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid #edf1f4}.expense-allocation-summary>div:last-child{border-bottom:0}.expense-allocation-summary span{color:var(--muted)}.expense-allocation-summary strong{text-align:right}.field-error{display:block;color:#a43a32;min-height:1em;margin-top:4px}.expense-allocation-detail{margin:14px 0;padding:14px;border:1px solid var(--border);border-radius:12px}.expense-allocation-detail h3{margin-top:0}
+@media(max-width:650px){.expense-allocation-head{display:block}.expense-allocation-head select{width:100%;max-width:none;margin-top:10px;min-height:46px}.expense-allocation-method button{min-height:46px}.expense-allocation-inputs{grid-template-columns:1fr!important}.expense-allocation-summary{padding:8px 10px}.expense-allocation-summary>div{align-items:center}.expense-allocation-summary strong{max-width:55%;overflow-wrap:anywhere}}
+/* V61.69B multi-business UX: keep the single-business header familiar; show active business context without adding a workspace screen. */
+#activeBusinessIndicator{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#addBusinessMessage:not(:empty){color:var(--danger)}
+@media(max-width:430px){#activeBusinessIndicator{max-width:150px}.business-switch-option{align-items:flex-start}.business-switch-option span:last-child{white-space:nowrap}.modal#addBusinessModal,.modal#switchBusinessModal{padding:10px}.modal#addBusinessModal .modal-box,.modal#switchBusinessModal .modal-box{margin:18px auto;padding:22px 16px}.modal#addBusinessModal .actions>*,.modal#switchBusinessModal .actions>*{width:100%;flex:1 1 100%}}

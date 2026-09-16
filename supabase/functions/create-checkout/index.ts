@@ -43,6 +43,10 @@ Deno.serve(async(req)=>{
     const {data:businessId,error:businessError}=await client.rpc('current_business_id');
     if(businessError||!businessId)return out({error:'No active business context found'},403);
 
+    // Billing is server-authorised Owner-only. UI visibility is not a security boundary.
+    const {data:billingRole,error:roleError}=await client.rpc('v6147_current_business_role',{p_business_id:businessId});
+    if(roleError||billingRole!=='owner')return out({error:'Only the Business Owner can manage billing'},403);
+
     const {data:profile}=await client.from('profiles').select('email').eq('id',user.id).single();
     const {planSlug,returnUrl}=await req.json();
     const safeReturnUrl=validateReturnUrl(returnUrl,req);

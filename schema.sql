@@ -1072,3 +1072,549 @@ as $$
   )
   from public.profiles p where p.id=auth.uid()
 $$;
+
+
+-- ============================================================
+-- V61.67 - Job Costing actuals / profitability upgrade
+
+-- V61.67 - Job Costing actuals / profitability upgrade
+-- Additive only. Keeps job_costings as the canonical job record.
+
+alter table public.job_costings add column if not exists status text not null default 'draft';
+alter table public.job_costings add column if not exists estimate_status text not null default 'not_estimated';
+alter table public.job_costings add column if not exists estimate_frozen_at timestamptz;
+alter table public.job_costings add column if not exists original_estimate_snapshot jsonb;
+alter table public.job_costings add column if not exists current_estimate_snapshot jsonb;
+alter table public.job_costings add column if not exists started_at timestamptz;
+alter table public.job_costings add column if not exists completed_at timestamptz;
+
+alter table public.invoices add column if not exists job_costing_id uuid;
+
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname='invoices_job_costing_id_fkey') then
+    alter table public.invoices add constraint invoices_job_costing_id_fkey foreign key (job_costing_id) references public.job_costings(id) on delete set null;
+  end if;
+end $$;
+
+create index if not exists job_costings_business_status_idx on public.job_costings(business_id,status);
+create index if not exists invoices_business_job_costing_idx on public.invoices(business_id,job_costing_id);
+
+create table if not exists public.job_actual_costs (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null default public.current_business_id() references public.businesses(id) on delete cascade,
+  job_costing_id uuid not null references public.job_costings(id) on delete cascade,
+  cost_date date not null default current_date,
+  cost_type text not null default 'other',
+  description text not null,
+  quantity numeric(12,3) not null default 1,
+  unit text not null default 'Item',
+  unit_cost numeric(12,4) not null default 0,
+  amount_ex_gst numeric(12,2) not null default 0,
+  notes text,
+  source_type text not null default 'manual',
+  created_by uuid default auth.uid() references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint job_actual_costs_source_check check (source_type in ('manual')),
+  constraint job_actual_costs_amount_check check (quantity >= 0 and unit_cost >= 0 and amount_ex_gst >= 0)
+);
+create index if not exists job_actual_costs_business_job_idx on public.job_actual_costs(business_id,job_costing_id);
+create index if not exists job_actual_costs_job_date_idx on public.job_actual_costs(job_costing_id,cost_date);
+
+create table if not exists public.job_activity (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null default public.current_business_id() references public.businesses(id) on delete cascade,
+  job_costing_id uuid not null references public.job_costings(id) on delete cascade,
+  activity_type text not null,
+  description text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_by uuid default auth.uid() references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists job_activity_business_job_idx on public.job_activity(business_id,job_costing_id,created_at desc);
+
+alter table public.job_actual_costs enable row level security;
+alter table public.job_activity enable row level security;
+
+drop policy if exists v6167_job_actual_costs_tenant on public.job_actual_costs;
+create policy v6167_job_actual_costs_tenant on public.job_actual_costs for all to authenticated
+using (public.is_super_admin() or business_id=public.current_business_id())
+with check (public.is_super_admin() or business_id=public.current_business_id());
+
+drop policy if exists v6167_job_activity_tenant on public.job_activity;
+create policy v6167_job_activity_tenant on public.job_activity for all to authenticated
+using (public.is_super_admin() or business_id=public.current_business_id())
+with check (public.is_super_admin() or business_id=public.current_business_id());
+
+create or replace function public.v6167_validate_job_business()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  job_business uuid;
+begin
+  if new.job_costing_id is null then return new; end if;
+  select business_id into job_business from public.job_costings where id=new.job_costing_id;
+  if job_business is null then raise exception 'Job not found'; end if;
+  if new.business_id is null then new.business_id:=job_business; end if;
+  if new.business_id is distinct from job_business then raise exception 'Job belongs to a different business'; end if;
+  return new;
+end $$;
+
+drop trigger if exists v6167_job_actual_costs_business_guard on public.job_actual_costs;
+create trigger v6167_job_actual_costs_business_guard before insert or update of business_id,job_costing_id on public.job_actual_costs
+for each row execute function public.v6167_validate_job_business();
+
+drop trigger if exists v6167_job_activity_business_guard on public.job_activity;
+create trigger v6167_job_activity_business_guard before insert or update of business_id,job_costing_id on public.job_activity
+for each row execute function public.v6167_validate_job_business();
+
+create or replace function public.v6167_invoice_job_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  quote_job uuid;
+  job_business uuid;
+begin
+  if new.job_costing_id is null and new.source_quote_id is not null then
+    select job_costing_id into quote_job from public.quotes where id=new.source_quote_id;
+    new.job_costing_id:=quote_job;
+  end if;
+  if new.job_costing_id is not null then
+    select business_id into job_business from public.job_costings where id=new.job_costing_id;
+    if job_business is null then raise exception 'Job not found'; end if;
+    if new.business_id is null then new.business_id:=job_business; end if;
+    if new.business_id is distinct from job_business then raise exception 'Invoice job belongs to a different business'; end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists v6167_invoice_job_guard on public.invoices;
+create trigger v6167_invoice_job_guard before insert or update of business_id,job_costing_id,source_quote_id on public.invoices
+for each row execute function public.v6167_invoice_job_guard();
+
+create or replace function public.v6167_sync_job_from_quote()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  snap jsonb;
+begin
+  if new.job_costing_id is null then return new; end if;
+  select coalesce(current_estimate_snapshot,costing_snapshot,'{}'::jsonb) into snap from public.job_costings where id=new.job_costing_id;
+  if tg_op='INSERT' then
+    update public.job_costings
+      set original_estimate_snapshot=coalesce(original_estimate_snapshot,snap),
+          current_estimate_snapshot=coalesce(current_estimate_snapshot,snap),
+          estimate_frozen_at=coalesce(estimate_frozen_at,now()),
+          estimate_status=case when estimate_status='not_estimated' then 'frozen' else 'frozen' end,
+          status=case when status in ('approved_won','in_progress','completed','cancelled') then status else 'quoted' end,
+          updated_at=now()
+    where id=new.job_costing_id;
+  end if;
+  if new.status in ('approved','won') and (tg_op='INSERT' or old.status is distinct from new.status) then
+    update public.job_costings set status=case when status='completed' then status else 'approved_won' end,updated_at=now() where id=new.job_costing_id;
+    if tg_op='UPDATE' and old.status is distinct from new.status then
+      insert into public.job_activity(business_id,job_costing_id,activity_type,description,metadata,created_by)
+      values(new.business_id,new.job_costing_id,'quote_approved','Quote '||new.quote_number||' approved / won',jsonb_build_object('quote_id',new.id),auth.uid());
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists v6167_sync_job_from_quote on public.quotes;
+create trigger v6167_sync_job_from_quote after insert or update of status on public.quotes
+for each row execute function public.v6167_sync_job_from_quote();
+
+
+-- Lightweight activity hooks for existing source modules. They log links/status changes only;
+-- source transactions remain authoritative and are never copied into job_actual_costs.
+create or replace function public.v6167_record_source_activity()
+returns trigger
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  jid uuid;
+  label text;
+  typ text;
+begin
+  jid:=new.job_costing_id;
+  if jid is null then return new; end if;
+  if tg_op='UPDATE' and old.job_costing_id is not distinct from new.job_costing_id then
+    if tg_table_name='payroll_timesheets' and old.status is distinct from new.status and new.status='approved' then
+      null;
+    else
+      return new;
+    end if;
+  end if;
+  if tg_table_name='expenses' then typ:='expense_assigned'; label:='Expense '||coalesce(new.expense_number,'')||' assigned to job';
+  elsif tg_table_name='expense_lines' then typ:='expense_assigned'; label:='Split expense line assigned to job';
+  elsif tg_table_name='payroll_timesheets' then typ:='timesheet_assigned'; label:=case when new.status='approved' then 'Approved timesheet assigned to job' else 'Timesheet assigned to job' end;
+  elsif tg_table_name='invoices' then typ:='invoice_created'; label:='Invoice '||coalesce(new.invoice_number,'')||' linked to job';
+  else return new;
+  end if;
+  insert into public.job_activity(business_id,job_costing_id,activity_type,description,metadata,created_by)
+  values(new.business_id,jid,typ,label,jsonb_build_object('source_table',tg_table_name,'source_id',new.id),auth.uid());
+  return new;
+end $$;
+
+drop trigger if exists v6167_expense_job_activity on public.expenses;
+create trigger v6167_expense_job_activity after insert or update of job_costing_id on public.expenses
+for each row execute function public.v6167_record_source_activity();
+
+drop trigger if exists v6167_expense_line_job_activity on public.expense_lines;
+create trigger v6167_expense_line_job_activity after insert or update of job_costing_id on public.expense_lines
+for each row execute function public.v6167_record_source_activity();
+
+drop trigger if exists v6167_timesheet_job_activity on public.payroll_timesheets;
+create trigger v6167_timesheet_job_activity after insert or update of job_costing_id,status on public.payroll_timesheets
+for each row execute function public.v6167_record_source_activity();
+
+drop trigger if exists v6167_invoice_job_activity on public.invoices;
+create trigger v6167_invoice_job_activity after insert or update of job_costing_id on public.invoices
+for each row execute function public.v6167_record_source_activity();
+
+-- Backfill invoice job links only when the existing quote relationship is unambiguous.
+update public.invoices i
+set job_costing_id=q.job_costing_id
+from public.quotes q
+where i.job_costing_id is null
+  and i.source_quote_id=q.id
+  and q.job_costing_id is not null
+  and (i.business_id is null or i.business_id=q.business_id);
+
+-- Preserve current estimate data for existing records without overwriting costing_snapshot.
+update public.job_costings
+set current_estimate_snapshot=coalesce(current_estimate_snapshot,costing_snapshot),
+    estimate_status=case
+      when coalesce(total_cost_ex_gst,0)>0 or coalesce(proposed_quote_price_ex_gst,0)>0 or coalesce(costing_snapshot,'{}'::jsonb) <> '{}'::jsonb then 'estimated'
+      else 'not_estimated'
+    end
+where current_estimate_snapshot is null;
+
+-- Safe initial lifecycle inference. Never infer completion.
+update public.job_costings j
+set status=case
+  when exists(select 1 from public.quotes q where q.job_costing_id=j.id and q.status in ('approved','won'))
+       or exists(select 1 from public.invoices i where i.job_costing_id=j.id) then 'approved_won'
+  when exists(select 1 from public.quotes q where q.job_costing_id=j.id) then 'quoted'
+  when j.estimate_status in ('estimated','frozen') then 'estimated'
+  else 'draft'
+end
+where j.status='draft';
+
+-- Freeze the original estimate for existing quoted jobs if it was not already captured.
+update public.job_costings j
+set original_estimate_snapshot=coalesce(j.original_estimate_snapshot,j.current_estimate_snapshot,j.costing_snapshot),
+    estimate_frozen_at=coalesce(j.estimate_frozen_at,(select min(q.created_at) from public.quotes q where q.job_costing_id=j.id)),
+    estimate_status='frozen'
+where exists(select 1 from public.quotes q where q.job_costing_id=j.id)
+  and j.original_estimate_snapshot is null;
+-- V61.68A — platform payroll rulesets + official compliance monitoring
+-- Additive only. Detection/review NEVER changes active production payroll rules.
+
+create table if not exists public.payroll_rulesets (
+  id uuid primary key default gen_random_uuid(),
+  country_code char(2) not null check (country_code ~ '^[A-Z]{2}$'),
+  name text not null,
+  version text not null,
+  effective_from date not null,
+  effective_to date,
+  status text not null default 'draft' check (status in ('draft','validated','approved','active','retired')),
+  source_update_id uuid,
+  created_by uuid references auth.users(id) on delete set null,
+  approved_by uuid references auth.users(id) on delete set null,
+  approved_at timestamptz,
+  activated_by uuid references auth.users(id) on delete set null,
+  activated_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (effective_to is null or effective_to >= effective_from),
+  unique(country_code,name,version)
+);
+
+create table if not exists public.payroll_ruleset_rules (
+  id uuid primary key default gen_random_uuid(),
+  ruleset_id uuid not null references public.payroll_rulesets(id) on delete cascade,
+  rule_type text not null,
+  rule_key text not null,
+  numeric_value numeric,
+  text_value text,
+  json_value jsonb,
+  source_note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (num_nonnulls(numeric_value,text_value,json_value)=1),
+  unique(ruleset_id,rule_type,rule_key)
+);
+
+create table if not exists public.payroll_compliance_sources (
+  id uuid primary key default gen_random_uuid(),
+  country_code char(2) not null check (country_code ~ '^[A-Z]{2}$'),
+  source_name text not null,
+  source_type text not null default 'official_specification',
+  source_url text not null,
+  source_identifier text not null,
+  purpose text,
+  active boolean not null default true,
+  check_frequency text not null default 'daily',
+  last_checked_at timestamptz,
+  last_successful_check_at timestamptz,
+  last_changed_at timestamptz,
+  last_known_version text,
+  last_known_fingerprint text,
+  last_source_reference text,
+  last_check_status text not null default 'never_checked' check (last_check_status in ('never_checked','no_change','change_detected','check_error')),
+  last_error text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(country_code,source_identifier)
+);
+
+create table if not exists public.payroll_compliance_updates (
+  id uuid primary key default gen_random_uuid(),
+  source_id uuid not null references public.payroll_compliance_sources(id) on delete restrict,
+  country_code char(2) not null,
+  detected_at timestamptz not null default now(),
+  source_version text,
+  source_fingerprint text not null,
+  previous_fingerprint text,
+  status text not null default 'review_required' check (status in ('review_required','draft_prepared','validated','approved','activated','dismissed_no_payroll_impact')),
+  summary text,
+  source_reference text,
+  proposed_ruleset_id uuid references public.payroll_rulesets(id) on delete set null,
+  reviewed_at timestamptz,
+  reviewed_by uuid references auth.users(id) on delete set null,
+  review_notes text,
+  dismissed_at timestamptz,
+  dismissed_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(source_id,source_fingerprint)
+);
+
+alter table public.payroll_rulesets drop constraint if exists payroll_rulesets_source_update_id_fkey;
+alter table public.payroll_rulesets add constraint payroll_rulesets_source_update_id_fkey foreign key(source_update_id) references public.payroll_compliance_updates(id) on delete set null;
+
+create table if not exists public.payroll_compliance_audit (
+  id uuid primary key default gen_random_uuid(),
+  country_code char(2),
+  source_id uuid references public.payroll_compliance_sources(id) on delete set null,
+  update_id uuid references public.payroll_compliance_updates(id) on delete set null,
+  ruleset_id uuid references public.payroll_rulesets(id) on delete set null,
+  action text not null,
+  detail jsonb not null default '{}'::jsonb,
+  actor_user_id uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists payroll_rulesets_country_status_idx on public.payroll_rulesets(country_code,status,effective_from);
+create index if not exists payroll_ruleset_rules_ruleset_idx on public.payroll_ruleset_rules(ruleset_id,rule_type,rule_key);
+create index if not exists payroll_compliance_updates_status_idx on public.payroll_compliance_updates(country_code,status,detected_at desc);
+create index if not exists payroll_compliance_audit_created_idx on public.payroll_compliance_audit(created_at desc);
+
+alter table public.payroll_rulesets enable row level security;
+alter table public.payroll_ruleset_rules enable row level security;
+alter table public.payroll_compliance_sources enable row level security;
+alter table public.payroll_compliance_updates enable row level security;
+alter table public.payroll_compliance_audit enable row level security;
+
+do $$ declare t text; begin
+  foreach t in array array['payroll_rulesets','payroll_ruleset_rules','payroll_compliance_sources','payroll_compliance_updates','payroll_compliance_audit'] loop
+    execute format('drop policy if exists %I on public.%I',t||'_super_admin',t);
+    execute format('create policy %I on public.%I for all to authenticated using (public.is_super_admin()) with check (public.is_super_admin())',t||'_super_admin',t);
+  end loop;
+end $$;
+
+-- Server/service-role monitor writes are intentionally separate from ordinary tenant access.
+-- Seed the authoritative NZ IRD landing page. The server monitor resolves and fingerprints the actual specification document.
+insert into public.payroll_compliance_sources(country_code,source_name,source_type,source_url,source_identifier,purpose,active,check_frequency)
+values ('NZ','Inland Revenue New Zealand','official_specification','https://www.ird.govt.nz/digital-service-providers/services-catalogue/returns-and-information/payday-filing/payroll-calculations-and-business-rules','ird-nz-payroll-calculations-business-rules','Payroll Calculations & Business Rules',true,'daily')
+on conflict(country_code,source_identifier) do update set source_name=excluded.source_name,source_type=excluded.source_type,source_url=excluded.source_url,purpose=excluded.purpose,active=true,updated_at=now();
+
+create or replace function public.v6168a_create_draft_ruleset(p_update_id uuid, p_name text, p_version text, p_effective_from date, p_effective_to date default null)
+returns uuid language plpgsql security definer set search_path=public as $$
+declare u public.payroll_compliance_updates; r_id uuid;
+begin
+  if not public.is_super_admin() then raise exception 'Super Admin access required'; end if;
+  select * into u from public.payroll_compliance_updates where id=p_update_id;
+  if u.id is null then raise exception 'Compliance update not found'; end if;
+  if u.status not in ('review_required','draft_prepared') then raise exception 'This update is not available for draft preparation'; end if;
+  insert into public.payroll_rulesets(country_code,name,version,effective_from,effective_to,status,source_update_id,created_by)
+  values(u.country_code,trim(p_name),trim(p_version),p_effective_from,p_effective_to,'draft',u.id,auth.uid()) returning id into r_id;
+  insert into public.payroll_ruleset_rules(ruleset_id,rule_type,rule_key,numeric_value,text_value,json_value,source_note)
+  select r_id,rule_type,rule_key,numeric_value,text_value,json_value,source_note
+  from public.country_payroll_rules
+  where country_code=u.country_code and active=true
+    and effective_from <= p_effective_from and (effective_to is null or effective_to >= p_effective_from)
+  on conflict do nothing;
+  update public.payroll_compliance_updates set status='draft_prepared',proposed_ruleset_id=r_id,reviewed_at=coalesce(reviewed_at,now()),reviewed_by=coalesce(reviewed_by,auth.uid()),updated_at=now() where id=u.id;
+  insert into public.payroll_compliance_audit(country_code,source_id,update_id,ruleset_id,action,actor_user_id) values(u.country_code,u.source_id,u.id,r_id,'draft_created',auth.uid());
+  return r_id;
+end $$;
+
+create or replace function public.v6168a_mark_update_no_impact(p_update_id uuid,p_notes text default null)
+returns void language plpgsql security definer set search_path=public as $$
+declare u public.payroll_compliance_updates;
+begin
+  if not public.is_super_admin() then raise exception 'Super Admin access required'; end if;
+  select * into u from public.payroll_compliance_updates where id=p_update_id;
+  if u.id is null then raise exception 'Compliance update not found'; end if;
+  update public.payroll_compliance_updates set status='dismissed_no_payroll_impact',reviewed_at=now(),reviewed_by=auth.uid(),review_notes=nullif(trim(coalesce(p_notes,'')),''),dismissed_at=now(),dismissed_by=auth.uid(),updated_at=now() where id=p_update_id;
+  insert into public.payroll_compliance_audit(country_code,source_id,update_id,action,detail,actor_user_id) values(u.country_code,u.source_id,u.id,'update_dismissed',jsonb_build_object('notes',coalesce(p_notes,'')),auth.uid());
+end $$;
+
+create or replace function public.v6168a_set_ruleset_status(p_ruleset_id uuid,p_status text)
+returns void language plpgsql security definer set search_path=public as $$
+declare r public.payroll_rulesets; u public.payroll_compliance_updates;
+begin
+  if not public.is_super_admin() then raise exception 'Super Admin access required'; end if;
+  if p_status not in ('validated','approved') then raise exception 'Only validated or approved status may be set here'; end if;
+  select * into r from public.payroll_rulesets where id=p_ruleset_id;
+  if r.id is null then raise exception 'Ruleset not found'; end if;
+  if p_status='validated' and r.status<>'draft' then raise exception 'Only Draft rulesets can be validated'; end if;
+  if p_status='approved' and r.status<>'validated' then raise exception 'Ruleset must be validated before approval'; end if;
+  update public.payroll_rulesets set status=p_status,approved_by=case when p_status='approved' then auth.uid() else approved_by end,approved_at=case when p_status='approved' then now() else approved_at end,updated_at=now() where id=r.id;
+  if r.source_update_id is not null then update public.payroll_compliance_updates set status=p_status,updated_at=now() where id=r.source_update_id; end if;
+  insert into public.payroll_compliance_audit(country_code,update_id,ruleset_id,action,actor_user_id) values(r.country_code,r.source_update_id,r.id,case when p_status='validated' then 'validation_run' else 'ruleset_approved' end,auth.uid());
+end $$;
+
+create or replace function public.v6168a_activate_ruleset(p_ruleset_id uuid)
+returns void language plpgsql security definer set search_path=public as $$
+declare r public.payroll_rulesets; rr record;
+begin
+  if not public.is_super_admin() then raise exception 'Super Admin access required'; end if;
+  select * into r from public.payroll_rulesets where id=p_ruleset_id for update;
+  if r.id is null then raise exception 'Ruleset not found'; end if;
+  if r.status<>'approved' then raise exception 'Ruleset must be explicitly approved before activation'; end if;
+  if not exists(select 1 from public.payroll_ruleset_rules where ruleset_id=r.id) then raise exception 'Ruleset has no rules'; end if;
+  -- This is the ONLY V61.68A path that writes production payroll rules, and it requires an approved ruleset + Super Admin.
+  for rr in select * from public.payroll_ruleset_rules where ruleset_id=r.id loop
+    insert into public.country_payroll_rules(country_code,rule_type,rule_key,numeric_value,text_value,json_value,effective_from,effective_to,active,source_note,created_at,updated_at)
+    values(r.country_code,rr.rule_type,rr.rule_key,rr.numeric_value,rr.text_value,rr.json_value,r.effective_from,r.effective_to,true,coalesce(rr.source_note,'Approved Finlo payroll ruleset '||r.name||' '||r.version),now(),now())
+    on conflict(country_code,rule_type,rule_key,effective_from) do update set numeric_value=excluded.numeric_value,text_value=excluded.text_value,json_value=excluded.json_value,effective_to=excluded.effective_to,active=true,source_note=excluded.source_note,updated_at=now();
+  end loop;
+  update public.payroll_rulesets set status='active',activated_by=auth.uid(),activated_at=now(),updated_at=now() where id=r.id;
+  if r.source_update_id is not null then update public.payroll_compliance_updates set status='activated',updated_at=now() where id=r.source_update_id; end if;
+  insert into public.payroll_compliance_audit(country_code,update_id,ruleset_id,action,actor_user_id) values(r.country_code,r.source_update_id,r.id,'ruleset_activated',auth.uid());
+end $$;
+
+revoke all on function public.v6168a_create_draft_ruleset(uuid,text,text,date,date) from public,anon;
+revoke all on function public.v6168a_mark_update_no_impact(uuid,text) from public,anon;
+revoke all on function public.v6168a_set_ruleset_status(uuid,text) from public,anon;
+revoke all on function public.v6168a_activate_ruleset(uuid) from public,anon;
+grant execute on function public.v6168a_create_draft_ruleset(uuid,text,text,date,date) to authenticated;
+grant execute on function public.v6168a_mark_update_no_impact(uuid,text) to authenticated;
+grant execute on function public.v6168a_set_ruleset_status(uuid,text) to authenticated;
+grant execute on function public.v6168a_activate_ruleset(uuid) to authenticated;
+
+-- Close the legacy direct-write path. Production rules are readable by tenants,
+-- but V61.68A activation is the only supported write path and is SECURITY DEFINER.
+drop policy if exists country_payroll_rules_admin_insert on public.country_payroll_rules;
+drop policy if exists country_payroll_rules_admin_update on public.country_payroll_rules;
+drop policy if exists country_payroll_rules_admin_delete on public.country_payroll_rules;
+
+
+-- V61.68B final additive migration
+-- V61.68B — NZ Business Tax/GST statutory rules and GST return period experience.
+-- Additive only. Tenant circumstances remain in financial_settings. Finalised GST returns are never rewritten.
+
+create table if not exists public.country_business_tax_rules (
+  id uuid primary key default gen_random_uuid(), country_code char(2) not null check(country_code ~ '^[A-Z]{2}$'),
+  rule_type text not null, rule_key text not null, numeric_value numeric, text_value text, json_value jsonb,
+  effective_from date not null, effective_to date, active boolean not null default true, source_note text,
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  check(num_nonnulls(numeric_value,text_value,json_value)=1), check(effective_to is null or effective_to>=effective_from),
+  unique(country_code,rule_type,rule_key,effective_from)
+);
+alter table public.country_business_tax_rules enable row level security;
+drop policy if exists country_business_tax_rules_read on public.country_business_tax_rules;
+create policy country_business_tax_rules_read on public.country_business_tax_rules for select to authenticated using (true);
+
+-- Production statutory values. These are centrally controlled and date-effective; tenants cannot edit them.
+insert into public.country_business_tax_rules(country_code,rule_type,rule_key,numeric_value,text_value,json_value,effective_from,source_note) values
+('NZ','gst','standard_rate_percent',15,null,null,'1989-07-01','IRD GST'),
+('NZ','gst','registration_threshold_12m',60000,null,null,'2009-04-01','IRD GST registration'),
+('NZ','gst','payments_basis_threshold_12m',2000000,null,null,'2000-10-10','IRD GST accounting basis'),
+('NZ','gst','six_monthly_threshold_12m',500000,null,null,'2000-10-10','IRD GST filing frequency'),
+('NZ','gst','monthly_mandatory_threshold_12m',24000000,null,null,'2000-10-10','IRD GST filing frequency'),
+('NZ','gst','standard_due_day',28,null,null,'1986-10-01','IRD GST filing'),
+('NZ','gst','march_period_due',null,'05-07',null,'1986-10-01','Period ending 31 March: 7 May'),
+('NZ','gst','november_period_due',null,'01-15',null,'1986-10-01','Period ending 30 November: 15 January'),
+('NZ','income_tax','company_rate_percent',28,null,null,'2011-04-01','IRD company tax rate'),
+('NZ','income_tax','trust_rate_percent',39,null,null,'2024-04-01','NZ trustee income rate; tenant circumstances may vary'),
+('NZ','income_tax','individual_brackets',null,null,'[{"up_to":15600,"rate":0.105},{"up_to":53500,"rate":0.175},{"up_to":78100,"rate":0.30},{"up_to":180000,"rate":0.33},{"up_to":null,"rate":0.39}]'::jsonb,'2024-07-31','IRD individual income tax rates')
+on conflict(country_code,rule_type,rule_key,effective_from) do nothing;
+
+-- Preserve historical GST return facts. New returns snapshot the statutory/tenant basis used.
+alter table public.gst_returns add column if not exists statutory_due_date date;
+alter table public.gst_returns add column if not exists accounting_basis text;
+alter table public.gst_returns add column if not exists filing_frequency text;
+alter table public.gst_returns add column if not exists statutory_rule_snapshot jsonb not null default '{}'::jsonb;
+
+-- Official-source monitoring is additive and separate from Payroll monitoring.
+create table if not exists public.business_tax_compliance_sources (
+ id uuid primary key default gen_random_uuid(), country_code char(2) not null, source_name text not null, source_url text not null,
+ source_identifier text not null, purpose text, active boolean not null default true, last_checked_at timestamptz,
+ last_successful_check_at timestamptz,last_changed_at timestamptz,last_known_fingerprint text,last_check_status text not null default 'never_checked'
+ check(last_check_status in('never_checked','no_change','change_detected','check_error')),last_error text,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(country_code,source_identifier));
+create table if not exists public.business_tax_compliance_updates (
+ id uuid primary key default gen_random_uuid(),source_id uuid not null references public.business_tax_compliance_sources(id) on delete restrict,country_code char(2) not null,
+ detected_at timestamptz not null default now(),source_fingerprint text not null,previous_fingerprint text,status text not null default 'review_required'
+ check(status in('review_required','reviewed_no_impact')),summary text,source_reference text,reviewed_at timestamptz,reviewed_by uuid references auth.users(id) on delete set null,review_notes text,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),unique(source_id,source_fingerprint));
+alter table public.business_tax_compliance_sources enable row level security;alter table public.business_tax_compliance_updates enable row level security;
+drop policy if exists business_tax_compliance_sources_super_admin on public.business_tax_compliance_sources;
+create policy business_tax_compliance_sources_super_admin on public.business_tax_compliance_sources for all to authenticated using(public.is_super_admin()) with check(public.is_super_admin());
+drop policy if exists business_tax_compliance_updates_super_admin on public.business_tax_compliance_updates;
+create policy business_tax_compliance_updates_super_admin on public.business_tax_compliance_updates for all to authenticated using(public.is_super_admin()) with check(public.is_super_admin());
+insert into public.business_tax_compliance_sources(country_code,source_name,source_url,source_identifier,purpose) values
+('NZ','Inland Revenue New Zealand','https://www.ird.govt.nz/gst/filing-and-paying-gst-and-refunds/filing-gst','ird-nz-gst-filing','GST filing and statutory due dates'),
+('NZ','Inland Revenue New Zealand','https://www.ird.govt.nz/gst/registering-for-gst/which-gst-accounting-basis-and-filing-frequency-should-i-use','ird-nz-gst-basis-frequency','GST accounting basis and filing-frequency eligibility')
+on conflict(country_code,source_identifier) do update set source_url=excluded.source_url,purpose=excluded.purpose,active=true,updated_at=now();
+
+-- V61.68B Business Tax/GST human approval workflow (see V61.68B-BUSINESS-TAX-GST-RULES.sql)
+-- Human-controlled Business Tax/GST ruleset workflow. Detection cannot write production rules.
+create table if not exists public.business_tax_rulesets (
+ id uuid primary key default gen_random_uuid(),country_code char(2) not null,name text not null,version text not null,effective_from date not null,effective_to date,
+ status text not null default 'draft' check(status in('draft','validated','approved','active','retired')),source_update_id uuid references public.business_tax_compliance_updates(id) on delete set null,
+ created_by uuid references auth.users(id) on delete set null,approved_by uuid references auth.users(id) on delete set null,approved_at timestamptz,activated_by uuid references auth.users(id) on delete set null,activated_at timestamptz,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),check(effective_to is null or effective_to>=effective_from),unique(country_code,name,version));
+create table if not exists public.business_tax_ruleset_rules (
+ id uuid primary key default gen_random_uuid(),ruleset_id uuid not null references public.business_tax_rulesets(id) on delete cascade,rule_type text not null,rule_key text not null,numeric_value numeric,text_value text,json_value jsonb,source_note text,created_at timestamptz not null default now(),updated_at timestamptz not null default now(),check(num_nonnulls(numeric_value,text_value,json_value)=1),unique(ruleset_id,rule_type,rule_key));
+alter table public.business_tax_rulesets enable row level security;alter table public.business_tax_ruleset_rules enable row level security;
+drop policy if exists business_tax_rulesets_super_admin on public.business_tax_rulesets;create policy business_tax_rulesets_super_admin on public.business_tax_rulesets for all to authenticated using(public.is_super_admin()) with check(public.is_super_admin());
+drop policy if exists business_tax_ruleset_rules_super_admin on public.business_tax_ruleset_rules;create policy business_tax_ruleset_rules_super_admin on public.business_tax_ruleset_rules for all to authenticated using(public.is_super_admin()) with check(public.is_super_admin());
+
+create or replace function public.v6168b_create_draft_ruleset(p_update_id uuid,p_name text,p_version text,p_effective_from date,p_effective_to date default null) returns uuid language plpgsql security definer set search_path=public as $$
+declare u public.business_tax_compliance_updates;r_id uuid;begin if not public.is_super_admin() then raise exception 'Super Admin access required';end if;select * into u from public.business_tax_compliance_updates where id=p_update_id;if u.id is null then raise exception 'Compliance update not found';end if;insert into public.business_tax_rulesets(country_code,name,version,effective_from,effective_to,status,source_update_id,created_by) values(u.country_code,trim(p_name),trim(p_version),p_effective_from,p_effective_to,'draft',u.id,auth.uid()) returning id into r_id;insert into public.business_tax_ruleset_rules(ruleset_id,rule_type,rule_key,numeric_value,text_value,json_value,source_note) select r_id,rule_type,rule_key,numeric_value,text_value,json_value,source_note from public.country_business_tax_rules where country_code=u.country_code and active=true and effective_from<=p_effective_from and(effective_to is null or effective_to>=p_effective_from) on conflict do nothing;return r_id;end$$;
+create or replace function public.v6168b_set_ruleset_status(p_ruleset_id uuid,p_status text) returns void language plpgsql security definer set search_path=public as $$
+declare r public.business_tax_rulesets;begin if not public.is_super_admin() then raise exception 'Super Admin access required';end if;if p_status not in('validated','approved') then raise exception 'Only validated or approved status may be set here';end if;select * into r from public.business_tax_rulesets where id=p_ruleset_id;if r.id is null then raise exception 'Ruleset not found';end if;if p_status='validated' and r.status<>'draft' then raise exception 'Only Draft rulesets can be validated';end if;if p_status='approved' and r.status<>'validated' then raise exception 'Ruleset must be validated before approval';end if;update public.business_tax_rulesets set status=p_status,approved_by=case when p_status='approved' then auth.uid() else approved_by end,approved_at=case when p_status='approved' then now() else approved_at end,updated_at=now() where id=r.id;end$$;
+create or replace function public.v6168b_activate_ruleset(p_ruleset_id uuid) returns void language plpgsql security definer set search_path=public as $$
+declare r public.business_tax_rulesets;rr record;begin if not public.is_super_admin() then raise exception 'Super Admin access required';end if;select * into r from public.business_tax_rulesets where id=p_ruleset_id for update;if r.id is null then raise exception 'Ruleset not found';end if;if r.status<>'approved' then raise exception 'Ruleset must be explicitly approved before activation';end if;if not exists(select 1 from public.business_tax_ruleset_rules where ruleset_id=r.id) then raise exception 'Ruleset has no rules';end if;for rr in select * from public.business_tax_ruleset_rules where ruleset_id=r.id loop update public.country_business_tax_rules set active=false,effective_to=case when effective_from<r.effective_from then r.effective_from-1 else effective_to end,updated_at=now() where country_code=r.country_code and rule_type=rr.rule_type and rule_key=rr.rule_key and active=true and effective_from<r.effective_from;insert into public.country_business_tax_rules(country_code,rule_type,rule_key,numeric_value,text_value,json_value,effective_from,effective_to,active,source_note) values(r.country_code,rr.rule_type,rr.rule_key,rr.numeric_value,rr.text_value,rr.json_value,r.effective_from,r.effective_to,true,rr.source_note) on conflict(country_code,rule_type,rule_key,effective_from) do update set numeric_value=excluded.numeric_value,text_value=excluded.text_value,json_value=excluded.json_value,effective_to=excluded.effective_to,active=true,source_note=excluded.source_note,updated_at=now();end loop;update public.business_tax_rulesets set status='active',activated_by=auth.uid(),activated_at=now(),updated_at=now() where id=r.id;end$$;
+revoke all on function public.v6168b_create_draft_ruleset(uuid,text,text,date,date) from public;grant execute on function public.v6168b_create_draft_ruleset(uuid,text,text,date,date) to authenticated;
+revoke all on function public.v6168b_set_ruleset_status(uuid,text) from public;grant execute on function public.v6168b_set_ruleset_status(uuid,text) to authenticated;
+revoke all on function public.v6168b_activate_ruleset(uuid) from public;grant execute on function public.v6168b_activate_ruleset(uuid) to authenticated;
+
+
+-- V61.68B expense business/private allocation (additive compatibility block)
+alter table public.expenses add column if not exists business_use_percent numeric(5,2) not null default 100;
+alter table public.expenses add column if not exists business_use_amount numeric(14,2);
+alter table public.expenses add column if not exists private_use_amount numeric(14,2);
+alter table public.expenses add column if not exists business_ex_gst numeric(14,2);
+alter table public.expenses add column if not exists business_gst_amount numeric(14,2);
+alter table public.expenses add column if not exists allocation_method text not null default 'percentage';
+alter table public.expenses add column if not exists allocation_basis text;
+alter table public.expenses add column if not exists allocation_notes text;
+
+alter table public.expenses drop constraint if exists expenses_business_use_percent_check;
+alter table public.expenses add constraint expenses_business_use_percent_check check (business_use_percent >= 0 and business_use_percent <= 100);
+alter table public.expenses drop constraint if exists expenses_allocation_method_check;
+alter table public.expenses add constraint expenses_allocation_method_check check (allocation_method in ('percentage','business_amount'));

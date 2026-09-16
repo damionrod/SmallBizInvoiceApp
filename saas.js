@@ -136,12 +136,12 @@
     await window.Referrals?.init?.();
     if(await maybeContinueSignupCheckout())return;
     // A customer must never be able to retain or enter the owner route manually.
-    if(location.hash==='#super-admin' && state.profile?.is_super_admin!==true){
+    if(/^#super-admin(?:\/|$)/.test(location.hash) && state.profile?.is_super_admin!==true){
       history.replaceState(null,'',location.pathname+location.search);
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=61.63'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=61.63';j.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.55';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.63';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61';f.onload=()=>{const ac=document.createElement('script');ac.src='accountant-centre.js?v=61.56';ac.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.35';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(ac)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=61.69D-RT1'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=61.69D-RT1';j.onload=()=>{const jp=document.createElement('script');jp.src='job-profitability.js?v=61.69D-RT1';jp.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.69D-RT1';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.69F-PR1';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61.69D-RT1';f.onload=()=>{const ac=document.createElement('script');ac.src='accountant-centre.js?v=61.69D-RT1';ac.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.69D-RT1';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(ac)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(jp)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -149,7 +149,13 @@
     for(let attempt=0;attempt<8;attempt++){
       const {data,error}=await state.client.from('profiles').select('id,business_id,active_business_id,full_name,email,role,is_super_admin').eq('id',state.user.id).maybeSingle();
       if(!error&&data){
-        const {data:currentId,error:ctxError}=await state.client.rpc('current_business_id');
+        let {data:currentId,error:ctxError}=await state.client.rpc('current_business_id');
+        // If the selected membership was suspended/removed, recover to another active membership server-side,
+        // then resolve again. Never keep rendering the stale business from the profile/cache.
+        if(!ctxError&&!currentId){
+          const recovered=await inviteApi({action:'recover-current'});
+          if(!recovered?.error&&recovered?.businessId){const again=await state.client.rpc('current_business_id');currentId=again.data;ctxError=again.error}
+        }
         if(!ctxError&&currentId){
           const {data:business,error:bError}=await state.client.from('businesses').select('id,name,address,phone,status,settings').eq('id',currentId).maybeSingle();
           if(!bError&&business){
@@ -202,6 +208,12 @@
   }
 
   async function migrateLegacyLocalData(){
+    // V61.69C: legacy operational browser data may only ever be claimed by a single-business account.
+    // Once an identity has multiple active businesses, never infer which tenant owns unscoped legacy records.
+    if(!(state.businessMemberships||[]).length){
+      try{const memberships=await inviteApi({action:'my-businesses'});if(!memberships?.error)state.businessMemberships=memberships.businesses||[]}catch{}
+    }
+    if((state.businessMemberships||[]).length!==1)return;
     const marker='v22_legacy_migrated_'+state.business.id; if(localStorage.getItem(marker)==='1')return;const claimed=localStorage.getItem('v22_legacy_claimed_by');if(claimed&&claimed!==state.business.id){localStorage.setItem(marker,'1');return;}
     let customers=[],invoices=[];
     try{customers=JSON.parse(localStorage.getItem('invoice_app_customers')||localStorage.getItem('cc_customers')||'[]')||[]}catch{}
@@ -264,7 +276,7 @@
     if(!allowed){
       document.body.classList.remove('admin-portal-active');
       if(q('adminPortalBar'))q('adminPortalBar').hidden=true;
-      if(location.hash==='#super-admin')history.replaceState(null,'',location.pathname+location.search);
+      if(/^#super-admin(?:\/|$)/.test(location.hash))history.replaceState(null,'',location.pathname+location.search);
       alert('Super Admin access is restricted to the platform owner.');
       return;
     }
@@ -273,7 +285,21 @@
     if(q('adminPortalBar'))q('adminPortalBar').hidden=false;
     if(window.switchView)window.switchView('admin');
     else renderAdmin();
-    history.replaceState(null,'','#super-admin');
+    setAdminView(adminViewFromHash(),false);
+  }
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','payments','referrals']);
+  function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
+  function setAdminView(view='dashboard',push=true){
+    if(!state.profile?.is_super_admin)return;
+    const next=ADMIN_VIEWS.has(view)?view:'dashboard';
+    document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
+    document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
+    const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);
+  }
+  function setupAdminNavigation(){
+    document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
+    window.addEventListener('popstate',()=>{if(document.body.classList.contains('admin-portal-active'))setAdminView(adminViewFromHash(),false)});
   }
   function closeAdminPortal(){
     document.body.classList.remove('admin-portal-active');
@@ -288,11 +314,35 @@
     if(q('accountAdminNav'))q('accountAdminNav').hidden=!isAdmin;
   }
 
+  function setupCentralSettingsIA(){
+    const move=(id,target)=>{const el=q(id),dest=q(target);if(el&&dest&&el.parentElement!==dest)dest.appendChild(el)};
+    ['accountProfileName','accountBusinessName'].forEach(()=>{});
+    move('accountModal','accountModalParking');
+    const modal=q('accountModal'), account=q('centralAccountSettings'), users=q('centralUserSettings'), subscription=q('centralSubscriptionSettings'), job=q('centralJobSettings');
+    if(modal&&account){['account-profile-card','account-email-card','account-preferences-card','account-export-card'].forEach(cls=>{const el=modal.querySelector('.'+cls);if(el)account.appendChild(el)})}
+    if(modal&&users){const el=q('teamAccessCard');if(el)users.appendChild(el)}
+    if(modal&&subscription){const el=q('subscriptionCard');if(el)subscription.appendChild(el)}
+    if(job){const el=q('jc-panel-settings');if(el){el.classList.add('active');job.appendChild(el)}}
+    document.querySelectorAll('[data-settings-nav]').forEach(btn=>btn.onclick=()=>window.openCentralSettings?.(btn.dataset.settingsNav));
+  }
+  window.openCentralSettings=function(section='account'){
+    const allowed=['account','tax','invoicing','job','users','subscription'];if(!allowed.includes(section))section='account';
+    document.querySelectorAll('[data-settings-nav]').forEach(b=>b.classList.toggle('active',b.dataset.settingsNav===section));
+    document.querySelectorAll('[data-settings-panel]').forEach(p=>p.hidden=p.dataset.settingsPanel!==section);
+    if(section==='tax')window.Financials?.refresh?.();
+    if(section==='job'){q('jc-panel-settings')?.classList.add('active');window.JobCosting?.onShow?.();}
+    if(section==='users'&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))renderTeamAccess();
+    if(section==='subscription')refreshUsage();
+    try{history.replaceState(null,'',`#settings/${section}`)}catch{}
+  };
+
   function setupAccountUI(){
+    setupCentralSettingsIA();
     const initials=(state.profile.full_name||state.business.name||'A').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
     if(q('accountInitials'))q('accountInitials').textContent=initials||'A';
     if(q('accountAvatarLarge'))q('accountAvatarLarge').textContent=initials||'A';
     if(q('accountDisplayName'))q('accountDisplayName').textContent=state.profile.full_name||state.business.name||'Account';
+    if(q('activeBusinessIndicator'))q('activeBusinessIndicator').textContent=state.business?.name||'Finlo';
     if(q('accountPopoverEmail'))q('accountPopoverEmail').textContent=state.user.email||'';
     applyAdminVisibility();
     if(q('accountChip'))q('accountChip').onclick=e=>{e.stopPropagation();const pop=q('accountPopover');if(pop)pop.hidden=!pop.hidden};
@@ -325,15 +375,22 @@
     if(q('saveRolePermissions'))q('saveRolePermissions').onclick=saveRolePermissions;
     if(q('resetRolePermissions'))q('resetRolePermissions').onclick=resetRolePermissions;
     if(q('switchBusinessBtn'))q('switchBusinessBtn').onclick=openSwitchBusinessModal;
+    if(q('addBusinessBtn'))q('addBusinessBtn').onclick=openAddBusinessModal;
+    if(q('switchModalAddBusiness'))q('switchModalAddBusiness').onclick=openAddBusinessModal;
     if(q('closeSwitchBusinessModal'))q('closeSwitchBusinessModal').onclick=()=>q('switchBusinessModal')?.classList.remove('open');
+    if(q('closeAddBusinessModal'))q('closeAddBusinessModal').onclick=closeAddBusinessModal;
+    if(q('cancelAddBusiness'))q('cancelAddBusiness').onclick=closeAddBusinessModal;
+    if(q('confirmAddBusiness'))q('confirmAddBusiness').onclick=createAdditionalBusiness;
     refreshBusinessSwitcher();
     document.addEventListener('click',e=>{const pop=q('accountPopover');if(pop&&!pop.hidden&&!pop.contains(e.target)&&e.target!==q('accountChip')&&!q('accountChip')?.contains(e.target))pop.hidden=true});
     if(q('closePlanModal'))q('closePlanModal').onclick=()=>q('planModal').classList.remove('open');
+    setupAdminNavigation();
     if(q('adminRefresh'))q('adminRefresh').onclick=renderAdmin;
     if(q('adminReloadPlans'))q('adminReloadPlans').onclick=renderAdminPlans;
     if(q('adminReloadPayments'))q('adminReloadPayments').onclick=renderPaymentSettings;
     if(q('adminReloadModules'))q('adminReloadModules').onclick=renderAdminModules;
     if(q('adminAddModule'))q('adminAddModule').onclick=addAdminModule;
+    if(q('adminCheckPayrollUpdates'))q('adminCheckPayrollUpdates').onclick=checkAdminPayrollCompliance;
     if(q('adminReloadCountryPayrollRules'))q('adminReloadCountryPayrollRules').onclick=renderAdminCountryPayrollRules;
     if(q('adminAddCountryPayrollRule'))q('adminAddCountryPayrollRule').onclick=addAdminCountryPayrollRule;
     if(q('adminPayrollRuleCountry'))q('adminPayrollRuleCountry').onchange=renderAdminCountryPayrollRules;
@@ -365,7 +422,8 @@
     await refreshUsage();
     if(['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))await renderTeamAccess();
     applyRoleAccessUI();
-    q('accountModal')?.classList.add('open');
+    if(typeof window.switchView==='function')window.switchView('settings');
+    window.openCentralSettings?.('account');
   }
   function teamRoleLabel(role){return ({owner:'Owner',admin:'Admin',accountant:'Accountant',bookkeeper:'Bookkeeper',staff:'Staff',viewer:'Viewer'})[role]||role||'—'}
   function teamStatusLabel(status){return ({active:'Active',suspended:'Suspended',removed:'Removed'})[status]||status||'—'}
@@ -408,6 +466,7 @@
     if(q('manageSubscription'))q('manageSubscription').hidden=role!=='owner';
     if(q('billingPortalBtn')&&role!=='owner')q('billingPortalBtn').hidden=true;
     if(q('accountManagePlan'))q('accountManagePlan').hidden=role!=='owner';
+    if(q('addBusinessBtn'))q('addBusinessBtn').hidden=role!=='owner';
     document.querySelectorAll('[data-invoice-view="settings"],[data-jc-tab="settings"]').forEach(el=>el.hidden=!businessWrite);
     if(q('exportMyData'))q('exportMyData').hidden=!businessWrite;
     if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!roleCanWrite('financials');
@@ -524,6 +583,19 @@
     if(action==='revoke'&&!confirm('Revoke this pending invitation?'))return;if(action==='resend'&&!publicAppUrl())return alert('Open Finlo from its deployed Netlify URL before resending invitations.');
     btn.disabled=true;const old=btn.textContent;btn.textContent=action==='resend'?'Sending…':'Revoking…';const data=await inviteApi({action,businessId:state.business.id,inviteId:id,redirectUrl:publicAppUrl()});btn.disabled=false;btn.textContent=old;if(data?.error)return alert(data.error);await renderPendingInvites();
   }
+  function openAddBusinessModal(){
+    closeAccountPopover();q('switchBusinessModal')?.classList.remove('open');
+    if(q('addBusinessName'))q('addBusinessName').value='';if(q('addBusinessCountry'))q('addBusinessCountry').value=String(state.business?.settings?.country||'NZ').toUpperCase();if(q('addBusinessMessage'))q('addBusinessMessage').textContent='';q('addBusinessModal')?.classList.add('open');setTimeout(()=>q('addBusinessName')?.focus(),0);
+  }
+  function closeAddBusinessModal(){q('addBusinessModal')?.classList.remove('open')}
+  async function createAdditionalBusiness(){
+    const name=q('addBusinessName')?.value.trim()||'',country=String(q('addBusinessCountry')?.value||'NZ').toUpperCase(),btn=q('confirmAddBusiness'),msg=q('addBusinessMessage');
+    if(!name){if(msg)msg.textContent='Enter a business name.';return}if(btn){btn.disabled=true;btn.textContent='Creating…'}if(msg)msg.textContent='';
+    const {data,error}=await state.client.rpc('v6169b_add_business',{p_name:name,p_country:country});
+    if(error||!data){if(btn){btn.disabled=false;btn.textContent='Create business'}if(msg)msg.textContent=error?.message||'Could not create the business.';return}
+    location.reload();
+  }
+
   async function refreshBusinessSwitcher(){
     if(!state.user)return;const data=await inviteApi({action:'my-businesses'});if(data?.error)return;state.businessMemberships=data.businesses||[];const btn=q('switchBusinessBtn');if(btn)btn.hidden=state.businessMemberships.length<=1;if(q('switchBusinessHint'))q('switchBusinessHint').textContent=state.businessMemberships.length>1?`${state.businessMemberships.length} authorised businesses`:'Choose another authorised business';
   }
@@ -944,9 +1016,14 @@ ${businessName}`,'');
       alert(`${businessName}, its linked database information and stored expense/payroll documents have been permanently deleted.`);
       await renderAdmin();
     });
+    const [{data:dashboardModules},{data:dashboardPlans},{data:dashboardUpdates}]=await Promise.all([state.client.from('modules').select('id,is_active'),state.client.from('plans').select('id'),state.client.from('payroll_compliance_updates').select('id,status').in('status',['review_required','draft_prepared','validated','approved'])]);
+    if(q('adminModuleSummary'))q('adminModuleSummary').textContent=`${(dashboardModules||[]).filter(x=>x.is_active).length} active module${(dashboardModules||[]).filter(x=>x.is_active).length===1?'':'s'} in the current catalogue.`;
+    if(q('adminPlanSummary'))q('adminPlanSummary').textContent=`${(dashboardPlans||[]).length} subscription plan${(dashboardPlans||[]).length===1?'':'s'} configured.`;
+    const attention=(dashboardUpdates||[]).length;if(q('adminPayrollDashboardStatus'))q('adminPayrollDashboardStatus').textContent=attention?`${attention} official payroll update${attention===1?'':'s'} require${attention===1?'s':''} review.`:'NZ Payroll Rules — Up to date';
     renderAdminPlans();
     renderPaymentSettings();
     renderAdminModules();
+    renderAdminPayrollCompliance();
     renderAdminCountryPayrollRules();
     window.Referrals?.renderAdmin?.();
   }
@@ -1004,6 +1081,28 @@ ${businessName}`,'');
     const {error}=await state.client.from('modules').insert({name,slug,description,monthly_price,stripe_price_id,is_active:true});if(error)return alert(error.message);['adminModuleName','adminModuleSlug','adminModuleDescription','adminModuleStripe'].forEach(id=>q(id).value='');q('adminModulePrice').value='0';renderAdminModules();
   }
 
+  function complianceDate(v){if(!v)return '—';try{return new Date(v).toLocaleString('en-NZ',{dateStyle:'medium',timeStyle:'short'})}catch{return String(v)}}
+  function complianceStatusLabel(s){return ({never_checked:'Not checked',no_change:'Up to date',change_detected:'Review required',check_error:'Check error',review_required:'Review required',draft_prepared:'Draft pending',validated:'Validated',approved:'Approved',activated:'Activated',dismissed_no_payroll_impact:'No payroll impact',draft:'Draft',active:'Active'}[s]||String(s||'—').replaceAll('_',' '))}
+  async function renderAdminPayrollCompliance(){
+    if(!state.profile?.is_super_admin||!q('adminPayrollComplianceStatus'))return;
+    const [sr,ur,rr]=await Promise.all([state.client.from('payroll_compliance_sources').select('*').order('country_code'),state.client.from('payroll_compliance_updates').select('*').order('detected_at',{ascending:false}).limit(20),state.client.from('payroll_rulesets').select('*').order('created_at',{ascending:false}).limit(20)]);
+    const err=sr.error||ur.error||rr.error;if(err){q('adminPayrollComplianceStatus').textContent='Could not load payroll compliance status: '+err.message;q('adminPayrollComplianceStatus').className='admin-inline-message error';return}
+    const sources=sr.data||[],updates=ur.data||[],rulesets=rr.data||[],needs=updates.filter(x=>['review_required','draft_prepared','validated','approved'].includes(x.status));
+    q('adminPayrollComplianceStatus').textContent=needs.length?`${needs.length} payroll compliance update${needs.length===1?'':'s'} require attention.`:(sources.some(x=>x.last_check_status==='check_error')?'Official source check error. Current approved payroll rules remain unchanged.':'No unreviewed official payroll source changes.');q('adminPayrollComplianceStatus').className='admin-inline-message '+(needs.length||sources.some(x=>x.last_check_status==='check_error')?'error':'success');
+    q('adminPayrollComplianceSources').innerHTML=`<div class="table-scroll"><table><thead><tr><th>Country</th><th>Official source</th><th>Last checked</th><th>Status</th><th>Official reference</th></tr></thead><tbody>${sources.map(x=>`<tr><td>${escapeHtml(x.country_code)}</td><td>${escapeHtml(x.source_name)}<small>${escapeHtml(x.purpose||'')}</small></td><td>${escapeHtml(complianceDate(x.last_checked_at))}<small>${x.last_error?escapeHtml(x.last_error):''}</small></td><td>${escapeHtml(complianceStatusLabel(x.last_check_status))}</td><td>${x.last_source_reference?`<a href="${escapeHtml(x.last_source_reference)}" target="_blank" rel="noopener noreferrer">Open Official Source</a>`:`<a href="${escapeHtml(x.source_url)}" target="_blank" rel="noopener noreferrer">Open IRD</a>`}</td></tr>`).join('')||'<tr><td colspan="5">No compliance sources configured.</td></tr>'}</tbody></table></div>`;
+    q('adminPayrollComplianceUpdates').innerHTML=`<h3>Detected Updates</h3><div class="table-scroll"><table><thead><tr><th>Detected</th><th>Country / Version</th><th>Status</th><th>Review</th></tr></thead><tbody>${updates.map(x=>`<tr><td>${escapeHtml(complianceDate(x.detected_at))}</td><td>${escapeHtml(x.country_code)}<small>${escapeHtml(x.source_version||'Version not identified')}</small></td><td>${escapeHtml(complianceStatusLabel(x.status))}<small>${escapeHtml(x.summary||'')}</small></td><td><div class="row-actions">${x.source_reference?`<a class="secondary compact-btn" href="${escapeHtml(x.source_reference)}" target="_blank" rel="noopener noreferrer">Official Source</a>`:''}${x.status==='review_required'?`<button class="secondary compact-btn" data-compliance-draft="${x.id}">Create Draft Ruleset</button><button class="secondary compact-btn" data-compliance-dismiss="${x.id}">No Payroll Impact</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="4">No detected official-source changes.</td></tr>'}</tbody></table></div>`;
+    q('adminPayrollRulesets').innerHTML=`<h3>Rulesets</h3><div class="table-scroll"><table><thead><tr><th>Country</th><th>Ruleset</th><th>Effective</th><th>Status</th><th>Actions</th></tr></thead><tbody>${rulesets.map(x=>`<tr><td>${escapeHtml(x.country_code)}</td><td>${escapeHtml(x.name)}<small>${escapeHtml(x.version)}</small></td><td>${escapeHtml(x.effective_from)}<small>to ${escapeHtml(x.effective_to||'Open')}</small></td><td>${escapeHtml(complianceStatusLabel(x.status))}</td><td><div class="row-actions">${x.status==='draft'?`<button class="secondary compact-btn" data-ruleset-edit="${x.id}">Edit Draft</button><button class="secondary compact-btn" data-ruleset-validate="${x.id}">Validate</button>`:''}${x.status==='validated'?`<button class="secondary compact-btn" data-ruleset-approve="${x.id}">Approve</button>`:''}${x.status==='approved'?`<button class="primary compact-btn" data-ruleset-activate="${x.id}">Activate</button>`:''}</div></td></tr>`).join('')||'<tr><td colspan="5">No draft or approved rulesets yet.</td></tr>'}</tbody></table></div>`;
+    q('adminPayrollComplianceUpdates').querySelectorAll('[data-compliance-draft]').forEach(b=>b.onclick=()=>createComplianceDraft(b.dataset.complianceDraft));q('adminPayrollComplianceUpdates').querySelectorAll('[data-compliance-dismiss]').forEach(b=>b.onclick=()=>dismissComplianceUpdate(b.dataset.complianceDismiss));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-edit]').forEach(b=>b.onclick=()=>openRulesetEditor(b.dataset.rulesetEdit));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-validate]').forEach(b=>b.onclick=()=>setRulesetStatus(b.dataset.rulesetValidate,'validated'));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-approve]').forEach(b=>b.onclick=()=>setRulesetStatus(b.dataset.rulesetApprove,'approved'));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-activate]').forEach(b=>b.onclick=()=>activateRuleset(b.dataset.rulesetActivate));
+  }
+  async function checkAdminPayrollCompliance(){const b=q('adminCheckPayrollUpdates');try{b.disabled=true;b.textContent='Checking…';const {data,error}=await state.client.functions.invoke('check-payroll-compliance-sources',{body:{}});if(error)throw error;if(data?.results?.some(x=>x.status==='check_error'))alert('Official source check completed with an error. Current approved payroll rules remain unchanged.');await renderAdminPayrollCompliance()}catch(e){alert('Could not check official payroll updates: '+(e.message||e))}finally{b.disabled=false;b.textContent='Check for Official Updates'}}
+  async function createComplianceDraft(id){const name=prompt('Draft ruleset name','NZ Payroll Rules'),version=prompt('Draft version','v1.0'),from=prompt('Effective from (YYYY-MM-DD)','2027-04-01'),to=prompt('Effective to (YYYY-MM-DD, optional)','2028-03-31');if(!name||!version||!from)return;const {error}=await state.client.rpc('v6168a_create_draft_ruleset',{p_update_id:id,p_name:name,p_version:version,p_effective_from:from,p_effective_to:to||null});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
+  async function dismissComplianceUpdate(id){const notes=prompt('Review notes (optional)','');if(!confirm('Mark this official-source change as reviewed with no payroll impact?'))return;const {error}=await state.client.rpc('v6168a_mark_update_no_impact',{p_update_id:id,p_notes:notes||null});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
+  async function openRulesetEditor(id){const box=q('adminPayrollDraftEditor');const {data,error}=await state.client.from('payroll_ruleset_rules').select('*').eq('ruleset_id',id).order('rule_type').order('rule_key');if(error)return alert(error.message);box.innerHTML=`<h3>Edit Draft Rules</h3><p class="hint">These are staging values only. Saving here does not change production payroll.</p><div class="table-scroll"><table><thead><tr><th>Rule</th><th>Value</th><th>Source / note</th><th></th></tr></thead><tbody>${(data||[]).map(r=>`<tr><td>${escapeHtml(r.rule_type)}<small>${escapeHtml(r.rule_key)}</small></td><td><select data-draft-kind="${r.id}"><option value="numeric" ${r.numeric_value!=null?'selected':''}>Number</option><option value="json" ${r.json_value!=null?'selected':''}>JSON</option><option value="text" ${r.text_value!=null?'selected':''}>Text</option></select><textarea rows="2" data-draft-value="${r.id}">${escapeHtml(r.numeric_value!=null?String(r.numeric_value):r.json_value!=null?JSON.stringify(r.json_value):r.text_value||'')}</textarea></td><td><input data-draft-source="${r.id}" value="${escapeHtml(r.source_note||'')}"></td><td><button class="secondary compact-btn" data-draft-save="${r.id}">Save</button></td></tr>`).join('')}</tbody></table></div><div class="head-actions"><button class="secondary" data-draft-add="${id}">+ Add Draft Rule</button><button class="secondary" data-draft-close>Close</button></div>`;box.querySelectorAll('[data-draft-save]').forEach(b=>b.onclick=()=>saveDraftRule(b.dataset.draftSave));box.querySelector('[data-draft-add]').onclick=()=>addDraftRule(id);box.querySelector('[data-draft-close]').onclick=()=>box.innerHTML=''}
+  async function saveDraftRule(id){const kind=document.querySelector(`[data-draft-kind="${id}"]`).value,raw=document.querySelector(`[data-draft-value="${id}"]`).value.trim(),source=document.querySelector(`[data-draft-source="${id}"]`).value.trim(),payload={numeric_value:null,text_value:null,json_value:null,source_note:source||null,updated_at:new Date().toISOString()};if(kind==='numeric'){const n=Number(raw);if(!Number.isFinite(n))return alert('Enter a valid number.');payload.numeric_value=n}else if(kind==='json'){try{payload.json_value=JSON.parse(raw)}catch{return alert('Enter valid JSON.')}}else payload.text_value=raw;const {error}=await state.client.from('payroll_ruleset_rules').update(payload).eq('id',id);if(error)return alert(error.message);alert('Draft rule saved. Production payroll is unchanged.')}
+  async function addDraftRule(rulesetId){const type=prompt('Rule type (for example paye)');if(!type)return;const key=prompt('Rule key');if(!key)return;const kind=prompt('Value type: numeric, json or text','numeric');if(!['numeric','json','text'].includes(kind))return alert('Value type must be numeric, json or text.');const raw=prompt('Value');if(raw===null)return;const source=prompt('Official source / review note','')||'';const payload={ruleset_id:rulesetId,rule_type:type.trim().toLowerCase(),rule_key:key.trim().toLowerCase(),numeric_value:null,text_value:null,json_value:null,source_note:source||null};if(kind==='numeric'){const n=Number(raw);if(!Number.isFinite(n))return alert('Enter a valid number.');payload.numeric_value=n}else if(kind==='json'){try{payload.json_value=JSON.parse(raw)}catch{return alert('Enter valid JSON.')}}else payload.text_value=raw;const {error}=await state.client.from('payroll_ruleset_rules').insert(payload);if(error)return alert(error.message);await openRulesetEditor(rulesetId)}
+  async function setRulesetStatus(id,status){const wording=status==='approved'?'Approve this validated ruleset? Approval alone does not activate it.':'Mark this Draft ruleset as validated?';if(!confirm(wording))return;const {error}=await state.client.rpc('v6168a_set_ruleset_status',{p_ruleset_id:id,p_status:status});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
+  async function activateRuleset(id){if(!confirm('Activate this APPROVED ruleset for production payroll according to its effective dates? This is the explicit human approval gate.'))return;const {error}=await state.client.rpc('v6168a_activate_ruleset',{p_ruleset_id:id});if(error)return alert(error.message);await Promise.all([renderAdminPayrollCompliance(),renderAdminCountryPayrollRules()])}
+
   function payrollRuleValue(r){if(r.numeric_value!=null)return String(r.numeric_value);if(r.json_value!=null)return JSON.stringify(r.json_value);return r.text_value??''}
   function payrollRuleValueType(r){return r.numeric_value!=null?'numeric':r.json_value!=null?'json':'text'}
   async function renderAdminCountryPayrollRules(){
@@ -1013,8 +1112,7 @@ ${businessName}`,'');
     const countries=[...new Set((data||[]).map(r=>String(r.country_code||'').toUpperCase()).filter(Boolean))];if(!countries.includes('NZ'))countries.unshift('NZ');
     const select=q('adminPayrollRuleCountry'),selected=select.value||countries[0]||'NZ';select.innerHTML=countries.map(c=>`<option value="${escapeHtml(c)}" ${c===selected?'selected':''}>${escapeHtml(c)}</option>`).join('');
     if(q('adminPayrollRuleNewCountry')&&!q('adminPayrollRuleNewCountry').value)q('adminPayrollRuleNewCountry').value=select.value||'NZ';const country=select.value;const rows=(data||[]).filter(r=>!country||String(r.country_code).toUpperCase()===country);
-    q('adminCountryPayrollRuleRows').innerHTML=rows.map(r=>`<tr data-country-rule-row="${r.id}"><td><input data-cr-country="${r.id}" maxlength="2" value="${escapeHtml(r.country_code)}"></td><td><input data-cr-type="${r.id}" value="${escapeHtml(r.rule_type)}"><small><input data-cr-key="${r.id}" value="${escapeHtml(r.rule_key)}"></small></td><td><input type="date" data-cr-from="${r.id}" value="${escapeHtml(r.effective_from||'')}"><small>to <input type="date" data-cr-to="${r.id}" value="${escapeHtml(r.effective_to||'')}"></small></td><td><select data-cr-value-type="${r.id}"><option value="numeric" ${payrollRuleValueType(r)==='numeric'?'selected':''}>Number</option><option value="json" ${payrollRuleValueType(r)==='json'?'selected':''}>JSON</option><option value="text" ${payrollRuleValueType(r)==='text'?'selected':''}>Text</option></select><textarea rows="2" data-cr-value="${r.id}">${escapeHtml(payrollRuleValue(r))}</textarea><small><input data-cr-source="${r.id}" value="${escapeHtml(r.source_note||'')}" placeholder="Source / note"></small></td><td><label class="tick-option"><input type="checkbox" data-cr-active="${r.id}" ${r.active?'checked':''}><span>${r.active?'Active':'Inactive'}</span></label></td><td><button class="secondary compact-btn" data-cr-save="${r.id}">Save</button></td></tr>`).join('')||'<tr><td colspan="6">No rules for this country yet. Add the first effective-dated rule version above.</td></tr>';
-    q('adminCountryPayrollRuleRows').querySelectorAll('[data-cr-save]').forEach(btn=>btn.onclick=()=>saveAdminCountryPayrollRule(btn.dataset.crSave));
+    q('adminCountryPayrollRuleRows').innerHTML=rows.map(r=>`<tr data-country-rule-row="${r.id}"><td>${escapeHtml(r.country_code)}</td><td>${escapeHtml(r.rule_type)}<small>${escapeHtml(r.rule_key)}</small></td><td>${escapeHtml(r.effective_from||'')}<small>to ${escapeHtml(r.effective_to||'Open')}</small></td><td><code>${escapeHtml(payrollRuleValue(r))}</code><small>${escapeHtml(r.source_note||'')}</small></td><td><span class="status-pill ${r.active?'sent':'draft'}">${r.active?'Active':'Inactive'}</span></td><td><span class="hint">Managed via approved rulesets</span></td></tr>`).join('')||'<tr><td colspan="6">No approved production rules for this country.</td></tr>';
     q('adminPayrollRuleMessage').textContent=rows.length?`${rows.length} rule version${rows.length===1?'':'s'} shown.`:'No rules configured for this country.';
   }
   function countryRulePayload(idPrefix='adminPayrollRule'){
@@ -1142,6 +1240,6 @@ ${businessName}`,'');
   function human(s){return String(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
   function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 
-  window.SAAS={state,client:()=>state.client,invokeAuthenticatedFunction,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule};
+  window.SAAS={state,client:()=>state.client,currentBusinessId:()=>state.business?.id||null,invokeAuthenticatedFunction,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule};
   init().catch(err=>{console.error(err);q('authShell')?.classList.add('open');message(err.message||'Unable to start application.','error')});
 })();

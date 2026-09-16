@@ -103,10 +103,21 @@ Deno.serve(async(req)=>{
       return json({ok:true,businessId:inv.business_id,membershipId:membership.id});
     }
 
+    if(action==='recover-current'){
+      const userClient=createClient(SUPABASE_URL,ANON,{global:{headers:{Authorization:`Bearer ${bearer}`}},auth:{persistSession:false,autoRefreshToken:false}});
+      const {data:resolved}=await userClient.rpc('current_business_id');if(resolved)return json({ok:true,businessId:resolved,recovered:false});
+      const {data:next}=await service.from('business_memberships').select('business_id').eq('user_id',user.id).eq('status','active').order('joined_at',{ascending:true}).limit(1).maybeSingle();
+      if(!next?.business_id)return json({ok:true,businessId:null,recovered:false});
+      const {error}=await service.from('profiles').update({active_business_id:next.business_id,updated_at:new Date().toISOString()}).eq('id',user.id);if(error)return json({error:error.message},400);
+      return json({ok:true,businessId:next.business_id,recovered:true});
+    }
+
     if(action==='my-businesses'){
       const {data,error}=await service.from('business_memberships').select('business_id,role,status,businesses(id,name)').eq('user_id',user.id).eq('status','active');if(error)return json({error:error.message},400);
-      const {data:p}=await service.from('profiles').select('active_business_id,business_id').eq('id',user.id).single();
-      return json({ok:true,currentBusinessId:p?.active_business_id||p?.business_id||null,businesses:(data||[]).map((x:any)=>({id:x.business_id,name:x.businesses?.name||'Business',role:x.role}))});
+      // Never echo a stale profile business as current. Resolve through the same hardened backend function used by tenant RLS.
+      const userClient=createClient(SUPABASE_URL,ANON,{global:{headers:{Authorization:`Bearer ${bearer}`}},auth:{persistSession:false,autoRefreshToken:false}});
+      const {data:resolved,error:resolvedError}=await userClient.rpc('current_business_id');if(resolvedError)return json({error:resolvedError.message},400);
+      return json({ok:true,currentBusinessId:resolved||null,businesses:(data||[]).map((x:any)=>({id:x.business_id,name:x.businesses?.name||'Business',role:x.role}))});
     }
 
     if(action==='switch'){
