@@ -3452,3 +3452,40 @@ body.auth-locked .app-version{display:none}
   #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{padding:10px 9px}
   #view-invoices .invoice-row-actions,#expense-panel-bills .expense-primary-actions{gap:6px}
 }
+
+/* V61.70C2-D — customer credit notes (owner-facing only) */
+.invoice-module-tabs{margin:0 0 14px}
+.credit-note-list-card .inv-col-money{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.credit-note-modal-card{width:min(720px,calc(100vw - 28px));max-height:calc(100vh - 28px);overflow:auto}
+.credit-note-head{padding-right:40px;margin-bottom:14px}
+.credit-note-head h2{margin:0 0 4px}
+.credit-note-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 16px}
+.credit-note-choice label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border,#d9e0e7);border-radius:12px;padding:12px;cursor:pointer;background:#fff}
+.credit-note-choice label:has(input:checked){border-color:var(--navy);box-shadow:0 0 0 1px var(--navy) inset}
+.credit-note-choice input{margin-top:3px}
+.credit-note-choice span{display:flex;flex-direction:column;gap:3px}
+.credit-note-choice small{color:var(--muted,#667085)}
+.credit-note-fields{margin-bottom:14px}
+.credit-note-review{border:1px solid var(--border,#d9e0e7);border-radius:12px;padding:14px;background:#f8fafc;margin:10px 0}
+.credit-note-review h3,.credit-note-existing h3{margin:0 0 10px;font-size:15px}
+.credit-note-review>div{display:flex;justify-content:space-between;gap:16px;padding:5px 0}
+.credit-note-review .credit-review-total{border-top:1px solid var(--border,#d9e0e7);margin-top:5px;padding-top:10px;font-size:16px}
+.credit-note-review>small{display:block;margin-top:8px;color:var(--muted,#667085)}
+.credit-note-existing{margin:14px 0}
+.credit-history-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border,#e5e7eb)}
+.credit-history-row span{display:flex;flex-direction:column;gap:2px}.credit-history-row small{color:var(--muted,#667085)}
+.credit-note-actions{position:sticky;bottom:-1px;background:#fff;padding-top:12px;margin-top:10px}
+@media(max-width:430px){
+  .credit-note-choice{grid-template-columns:1fr}
+  .credit-note-modal-card{width:calc(100vw - 16px);max-height:calc(100vh - 16px);padding:16px}
+  .credit-note-actions{display:grid;grid-template-columns:1fr;gap:8px}
+  .credit-note-actions button,.credit-note-list-card button{min-height:44px}
+  .credit-note-list-card .table-scroll{overflow:visible}
+  .credit-note-list-card table,.credit-note-list-card thead,.credit-note-list-card tbody,.credit-note-list-card tr,.credit-note-list-card td{display:block;width:100%}
+  .credit-note-list-card thead{display:none}
+  .credit-note-list-card tr{border:1px solid var(--border,#d9e0e7);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff}
+  .credit-note-list-card td{display:flex;justify-content:space-between;gap:14px;padding:5px 0;border:0;text-align:right}
+  .credit-note-list-card td::before{content:attr(data-label);font-weight:600;color:var(--muted,#667085);text-align:left}
+  .credit-note-list-card td:last-child{display:block;padding-top:10px}
+  .credit-note-list-card td:last-child::before{display:none}
+}
