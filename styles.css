@@ -3489,3 +3489,6 @@ body.auth-locked .app-version{display:none}
   .credit-note-list-card td:last-child{display:block;padding-top:10px}
   .credit-note-list-card td:last-child::before{display:none}
 }
+
+/* V61.70C3 customer refunds */
+.refund-credit-list{display:grid;gap:10px}.refund-credit-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--border,#e5e7eb)}.refund-credit-row:last-child{border-bottom:0}.refund-credit-row div{display:grid;gap:3px}.refund-credit-row small{color:var(--muted,#667085)}@media(max-width:700px){.refund-credit-row{align-items:stretch;flex-direction:column}.refund-credit-row button{width:100%}}

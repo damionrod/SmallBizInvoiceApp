@@ -119,7 +119,7 @@
 
     <section id="view-invoices" class="view">
       <div class="page-head"><div><h1>My Invoices</h1><p>Search, filter, export, download, email, edit and review invoice history.</p></div><button class="secondary" id="exportCsv">Export CSV</button></div>
-      <div class="module-tabs invoice-module-tabs" id="invoiceListTabs"><button class="module-tab active" data-invoice-list-tab="invoices">Invoices</button><button class="module-tab" data-invoice-list-tab="credits">Credit Notes</button></div>
+      <div class="module-tabs invoice-module-tabs" id="invoiceListTabs"><button class="module-tab active" data-invoice-list-tab="invoices">Invoices</button><button class="module-tab" data-invoice-list-tab="credits">Credit Notes</button><button class="module-tab" data-invoice-list-tab="refunds">Refunds</button></div>
       <div id="invoice-panel-invoices">
       <div class="summary-grid"><div class="metric"><span>Excl. GST</span><strong id="sumNet">$0.00</strong></div><div class="metric"><span>GST</span><strong id="sumGst">$0.00</strong></div><div class="metric"><span>Total invoiced</span><strong id="sumTotal">$0.00</strong></div><div class="metric"><span>Invoices</span><strong id="sumCount">0</strong></div></div>
       <div class="card filters"><label>Month<input id="filterMonth" type="month"></label><label>Search<input id="filterSearch" placeholder="Customer, invoice #"></label><button class="secondary" id="resetFilters">Reset</button></div>
@@ -127,6 +127,10 @@
       </div>
       <div id="invoice-panel-credits" hidden>
         <div class="card table-card credit-note-list-card"><div class="card-title"><div><h2>Credit Notes</h2><p class="hint">Credits created against protected issued invoices.</p></div></div><div class="table-scroll"><table><thead><tr><th>Credit Note</th><th>Status</th><th>Original Invoice</th><th>Customer</th><th>Date</th><th>Excl. GST</th><th>GST</th><th>Total</th><th>Actions</th></tr></thead><tbody id="creditNoteRows"></tbody></table></div></div>
+      </div>
+      <div id="invoice-panel-refunds" hidden>
+        <div class="card refund-credit-card"><div class="card-title"><div><h2>Customer Credit & Refunds</h2><p class="hint">Refund available customer credit without changing the original payment or credit note.</p></div></div><div id="customerCreditRows" class="refund-credit-list"></div></div>
+        <div class="card table-card refund-list-card"><div class="card-title"><div><h2>Refund History</h2><p class="hint">Draft, recorded and voided refunds. Bank match is tracked separately.</p></div></div><div class="table-scroll"><table><thead><tr><th>Refund</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th><th>Bank match</th><th>Actions</th></tr></thead><tbody id="refundRows"></tbody></table></div></div>
       </div>
     </section>
 
