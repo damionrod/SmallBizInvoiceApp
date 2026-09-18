@@ -1,0 +1,5 @@
+-- V61.70C45-P5 — Supplier refund availability consistency
+-- Forward-only delta. Apply after C45-P4 backend state.
+-- Production migration name: v6170c45_p5_supplier_refund_availability
+-- See P5 test report for the applied definitions and verification.
+-- Authoritative definitions are the functions in production migration history.
