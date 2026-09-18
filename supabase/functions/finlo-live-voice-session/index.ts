@@ -1,6 +1,6 @@
 import {PRODUCT_KNOWLEDGE_VERSION, PRODUCT_GUIDANCE_RULES, MODULE_LABELS, PRODUCT_KNOWLEDGE} from "./product-knowledge.js";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2";
-const VERSION="v61.71B-P6.1";
+const VERSION="v61.71B-P6.1-session-fix";
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...cors,"Content-Type":"application/json"}});
 Deno.serve(async req=>{if(req.method==="OPTIONS")return new Response("ok",{headers:cors});if(req.method!=="POST")return json({error:"Method not allowed"},405);
@@ -12,9 +12,9 @@ Deno.serve(async req=>{if(req.method==="OPTIONS")return new Response("ok",{heade
  const knowledge=PRODUCT_KNOWLEDGE.map((k:any)=>({id:k.id,title:k.title,module:k.module,navigation:k.navigation,facts:k.facts,procedure:k.procedure}));
  const instructions=`You are Finlo Live Voice, the realtime voice form of Finlo Helper. Be friendly, concise, practical and easy to understand. You provide guidance only: never claim to create/send invoices, record expenses, reconcile bank transactions, run payroll, change settings/subscriptions, finalise GST/BAS, post journals, delete records, or take financial actions. Current Finlo context: module ${label}; view ${view||"not specified"}; tab ${tab||"not specified"}; step ${step||"not specified"}; topic ${topic||"not specified"}; country ${country}. ${PRODUCT_GUIDANCE_RULES} Authoritative Finlo Product Knowledge version ${PRODUCT_KNOWLEDGE_VERSION}: ${JSON.stringify(knowledge)}`;
  const offer=String(body?.sdp||"");if(!offer||offer.length>100000)return json({error:"Invalid WebRTC offer."},400);
- const session={type:"live",model:"gpt-live-1",instructions,audio:{output:{voice:status.voice}}};
+ const session={model:"gpt-live-1",instructions,audio:{output:{voice:status.voice}}};
  const liveRequest={session,transport:{type:"webrtc",sdp:offer}};
- const r=await fetch("https://api.openai.com/v1/live/sessions",{method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify(liveRequest)});const answer=await r.text();if(!r.ok)return json({error:"Live Voice connection could not be created.",provider_status:r.status},502);
+ const r=await fetch("https://api.openai.com/v1/live/sessions",{method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify(liveRequest)});const answer=await r.text();if(!r.ok){let provider:any={};try{provider=JSON.parse(answer)}catch{}const pe=provider?.error||{};const safeDiagnostic={provider_status:r.status,provider_error_type:String(pe?.type||"").slice(0,80)||null,provider_error_code:String(pe?.code||"").slice(0,80)||null,provider_error_param:String(pe?.param||"").slice(0,80)||null,provider_error_message:String(pe?.message||"").slice(0,300)||null};console.error("[Finlo Live Voice] OpenAI session creation failed",safeDiagnostic);return json({error:"Live Voice connection could not be created.",...safeDiagnostic},502);}
  let created;try{created=JSON.parse(answer)}catch{return json({error:"Live Voice returned an invalid session response."},502)}if(!created?.transport?.sdp)return json({error:"Live Voice returned no WebRTC answer."},502);
  const usageId=crypto.randomUUID();await admin.from("finlo_live_voice_usage").insert({id:usageId,business_id:bid,user_id:user.id,model:status.model,status:"started"});
  return new Response(JSON.stringify(created),{status:201,headers:{...cors,"Content-Type":"application/json","X-Finlo-Live-Version":VERSION,"X-Finlo-Usage-Id":usageId,"X-Finlo-Max-Session-Minutes":String(status.max_session_minutes)}});

@@ -1,6 +1,6 @@
 (()=>{
-  const q=id=>document.getElementById(id);
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]||m));
+  const q=window.FinloCore.dom.byId;
+  const esc=window.FinloCore.text.escapeHtml;
   const money=n=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:'NZD'}).format(Number(n||0));
   const human=s=>String(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
   let portal=null,adminData=null,currentCampaignId='';

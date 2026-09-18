@@ -2,9 +2,9 @@
   'use strict';
   const MODULE_SLUG='expenses';
   const BUCKET='expense-documents';
-  const $=id=>document.getElementById(id);
-  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  const num=v=>Number(v)||0;
+  const $=window.FinloCore.dom.byId;
+  const esc=window.FinloCore.text.escapeHtml;
+  const num=window.FinloCore.value.num;
   const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
   const addDays=(s,n)=>{const d=new Date((s||today())+'T12:00:00');d.setDate(d.getDate()+Number(n||0));return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
   const state={init:false,activeTab:'bills',categories:[],suppliers:[],jobs:[],expenses:[],attachments:[],pendingFiles:[],editingId:null,split:false,splitLines:[],charts:{month:null,category:null},reportRows:[],supplierCredits:[],supplierRefunds:[],supplierRefundMatches:new Set(),supplierRefundAllocations:[],aiFile:null,aiScanning:false,aiResult:null,userTouched:new Set(),auTax:{businessId:null,date:null,registered:null,rate:null,ready:false,error:null}};

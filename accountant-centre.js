@@ -1,10 +1,10 @@
 (()=>{
 'use strict';
-const q=id=>document.getElementById(id), num=v=>Number(v)||0;
+const q=window.FinloCore.dom.byId, num=window.FinloCore.value.num;
 const arr=v=>Array.isArray(v)?v:[];
 const state={businessId:null, business:null, settings:null, categories:[], accounts:[], mappings:[], taxMappings:[], exports:[], data:null, issues:[]};
 const client=()=>window.SAAS?.client?.()||window.sb||null;
-const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+const esc=window.FinloCore.text.escapeHtml;
 const toast=s=>window.toast?window.toast(s):console.log(s);
 const businessCurrency=()=>String(state.business?.settings?.currency||state.settings?.currency||'NZD').toUpperCase();
 const businessCountry=()=>String(state.business?.settings?.country||'NZ').toUpperCase();
