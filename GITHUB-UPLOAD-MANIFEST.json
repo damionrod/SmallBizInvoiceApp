@@ -1,0 +1,222 @@
+[
+  {
+    "path": "GITHUB-UPLOAD-NOTE.md",
+    "sha256": "042d091299e9080d3694b26bff261270d0b639985cd33e6d1a4302b473363a3d",
+    "bytes": 814
+  },
+  {
+    "path": "README.md",
+    "sha256": "677b2392f7ea9877c9d4ca3900c34c041395210dfc42112cacf4141bc2b6f4bb",
+    "bytes": 753
+  },
+  {
+    "path": "V61.71B-P6-FINLO-LIVE-VOICE.sql",
+    "sha256": "82d3172327f36352c5db39fb12466a37f95a50bff17e22c8d6aee7e694dcac4c",
+    "bytes": 8755
+  },
+  {
+    "path": "V61.71B-P6-IMPLEMENTATION-REPORT.md",
+    "sha256": "32f79b5b3a4d5bdb695bbf293f9f12b1f3fb859baddaf27d00fb6c3af83cec4d",
+    "bytes": 8445
+  },
+  {
+    "path": "V61.71B-P6-REGRESSION-SECURITY-RESULTS.md",
+    "sha256": "7176cd82387459b0f4e3daf88a7345cf8ac2a53d1effa3b77bd6ed6b0847a6a1",
+    "bytes": 4469
+  },
+  {
+    "path": "accountant-centre.js",
+    "sha256": "6fba3d899356ae409610505b19d675e8a4d4efc5c972ec9c8f8ba4a40856a24d",
+    "bytes": 41391
+  },
+  {
+    "path": "app-config.js",
+    "sha256": "c5aa763c3b90f2e07517efac9f894b7fbf74586292aab6243e3e1375e05453d2",
+    "bytes": 320
+  },
+  {
+    "path": "app.js",
+    "sha256": "81f62f583499882d1f1bb7095c6d353b77bfd3517d846dbe9ca46bcaebec766d",
+    "bytes": 134190
+  },
+  {
+    "path": "bank-reconciliation.js",
+    "sha256": "588c2b77d9debd55280a6ef446d2ea1b739c9eaba5763a18722cfa4ab2d3e986",
+    "bytes": 60957
+  },
+  {
+    "path": "expenses.js",
+    "sha256": "92710f94bcc8e50fe87c73db1f5e5f2638e30edc8a979f897670d5e9d675af01",
+    "bytes": 101768
+  },
+  {
+    "path": "financials.js",
+    "sha256": "753869c3c20af0c13e3a731845b50e7b4c82a38e6de08fcf8031a82f8e053156",
+    "bytes": 69559
+  },
+  {
+    "path": "finlo-helper.js",
+    "sha256": "a9d7e6c4d3884837612817faaaa55ea33bb6e681984d7cc27feb88073bdb1a82",
+    "bytes": 33715
+  },
+  {
+    "path": "finlo-logo.png",
+    "sha256": "e4a9f34d8409ab8bff5705bb0530da52dc58c8114ca492b337fee472cfa8c1e3",
+    "bytes": 173794
+  },
+  {
+    "path": "frontend-quality.css",
+    "sha256": "c530d6fcd4d74a22663b5b0a75dc1fce4ee254a141d46a32fe2b391877ece4aa",
+    "bytes": 2169
+  },
+  {
+    "path": "import-migration-edge.ts",
+    "sha256": "082e46694b216df6bef90f8f86a43fc609578bfab8f6e3761686cbd4d312d0a9",
+    "bytes": 10696
+  },
+  {
+    "path": "import-migration.js",
+    "sha256": "0620e1cc091b0e22146f3d8bb1773cd1a99a32948135e6d68b0d5029b8afc466",
+    "bytes": 18640
+  },
+  {
+    "path": "index.html",
+    "sha256": "6b9ecb1b0fe5058713d388de3e18f30d4ab1b0e8ed2aee36311a59fb567d6ef7",
+    "bytes": 157471
+  },
+  {
+    "path": "job-costing.js",
+    "sha256": "537de23da867ddaa92d9185f0ac920f97aed2b42c1cf6b3617243af998235064",
+    "bytes": 59348
+  },
+  {
+    "path": "job-profitability.js",
+    "sha256": "3bd1d754cc60f3896e51dcdf23a740eaefee3b5e86e55c9806bf2de519313ee7",
+    "bytes": 28220
+  },
+  {
+    "path": "onboarding.js",
+    "sha256": "ebb770204c3b7a3d278e9ea4684bc37b289958f730a05b36f42faf347db512c5",
+    "bytes": 12748
+  },
+  {
+    "path": "payroll.js",
+    "sha256": "4f9c376541e9bafab44d6439a10cd3f95fc6e2be54044d198a6c6e9965940bf1",
+    "bytes": 115749
+  },
+  {
+    "path": "referrals.js",
+    "sha256": "9c68d06cfb467a325cbf86cf3627ce2ba577a4e6872adfd45a9817f04fd96ba7",
+    "bytes": 17234
+  },
+  {
+    "path": "saas.js",
+    "sha256": "1d5c9304aedee2cc1d4e8ed16956d925b08c4e4eb02b25e66784e33896c1433d",
+    "bytes": 125200
+  },
+  {
+    "path": "styles.css",
+    "sha256": "6dcf2e70f616198842084ce0a5aa5e918cfead6d266e1f29a0c1acf3730c3519",
+    "bytes": 260582
+  },
+  {
+    "path": "supabase/functions/_shared/payment-config.ts",
+    "sha256": "8b3d5213749e05aebc0dd3dcd1d9bf120c08b016f56c369f6bd83c7aeb3b6bf3",
+    "bytes": 1215
+  },
+  {
+    "path": "supabase/functions/admin-create-user/index.ts",
+    "sha256": "d099d980536f4b49b685a8938dbef20f0e4d00e84f695e3f3af165e691405927",
+    "bytes": 2960
+  },
+  {
+    "path": "supabase/functions/business-invite/index.ts",
+    "sha256": "542b53f746d18b5a61e0e8ac6a5e056c60be4de9fe12b6732a6c6ba18276b767",
+    "bytes": 12974
+  },
+  {
+    "path": "supabase/functions/check-business-tax-compliance-sources/index.ts",
+    "sha256": "fb3f410b6a6089f03ed269ebde9f5d36796c3af2753525d1b52c56ee8fc3ed5d",
+    "bytes": 3812
+  },
+  {
+    "path": "supabase/functions/check-payroll-compliance-sources/index.ts",
+    "sha256": "09e89dfbc765095f5baff72bc27d986a29824a7c8b450fcd987f2da8318618ee",
+    "bytes": 7764
+  },
+  {
+    "path": "supabase/functions/create-checkout/index.ts",
+    "sha256": "0abf0888d68834e1ecccb5fac5ea5a73ffa9efdf6c82b9d325de4aae7699ca4f",
+    "bytes": 4724
+  },
+  {
+    "path": "supabase/functions/create-portal/index.ts",
+    "sha256": "d6757985e4681cf234ccb883926e6bf7be1a22c00b5c0347cfdcf6bb52a8a78a",
+    "bytes": 3102
+  },
+  {
+    "path": "supabase/functions/finlo-helper/index.ts",
+    "sha256": "97de063257c9b630ded49aecf65750c3b3acff0d4ba884758565795185182e66",
+    "bytes": 7307
+  },
+  {
+    "path": "supabase/functions/finlo-helper/product-knowledge.js",
+    "sha256": "732f4372f9d641a4abc708e75bf67fecbf72289467e8c5f4172e4e9c8ac08253",
+    "bytes": 15502
+  },
+  {
+    "path": "supabase/functions/finlo-live-voice-end/index.ts",
+    "sha256": "5cb9e4ccc6ebe8533ab8c86613843a4fa51ae614d0225a1d7adc819e4517f028",
+    "bytes": 1680
+  },
+  {
+    "path": "supabase/functions/finlo-live-voice-session/README.md",
+    "sha256": "eb156a88df5eb5e5995cc061e5c0e380d78ef553f825b5d05db8bc2b0bb86dea",
+    "bytes": 134
+  },
+  {
+    "path": "supabase/functions/finlo-live-voice-session/index.ts",
+    "sha256": "e98688eadaedeafaa1b0672cefd7ede1452c522c5db1d70486cc120192b09aa7",
+    "bytes": 3932
+  },
+  {
+    "path": "supabase/functions/finlo-live-voice-session/product-knowledge.js",
+    "sha256": "732f4372f9d641a4abc708e75bf67fecbf72289467e8c5f4172e4e9c8ac08253",
+    "bytes": 15502
+  },
+  {
+    "path": "supabase/functions/referral-invite/index.ts",
+    "sha256": "d775ff4d25e0b4355b63c447298f02f74158592193ed7fe4c4e84cde70a7f961",
+    "bytes": 8816
+  },
+  {
+    "path": "supabase/functions/scan-expense-document/index.ts",
+    "sha256": "9c6375e1e70a0e2c533ed0aaf55d605cec18ed88a29b1fb8861036b1085246d2",
+    "bytes": 11987
+  },
+  {
+    "path": "supabase/functions/send-invoice/index.ts",
+    "sha256": "055cb0f3dc734526f763fdce5b11e221ca5c1341840b24f0260cfa3a7623c4e7",
+    "bytes": 4479
+  },
+  {
+    "path": "supabase/functions/send-payslip/index.ts",
+    "sha256": "80977bd37f44ab7e780e4f25afe87c2f9b3960c3419710507157543c42291790",
+    "bytes": 2794
+  },
+  {
+    "path": "supabase/functions/send-quote/index.ts",
+    "sha256": "4c4d583f9ee33f9aac358e9454aee0467ab176822d772e0cc7c9887e53896107",
+    "bytes": 3917
+  },
+  {
+    "path": "supabase/functions/stripe-webhook/index.ts",
+    "sha256": "d5965f482ac027166d8c6a3c7a0ed27c4c488ecb9c82eaee709c75754373cb32",
+    "bytes": 8866
+  },
+  {
+    "path": "supabase/functions/test-payment-provider/index.ts",
+    "sha256": "4ce835081ceba0ec122d23e6c892cc37dcc3eb61bd61d9341dee7153f39afba1",
+    "bytes": 1753
+  }
+]

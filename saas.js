@@ -72,7 +72,7 @@
       const email=q('signupEmail').value.trim();
       const signupData=state.inviteToken
         ? {full_name:q('signupName').value.trim(),business_invite_token:state.inviteToken}
-        : {full_name:q('signupName').value.trim(),business_name:q('signupBusiness').value.trim(),business_address:q('signupAddress').value.trim(),phone:q('signupPhone').value.trim(),selected_plan_slug:selectedPlan,referral_code:state.referralCode||undefined,referral_invite_token:state.referralInviteToken||undefined};
+        : {full_name:q('signupName').value.trim(),business_name:q('signupBusiness').value.trim(),business_address:q('signupAddress')?.value?.trim()||'',phone:q('signupPhone')?.value?.trim()||'',selected_plan_slug:selectedPlan,referral_code:state.referralCode||undefined,referral_invite_token:state.referralInviteToken||undefined};
       const signUpOptions={data:signupData};
       const redirect=publicAppUrl();if(redirect)signUpOptions.emailRedirectTo=redirect;
       const {data,error}=await state.client.auth.signUp({email,password:q('signupPassword').value,options:signUpOptions});
@@ -141,7 +141,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      const s=document.createElement('script'); s.src='app.js?v=61.69D-RT1'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=61.69D-RT1';j.onload=()=>{const jp=document.createElement('script');jp.src='job-profitability.js?v=61.69D-RT1';jp.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.69D-RT1';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.69F-PR1';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61.69D-RT1';f.onload=()=>{const ac=document.createElement('script');ac.src='accountant-centre.js?v=61.69D-RT1';ac.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.69D-RT1';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(ac)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(jp)};document.body.appendChild(j)}; document.body.appendChild(s);
+      const s=document.createElement('script'); s.src='app.js?v=61.71B-P2'; s.onload=()=>{const j=document.createElement('script');j.src='job-costing.js?v=61.71';j.onload=()=>{const jp=document.createElement('script');jp.src='job-profitability.js?v=61.71';jp.onload=()=>{const e=document.createElement('script');e.src='expenses.js?v=61.71';e.onload=()=>{const p=document.createElement('script');p.src='payroll.js?v=61.71';p.onload=()=>{const f=document.createElement('script');f.src='financials.js?v=61.71';f.onload=()=>{const ac=document.createElement('script');ac.src='accountant-centre.js?v=61.71';ac.onload=()=>{const br=document.createElement('script');br.src='bank-reconciliation.js?v=61.71B-P1';br.onload=async()=>{await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`)};document.body.appendChild(br)};document.body.appendChild(ac)};document.body.appendChild(f)};document.body.appendChild(p)};document.body.appendChild(e)};document.body.appendChild(jp)};document.body.appendChild(j)}; document.body.appendChild(s);
     }
   }
 
@@ -287,7 +287,7 @@
     else renderAdmin();
     setAdminView(adminViewFromHash(),false);
   }
-  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','payments','referrals']);
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','payments','referrals','finlo-helper','import-migration']);
   function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
   function setAdminView(view='dashboard',push=true){
     if(!state.profile?.is_super_admin)return;
@@ -295,7 +295,7 @@
     document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
     document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
     const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
-    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();
   }
   function setupAdminNavigation(){
     document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
@@ -326,13 +326,14 @@
     document.querySelectorAll('[data-settings-nav]').forEach(btn=>btn.onclick=()=>window.openCentralSettings?.(btn.dataset.settingsNav));
   }
   window.openCentralSettings=function(section='account'){
-    const allowed=['account','tax','invoicing','job','users','subscription'];if(!allowed.includes(section))section='account';
+    const allowed=['account','tax','invoicing','job','users','subscription','import'];if(!allowed.includes(section))section='account';
     document.querySelectorAll('[data-settings-nav]').forEach(b=>b.classList.toggle('active',b.dataset.settingsNav===section));
     document.querySelectorAll('[data-settings-panel]').forEach(p=>p.hidden=p.dataset.settingsPanel!==section);
     if(section==='tax')window.Financials?.refresh?.();
     if(section==='job'){q('jc-panel-settings')?.classList.add('active');window.JobCosting?.onShow?.();}
     if(section==='users'&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))renderTeamAccess();
     if(section==='subscription')refreshUsage();
+    if(section==='import')window.ImportMigration?.onShow?.();
     try{history.replaceState(null,'',`#settings/${section}`)}catch{}
   };
 
@@ -603,7 +604,9 @@
     closeAccountPopover();const list=q('switchBusinessList');if(!list)return;const data=await inviteApi({action:'my-businesses'});if(data?.error)return alert(data.error);const businesses=data.businesses||[];list.innerHTML=businesses.map(b=>`<button class="secondary business-switch-option" data-business-switch="${b.id}" type="button"><span><strong>${escapeHtml(b.name)}</strong><small>${escapeHtml(teamRoleLabel(b.role))}</small></span>${b.id===data.currentBusinessId?'<span>Current</span>':''}</button>`).join('');list.querySelectorAll('[data-business-switch]').forEach(btn=>btn.onclick=()=>switchBusiness(btn.dataset.businessSwitch));q('switchBusinessModal')?.classList.add('open');
   }
   async function switchBusiness(businessId){
-    if(!businessId||businessId===state.business?.id){q('switchBusinessModal')?.classList.remove('open');return}const data=await inviteApi({action:'switch',businessId});if(data?.error)return alert(data.error);location.reload();
+    if(!businessId||businessId===state.business?.id){q('switchBusinessModal')?.classList.remove('open');return}
+    try{await window.FinloHelper?.endLiveVoice?.('business-switch')}catch{}
+    const data=await inviteApi({action:'switch',businessId});if(data?.error)return alert(data.error);location.reload();
   }
 
   async function saveTeamMember(membershipId,btn){
@@ -650,7 +653,7 @@
     if(error)return alert('Could not save business preferences: '+error.message);
     state.business.settings=nextSettings;
     writeBusinessSettingsCache(nextSettings,state.business.id);
-    window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id});
+    window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id});window.invoiceAppHelpers?.resetInvoiceTaxRuntime?.();
     alert('Business preferences saved.');
   }
 
@@ -1209,6 +1212,8 @@ ${businessName}`,'');
     if(q('bankReconciliationNav')){const entitled=state.profile?.is_super_admin||await hasModule('bank_reconciliation');q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('bank');q('bankReconciliationNav').hidden=!allowed;const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;if(allowed)window.BankReconciliation?.init?.()}
     await refreshEntitlements();
     applyRoleAccessUI();
+    window.FinloHelper?.init?.();
+    await window.FinloOnboarding?.init?.();
     let entitlementTimer=0;
     const recheck=()=>{const now=Date.now();if(now-entitlementTimer<2500)return;entitlementTimer=now;refreshEntitlements().catch(console.warn)};
     window.addEventListener('focus',recheck);
@@ -1240,6 +1245,6 @@ ${businessName}`,'');
   function human(s){return String(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
   function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 
-  window.SAAS={state,client:()=>state.client,currentBusinessId:()=>state.business?.id||null,invokeAuthenticatedFunction,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule};
+  window.SAAS={state,config:C,client:()=>state.client,currentBusinessId:()=>state.business?.id||null,invokeAuthenticatedFunction,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule,canWriteArea:roleCanWrite};
   init().catch(err=>{console.error(err);q('authShell')?.classList.add('open');message(err.message||'Unable to start application.','error')});
 })();
