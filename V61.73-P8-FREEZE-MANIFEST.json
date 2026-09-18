@@ -3,9 +3,74 @@
   "payroll-nz-statutory-leave.js": "3b801ca155b59d4e09cac5b59cb9ce42c582edd43d819599d00120f471da05b7",
   "payroll-nz-public-holidays.js": "f53253195ef034bf2687f84fa3b0ac729aeedf6d0d882c7ff38eb403bf32b5cb",
   "payroll-nz-final-pay.js": "5ad5772e804cd40ad123c90cf3f1acfa897d0d4ec27ff7e83a0e81b67f8a9808",
-  "payroll.js": "0b7ff57b5dcd5dd85439c2b3fcad390e7527b75d6d9d77fafc67e8e030629dfb",
+  "payroll.js": "32697eb617df224a6e3f7853e9ac34ae41bd23eaeffabcb77ce9a52803432145",
   "payroll-nz-tax.js": "71425b1ce0026d973fbbe5bf064b75baa005ec815099ddc56b7fcf624a6bbeca",
-  "v6171b/payroll.js": "631e591d0019823f23c8e93b8b6578cc91c5e93eb0e8163ed1ab4237775e3f9b",
+  "v6171b/payroll.js": "9b2c1b886a47b754c38d7d82433a138730abdb165128e0254dc572e561064163",
   "v6171b/payroll-nz-tax.js": "71425b1ce0026d973fbbe5bf064b75baa005ec815099ddc56b7fcf624a6bbeca",
-  "saas.js": "f14b476ed3294ac8467a9926f58f4842412e24f62d48f5bd6748cacb9ce8940b"
+  "saas.js": "ca32bbc2512a526b59a064a065d65617f8f64085b07bbd1e30b85c4a05628e42",
+  "_p81_authorised_rebaseline": {
+    "version": "V61.73-P8.1",
+    "reason": "PAYG Needs-confirmation fail-closed runtime correction",
+    "superseded": {
+      "payroll.js": "0b7ff57b5dcd5dd85439c2b3fcad390e7527b75d6d9d77fafc67e8e030629dfb",
+      "v6171b/payroll.js": "631e591d0019823f23c8e93b8b6578cc91c5e93eb0e8163ed1ab4237775e3f9b"
+    },
+    "authoritative": {
+      "payroll.js": "e4655a4b748ed544a90d9a5d1e925a2c6a3b84e8f7b9b6e69985338caa7d6a9e",
+      "v6171b/payroll.js": "0e2facdd39137f4ffe949c324b3c6260488466abf16834433101a309d1d64475"
+    }
+  },
+  "_p82_authorised_rebaseline": {
+    "version": "V61.73-P8.2",
+    "reason": "PAYG evidence capture workflow and payroll runtime cache-bust; no statutory-engine change",
+    "superseded": {
+      "payroll.js": "e4655a4b748ed544a90d9a5d1e925a2c6a3b84e8f7b9b6e69985338caa7d6a9e",
+      "v6171b/payroll.js": "0e2facdd39137f4ffe949c324b3c6260488466abf16834433101a309d1d64475",
+      "saas.js": "f14b476ed3294ac8467a9926f58f4842412e24f62d48f5bd6748cacb9ce8940b"
+    },
+    "authoritative": {
+      "payroll.js": "f42d1d483af796edf6b48b77be5e6b754693cea75dc168529d306d83808b1e73",
+      "v6171b/payroll.js": "70bb8045759a00ce0cc3698418e382afd9866ede2fe2025146e958f1e9305aff",
+      "saas.js": "9c396e4517181a39ce5305af9984fd522c157ec5fbcb6d6f5fb8257e2c0835cd"
+    },
+    "ui": {
+      "index.html": "a6f2f375d44cc963aa96f7aeef5f5bdb3309024231481f75e8e762474d971fc6",
+      "v6171b/index.html": "42f6c27efd604bc905c305a1e82627ea407615da889e4f77faae2145167611c2"
+    }
+  },
+  "index.html": "34e074ffa1be3488adb1ae2a84e73c0ac62f55b988e8dcf435a411a3d206336d",
+  "v6171b/index.html": "3e6df098c32c7985e7eb1d3ff3f1987395621a112f4d28e34de807ca1308bce0",
+  "_p83_authorised_rebaseline": {
+    "version": "V61.73-P8.3",
+    "reason": "Simplify PAYG evidence UI from four visible statutory checkboxes to one employer confirmation; preserve P6 validation and stored evidence contract",
+    "superseded": {
+      "payroll.js": "f42d1d483af796edf6b48b77be5e6b754693cea75dc168529d306d83808b1e73",
+      "v6171b/payroll.js": "70bb8045759a00ce0cc3698418e382afd9866ede2fe2025146e958f1e9305aff",
+      "saas.js": "9c396e4517181a39ce5305af9984fd522c157ec5fbcb6d6f5fb8257e2c0835cd"
+    },
+    "authoritative": {
+      "payroll.js": "7b7cf7efc683fabff98200527ed7757f2b51a261bdcba56efba92b56d67e1c54",
+      "v6171b/payroll.js": "8f62961775fa6882dbd77fdd45a9ae65d09d5e6e526402c010e868fa3a41f9c8",
+      "saas.js": "ca32bbc2512a526b59a064a065d65617f8f64085b07bbd1e30b85c4a05628e42"
+    },
+    "ui": {
+      "index.html": "34e074ffa1be3488adb1ae2a84e73c0ac62f55b988e8dcf435a411a3d206336d",
+      "v6171b/index.html": "3e6df098c32c7985e7eb1d3ff3f1987395621a112f4d28e34de807ca1308bce0"
+    }
+  },
+  "superseded_runtime_hashes": [
+    {
+      "version": "V61.73-P8.3",
+      "reason": "Superseded by P8.4 TDZ variable-name defect fix only",
+      "hashes": {
+        "payroll.js": "7b7cf7efc683fabff98200527ed7757f2b51a261bdcba56efba92b56d67e1c54",
+        "v6171b/payroll.js": "8f62961775fa6882dbd77fdd45a9ae65d09d5e6e526402c010e868fa3a41f9c8"
+      }
+    }
+  ],
+  "p85_rebaseline": {
+    "reason": "PAYG effective rule reference + explicit not-eligible standard-leave workflow",
+    "payroll.js": "32697eb617df224a6e3f7853e9ac34ae41bd23eaeffabcb77ce9a52803432145",
+    "v6171b/payroll.js": "9b2c1b886a47b754c38d7d82433a138730abdb165128e0254dc572e561064163"
+  }
 }

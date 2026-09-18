@@ -141,7 +141,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      await window.FinloCore.loader.loadScriptsSequentially(['app.js?v=61.72A.1-gst','job-costing.js?v=61.72A.1-gst','job-profitability.js?v=61.71','expenses.js?v=61.72A.1-gst','payroll-nz-holidays.js?v=61.73-P3.1','payroll-nz-statutory-leave.js?v=61.73-P4B.1','payroll-nz-public-holidays.js?v=61.73-P5B.1','payroll-nz-final-pay.js?v=61.73-P6C.2','payroll-nz-tax.js?v=61.73-P7','payroll.js?v=61.73-P7','financials.js?v=61.72A.1-gst','accountant-centre.js?v=61.71','bank-reconciliation.js?v=61.72A.1-gst']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
+      await window.FinloCore.loader.loadScriptsSequentially(['app.js?v=61.72A.1-gst','job-costing.js?v=61.72A.1-gst','job-profitability.js?v=61.71','expenses.js?v=61.72A.1-gst','payroll-nz-holidays.js?v=61.73-P3.1','payroll-nz-statutory-leave.js?v=61.73-P4B.1','payroll-nz-public-holidays.js?v=61.73-P5B.1','payroll-nz-final-pay.js?v=61.73-P6C.2','payroll-nz-tax.js?v=61.73-P7','payroll.js?v=61.73-P8.5-payg-rule','financials.js?v=61.72A.1-gst','accountant-centre.js?v=61.71','bank-reconciliation.js?v=61.72A.1-gst']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
     }
   }
 

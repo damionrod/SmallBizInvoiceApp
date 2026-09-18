@@ -1,0 +1,13 @@
+Finlo V61.73 P8.5 — PAYG effective-rule + not-eligible workflow fix.
+
+Fixes:
+1. PAYG calculation now passes the actual effective payg_minimum_rate rule (8%) into the frozen P6 engine.
+2. PAYG eligibility now includes: Not eligible — use standard annual leave.
+3. Selecting Not eligible stores an ineligible evidence determination and saves the employee on Standard Leave Entitlement, so payroll calculates normally without adding 8% PAYG holiday pay.
+4. Browser payroll cache key bumped to P8.5.
+
+No statutory formula was changed.
+No database migration is required.
+No P3/P4/P5/P6/P7 statutory engine was changed.
+All 21 regression files passed; 591/591 checks/assertions passed.
+Upload contents preserving folder paths. After Netlify publishes, hard-refresh before testing.
