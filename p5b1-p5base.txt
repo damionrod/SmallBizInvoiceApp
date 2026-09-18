@@ -1,0 +1,75 @@
+PASS 01 national fixed-date public holiday
+PASS 02 Easter public holiday
+PASS 03 Matariki published date
+PASS 04 regional anniversary
+PASS 05 uncertain region needs confirmation
+PASS 06 temporary work does not auto-switch region
+PASS 07 Saturday Christmas weekend worker
+PASS 08 Saturday Christmas non-weekend worker Monday
+PASS 09 Sunday Christmas family Tuesday
+PASS 10 weekend Waitangi weekend worker
+PASS 11 weekend Waitangi non-weekend worker Monday
+PASS 12 weekend OWD ambiguous
+PASS 13 source key stable prevents actual observed duplication concept
+PASS 14 four holiday identities remain distinct
+PASS 15 OWD not worked RDP
+PASS 16 OWD not worked permitted ADP
+PASS 17 non OWD not worked no pay
+PASS 18 annual overlap precedence
+PASS 19 sick overlap precedence
+PASS 20 bereavement overlap precedence
+PASS 21 family violence overlap precedence
+PASS 22 ACC unresolved via P4 needs confirmation
+PASS 23 hourly worked holiday
+PASS 24 salaried worked holiday
+PASS 25 overtime included in RDP basis
+PASS 26 penal comparator beats 1.5
+PASS 27 1.5 comparator beats penal
+PASS 28 contractual above minimum
+PASS 29 allowance explicit non penal
+PASS 30 enduring allowance ambiguous
+PASS 31 commission/piece basis supported
+PASS 32 board/lodgings basis supported
+PASS 33 reimbursement classified non penal does not alter daily basis
+PASS 34 split shift entering holiday
+PASS 35 split shift leaving holiday
+PASS 36 shift can be segmented separately for two holidays
+PASS 37 ambiguous time-only boundary blocked
+PASS 38 qualifying part earns one day
+PASS 39 non OWD no alternative
+PASS 40 public holiday only worker exception
+PASS 41 entitlement unit day
+PASS 42 alternative taken OWD
+PASS 43 cannot take on public holiday
+PASS 44 taken uses current RDP
+PASS 45 taken may use permitted ADP
+PASS 46 employer selected preserves 14 day notice
+PASS 47 cashout before 12 months blocked
+PASS 48 cashout after 12 months agreed
+PASS 49 employer forced cashout blocked
+PASS 50 on-call called out
+PASS 51 on-call restricted no work
+PASS 52 on-call unrestricted no work
+PASS 53 optional call declined
+PASS 54 whole-day written transfer valid
+PASS 55 destination holiday collision blocked
+PASS 56 missing written transfer blocked
+PASS 57 shift-part transfer valid
+PASS 58 invalid shift transfer blocked
+PASS 59 transfer does not infer from timesheet
+PASS 60 duplicate source idempotency key deterministic
+PASS 61 missing effective rule fails closed
+PASS 62 missing calendar version fails closed
+PASS 63 NZ business active
+PASS 64 AU isolated
+PASS 65 other country isolated
+PASS 66 cross-business SELECT guard is migration concern
+PASS 67 cross-business INSERT guard is migration concern
+PASS 68 cross-business UPDATE guard is migration concern
+PASS 69 cross-business DELETE guard is migration concern
+PASS 70 foreign employee reference guard is migration concern
+PASS 71 finalised historical payroll not mutated by pure module
+PASS 72 P3 frozen suite separate regression gate
+PASS 73 P4 frozen suite separate regression gate
+PASS 74 storage snapshot preserves comparators and entitlement
+74/74 PASS

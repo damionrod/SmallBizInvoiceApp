@@ -1,0 +1,38 @@
+PASS fixed OWD yes
+PASS fixed OWD no
+PASS rotating OWD
+PASS casual agreed roster shift is OWD
+PASS roster absence does not mean no
+PASS variable OWD needs confirmation
+PASS employer confirmation resolves ambiguous OWD
+PASS RDP base component
+PASS RDP expected overtime included
+PASS RDP conditional overtime needs confirmation
+PASS RDP regular allowance explicit include
+PASS RDP incentive needs classification
+PASS RDP reimbursement safeguard
+PASS RDP board lodging include
+PASS ADP not permitted without trigger
+PASS ADP uses whole part day denominator
+PASS ADP shorter employment period supported
+PASS ADP incomplete denominator needs confirmation
+PASS sick continuous eligibility
+PASS sick work-test eligibility
+PASS sick grant not prorated
+PASS sick carry forward cap
+PASS bereavement three-day event
+PASS bereavement one-day requires employer acceptance
+PASS bereavement one-day accepted
+PASS multiple bereavements are event based
+PASS family violence ten days no carry
+PASS family violence storage is privacy safe
+PASS fractional statutory day requires agreement
+PASS fractional statutory day allowed with agreement
+PASS ACC overlap needs confirmation
+PASS successful statutory pipeline selects RDP
+PASS ambiguous OWD blocks payment
+PASS RDP failure can use ADP only with permitted trigger
+PASS snapshot reconstructs statutory decision
+PASS draft payroll privacy-safe family violence label
+PASS effective rules select correct date
+RESULT 37/37 passed

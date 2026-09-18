@@ -1,0 +1,17 @@
+PASS new P4B tables are in RLS loop
+PASS tenant predicate uses established payroll access
+PASS same-business employee validation present
+PASS validator is security invoker
+PASS no security definer introduced
+PASS validator execute restricted
+PASS legacy balance hours not rewritten
+PASS historical pay runs not updated
+PASS NZ jurisdiction source is existing payroll settings country
+PASS NZ Sick mapping is jurisdiction scoped
+PASS NZ Bereavement mapping is jurisdiction scoped
+PASS Family Violence seed selects NZ payroll settings only
+PASS other countries cannot receive NZ named mapping from unscoped business scan
+PASS prospective RDP ADP defaults are NZ scoped
+PASS effective-dated carry and family rules are seeded
+PASS effective-dated ADP trigger identifiers are JSON rule
+RESULT 16/16 migration security/jurisdiction/static guards passed

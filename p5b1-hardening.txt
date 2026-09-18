@@ -1,0 +1,23 @@
+PASS 01 no penal: full basis is multiplied 1.5
+PASS 02 penal removed from A retained once in B
+PASS 03 penal comparator wins
+PASS 04 1.5 non-penal wins
+PASS 05 partial day scales full and penal basis once
+PASS 06 salary basis
+PASS 07 overtime not penal
+PASS 08 genuine penal rate
+PASS 09 multiple components reconstruct
+PASS 10 ambiguous penal classification fails closed
+PASS 11 unreconstructable basis fails closed
+PASS 12 whole transfer original-day work receives no P5 treatment
+PASS 13 whole transfer destination worked
+PASS 14 whole transfer destination unworked OWD
+PASS 15 section50 on transferred day penal comparator
+PASS 16 alternative earned from transferred day
+PASS 17 no alternative from original after transfer
+PASS 18 shift transfer crossing midnight
+PASS 19 interval partly inside transferred period
+PASS 20 invalid transfer fails closed
+PASS 21 destination collision blocked end-to-end
+PASS 22 snapshot original and effective transfer reconstructable
+22/22 PASS

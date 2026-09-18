@@ -1,0 +1,41 @@
+PASS salaried regular earnings
+PASS hourly regular hours
+PASS variable hours official Heena example
+PASS variable earnings official Sione example
+PASS regular overtime included in OWP
+PASS regular allowance included when explicitly classified
+PASS reimbursement excluded
+PASS 12+ months uses standard divisor
+PASS less than 12 months uses whole or part weeks
+PASS OWP greater than AWE
+PASS AWE greater than OWP
+PASS equal OWP AWE
+PASS missing classification needs confirmation
+PASS conditional bonus needs confirmation
+PASS unpaid leave missing adjustment needs confirmation
+PASS confirmed unpaid leave divisor adjustment
+PASS ordinary-week OWP requires statutory provenance
+PASS ordinary-week provenance accepts regular incentive overtime and board components only when explicit
+PASS ordinary-week ambiguous regular component needs confirmation
+PASS employment start after holiday start rejected
+PASS employment start after last pay period rejected
+PASS last pay period must end before holiday
+PASS invalid earnings date rejected
+PASS negative earnings require explicit valid correction
+PASS negative unpaid leave weeks rejected
+PASS excluded unpaid weeks cannot equal or exceed divisor
+PASS empty AWE history needs confirmation
+PASS reimbursement item type alone cannot exclude Holidays Act earnings
+PASS bonus commission allowance remain needs confirmation by default classification
+PASS integration calculated snapshot is reconstructable
+PASS integration needs-confirmation snapshot preserves reason and classification
+PASS P3.2 earnings exactly inside four-week formula window
+PASS P3.2 earnings before formula window excluded
+PASS P3.2 earnings after applicable formula period excluded
+PASS P3.2 mixed inside outside earnings produces correct OWP
+PASS P3.2 longer than four-week normal pay period uses preceding normal pay period
+PASS P3.2 missing normal pay-period information needs confirmation
+PASS P3.2 Heena remains 840 OWP with enforced period
+PASS P3.2 Sione remains 921.88 OWP with enforced period
+PASS P3.2 storage snapshot preserves formula window and evidence lists
+RESULT 40/40 passed

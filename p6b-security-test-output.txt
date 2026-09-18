@@ -1,0 +1,1 @@
+RESULT 20/20 P6B migration security/static guards passed

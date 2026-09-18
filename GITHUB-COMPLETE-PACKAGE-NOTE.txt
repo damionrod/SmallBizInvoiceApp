@@ -1,0 +1,19 @@
+FINLO V61.73 P7.1 — COMPLETE RUNTIME GITHUB PACKAGE
+
+This is a complete standalone application/runtime package prepared from the
+authoritative P7.1 source tree, including index.html.
+
+To stay below GitHub's 100-file browser-upload limit, this package excludes
+NON-RUNTIME material only: historical phase reports, test suites, audit docs,
+backup/archive files, and historical Supabase migration files.
+
+The production database migrations through P7.1 are already installed in
+Supabase. Omitting historical migration SQL from this web-deploy package does
+not remove or roll back those database migrations.
+
+No application/runtime file was arbitrarily deleted merely to reach the
+file-count limit.
+
+Upload the CONTENTS of this ZIP to the existing repository while preserving
+all folder paths. Do not delete unrelated repository files unless you are
+intentionally replacing the repository with this runtime package.

@@ -1,0 +1,81 @@
+/* =========================================================
+   V61.53 Frontend quality safety layer
+   Accessibility and mobile resilience only.
+   Intentionally does not replace or rename existing Finlo UI classes.
+   ========================================================= */
+
+/* Visible keyboard focus without changing pointer/mouse appearance. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid rgba(25,118,189,.35);
+  outline-offset: 2px;
+}
+
+/* Preserve a clear focus cue for controls whose module CSS removes outlines. */
+:where(input, select, textarea):focus-visible {
+  border-color: #1976bd;
+}
+
+/* Make horizontally-scrollable application regions usable by touch and keyboard. */
+.table-scroll,
+.budget-table-scroll,
+.financial-pnl-scroll,
+#settingsInvoicePreview {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+}
+
+/* Prevent responsive chart canvases and media from forcing page-level overflow. */
+.chart-wrap canvas,
+.financial-chart canvas,
+img,
+svg {
+  max-width: 100%;
+}
+
+/* Long user-entered values should wrap instead of widening cards/modals. */
+.card,
+.modal-box,
+td,
+.hint,
+.notice {
+  overflow-wrap: anywhere;
+}
+
+/* Small version text previously fell below normal-text contrast on Finlo's page background. */
+.app-version {
+  color: #62727d;
+}
+
+/* Respect system motion preferences without changing normal animation behaviour. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* Conservative mobile resilience. Existing module-specific mobile layouts still win. */
+@media (max-width: 760px) {
+  .modal {
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .modal-box {
+    max-width: 100%;
+  }
+
+  .table-scroll,
+  .budget-table-scroll,
+  .financial-pnl-scroll {
+    max-width: 100%;
+  }
+
+  .close {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}

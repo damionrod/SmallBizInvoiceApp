@@ -2,9 +2,9 @@
   'use strict';
   const MODULE_SLUG='expenses';
   const BUCKET='expense-documents';
-  const $=window.FinloCore.dom.byId;
-  const esc=window.FinloCore.text.escapeHtml;
-  const num=window.FinloCore.value.num;
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const num=v=>Number(v)||0;
   const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
   const addDays=(s,n)=>{const d=new Date((s||today())+'T12:00:00');d.setDate(d.getDate()+Number(n||0));return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
   const state={init:false,activeTab:'bills',categories:[],suppliers:[],jobs:[],expenses:[],attachments:[],pendingFiles:[],editingId:null,split:false,splitLines:[],charts:{month:null,category:null},reportRows:[],supplierCredits:[],supplierRefunds:[],supplierRefundMatches:new Set(),supplierRefundAllocations:[],aiFile:null,aiScanning:false,aiResult:null,userTouched:new Set(),auTax:{businessId:null,date:null,registered:null,rate:null,ready:false,error:null}};
@@ -12,7 +12,7 @@
   const business=()=>window.SAAS?.state?.business;
   const currency=()=>String(business()?.settings?.currency||'NZD').toUpperCase();
   const isAu=()=>String(business()?.settings?.country||'NZ').toUpperCase()==='AU';
-  const gstRate=()=>isAu()?(state.auTax.ready?num(state.auTax.rate):0):num(business()?.settings?.gstRate ?? window.invoiceAppHelpers?.settings?.()?.gstRate);
+  const gstRate=()=>isAu()?(state.auTax.ready?num(state.auTax.rate):0):num(window.invoiceAppHelpers?.settings?.()?.gstRate ?? business()?.settings?.gstRate ?? 15);
   function resetAuTax(){state.auTax={businessId:business()?.id||null,date:null,registered:null,rate:null,ready:false,error:null}}
   function renderAuTax(){const au=isAu(),lab=$('expAuTaxClassLabel'),legacy=$('expGstTreatmentLabel'),status=$('expAuTaxStatus');if(lab)lab.hidden=!au;if(legacy)legacy.hidden=au;if(!status)return;status.hidden=!au;if(!au)return;if(state.auTax.ready)status.textContent=state.auTax.registered?`GST settings confirmed · ${num(state.auTax.rate)}% standard rate`:'GST settings confirmed · Not GST registered';else status.textContent=`Review required · ${state.auTax.error||'Australian GST settings are loading'}`}
   async function loadAuTax(date,applyDefault=false){if(!isAu()){resetAuTax();renderAuTax();return true}const bid=business()?.id,d=date||$('expInvoiceDate')?.value||today();state.auTax={businessId:bid,date:d,registered:null,rate:null,ready:false,error:null};renderAuTax();const sb=client();if(!sb||!bid){state.auTax.error='Tax configuration unavailable';renderAuTax();return false}const {data,error}=await sb.rpc('v6170f_expense_tax_config',{p_on:d});if(business()?.id!==bid)return false;if(error||!data||data.jurisdiction!=='AU'||num(data.gst_rate_percent)<=0){state.auTax.error=error?.message||'Authoritative Australian GST configuration is unavailable';renderAuTax();updateAmountDisplay();return false}state.auTax={businessId:bid,date:d,registered:!!data.gst_registered,rate:num(data.gst_rate_percent),ready:true,error:null};if($('expGstOption'))$('expGstOption').textContent=`GST ${num(state.auTax.rate)}%`;if(applyDefault&&$('expAuTaxClass')){$('expAuTaxClass').value=state.auTax.registered?'gst_taxable':'out_of_scope';$('expGstTreatment').value=state.auTax.registered?'gst':'no_gst'}renderAuTax();updateAmountDisplay();return true}
@@ -159,7 +159,7 @@
     const sb=client();if(!sb)return toast('Expenses require Supabase.');
     if(isAu()){const ok=await loadAuTax($('expInvoiceDate').value,false);if(!ok)return toast('Review required: Australian GST settings could not be confirmed.');const cls=$('expAuTaxClass')?.value;if(!cls)return toast('Choose an Australian GST treatment before saving.');if(cls==='gst_taxable'&&!state.auTax.registered)return toast('This business is not GST registered for the expense date. Choose a non-GST treatment.');}
     const supplier=state.suppliers.find(s=>s.id===$('expSupplier').value);if(!supplier)return toast('Select or create a supplier.');
-    const treatment=$('expGstTreatment').value,rate=gstRate();const nzGstTreated=!isAu()&&(treatment==='gst'||(state.split&&state.splitLines.some(l=>(l.gst_treatment||'gst')==='gst')));if(nzGstTreated&&!(num(rate)>0))return toast('GST rate is not configured for this business. Review Tax & GST settings before saving this expense.');let calc=currentAmount();
+    const treatment=$('expGstTreatment').value,rate=gstRate();let calc=currentAmount();
     const otherCategory=activeCategories().find(c=>String(c.name||'').trim().toLowerCase()==='other');
     if(state.split){if(!state.splitLines.length)return toast('Add at least one split expense line.');if(otherCategory)state.splitLines.forEach(l=>{if(!l.category_id)l.category_id=otherCategory.id});calc=state.splitLines.reduce((a,l)=>{const c=calcAmount(l.amount,'inclusive',l.gst_treatment,l.gst_rate??rate);a.ex+=c.ex;a.gst+=c.gst;a.total+=c.total;return a},{ex:0,gst:0,total:0});const entered=num($('expAmount').value);if(Math.abs(calc.total-entered)>0.01)return toast(`Split lines total ${money(calc.total)} must equal the bill total ${money(entered)}.`)}
     if(!state.split&&!$('expCategory').value&&otherCategory)$('expCategory').value=otherCategory.id;if(calc.total<=0)return toast('Enter an expense amount.');

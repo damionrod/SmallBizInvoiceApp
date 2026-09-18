@@ -1,0 +1,21 @@
+PASS review-only banner
+PASS central calendar reused
+PASS central calendar not recreated
+PASS alternative entitlement unique source index
+PASS business records RLS enabled
+PASS tenant predicate established
+PASS same business employee trigger
+PASS security invoker validator
+PASS validator revoked from public anon
+PASS NZ-only country rules
+PASS NZ-only calendar seed
+PASS no historical update payroll runs
+PASS no historical update timesheets
+PASS no final pay calculation
+PASS explicit shift instants additive
+PASS penal classification additive
+PASS current regime rule
+PASS section50 rule
+PASS bounded 2026 calendar
+PASS P5 SQL not under supabase migrations
+20/20 PASS
