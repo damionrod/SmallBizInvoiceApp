@@ -1,0 +1,4 @@
+V61.73 P8 corrected complete runtime source.
+Narrow correction: saas.js now loads payroll-nz-public-holidays.js between P4 and P6.
+Upload CONTENTS preserving paths. No P8 database migration is required.
+This exact source passed the 511/511 master regression before packaging.
