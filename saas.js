@@ -141,7 +141,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      await window.FinloCore.loader.loadScriptsSequentially(['app.js?v=61.71B-P2','job-costing.js?v=61.71','job-profitability.js?v=61.71','expenses.js?v=61.71','payroll.js?v=61.71','financials.js?v=61.71','accountant-centre.js?v=61.71','bank-reconciliation.js?v=61.71B-P1']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
+      await window.FinloCore.loader.loadScriptsSequentially(['app.js?v=61.72A.1-gst','job-costing.js?v=61.72A.1-gst','job-profitability.js?v=61.71','expenses.js?v=61.72A.1-gst','payroll.js?v=61.71','financials.js?v=61.72A.1-gst','accountant-centre.js?v=61.71','bank-reconciliation.js?v=61.72A.1-gst']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
     }
   }
 

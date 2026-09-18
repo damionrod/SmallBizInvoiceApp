@@ -3,7 +3,7 @@ const DEFAULT_PRODUCTS=[
 ];
 const DEFAULT_SETTINGS={
   company:'',trading:'',address:'',phone:'',email:'',website:'',gstNumber:'',dueDays:3,invoicePrefix:'',currency:'NZD',outboundEmail:'',
-  gstRate:15,extraFeeEnabled:false,extraFeeLabel:'Service fee',extraFeeRate:0,
+  gstRate:null,extraFeeEnabled:false,extraFeeLabel:'Service fee',extraFeeRate:0,
   bankAccounts:[{name:'Main Account',account:'',isDefault:true}],
   products:DEFAULT_PRODUCTS,template:'classic',theme:'professional',primaryColor:'#17324d',accentColor:'#5b7c99',logoData:'',supabaseUrl:'',supabaseKey:'',
   emailSettings:{senderName:'{tradingName} Accounts',subject:'Invoice {invoiceNumber} from {tradingName}',body:'Hi {customerName},\n\nPlease find attached invoice {invoiceNumber}.\n\nTotal: {total}\nBalance due: {balanceDue}\nDue date: {dueDate}\n\nPlease use {invoiceNumber} as your payment reference.\n\nKind regards,\n{tradingName}\n{phone}\n{email}'},
@@ -41,7 +41,7 @@ async function nextInvoiceNo(){const arr=await allInvoices();let prefix=cleanInv
 function logoSrc(src=settings){return String(src?.logoData||'').trim()}
 function setImageOrHide(img,src){if(!img)return;const v=String(src||'').trim();if(v){img.src=v;img.style.display=''}else{img.removeAttribute('src');img.style.display='none'}}
 function defaultBank(src=settings){return (src.bankAccounts||[]).find(x=>x.isDefault)||(src.bankAccounts||[])[0]||{name:'',account:''}}
-function taxConfig(src=settings){return{gstRate:num(src.gstRate??15),extraFeeEnabled:!!src.extraFeeEnabled,extraFeeRate:num(src.extraFeeRate),extraFeeLabel:(src.extraFeeLabel||'Service fee').trim()||'Service fee'}}
+function taxConfig(src=settings){const configuredRate=src?.gstRate??window.SAAS?.state?.business?.settings?.gstRate??settings?.gstRate;return{gstRate:num(configuredRate),extraFeeEnabled:!!src.extraFeeEnabled,extraFeeRate:num(src.extraFeeRate),extraFeeLabel:(src.extraFeeLabel||'Service fee').trim()||'Service fee'}}
 function cleanTaxLabel(label,fallback='GST'){return String(label||fallback).replace(/\s*\(\s*\d+(?:\.\d+)?%\s*\)\s*/gi,' ').trim()||fallback}
 function applyBranding(){document.documentElement.style.setProperty('--navy',settings.primaryColor||'#17324d');document.documentElement.style.setProperty('--green',settings.accentColor||'#5b7c99');setImageOrHide($('brandLogo'),logoSrc());$('brandCompanyName').textContent=settings.company||settings.trading||'Finlo';updateTaxLabels()}
 function activeCountry(){return String(window.SAAS?.state?.business?.settings?.country||'NZ').toUpperCase()}
