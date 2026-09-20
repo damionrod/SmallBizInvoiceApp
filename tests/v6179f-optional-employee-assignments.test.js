@@ -1,0 +1,21 @@
+const fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..');let n=0;
+function ok(value,message){if(!value)throw new Error('FAIL: '+message);n++}
+const sql=fs.readFileSync(path.join(root,'supabase/migrations/20260920233000_v6179f_optional_employee_assignments.sql'),'utf8');
+const rollback=fs.readFileSync(path.join(root,'docs/V61.79F-ROLLBACK.sql'),'utf8');
+ok(/^begin;/mi.test(sql)&&/^commit;/mi.test(sql),'migration is transaction bounded');
+ok(/security invoker/i.test(sql)&&!/security definer/i.test(sql),'RPC remains SECURITY INVOKER');
+ok(/v_employee_ids uuid\[\] := '\{\}'::uuid\[\]/.test(sql),'empty assignment array is a supported default');
+ok(/unnest\(coalesce\(p_employee_ids, '\{\}'::uuid\[\]\)\)/.test(sql),'requested employee IDs are normalized');
+ok(/coalesce\(e\.archived,false\)=false/.test(sql),'archived employees are ignored');
+ok(/not in \('terminated','inactive'\)/.test(sql),'inactive and terminated employees are ignored');
+ok(/array_agg\(distinct e\.id\)/.test(sql),'multiple employees are deduplicated');
+ok(/not \(a\.employee_id=any\(v_employee_ids\)\)/.test(sql),'only assignments outside valid requested set are removed');
+ok(/from unnest\(v_employee_ids\)/.test(sql)&&/on conflict \(schedule_id,employee_id\) do nothing/.test(sql),'all valid requested employees are inserted safely');
+ok(/revoke all on function[\s\S]*from public/i.test(sql)&&/revoke execute[\s\S]*from anon/i.test(sql)&&/grant execute[\s\S]*to authenticated/i.test(sql),'least-privilege grants preserved');
+ok(!/drop\s+[^;]*cascade/i.test(sql),'no DROP CASCADE');
+ok(/^begin;/mi.test(rollback)&&/^commit;/mi.test(rollback),'rollback is transaction bounded');
+ok(/security invoker/i.test(rollback)&&!/security definer/i.test(rollback),'rollback remains SECURITY INVOKER');
+ok(/on conflict \(schedule_id,employee_id\) do nothing/.test(rollback),'rollback restores V61.79E assignment diff');
+ok(!/drop\s+[^;]*cascade/i.test(rollback),'rollback has no DROP CASCADE');
+console.log(`${n}/${n} V61.79F optional employee assignment checks PASS`);

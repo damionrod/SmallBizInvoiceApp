@@ -48,11 +48,21 @@ Deno.serve(async(req)=>{
     if(roleError||billingRole!=='owner')return out({error:'Only the Business Owner can manage billing'},403);
 
     const {data:profile}=await client.from('profiles').select('email').eq('id',user.id).single();
-    const {planSlug,returnUrl}=await req.json();
+    const {planSlug,billingInterval='monthly',returnUrl}=await req.json();
+    const interval=billingInterval==='annual'?'annual':'monthly';
     const safeReturnUrl=validateReturnUrl(returnUrl,req);
 
     const {data:plan}=await client.from('plans').select('*').eq('slug',planSlug).eq('is_public',true).single();
-    if(!plan?.stripe_price_id)return out({error:'This plan does not have a Stripe Price ID yet. Add one in Super Admin → Subscription plans.'},400);
+    const selectedPriceId=interval==='annual'?plan?.stripe_annual_price_id:plan?.stripe_price_id;
+    const selectedAmount=interval==='annual'?plan?.annual_price:plan?.monthly_price;
+    if(!selectedPriceId||selectedAmount==null)return out({error:`This plan does not have a valid ${interval} billing price configured yet.`},400);
+
+    const priceResponse=await fetch('https://api.stripe.com/v1/prices/'+encodeURIComponent(selectedPriceId),{headers:{Authorization:`Bearer ${stripe}`}});
+    const priceData=await priceResponse.json();
+    if(!priceResponse.ok)throw new Error(priceData?.error?.message||'Unable to verify Stripe price');
+    const expectedInterval=interval==='annual'?'year':'month',expectedAmount=Math.round(Number(selectedAmount)*100);
+    if(priceData?.recurring?.interval!==expectedInterval)return out({error:`Configured Stripe price is not a genuine ${interval} recurring price.`},400);
+    if(Number(priceData?.unit_amount)!==expectedAmount)return out({error:`Configured Stripe price amount does not match the ${interval} plan price.`},400);
 
     const {data:sub}=await client.from('subscriptions').select('*').eq('business_id',businessId).single();
     let customer=sub?.stripe_customer_id;
@@ -79,15 +89,17 @@ Deno.serve(async(req)=>{
     const f=new URLSearchParams();
     f.set('mode','subscription');
     f.set('customer',customer);
-    f.set('line_items[0][price]',plan.stripe_price_id);
+    f.set('line_items[0][price]',selectedPriceId);
     f.set('line_items[0][quantity]','1');
     f.set('success_url',`${safeReturnUrl}${safeReturnUrl.includes('?')?'&':'?'}billing=success`);
     f.set('cancel_url',`${safeReturnUrl}${safeReturnUrl.includes('?')?'&':'?'}billing=cancel`);
     f.set('client_reference_id',businessId);
     f.set('metadata[business_id]',businessId);
     f.set('metadata[plan_id]',plan.id);
+    f.set('metadata[billing_interval]',interval);
     f.set('subscription_data[metadata][business_id]',businessId);
     f.set('subscription_data[metadata][plan_id]',plan.id);
+    f.set('subscription_data[metadata][billing_interval]',interval);
 
     const r=await fetch('https://api.stripe.com/v1/checkout/sessions',{
       method:'POST',

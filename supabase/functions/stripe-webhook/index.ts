@@ -166,6 +166,7 @@ Deno.serve(async(req)=>{
           current_period_start:new Date(sub.current_period_start*1000).toISOString(),
           current_period_end:new Date(sub.current_period_end*1000).toISOString(),
           trial_ends_at:null,
+          billing_interval:cs.metadata?.billing_interval==='annual'?'annual':'monthly',
           updated_at:new Date().toISOString()
         }).eq('business_id',bid);
         await referralEvent(bid,'subscription_activated');
