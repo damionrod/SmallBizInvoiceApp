@@ -1,0 +1,12 @@
+Finlo V61.73 P8.6 — deployment hardening + PAYG attestation wording
+
+Changes only:
+- Netlify publish directory is now /public, containing an explicit browser-runtime allowlist.
+- /v6171b is NOT in the publish directory.
+- QA outputs and freeze/deployment manifests are NOT in the publish directory.
+- PAYG single confirmation is route-specific and explicit for irregular/intermittent vs genuine fixed term.
+- The exact attestation text/version is stored in the existing evidence snapshot.
+- Not eligible remains available and uses Standard Leave Entitlement without PAYG holiday pay.
+- Payroll browser cache key bumped to P8.6.
+
+No database migration. No P3-P7 statutory engine change. No accounting/GST/BAS change.

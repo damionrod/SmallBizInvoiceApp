@@ -1,0 +1,28 @@
+V61.74C — Subscription Pricing UI Refinement
+
+Scope: visual layout only for the customer Choose your plan modal.
+
+Design changes
+- Cleaner card hierarchy: plan name/description, monthly price, annual offer, plan limit/features, actions.
+- Monthly and annual remain visible together; no billing toggle.
+- Annual offer is visually grouped in a quiet inset panel.
+- Positive annual saving is highlighted with a compact saving pill.
+- Actual annual charge and monthly equivalent remain explicit.
+- Current plan has a compact status pill.
+- CTA buttons align at the bottom of cards.
+- Trial avoids an irrelevant annual purchase action.
+- Responsive: two columns at medium widths and one column on small mobile.
+
+Functionality deliberately preserved
+- Same plan records and prices.
+- Same monthly and annual billing_interval values.
+- Same startCheckout path.
+- Same Stripe/Supabase checkout architecture.
+- No database/schema/Edge Function changes.
+- No Super Admin persistence changes.
+- No payroll/accounting/GST/BAS changes.
+
+Verification
+- public/saas.js syntax PASS.
+- Focused UI/checkout-preservation checks: 13/13 PASS.
+- Frozen P3-P7 engines, payroll.js and financials.js unchanged.

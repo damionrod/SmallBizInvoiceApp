@@ -1,0 +1,22 @@
+V61.75A — Employee Limit Upgrade Prompt
+
+Scope
+- UX enhancement only around the existing V61.75 employee-limit enforcement.
+- When a user reaches the Payroll employee limit, Finlo now shows a focused upgrade prompt rather than only a toast.
+- Prompt explains the reached employee limit and, when the next eligible plan is already available in app state, names that plan and its employee allowance.
+- Actions: Upgrade plan / Not now.
+- Upgrade plan opens the existing Choose your plan flow.
+- Not now simply closes the prompt.
+
+Preserved
+- V61.75 employee-limit checks remain in place.
+- Database enforcement is unchanged.
+- Employee editing/archive behavior is unchanged.
+- Existing subscription/Stripe checkout path is unchanged.
+- No plan prices, limits, database schema, Edge Functions, payroll formulas, pay-run calculations, accounting, GST or BAS changes.
+- Frozen P3-P7 statutory engines and financials.js unchanged.
+
+Verification
+- saas.js syntax PASS.
+- payroll.js syntax PASS.
+- Focused V61.75A checks 14/14 PASS.

@@ -1,0 +1,28 @@
+V61.76 — Aged Receivables + Movable Report Widgets
+
+Aged Receivables
+- Added to the existing Sales Reports widget grid.
+- Uses existing cloud invoice records only; no new schema or migration.
+- Uses outstanding balance_due and invoice due_date.
+- Buckets: Current (Not Overdue), 1–30, 31–60, 61–90, 91+ days past due.
+- Customer table shows each bucket, Total Owed and totals row.
+- Bar chart shows portfolio totals by aging bucket.
+- Aged receivables intentionally use all outstanding invoices as of today, independent of the Sales Report date-range filter.
+
+Movable reports
+- Existing report widgets already had handles and persisted tenant-specific order, but the HTML5 dragstart implementation could fail because dragstart originates from the draggable card rather than the nested handle.
+- Replaced only that interaction layer with pointer-based handle dragging.
+- Existing tenant-specific localStorage order persistence is retained.
+- Works with mouse, pen and touch pointer events.
+- Dragging begins only from the existing ⋮⋮ handle.
+
+Protected
+- No database/schema/Supabase/Stripe changes.
+- No payroll, statutory engine, financials.js, accounting, GST or BAS changes.
+- saas.js changes only the app.js cache/version loader string so browsers receive V61.76.
+- Existing report calculations remain unchanged except addition of the new aged receivables renderer.
+
+Verification
+- app.js, saas.js, payroll.js, financials.js syntax PASS.
+- V61.76 focused checks 17/17 PASS.
+- Frozen P3-P7 engines, payroll.js and financials.js unchanged from V61.75A.
