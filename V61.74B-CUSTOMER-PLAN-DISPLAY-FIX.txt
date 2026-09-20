@@ -1,0 +1,25 @@
+V61.74B — Customer Plan Display Fix
+
+Scope
+- Removed the Monthly / Annual toggle from the customer Choose your plan modal.
+- Each plan card now displays Monthly and Annual pricing together.
+- Annual price shows yearly charge, monthly equivalent and existing saving badge/message.
+- Monthly and Annual checkout actions remain separate and pass the same billing_interval values to the existing checkout flow.
+- If annual billing is not configured, the annual rate explicitly shows Not set and annual checkout remains disabled.
+- Trial does not show an unnecessary annual purchase button.
+- Responsive mobile layout stacks the two price blocks/actions.
+
+No changes
+- Database/schema: unchanged.
+- Supabase Edge Functions: unchanged.
+- Super Admin plan persistence: unchanged from V61.74A.
+- Payroll/accounting/GST/BAS: unchanged.
+- Frozen P3-P7 engines: unchanged.
+
+Verification
+- public/saas.js syntax PASS.
+- Focused V61.74B checks 12/12 PASS.
+- Frozen engines, payroll.js and financials.js unchanged.
+
+Deployment gate
+- Frontend is not claimed live until deployed and browser validated.

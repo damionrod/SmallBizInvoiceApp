@@ -1,0 +1,25 @@
+V61.78A — For My Accountant Standalone Route Fix
+
+Scope
+- Corrects one V61.78 placement/routing issue only.
+- For My Accountant is now a standalone application view instead of a hidden panel inside Reports.
+- Financials header and account-menu entry both route directly to the standalone view.
+- The same existing Accountant Centre DOM, IDs, implementation and functions are retained; no duplicate Accountant Centre was created.
+- The existing Check My Records/year-end readiness UI remains inside the same Accountant Centre implementation.
+
+Unchanged
+- Reports five-choice navigation and report content.
+- Financials navigation and calculations.
+- Accountant Centre export/mapping/readiness implementation.
+- Database, migrations, RLS, RPCs, tenant isolation.
+- Payroll, Expenses, Job Costing, Bank Reconciliation, subscriptions and Super Admin.
+- Accounting, GST/BAS and report calculations.
+
+Verification
+- app.js and saas.js syntax PASS.
+- HTML parse confirms view-accountant is a top-level sibling view, not inside view-reports.
+- Duplicate DOM IDs: 0.
+- New V61.78A tests: 11/11 PASS.
+- Existing regression tests: 120/120 PASS across the prior 8 test files.
+- Combined: 131/131 PASS across 9 test files.
+- No database migration required.

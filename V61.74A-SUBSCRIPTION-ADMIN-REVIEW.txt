@@ -1,0 +1,33 @@
+V61.74A — Super Admin Subscription Plans Review/Fix
+
+User-reported issues addressed
+- Save buttons appeared non-interactive.
+- Monthly and annual rates were not clear enough together.
+- Savings needed stronger visual emphasis.
+
+Changes
+- Reworked only the Super Admin subscription plan editor in public/saas.js plus isolated CSS.
+- Each plan now shows MONTHLY and ANNUAL rates together at the top of the same plan card.
+- Annual monthly-equivalent is visible.
+- Positive annual savings are highlighted, including percentage and annual dollar saving when auto-generated.
+- Custom annual saving message remains supported.
+- Annual rate not set is explicit rather than hidden.
+- Save Plan is type=button and uses a delegated click handler that survives plan-grid re-renders.
+- Save immediately changes to Saving… and disables while the RPC is running.
+- On failure, the button is restored and the existing error alert is shown.
+- Existing v6174_admin_upsert_plan RPC and plan/subscription architecture are retained.
+- No database migration and no Edge Function change in V61.74A.
+
+Verification
+- public/saas.js syntax: PASS.
+- V61.74A focused checks: 16/16 PASS.
+- payroll-nz-holidays.js unchanged.
+- payroll-nz-statutory-leave.js unchanged.
+- payroll-nz-public-holidays.js unchanged.
+- payroll-nz-final-pay.js unchanged.
+- payroll-nz-tax.js unchanged.
+- payroll.js unchanged.
+- financials.js unchanged.
+
+Deployment gate
+- Frontend is not claimed live until the package is deployed through the existing GitHub/Netlify path and browser-validated.

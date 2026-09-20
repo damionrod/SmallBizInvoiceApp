@@ -1,0 +1,21 @@
+V61.77 — Aged Payables Report
+
+Scope
+- Added Aged Payables to the existing Expense Report widget grid.
+- Bar chart: Current, 1–30, 31–60, 61–90 and 91+ days past due.
+- Supplier table: same five aging buckets, Total Owed and totals row.
+- Uses existing expense/bill data only; no schema or migration.
+- Uses the existing supplierCreditAdjustedOutstanding() calculation, so recorded supplier credits and expense payments remain respected.
+- Draft bills and fully settled bills are excluded.
+- Aging is based on bill due_date as of today.
+- Like Aged Receivables, Aged Payables represents the current outstanding portfolio and is intentionally independent of the Expense Report date-range filter.
+- New widgets use the existing V61.76 movable-widget handles and persisted report layout.
+
+Protected
+- No invoice, receivables, payroll, statutory engine, accounting, GST, BAS, Stripe, subscription or database changes.
+- app.js, financials.js, payroll.js and P3-P7 statutory engines are byte-for-byte unchanged from V61.76.
+- saas.js changes only the expenses.js cache/version loader string.
+
+Verification
+- expenses.js, app.js, saas.js, payroll.js and financials.js syntax PASS.
+- Focused V61.77 checks 14/14 PASS.

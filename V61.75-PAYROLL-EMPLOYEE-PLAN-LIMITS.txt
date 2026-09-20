@@ -1,0 +1,31 @@
+V61.75 — Payroll Employee Limits by Subscription Plan
+
+Scope
+- Super Admin can set an Employee limit on each subscription plan.
+- Blank employee limit means unlimited.
+- Initial requested values applied: Starter 5, Business 10, Pro 30.
+- Trial was deliberately left unchanged/unlimited because no Trial limit was specified.
+
+Enforcement
+- Database trigger is authoritative for new/unarchived Payroll employee records.
+- Existing employee records are not deleted, changed, or archived.
+- Existing employee editing remains available even when a plan is at its limit.
+- Payroll UI blocks Add Employee at the configured limit and explains that the user can archive an employee or upgrade.
+- Customer plan cards show "Up to N employees" for Payroll-enabled plans with a configured limit.
+
+Super Admin
+- Existing subscription plan editor now includes Employee limit.
+- Existing plan architecture retained; no second entitlement system.
+- V61.75 Super Admin RPC retains the existing super-admin authorization check.
+
+Protected areas
+- No payroll formula/statutory-engine changes.
+- No pay-run calculation changes.
+- No accounting, GST or BAS changes.
+- No Stripe/checkout Edge Function changes.
+- P3-P7 statutory engine files and financials.js unchanged.
+
+Verification
+- saas.js syntax PASS.
+- payroll.js syntax PASS.
+- Focused V61.75 checks 12/12 PASS.

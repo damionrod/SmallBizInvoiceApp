@@ -1,0 +1,68 @@
+V61.78 — Simplified Financials and Reports Navigation
+
+Scope
+- Information architecture, placement, labels and responsive navigation only.
+- No database migration.
+- No accounting/report calculation rewrite.
+
+Financials
+- Five primary choices: Summary, Profit & Loss, Money In & Out, GST, Budget.
+- More financial reports: Balance Sheet, Cash Book, General Ledger, Trial Balance.
+- Cash Flow visible label changed to Money In & Out; existing cash-flow calculation is unchanged.
+- Financials header now includes For My Accountant.
+
+Reports
+- Five primary choices: Business Performance, Sales & Money Owed, Expenses & Bills, Jobs, Payroll.
+- Monthly Revenue, Expenses & Margin moved once from Sales to Business Performance; existing renderer/data path unchanged.
+- Sales keeps sales metrics, month-on-month sales, Invoices Issued & Paid, monthly sales table and Aged Receivables.
+- Expenses keeps expense metrics, Monthly Expenses, Expenses by Category, Expenses by Supplier and Aged Payables.
+- Expenses by Job moved once to Jobs.
+- Jobs routes to the existing Job Costing profitability implementation for estimated/actual costs, revenue, profit and margin; no duplicate profitability logic was created.
+- Recent Expenses remains in Reports because expenses.js currently renders that DOM target directly; removing it without changing the existing Expenses implementation would risk a regression. The underlying My Expenses list remains unchanged.
+
+For My Accountant
+- Removed Accountant Centre from the ordinary Reports tab row.
+- Renamed visible entry to For My Accountant.
+- Accessible from Financials header and account popover; both open the same existing Accountant Centre panel.
+- Year-end readiness moved from GST to For My Accountant and relabelled Check My Records; existing readiness function and IDs retained.
+
+Permissions and isolation
+- Existing Expense and Payroll report entitlement hiding retained.
+- Jobs choice follows existing Job Costing navigation entitlement.
+- Expenses by Job is hidden when Expenses is unavailable.
+- Check My Records is hidden when Financials is unavailable.
+- Report and Financials navigation reset to their safe primary view when switching businesses; data access/query logic is unchanged.
+
+Responsive/accessibility
+- Five primary navigation choices use a two-column touch-friendly layout on narrow screens rather than compressed horizontal tabs.
+- More financial reports uses a native details/summary control with >=44px target, keyboard/touch support and explicit aria-expanded synchronization.
+- Menu becomes in-flow on mobile so it cannot open off-screen.
+- Existing table horizontal scrolling, chart sizing and pointer-based movable report widgets remain intact.
+- Business Performance and Jobs have separate saved widget layout keys.
+
+Files changed (runtime)
+- public/index.html
+- public/app.js
+- public/financials.js
+- public/saas.js (cache loader + account-menu route only)
+- public/styles.css
+
+Test maintenance
+- Updated stale assertions in older tests to the already-approved current runtime/UI names and cache versions.
+- Added tests/v6178-simplified-navigation.test.js.
+
+Verification
+- New V61.78 tests: 22/22 PASS.
+- Existing regression tests: 98/98 PASS after stale assertion maintenance only.
+- Combined automated assertions: 120/120 PASS.
+- All public/*.js syntax checks PASS.
+- index.html duplicate DOM IDs: 0.
+- expenses.js, payroll.js, job-costing.js, job-profitability.js, accountant-centre.js and bank-reconciliation.js byte-for-byte unchanged from V61.77.
+- No Supabase/migration files changed.
+
+Visual description
+Desktop Financials: five clear primary tabs with a separate More financial reports control; For My Accountant at the header right.
+Mobile Financials: primary choices become large two-column touch targets; More financial reports expands full-width in-flow.
+Desktop Reports: five clear operational categories; Business Performance is the default; sales-period controls are shared only by Business Performance and Sales & Money Owed.
+Mobile Reports: two-column wrapped navigation with readable labels and no hover dependency; existing tables retain horizontal scrolling.
+For My Accountant: dedicated existing Accountant Centre content with Check My Records at the top, followed by accounting period, exports, mapping, validation and history.
