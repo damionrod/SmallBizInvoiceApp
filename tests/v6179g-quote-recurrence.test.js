@@ -1,0 +1,16 @@
+const fs=require('fs'),path=require('path');const root=path.resolve(__dirname,'..');const schedule=fs.readFileSync(path.join(root,'public/schedule.js'),'utf8');const sql=fs.readFileSync(path.join(root,'supabase/migrations/20260921200000_v6179g_eligible_quote_schedule_recurrence.sql'),'utf8');let n=0;const ok=(x,m)=>{if(!x)throw new Error(`FAIL: ${m}`);n++};
+const conversion=fs.readFileSync(path.join(root,'supabase/migrations/20260921201500_v6179h_recurrence_edit_conversion.sql'),'utf8');
+const dashboard=fs.readFileSync(path.join(root,'supabase/migrations/20260921203000_v6179i_dashboard_unscheduled_quote_filter.sql'),'utf8');
+ok(schedule.includes("rpc('v6179_schedule_eligible_quotes')"),'Schedule uses the server-side eligible quote RPC');
+ok(schedule.includes('virtual_quote:true')&&schedule.includes('quote:${q.id}'),'quotes without schedules become virtual unscheduled cards');
+ok(schedule.includes('r.virtual_quote')&&schedule.includes('atomicSave(null,payload,[])'),'dragging a quote creates a schedule through the existing atomic save path');
+ok(schedule.includes('Repeat this job (optional)')&&schedule.includes('selected_dates'),'recurrence controls are optional and support selected dates');
+ok(sql.includes("q.status in ('sent','accepted','approved','won')")&&!sql.includes("q.status in ('draft'"),'eligible status allow-list excludes drafts and rejected quotes');
+ok(sql.includes('not exists (')&&sql.includes('s.quote_id=q.id'),'already scheduled quotes are excluded server-side');
+ok(sql.includes('job_schedules_business_quote_one_time_uidx'),'one-time quote schedules are unique per business');
+ok(sql.includes("frequency in ('daily','every_other_day','weekly','fortnightly','monthly','selected_dates')"),'recurrence patterns are constrained server-side');
+ok(sql.includes('on conflict (business_id,recurrence_series_id,recurrence_occurrence_date) do nothing'),'recurrence retries are idempotent');
+ok(sql.includes('Quote is not eligible for scheduling')&&sql.includes('new.quote_id'),'direct writes cannot schedule a rejected or cross-tenant quote');
+ok(conversion.includes("if v_recur_enabled and p_schedule_id is not null")&&conversion.includes('recurrence_series_id=v_series_id')&&conversion.includes('recurrence_occurrence_date=v_date'),'existing one-time jobs can be converted to a recurrence series without creating a duplicate first occurrence');
+ok(dashboard.includes('v6179_unscheduled_schedule_count')&&dashboard.includes("q.status in ('sent','accepted','approved','won')"),'Dashboard unscheduled count excludes inactive quote schedules server-side');
+console.log(`${n}/${n} V61.79G quote/recurrence checks PASS`);

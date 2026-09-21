@@ -3,17 +3,10 @@ setlocal
 cd /d "%~dp0public"
 
 where py >nul 2>nul
-if %errorlevel%==0 (
-  start "Finlo local server" /min py -m http.server 8765
-) else (
+if %errorlevel%==0 (start "Finlo local server" /min py -m http.server 8765) else (
   where python >nul 2>nul
-  if %errorlevel%==0 (
-    start "Finlo local server" /min python -m http.server 8765
-  ) else (
-    echo Python is required to run Finlo locally.
-    echo Install Python from https://www.python.org/downloads/windows/
-    pause
-    exit /b 1
+  if %errorlevel%==0 (start "Finlo local server" /min python -m http.server 8765) else (
+    start "Finlo local server" /min powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0START-FINLO-LOCAL.ps1"
   )
 )
 

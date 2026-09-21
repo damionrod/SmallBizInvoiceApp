@@ -50,6 +50,12 @@
  // available, tell the user to use typed Helper or enable Live Voice.
  function startConversation(){
    if(conversationMode||liveStarting||liveActive)return;
+   if(location.protocol==='file:'){
+     const state=q('finloHelperVoiceStatus');
+     if(state)state.textContent='Natural voice requires localhost. Double-click START-FINLO-LOCAL.bat, then reopen Finlo.';
+     console.warn('[Finlo Helper] natural conversation blocked on file://; use the local launcher');
+     return;
+   }
    startLiveVoice().catch(error=>{
      const message=String(error?.message||'Live Voice is unavailable. You can continue with typed Helper.');
      const state=q('finloHelperVoiceStatus');
