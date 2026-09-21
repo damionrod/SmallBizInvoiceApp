@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getStripeConfig } from "../_shared/payment-config.ts";
+import { getStripeConfig, randomIntegrationSuffix, stripeHeaders } from "../_shared/payment-config.ts";
 
 const cors={
   "Access-Control-Allow-Origin":"*",
@@ -57,9 +57,10 @@ Deno.serve(async(req)=>{
     const selectedAmount=interval==='annual'?plan?.annual_price:plan?.monthly_price;
     if(!selectedPriceId||selectedAmount==null)return out({error:`This plan does not have a valid ${interval} billing price configured yet.`},400);
 
-    const priceResponse=await fetch('https://api.stripe.com/v1/prices/'+encodeURIComponent(selectedPriceId),{headers:{Authorization:`Bearer ${stripe}`}});
+    const priceResponse=await fetch('https://api.stripe.com/v1/prices/'+encodeURIComponent(selectedPriceId),{headers:stripeHeaders(stripe)});
     const priceData=await priceResponse.json();
     if(!priceResponse.ok)throw new Error(priceData?.error?.message||'Unable to verify Stripe price');
+    if(priceData?.active!==true)return out({error:'The configured Stripe price is inactive.'},400);
     const expectedInterval=interval==='annual'?'year':'month',expectedAmount=Math.round(Number(selectedAmount)*100);
     if(priceData?.recurring?.interval!==expectedInterval)return out({error:`Configured Stripe price is not a genuine ${interval} recurring price.`},400);
     if(Number(priceData?.unit_amount)!==expectedAmount)return out({error:`Configured Stripe price amount does not match the ${interval} plan price.`},400);
@@ -74,8 +75,7 @@ Deno.serve(async(req)=>{
       const cr=await fetch('https://api.stripe.com/v1/customers',{
         method:'POST',
         headers:{
-          Authorization:`Bearer ${stripe}`,
-          'Content-Type':'application/x-www-form-urlencoded',
+          ...stripeHeaders(stripe,true),
           'Idempotency-Key':`finlo-customer-${businessId}`
         },
         body:form
@@ -99,11 +99,12 @@ Deno.serve(async(req)=>{
     f.set('metadata[billing_interval]',interval);
     f.set('subscription_data[metadata][business_id]',businessId);
     f.set('subscription_data[metadata][plan_id]',plan.id);
-    f.set('subscription_data[metadata][billing_interval]',interval);
+   f.set('subscription_data[metadata][billing_interval]',interval);
+    f.set('integration_identifier','finlo_subscriptions_'+randomIntegrationSuffix());
 
     const r=await fetch('https://api.stripe.com/v1/checkout/sessions',{
       method:'POST',
-      headers:{Authorization:`Bearer ${stripe}`,'Content-Type':'application/x-www-form-urlencoded'},
+      headers:stripeHeaders(stripe,true),
       body:f
     });
     const d=await r.json();

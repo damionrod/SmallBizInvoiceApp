@@ -1,35 +1,6 @@
-import Stripe from 'npm:stripe@14.25.0';
+import Stripe from 'npm:stripe@22.4.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-async function getStripeConfig(admin:any, requireEnabled=false){
-  const {data:row,error:rowError}=await admin
-    .from('payment_provider_settings')
-    .select('provider,enabled,mode,public_config')
-    .eq('provider','stripe')
-    .maybeSingle();
-
-  if(rowError && !String(rowError.message||'').includes('payment_provider_settings')) throw rowError;
-
-  const {data:secretText,error:secretError}=await admin.rpc(
-    'v34_get_payment_provider_secret',
-    {p_provider:'stripe'}
-  );
-
-  let stored:any={};
-  if(!secretError && secretText){
-    try{stored=JSON.parse(secretText)}catch{stored={}}
-  }
-
-  const secretKey=stored.secret_key||Deno.env.get('STRIPE_SECRET_KEY')||'';
-  const webhookSecret=stored.webhook_secret||Deno.env.get('STRIPE_WEBHOOK_SECRET')||'';
-  const publishableKey=row?.public_config?.publishable_key||'';
-  const enabled=row ? row.enabled===true : !!secretKey;
-
-  if(requireEnabled && !enabled) throw new Error('Stripe payments are disabled in Super Admin → Payment gateway settings.');
-  if(!secretKey) throw new Error('Stripe secret key is not configured. Add it in Super Admin → Payment gateway settings.');
-
-  return {secretKey,webhookSecret,publishableKey,enabled,mode:row?.mode||'test'};
-}
+import { getStripeConfig, stripeHeaders, STRIPE_API_VERSION } from './_shared/payment-config.ts';
 
 Deno.serve(async(req)=>{
   const url=Deno.env.get('SUPABASE_URL');
@@ -44,7 +15,7 @@ Deno.serve(async(req)=>{
   const wh=cfg.webhookSecret;
   if(!wh) return new Response('Stripe webhook signing secret is not configured in Super Admin → Payment gateway settings.',{status:500});
 
-  const stripe=new Stripe(secret,{apiVersion:'2023-10-16'});
+  const stripe=new Stripe(secret,{apiVersion:STRIPE_API_VERSION});
   const sig=req.headers.get('stripe-signature');
   if(!sig) return new Response('Missing signature',{status:400});
 
@@ -119,6 +90,7 @@ Deno.serve(async(req)=>{
         headers:{
           Authorization:`Bearer ${secret}`,
           'Content-Type':'application/x-www-form-urlencoded',
+          'Stripe-Version':STRIPE_API_VERSION,
           'Idempotency-Key':`finlo-credit-${applicationId}`
         },
         body:form
@@ -173,20 +145,30 @@ Deno.serve(async(req)=>{
       }
     }
 
-    if(event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'){
+    if(event.type==='customer.subscription.created'||event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'){
       const sub=event.data.object as Stripe.Subscription;
       const bid=sub.metadata?.business_id;
       if(bid){
         const status=event.type==='customer.subscription.deleted'?'canceled':(sub.status==='active'?'active':sub.status==='past_due'?'past_due':sub.status==='trialing'?'trialing':'canceled');
-        await db.from('subscriptions').update({
+        const patch:any={
           status,
           current_period_start:new Date(sub.current_period_start*1000).toISOString(),
           current_period_end:new Date(sub.current_period_end*1000).toISOString(),
           cancel_at_period_end:sub.cancel_at_period_end,
           updated_at:new Date().toISOString()
-        }).eq('business_id',bid);
+        };
+        if(sub.metadata?.plan_id)patch.plan_id=sub.metadata.plan_id;
+        if(sub.customer)patch.stripe_customer_id=String(sub.customer);
+        patch.stripe_subscription_id=sub.id;
+        await db.from('subscriptions').update(patch).eq('business_id',bid);
         if(status==='active') await referralEvent(bid,'subscription_activated');
       }
+    }
+
+    if(event.type==='invoice.payment_failed'){
+      const invoice=event.data.object as Stripe.Invoice;
+      const bid=await resolveBusiness(invoice);
+      if(bid) await db.from('subscriptions').update({status:'past_due',updated_at:new Date().toISOString()}).eq('business_id',bid);
     }
 
     if(event.type==='invoice.payment_succeeded'){

@@ -1,4 +1,4 @@
--- V61.79H Schedule recurrence conversion for existing one-time jobs.
+-- V61.79J Fix recurrence occurrence idempotency for the production partial unique index.
 -- Existing recurring occurrences remain independently editable; this only allows
 -- an existing one-time job to become the first occurrence of a new series.
 begin;

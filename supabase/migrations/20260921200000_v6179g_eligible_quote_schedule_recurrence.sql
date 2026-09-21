@@ -233,7 +233,7 @@ begin
         nullif(p_schedule->>'invoice_id','')::uuid,v_series_id,v_date,btrim(p_schedule->>'title'),nullif(p_schedule->>'service_type',''),
         nullif(p_schedule->>'service_address',''),v_occ_start,v_occ_end,v_timezone,coalesce(nullif(p_schedule->>'status',''),'scheduled'),
         nullif(p_schedule->>'scheduled_value','')::numeric,nullif(p_schedule->>'notes',''),nullif(p_schedule->>'customer_instructions',''),(select auth.uid()),(select auth.uid())
-      ) on conflict (business_id,recurrence_series_id,recurrence_occurrence_date) do nothing;
+      ) on conflict do nothing;
       if v_first then select * into v_schedule from public.job_schedules where business_id=v_business and recurrence_series_id=v_series_id and recurrence_occurrence_date=v_date; v_first:=false; end if;
       insert into public.job_schedule_assignments(business_id,schedule_id,employee_id,created_by,updated_by)
       select v_business,s.id,eid,(select auth.uid()),(select auth.uid()) from public.job_schedules s cross join unnest(v_employee_ids) ids(eid)
