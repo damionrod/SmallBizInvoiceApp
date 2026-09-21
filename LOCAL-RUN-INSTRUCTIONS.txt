@@ -1,0 +1,10 @@
+FINLO LOCAL START
+
+Windows:
+1. Double-click START-FINLO-LOCAL.bat.
+2. Finlo opens automatically at http://localhost:8765/index.html.
+3. Allow microphone access when prompted for natural voice conversation.
+4. Close the small server window when finished.
+
+Do not open public/index.html directly with a file:// URL. Browser security blocks
+the secure microphone/WebRTC and authenticated Supabase paths required by Finlo.
