@@ -28,7 +28,9 @@ function validateReturnUrl(raw:any,req:Request){
 
 Deno.serve(async(req)=>{
   if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
+  let stage='initialising';
   try{
+    stage='loading Stripe configuration';
     const url=Deno.env.get('SUPABASE_URL')!;
     const anon=Deno.env.get('SUPABASE_ANON_KEY')!;
     const service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -37,26 +39,33 @@ Deno.serve(async(req)=>{
     const admin=createClient(url,service);
     const {secretKey:stripe}=await getStripeConfig(admin,true);
 
+    stage='authenticating the current user';
     const {data:{user}}=await client.auth.getUser();
     if(!user)return out({error:'Not authenticated'},401);
 
+    stage='resolving the active business';
     const {data:businessId,error:businessError}=await client.rpc('current_business_id');
     if(businessError||!businessId)return out({error:'No active business context found'},403);
 
     // Billing is server-authorised Owner-only. UI visibility is not a security boundary.
+    stage='checking billing permission';
     const {data:billingRole,error:roleError}=await client.rpc('v6147_current_business_role',{p_business_id:businessId});
     if(roleError||billingRole!=='owner')return out({error:'Only the Business Owner can manage billing'},403);
 
-    const {data:profile}=await client.from('profiles').select('email').eq('id',user.id).single();
+    const {data:profile}=await client.from('profiles').select('email').eq('id',user.id).maybeSingle();
     const {planSlug,billingInterval='monthly',returnUrl}=await req.json();
     const interval=billingInterval==='annual'?'annual':'monthly';
     const safeReturnUrl=validateReturnUrl(returnUrl,req);
 
-    const {data:plan}=await client.from('plans').select('*').eq('slug',planSlug).eq('is_public',true).single();
+    stage='loading the selected plan';
+    const {data:plan,error:planError}=await client.from('plans').select('*').eq('slug',planSlug).eq('is_public',true).maybeSingle();
+    if(planError)throw new Error(`Unable to load the selected plan: ${planError.message}`);
+    if(!plan)throw new Error('The selected plan is not available for checkout.');
     const selectedPriceId=interval==='annual'?plan?.stripe_annual_price_id:plan?.stripe_price_id;
     const selectedAmount=interval==='annual'?plan?.annual_price:plan?.monthly_price;
     if(!selectedPriceId||selectedAmount==null)return out({error:`This plan does not have a valid ${interval} billing price configured yet.`},400);
 
+    stage='verifying the Stripe price';
     const priceResponse=await fetch('https://api.stripe.com/v1/prices/'+encodeURIComponent(selectedPriceId),{headers:stripeHeaders(stripe)});
     const priceData=await priceResponse.json();
     if(!priceResponse.ok)throw new Error(priceData?.error?.message||'Unable to verify Stripe price');
@@ -65,30 +74,22 @@ Deno.serve(async(req)=>{
     if(priceData?.recurring?.interval!==expectedInterval)return out({error:`Configured Stripe price is not a genuine ${interval} recurring price.`},400);
     if(Number(priceData?.unit_amount)!==expectedAmount)return out({error:`Configured Stripe price amount does not match the ${interval} plan price.`},400);
 
-    const {data:sub}=await client.from('subscriptions').select('*').eq('business_id',businessId).single();
+    stage='loading the billing record';
+    const {data:sub}=await client.from('subscriptions').select('*').eq('business_id',businessId).maybeSingle();
     let customer=sub?.stripe_customer_id;
 
-    if(!customer){
-      const form=new URLSearchParams();
-      form.set('email',user.email||profile?.email||'');
-      form.set('metadata[business_id]',businessId);
-      const cr=await fetch('https://api.stripe.com/v1/customers',{
-        method:'POST',
-        headers:{
-          ...stripeHeaders(stripe,true),
-          'Idempotency-Key':`finlo-customer-${businessId}`
-        },
-        body:form
-      });
-      const cd=await cr.json();
-      if(!cr.ok)throw new Error(cd?.error?.message||'Unable to create Stripe customer');
-      customer=cd.id;
-      await admin.from('subscriptions').update({stripe_customer_id:customer}).eq('business_id',businessId);
-    }
-
+    stage='creating the Stripe Checkout session';
     const f=new URLSearchParams();
     f.set('mode','subscription');
-    f.set('customer',customer);
+    // Reuse an existing Stripe customer when available. For a first purchase,
+    // let Checkout create the customer from the signed-in user's email. This
+    // avoids a separate customer-creation request and is handled by the
+    // checkout.session.completed webhook.
+    if(customer)f.set('customer',customer);
+    else {
+      const email=String(user.email||profile?.email||'').trim();
+      if(email)f.set('customer_email',email);
+    }
     f.set('line_items[0][price]',selectedPriceId);
     f.set('line_items[0][quantity]','1');
     f.set('success_url',`${safeReturnUrl}${safeReturnUrl.includes('?')?'&':'?'}billing=success`);
@@ -111,6 +112,7 @@ Deno.serve(async(req)=>{
     if(!r.ok)throw new Error(d?.error?.message||'Unable to open checkout');
     return out({url:d.url});
   }catch(e){
-    return out({error:e instanceof Error?e.message:'Checkout failed'},400);
+    const error=e instanceof Error?e.message:'Checkout failed';
+    return out({error,stage},400);
   }
 });

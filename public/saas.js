@@ -883,8 +883,17 @@
     const {data,error}=await state.client.functions.invoke('create-checkout',{body:{planSlug:slug,billingInterval,returnUrl:location.origin}});
     if(error||!data?.url){
       if(btn){btn.disabled=false;btn.textContent=original}
-      const text=error?.message||data?.error||'Billing is not configured yet.';
-      if(!opts.silent)alert('We could not open online checkout right now. Please try again later or contact support.');
+      let serverError=data?.error||'';
+      if(!serverError&&error?.context){
+        try{
+          const response=typeof error.context.clone==='function'?error.context.clone():error.context;
+          const payload=await response.json();
+          serverError=payload?.error||'';
+          if(payload?.stage)serverError=`${serverError} (stage: ${payload.stage})`;
+        }catch{}
+      }
+      const text=serverError||error?.message||'Billing is not configured yet.';
+      if(!opts.silent)alert(`Checkout unavailable: ${text}`);
       else message(text,'error');
       return false;
     }

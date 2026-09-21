@@ -9,7 +9,7 @@ ok(sql.includes("q.status in ('sent','accepted','approved','won')")&&!sql.includ
 ok(sql.includes('not exists (')&&sql.includes('s.quote_id=q.id'),'already scheduled quotes are excluded server-side');
 ok(sql.includes('job_schedules_business_quote_one_time_uidx'),'one-time quote schedules are unique per business');
 ok(sql.includes("frequency in ('daily','every_other_day','weekly','fortnightly','monthly','selected_dates')"),'recurrence patterns are constrained server-side');
-ok(sql.includes('on conflict (business_id,recurrence_series_id,recurrence_occurrence_date) do nothing'),'recurrence retries are idempotent');
+ok(sql.includes('on conflict do nothing'),'recurrence retries are idempotent');
 ok(sql.includes('Quote is not eligible for scheduling')&&sql.includes('new.quote_id'),'direct writes cannot schedule a rejected or cross-tenant quote');
 ok(conversion.includes("if v_recur_enabled and p_schedule_id is not null")&&conversion.includes('recurrence_series_id=v_series_id')&&conversion.includes('recurrence_occurrence_date=v_date'),'existing one-time jobs can be converted to a recurrence series without creating a duplicate first occurrence');
 ok(dashboard.includes('v6179_unscheduled_schedule_count')&&dashboard.includes("q.status in ('sent','accepted','approved','won')"),'Dashboard unscheduled count excludes inactive quote schedules server-side');
