@@ -24,7 +24,7 @@
     bindAuthUI();
     await loadSignupPlans();
     await prepareInviteMode();
-    if(state.referralCode&&!state.inviteToken){switchAuthTab('signup');message('You were referred to Finlo. Create your business account to continue.');}
+    if(state.referralCode&&!state.inviteToken){switchAuthTab('signup');message('You were referred to Frindly. Create your business account to continue.');}
     const {data:{session}}=await state.client.auth.getSession();
     if(session) await enter(session); else q('authShell').classList.add('open');
     state.client.auth.onAuthStateChange(async (event,session)=>{
@@ -69,7 +69,7 @@
       const submit=q('signupSubmitBtn');
       if(!selectedPlan){message('Choose a subscription plan first.','error');return}
       if(submit){submit.disabled=true;submit.textContent=selectedPlan==='trial'?'Creating account…':'Creating account…'}
-      message(state.inviteToken?'Creating your invited Finlo account…':(selectedPlan==='trial'?'Creating your trial account…':'Creating your account…'));
+      message(state.inviteToken?'Creating your invited Frindly account…':(selectedPlan==='trial'?'Creating your trial account…':'Creating your account…'));
       const email=q('signupEmail').value.trim();
       const signupData=state.inviteToken
         ? {full_name:q('signupName').value.trim(),business_invite_token:state.inviteToken}
@@ -366,7 +366,7 @@
     if(q('accountInitials'))q('accountInitials').textContent=initials||'A';
     if(q('accountAvatarLarge'))q('accountAvatarLarge').textContent=initials||'A';
     if(q('accountDisplayName'))q('accountDisplayName').textContent=state.profile.full_name||state.business.name||'Account';
-    if(q('activeBusinessIndicator'))q('activeBusinessIndicator').textContent=state.business?.name||'Finlo';
+    if(q('activeBusinessIndicator'))q('activeBusinessIndicator').textContent=state.business?.name||'Business';
     if(q('accountPopoverEmail'))q('accountPopoverEmail').textContent=state.user.email||'';
     applyAdminVisibility();
     if(q('accountChip'))q('accountChip').onclick=e=>{e.stopPropagation();const pop=q('accountPopover');if(pop)pop.hidden=!pop.hidden};
@@ -659,7 +659,7 @@
       const {error}=await state.client.from('businesses').update({name,phone,address,updated_at:new Date().toISOString()}).eq('id',state.business.id);
       if(error)return alert(error.message||'Could not save business account details.');
       state.business.name=name;state.business.phone=phone;state.business.address=address;
-      if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Finlo');
+      if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Business');
     }
     setupAccountUI();applyRoleAccessUI();q('accountModal')?.classList.remove('open');
   }
@@ -1026,7 +1026,7 @@
 
   async function renderAdmin(){
     if(!state.profile?.is_super_admin)return;
-    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles!profiles_business_id_fkey(id,full_name,email,role),subscriptions(id,status,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
+    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles!profiles_business_id_fkey(id,full_name,email,role),subscriptions(id,status,billing_interval,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,monthly_price,annual_price,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
     if(error){console.warn(error);alert('Could not load Super Admin businesses: '+error.message);return}
     const asArray=x=>Array.isArray(x)?x:(x?[x]:[]);
     const getSub=b=>asArray(b.subscriptions)[0]||{};
@@ -1037,7 +1037,22 @@
     q('adminUserCount').textContent=(businesses||[]).reduce((n,b)=>n+getProfiles(b).length,0);
     q('adminActiveCount').textContent=(businesses||[]).filter(b=>getSub(b).status==='active').length;
     q('adminTrialCount').textContent=(businesses||[]).filter(b=>getSub(b).status==='trialing').length;
-    const {data:plans,error:planError}=await state.client.from('plans').select('id,name,slug,invoice_limit').order('sort_order');
+    const formatAdminMoney=value=>`$${Number(value||0).toFixed(2)}`;
+    const formatAdminDate=value=>value?new Date(value).toLocaleDateString():'—';
+    const activeSubs=(businesses||[]).map(getSub).filter(sub=>sub.status==='active');
+    const monthlySubs=activeSubs.filter(sub=>sub.billing_interval!=='annual');
+    const annualSubs=activeSubs.filter(sub=>sub.billing_interval==='annual');
+    const monthlyTotal=monthlySubs.reduce((total,sub)=>total+Number(sub.plans?.monthly_price||0),0);
+    const annualTotal=annualSubs.reduce((total,sub)=>total+Number(sub.plans?.annual_price||0),0);
+    q('adminBillingActive').textContent=String(activeSubs.length);
+    q('adminBillingActiveDetail').textContent=`${activeSubs.length===1?'Paid subscription':'Paid subscriptions'}`;
+    q('adminBillingMonthlyTotal').textContent=formatAdminMoney(monthlyTotal);
+    q('adminBillingMonthlyDetail').textContent=`${monthlySubs.length} monthly subscriber${monthlySubs.length===1?'':'s'}`;
+    q('adminBillingAnnualTotal').textContent=formatAdminMoney(annualTotal);
+    q('adminBillingAnnualDetail').textContent=`${annualSubs.length} annual subscriber${annualSubs.length===1?'':'s'}`;
+    q('adminBillingMix').textContent=`${monthlySubs.length} / ${annualSubs.length}`;
+    q('adminBillingMixDetail').textContent='Monthly / annual active subscribers';
+    const {data:plans,error:planError}=await state.client.from('plans').select('id,name,slug,invoice_limit,monthly_price,annual_price').order('sort_order');
     if(planError){alert('Could not load subscription plans: '+planError.message);return}
     const body=q('adminBusinessRows'); body.innerHTML='';
     const ownerEmailCounts=new Map();
@@ -1056,7 +1071,11 @@
       const tr=document.createElement('tr');
       const ownerKey=(owner.email||'').trim().toLowerCase();
       const duplicateBadge=ownerKey&&ownerEmailCounts.get(ownerKey)>1?'<span class="duplicate-account-badge" title="More than one business record is linked to this owner email">Duplicate record</span>':'';
-      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${new Date(b.created_at).toLocaleDateString()}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?new Date(sub.trial_ends_at).toLocaleDateString():'—'}</td><td>${mods.join(', ')||'Finlo'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
+      const annualBilling=sub.billing_interval==='annual';
+      const subscriptionAmount=annualBilling?plan.annual_price:plan.monthly_price;
+      const billingDetail=sub.status==='active'?`${formatAdminMoney(subscriptionAmount)} / ${annualBilling?'annual':'monthly'}`:(sub.status==='trialing'?'Trial':'—');
+      const periodDetail=sub.current_period_start||sub.current_period_end?`<small>Start: ${formatAdminDate(sub.current_period_start)}</small><small>End: ${formatAdminDate(sub.current_period_end)}</small>`:'—';
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${formatAdminDate(b.created_at)}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select><small>${escapeHtml(billingDetail)}</small></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${escapeHtml(billingDetail)}</td><td>${periodDetail}</td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?formatAdminDate(sub.trial_ends_at):'—'}</td><td>${mods.join(', ')||'Finlo'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
       body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{

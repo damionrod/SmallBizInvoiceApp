@@ -43,7 +43,7 @@ function setImageOrHide(img,src){if(!img)return;const v=String(src||'').trim();i
 function defaultBank(src=settings){return (src.bankAccounts||[]).find(x=>x.isDefault)||(src.bankAccounts||[])[0]||{name:'',account:''}}
 function taxConfig(src=settings){const configuredRate=src?.gstRate??window.SAAS?.state?.business?.settings?.gstRate??settings?.gstRate;return{gstRate:num(configuredRate),extraFeeEnabled:!!src.extraFeeEnabled,extraFeeRate:num(src.extraFeeRate),extraFeeLabel:(src.extraFeeLabel||'Service fee').trim()||'Service fee'}}
 function cleanTaxLabel(label,fallback='GST'){return String(label||fallback).replace(/\s*\(\s*\d+(?:\.\d+)?%\s*\)\s*/gi,' ').trim()||fallback}
-function applyBranding(){document.documentElement.style.setProperty('--navy',settings.primaryColor||'#17324d');document.documentElement.style.setProperty('--green',settings.accentColor||'#5b7c99');setImageOrHide($('brandLogo'),logoSrc());$('brandCompanyName').textContent=settings.company||settings.trading||'Finlo';updateTaxLabels()}
+function applyBranding(){document.documentElement.style.setProperty('--navy',settings.primaryColor||'#17324d');document.documentElement.style.setProperty('--green',settings.accentColor||'#5b7c99');setImageOrHide($('brandLogo'),logoSrc());$('brandCompanyName').textContent=settings.company||settings.trading||'Business';updateTaxLabels()}
 function activeCountry(){return String(window.SAAS?.state?.business?.settings?.country||'NZ').toUpperCase()}
 function isAuInvoiceBusiness(){return activeCountry()==='AU'}
 function auTaxRateForSelection(){const cls=$('invoiceAuTaxClass')?.value||'';return invoiceTaxRuntime.ready&&invoiceTaxRuntime.gstRegistered&&cls==='gst_taxable'?num(invoiceTaxRuntime.gstRate):0}
@@ -515,3 +515,7 @@ window.invoiceAppHelpers={allInvoices,allCustomers,billingContact,money,esc,sett
 initSupabase();applyBranding();newInvoice();$('configNotice').style.display=settings.gstNumber?'none':'block';processRecurringInvoices();
 
 window.refreshInvoiceList=renderInvoiceList;
+document.getElementById('frindlyBrandLink')?.addEventListener('click',e=>{e.preventDefault();window.switchView?.('dashboard')});
+function applyFrindlyVisibleBranding(){const root=document.body;if(!root)return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);nodes.forEach(n=>{const p=n.parentElement;if(p&&p.tagName!=='SCRIPT'&&p.tagName!=='STYLE'&&/Finlo/.test(n.nodeValue))n.nodeValue=n.nodeValue.replace(/Finlo/g,'Frindly')});root.querySelectorAll('[aria-label],[title],[placeholder]').forEach(el=>['aria-label','title','placeholder'].forEach(a=>{if(el.hasAttribute(a)&&/Finlo/.test(el.getAttribute(a)))el.setAttribute(a,el.getAttribute(a).replace(/Finlo/g,'Frindly'))}))}
+applyFrindlyVisibleBranding();
+if(window.MutationObserver){const frindlyBrandObserver=new MutationObserver(applyFrindlyVisibleBranding);frindlyBrandObserver.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['aria-label','title','placeholder']})}

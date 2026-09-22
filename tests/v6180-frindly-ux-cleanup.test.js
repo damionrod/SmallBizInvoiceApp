@@ -1,0 +1,28 @@
+const fs=require('fs');
+const assert=require('assert');
+const root=__dirname+'/..';
+const read=name=>fs.readFileSync(root+'/'+name,'utf8');
+const index=read('public/index.html');
+const schedule=read('public/schedule.js');
+const css=read('public/styles.css');
+const payroll=read('public/payroll.js');
+const config=read('public/app-config.js');
+
+assert.ok(fs.existsSync(root+'/public/frindly-logo.png'),'Frindly logo asset is bundled');
+assert.ok(config.includes("appName: 'Frindly'"),'app config uses Frindly');
+assert.ok(index.includes('<title>Frindly</title>'),'browser title uses Frindly');
+assert.ok(index.includes('id="frindlyBrandLink"')&&index.includes('src="frindly-logo.png"'),'header includes linked Frindly logo');
+assert.ok(index.includes('id="expensesNav"')&&index.includes('>Expenses</button>'),'Expenses nav label');
+assert.ok(index.includes('id="bankReconciliationNav"')&&index.includes('>Banking</button>'),'Banking nav label');
+assert.ok(index.includes('<h1>Bank Reconciliation</h1>'),'Banking page heading remains Bank Reconciliation');
+assert.strictEqual((index.match(/data-report-tab="expenses"/g)||[]).length,1,'one Expense Reports tab registration');
+assert.ok(index.includes('id="expenseReportTab"')&&index.includes('>Expense Reports</button>'),'Expense Reports label is present');
+assert.ok(schedule.includes("S.view='day'"),'Today switches to day view');
+assert.ok(schedule.includes("S.anchor=todayKey()"),'Today uses business timezone date');
+assert.ok(schedule.includes("b.textContent='+ Schedule job'"),'Schedule job terminology is applied');
+assert.ok(schedule.includes("summary.textContent='Existing customer instructions (optional)'"),'Customer instructions remain preserved in a collapsed details section');
+assert.ok(css.includes('.unscheduled-list{max-height:min(62vh,720px);overflow-y:auto'),'Unscheduled jobs list has independent scrolling');
+assert.ok(css.includes('.schedule-editor>.actions{position:sticky'),'Schedule actions are sticky');
+assert.ok(css.includes('.payroll-optional-section'),'Payroll optional sections have compact details styling');
+assert.ok(payroll.includes('Tax, banking, leave and documents (optional)'),'Payroll advanced sections are collapsed by default');
+console.log('Frindly UX cleanup tests: PASS');

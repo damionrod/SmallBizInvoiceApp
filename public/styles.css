@@ -573,6 +573,41 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 @media(max-width:980px){.financial-two-col{grid-template-columns:1fr}.financial-liability-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.financial-module-tabs{overflow:visible;flex-wrap:wrap}}
 @media(max-width:700px){.financial-more-control{width:100%;margin-left:0}.financial-more-control select{flex:1}.financial-period-card{align-items:stretch}.financial-period-card>label,.financial-custom-dates,.financial-custom-dates label{width:100%;min-width:0}.financial-custom-dates{display:grid;grid-template-columns:1fr 1fr}.financial-liability-grid{grid-template-columns:1fr}.financial-statement-row,.financial-statement-group>summary{padding:12px 0}.financial-chart{min-height:245px}.financial-mapping-row{grid-template-columns:1fr;gap:6px}.financial-gst-controls{display:grid;grid-template-columns:1fr}.financial-gst-controls label{min-width:0}.financial-panel .table-scroll table{min-width:720px}.financial-budget-table{min-width:1450px}.financial-budget-table th:first-child,.financial-budget-table td:first-child{min-width:155px}}
 @media(max-width:480px){.financial-custom-dates{grid-template-columns:1fr}.financial-statement-row{align-items:flex-start}.financial-statement-row strong{max-width:48%;text-align:right}.financial-statement-group>summary{align-items:flex-start}.financial-statement-group>summary strong{max-width:45%;text-align:right}}
+
+/* Frindly scoped navigation and workflow cleanup.  These rules intentionally
+   sit after the existing theme so they do not alter accounting or data styles. */
+.topbar .brand-shell{display:flex;align-items:center;gap:16px;min-width:0;flex:1}
+.topbar .product-brand{display:inline-flex;align-items:center;color:inherit;text-decoration:none;font-weight:900;letter-spacing:.01em;white-space:nowrap}
+.topbar .product-brand img{width:118px;height:40px;object-fit:contain;display:block}
+.topbar .business-brand{display:flex;flex-direction:row;align-items:center;gap:6px;min-width:0;margin-left:auto;padding-left:12px;border-left:1px solid rgba(255,255,255,.32)}
+.topbar .business-brand>img{width:24px;height:24px;flex:0 0 24px;object-fit:contain;border-radius:5px;background:#fff}
+.topbar .business-brand strong{display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;line-height:1.2}
+.topbar .business-brand #activeBusinessIndicator{display:none}
+/* Keep business identity and switching data available, but show only Frindly in the top bar. */
+.topbar .business-brand{display:none!important}
+/* Expense Reports already provides the detailed report summary below; keep the
+   dashboard values in the DOM for existing rendering logic but hide the
+   duplicate visual card row. */
+.report-panel#report-panel-expenses > .expense-summary-grid{display:none!important}
+.unscheduled-zone{min-height:0;display:flex;flex-direction:column}
+.unscheduled-list{max-height:min(62vh,720px);overflow-y:auto;overscroll-behavior:contain;padding:2px 5px 4px 0;scrollbar-gutter:stable}
+.schedule-instructions-details{grid-column:1/-1;border:1px solid var(--border,#dce5ea);border-radius:10px;padding:8px 10px;background:#fbfdfe}
+.schedule-instructions-details summary{cursor:pointer;font-weight:700;color:var(--muted,#64748b);font-size:.84rem}
+.schedule-instructions-details label{margin-top:8px}
+.schedule-editor>.actions{position:sticky;bottom:0;z-index:4;background:var(--surface,#fff);padding:12px 0 2px;border-top:1px solid var(--border,#dce5ea)}
+.payroll-form-sections{display:grid;gap:12px}
+.payroll-optional-section{border:1px solid var(--border,#dce5ea);border-radius:12px;background:#fff;padding:0 14px}
+.payroll-optional-section>summary{cursor:pointer;list-style:none;padding:14px 0;font-weight:800}
+.payroll-optional-section>summary::-webkit-details-marker{display:none}
+.payroll-optional-section>summary::after{content:'+';float:right;font-size:1.15rem}
+.payroll-optional-section[open]>summary::after{content:'−'}
+.payroll-optional-section>.card{border:0;box-shadow:none;padding:0 0 12px}
+.payroll-employee-modal>.actions{position:sticky;bottom:0;z-index:5;background:#fff;padding:12px 0 2px;border-top:1px solid var(--border,#dce5ea)}
+@media(max-width:760px){
+  .topbar .brand-shell{gap:9px}.topbar .product-brand img{width:96px;height:32px}.topbar .business-brand{padding-left:8px}.topbar .business-brand strong{max-width:110px;font-size:.72rem}
+  .unscheduled-list{max-height:38vh}
+  .schedule-editor>.actions,.payroll-employee-modal>.actions{margin-inline:-12px;padding-inline:12px}
+}
 /* v59 Financials P&L: concise month-by-month statement; scoped to Financials only. */
 .financial-pnl-scroll{overflow:auto;width:100%;-webkit-overflow-scrolling:touch}.financial-pnl-table{width:100%;border-collapse:collapse;min-width:760px}.financial-pnl-table th,.financial-pnl-table td{padding:10px 12px;border-bottom:1px solid #e8edf3;text-align:right;white-space:nowrap}.financial-pnl-table th:first-child,.financial-pnl-table td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1;min-width:190px}.financial-pnl-table thead th{background:#f7f9fb;font-size:.82rem;color:var(--muted,#64748b);text-transform:uppercase}.financial-pnl-table thead th:first-child{z-index:2;background:#f7f9fb}.financial-pnl-table .pnl-section th{font-weight:800;border-top:1px solid #cfd9e3}.financial-pnl-table .pnl-detail td:first-child{padding-left:26px;color:var(--muted,#64748b)}.financial-pnl-table .pnl-subtotal th{font-weight:800;border-top:1px solid #cfd9e3}.financial-pnl-table .pnl-muted td{color:var(--muted,#64748b);padding-top:5px}.financial-pnl-table .pnl-total th{font-weight:800;border-top:2px solid #aebdcb}
 @media(max-width:700px){.financial-pnl-scroll{margin:0 -4px;width:calc(100% + 8px)}.financial-pnl-table{min-width:680px;font-size:.9rem}.financial-pnl-table th,.financial-pnl-table td{padding:9px 10px}.financial-pnl-table th:first-child,.financial-pnl-table td:first-child{min-width:155px}.financial-pnl-table .pnl-detail td:first-child{padding-left:18px}}
@@ -3347,3 +3382,187 @@ body.report-widget-moving .report-widget-handle{cursor:grabbing}
 .schedule-editor #sjEmployees{min-height:132px}
 .schedule-employee-field{border:1px solid var(--border);border-radius:9px;padding:11px 12px;margin:0;min-width:0}.schedule-employee-field legend{font-weight:800;padding:0 5px}.schedule-employee-field legend span{color:var(--muted);font-size:.72rem;font-weight:600}.schedule-employee-field>.hint{margin:0 0 9px}.schedule-employee-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.schedule-employee-choice{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;border:1px solid #e2e8eb;border-radius:8px;padding:9px 10px;background:#fff;font-weight:650!important;cursor:pointer}.schedule-employee-choice:has(input:checked){border-color:#5a91a2;background:#f0f8fa}.schedule-employee-choice input{width:17px!important;height:17px!important;min-height:0!important;margin:0;flex:0 0 auto}.schedule-employee-choice span{min-width:0}.schedule-employee-empty{margin:0;color:var(--muted);font-size:.78rem}.schedule-recurrence-toggle{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;margin-top:10px}.schedule-recurrence-toggle input{width:17px!important;height:17px!important;min-height:0!important}.schedule-date-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.schedule-date-list .text-button{border:1px solid #d7e2e6;border-radius:999px;padding:4px 8px;background:#f7fafb;font-size:.75rem}.schedule-quote-hint{color:#0b6f82!important;font-weight:700}.quote-card{border-left-color:#9568aa;background:#fbf8fd}
 @media(max-width:759px){.schedule-employee-options{grid-template-columns:1fr}}
+
+/*
+   V61.80 mobile compact record lists.
+   Presentation-only overrides for phones/small tablets.  The desktop/tablet
+   tables, row markup, data-labels and existing action handlers remain intact.
+*/
+@media(max-width:760px){
+  /* Shared compact-row rhythm.  Keep touch targets at or above 44px. */
+  #view-invoices .invoice-list-card tr.invoice-list-row,
+  #expense-panel-bills .expense-list-card tr.expense-list-row{
+    padding:8px 10px;
+    margin-bottom:8px;
+    gap:0 9px;
+  }
+  #view-invoices .invoice-list-card tr.invoice-list-row td,
+  #expense-panel-bills .expense-list-card tr.expense-list-row td{
+    padding:3px 0!important;
+    font-size:11px;
+    line-height:1.2;
+  }
+  #view-invoices .invoice-list-card tr.invoice-list-row td::before,
+  #expense-panel-bills .expense-list-card tr.expense-list-row td::before{
+    margin-bottom:2px;
+    font-size:8px;
+  }
+
+  /* Invoices: show the identifying/status/amount fields; full details remain
+     available from the existing invoice link and action controls. */
+  #view-invoices .invoice-list-card .inv-col-date,
+  #view-invoices .invoice-list-card .inv-col-due,
+  #view-invoices .invoice-list-card .inv-col-excl,
+  #view-invoices .invoice-list-card .inv-col-gst,
+  #view-invoices .invoice-list-card .inv-col-paid,
+  #view-invoices .invoice-list-card .inv-col-payment-date{display:none!important}
+  #view-invoices .invoice-list-card .inv-col-invoice{grid-column:1;order:1;padding-top:0!important}
+  #view-invoices .invoice-list-card .inv-col-status{grid-column:2;order:1;align-items:flex-end!important;padding-top:0!important}
+  #view-invoices .invoice-list-card .inv-col-customer{grid-column:1/-1;order:2;padding-bottom:6px!important;margin-bottom:1px;max-width:none;border-bottom:1px solid #edf1f3!important}
+  #view-invoices .invoice-list-card .inv-col-total{grid-column:1;order:3}
+  #view-invoices .invoice-list-card .inv-col-balance{grid-column:2;order:3;align-items:flex-end!important}
+  #view-invoices .invoice-list-card .inv-col-actions{grid-column:1/-1;order:4;width:auto;min-width:0;border-top:1px solid #edf1f3!important;margin-top:4px;padding-top:7px!important}
+  #view-invoices .invoice-list-card .invoice-number-link{font-size:13px;line-height:1.15}
+  #view-invoices .invoice-list-card .invoice-customer-name{font-size:11.5px;line-height:1.25;-webkit-line-clamp:1}
+  #view-invoices .invoice-list-card .inv-col-total strong,
+  #view-invoices .invoice-list-card .invoice-balance-display strong,
+  #view-invoices .invoice-list-card .invoice-balance-trigger strong{font-size:13px;line-height:1.1}
+  #view-invoices .invoice-list-card .invoice-balance-display small,
+  #view-invoices .invoice-list-card .invoice-balance-trigger small{font-size:8px}
+  #view-invoices .invoice-list-card .invoice-row-actions{width:100%;gap:5px;flex-wrap:wrap}
+  #view-invoices .invoice-list-card .invoice-icon-action{width:44px;min-width:44px;height:44px;min-height:44px!important;padding:10px!important}
+  #view-invoices .invoice-list-card .invoice-row-actions .invoice-record-payment-action{min-height:44px!important;padding:9px 10px!important;font-size:11px!important}
+
+  /* Bills/expenses: retain the primary identity, status, supplier and
+     balance, while secondary financial/date details remain in View. */
+  #expense-panel-bills .expense-list-card .exp-col-due,
+  #expense-panel-bills .expense-list-card .exp-col-ex,
+  #expense-panel-bills .expense-list-card .exp-col-gst,
+  #expense-panel-bills .expense-list-card .exp-col-paid,
+  #expense-panel-bills .expense-list-card .exp-col-payment-date{display:none!important}
+  #expense-panel-bills .expense-list-card .exp-col-ref{grid-column:1;order:1;padding-top:0!important}
+  #expense-panel-bills .expense-list-card .exp-col-status{grid-column:2;order:1;align-items:flex-end!important;padding-top:0!important}
+  #expense-panel-bills .expense-list-card .exp-col-supplier{grid-column:1/-1;order:2;max-width:none;padding-bottom:6px!important;border-bottom:1px solid #edf1f3!important}
+  #expense-panel-bills .expense-list-card .exp-col-date{grid-column:1;order:3}
+  #expense-panel-bills .expense-list-card .exp-col-total{grid-column:2;order:3;align-items:flex-end!important}
+  #expense-panel-bills .expense-list-card .exp-col-balance{grid-column:1;order:4}
+  #expense-panel-bills .expense-list-card .exp-col-actions{grid-column:1/-1;order:5;width:auto;min-width:0;border-top:1px solid #edf1f3!important;margin-top:4px;padding-top:7px!important}
+  #expense-panel-bills .expense-list-card .expense-primary-actions{width:100%;gap:5px;flex-wrap:wrap}
+  #expense-panel-bills .expense-list-card .expense-primary-actions>.secondary,
+  #expense-panel-bills .expense-list-card .expense-more-actions summary{min-height:44px;padding:9px 10px;font-size:11px}
+
+  /* Suppliers: one compact row per supplier; details remain in View/Edit. */
+  #expense-panel-suppliers .table-card table,
+  #expense-panel-suppliers .table-card tbody{display:block;width:100%;min-width:0}
+  #expense-panel-suppliers .table-card tr{display:grid!important;grid-template-columns:1fr 1fr;gap:0 10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin:0 0 8px}
+  #expense-panel-suppliers .table-card td{display:flex!important;flex-direction:column;min-width:0;padding:3px 0!important;border:0!important;font-size:11px;line-height:1.2}
+  #expense-panel-suppliers .table-card td::before{font-size:8px;margin-bottom:2px;color:var(--muted);font-weight:800;text-transform:uppercase}
+  #expense-panel-suppliers .table-card td:nth-child(1){grid-column:1/-1;order:1;padding-top:0!important}
+  #expense-panel-suppliers .table-card td:nth-child(1)::before{content:'Supplier'}
+  #expense-panel-suppliers .table-card td:nth-child(2),
+  #expense-panel-suppliers .table-card td:nth-child(3),
+  #expense-panel-suppliers .table-card td:nth-child(4){display:none!important}
+  #expense-panel-suppliers .table-card td:nth-child(5){grid-column:1;order:2}
+  #expense-panel-suppliers .table-card td:nth-child(5)::before{content:'Total spend'}
+  #expense-panel-suppliers .table-card td:nth-child(6){grid-column:2;order:2;align-items:flex-end;text-align:right}
+  #expense-panel-suppliers .table-card td:nth-child(6)::before{content:'Outstanding'}
+  #expense-panel-suppliers .table-card td:nth-child(7){grid-column:1/-1;order:3;border-top:1px solid #edf1f3!important;margin-top:4px;padding-top:7px!important}
+  #expense-panel-suppliers .table-card .row-actions{width:100%;display:flex;gap:5px;flex-wrap:wrap}
+  #expense-panel-suppliers .table-card .row-actions button{min-height:44px}
+
+  /* Customers: keep the name and contact summary in the row; Open/Edit
+     continue to expose every existing field and customer history. */
+  #view-customers .customer-list-card table,
+  #view-customers .customer-list-card tbody{display:block;width:100%;min-width:0}
+  #view-customers .customer-list-card tr[data-customer-row]{display:grid!important;grid-template-columns:1fr 1fr;gap:0 10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin:0 0 8px}
+  #view-customers .customer-list-card td{display:flex!important;flex-direction:column;min-width:0;padding:3px 0!important;border:0!important;font-size:11px;line-height:1.2}
+  #view-customers .customer-list-card td::before{font-size:8px;margin-bottom:2px;color:var(--muted);font-weight:800;text-transform:uppercase}
+  #view-customers .customer-list-card td:nth-child(1),
+  #view-customers .customer-list-card td:nth-child(3),
+  #view-customers .customer-list-card td:nth-child(4),
+  #view-customers .customer-list-card td:nth-child(5),
+  #view-customers .customer-list-card td:nth-child(8){display:none!important}
+  #view-customers .customer-list-card td:nth-child(2){grid-column:1/-1;order:1;padding-top:0!important}
+  #view-customers .customer-list-card td:nth-child(2)::before{content:'Customer'}
+  #view-customers .customer-list-card td:nth-child(6){grid-column:1;order:2}
+  #view-customers .customer-list-card td:nth-child(6)::before{content:'Phone / mobile'}
+  #view-customers .customer-list-card td:nth-child(7){grid-column:2;order:2;align-items:flex-end;text-align:right}
+  #view-customers .customer-list-card td:nth-child(7)::before{content:'Email'}
+  #view-customers .customer-list-card td:nth-child(9){grid-column:1/-1;order:3;border-top:1px solid #edf1f3!important;margin-top:4px;padding-top:7px!important}
+  #view-customers .customer-list-card .row-actions{width:100%;display:flex;gap:5px;flex-wrap:wrap}
+  #view-customers .customer-list-card .row-actions button{min-height:44px}
+
+  /* Quotes: preserve Open/Edit/Create Invoice/Delete and Send handlers, but
+     keep the summary row focused on identity, total and status. */
+  #jc-panel-quotes .table-card table,
+  #jc-panel-quotes .table-card tbody{display:block;width:100%;min-width:0}
+  #jc-panel-quotes .table-card tr{display:grid!important;grid-template-columns:1fr 1fr;gap:0 10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin:0 0 8px}
+  #jc-panel-quotes .table-card td{display:flex!important;flex-direction:column;min-width:0;padding:3px 0!important;border:0!important;font-size:11px;line-height:1.2}
+  #jc-panel-quotes .table-card td::before{font-size:8px;margin-bottom:2px;color:var(--muted);font-weight:800;text-transform:uppercase}
+  #jc-panel-quotes .table-card td:nth-child(4),
+  #jc-panel-quotes .table-card td:nth-child(5),
+  #jc-panel-quotes .table-card td:nth-child(6){display:none!important}
+  #jc-panel-quotes .table-card td:nth-child(1){grid-column:1;order:1}
+  #jc-panel-quotes .table-card td:nth-child(2){grid-column:2;order:1;align-items:flex-end;text-align:right}
+  #jc-panel-quotes .table-card td:nth-child(3){grid-column:1/-1;order:2;padding-bottom:6px!important;border-bottom:1px solid #edf1f3!important}
+  #jc-panel-quotes .table-card td:nth-child(7){grid-column:1;order:3}
+  #jc-panel-quotes .table-card td:nth-child(8){grid-column:2;order:3;align-items:flex-end;text-align:right}
+  #jc-panel-quotes .table-card td:nth-child(9){grid-column:1/-1;order:4;border-top:1px solid #edf1f3!important;margin-top:4px;padding-top:7px!important}
+  #jc-panel-quotes .quote-list-actions{width:100%;min-width:0;gap:5px}
+  #jc-panel-quotes .quote-list-actions .row-actions{display:flex;gap:5px;flex-wrap:wrap}
+  #jc-panel-quotes .quote-list-actions button{min-height:44px}
+  #jc-panel-quotes .quote-email-send{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px;align-items:center}
+  #jc-panel-quotes .quote-email-send input{min-width:0;height:44px;font-size:12px!important}
+  #jc-panel-quotes .quote-email-send button{width:auto;min-width:64px}
+
+  /* Job costing already supplies a mobile card dataset.  Tighten the card
+     without changing its fields or the existing Open Job handler. */
+  #jc-panel-saved .jc-job-card{padding:9px 10px!important;margin:0 0 8px;border-radius:10px;box-shadow:none}
+  #jc-panel-saved .jc-job-card .jc-job-card-head{margin-bottom:5px;gap:8px}
+  #jc-panel-saved .jc-job-card h3{font-size:12px;margin:3px 0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #jc-panel-saved .jc-job-card .jc-job-card-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 9px}
+  #jc-panel-saved .jc-job-card .jc-job-card-metrics span{font-size:9px}
+  #jc-panel-saved .jc-job-card .jc-job-card-metrics strong{font-size:11px}
+  #jc-panel-saved .jc-job-card>button{min-height:44px;margin-top:7px}
+
+  /* Unscheduled jobs remain independently scrollable; each item is a compact
+     tap/drag target and still opens the existing editor. */
+  #view-schedule .unscheduled-list{max-height:38vh;min-height:100px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  #view-schedule .unscheduled-list .schedule-job{min-height:60px;padding:7px 8px;border-radius:8px}
+  #view-schedule .unscheduled-list .schedule-job strong{font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #view-schedule .unscheduled-list .schedule-job small{font-size:10px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #view-schedule .unscheduled-list .schedule-job small:not(.schedule-quote-hint):last-child{display:none}
+
+  /* Employee, timesheet and pay-run mobile datasets use the same compact
+     row treatment while keeping every existing action button. */
+  #view-payroll .payroll-mobile-cards{gap:7px}
+  #view-payroll .payroll-mobile-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:8px 10px;border-radius:10px;box-shadow:none}
+  #view-payroll .payroll-mobile-card>strong{grid-column:1;grid-row:1;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #view-payroll .payroll-mobile-card>span:first-of-type{grid-column:1;grid-row:2;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #view-payroll .payroll-mobile-card>small{grid-column:1;grid-row:3;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #view-payroll .payroll-mobile-card>.payroll-status{grid-column:2;grid-row:1/3;align-self:center;font-size:9px;padding:4px 7px}
+  #view-payroll .payroll-mobile-card>.row-actions{grid-column:1/-1;display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+  #view-payroll .payroll-mobile-card>.row-actions button,
+  #view-payroll .payroll-mobile-card>button{width:auto;min-width:44px;min-height:44px;margin-top:0;padding:8px 10px}
+
+  /* Bank reconciliation cards are already action-safe; remove excess
+     padding on mobile so long transaction lists stay scannable. */
+  #view-bankreconciliation .bank-card-list{gap:7px}
+  #view-bankreconciliation .bank-tx-card{padding:9px 10px;border-radius:9px}
+  #view-bankreconciliation .bank-tx-main{gap:8px}
+  #view-bankreconciliation .bank-tx-main strong{font-size:12px}
+  #view-bankreconciliation .bank-tx-main small{font-size:10px}
+  #view-bankreconciliation .bank-date{font-size:9px}
+  #view-bankreconciliation .bank-amount{font-size:14px}
+  #view-bankreconciliation .bank-actions{gap:5px;margin-top:7px}
+}
+
+@media(max-width:430px){
+  #view-invoices .invoice-list-card tr.invoice-list-row,
+  #expense-panel-bills .expense-list-card tr.expense-list-row,
+  #expense-panel-suppliers .table-card tr,
+  #view-customers .customer-list-card tr[data-customer-row],
+  #jc-panel-quotes .table-card tr{padding-left:8px;padding-right:8px}
+  #view-invoices .invoice-list-card .invoice-number-link{font-size:12px}
+  #view-invoices .invoice-list-card .invoice-icon-action{width:42px;min-width:42px;height:42px;min-height:42px!important;padding:9px!important}
+}
