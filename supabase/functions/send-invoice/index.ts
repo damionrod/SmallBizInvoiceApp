@@ -1,46 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
 const json=(x:any,status=200)=>new Response(JSON.stringify(x),{status,headers:{...cors,"Content-Type":"application/json"}});
 const esc=(s:any)=>String(s??'').replace(/[&<>"']/g,(m)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':'&quot;',"'":"&#039;"}[m]||m));
 const money=(n:any,currency='NZD')=>{try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency:String(currency||'NZD').toUpperCase(),currencyDisplay:'code'}).format(Number(n||0))}catch{return `${String(currency||'NZD').toUpperCase()} ${Number(n||0).toFixed(2)}`}};
 const fill=(tpl:string,v:Record<string,string>)=>String(tpl||'').replace(/\{(\w+)\}/g,(_,k)=>v[k]??`{${k}}`);
-
-Deno.serve(async(req)=>{
-  if(req.method==='OPTIONS')return new Response('ok',{headers:cors});
-  try{
-    const SUPABASE_URL=Deno.env.get('SUPABASE_URL')!;
-    const SUPABASE_ANON_KEY=Deno.env.get('SUPABASE_ANON_KEY')!;
-    const RESEND_API_KEY=Deno.env.get('RESEND_API_KEY');
-    const FROM_EMAIL=Deno.env.get('EMAIL_FROM_ADDRESS');
-    if(!RESEND_API_KEY)throw new Error('RESEND_API_KEY is not configured.');
-    if(!FROM_EMAIL)throw new Error('EMAIL_FROM_ADDRESS is not configured.');
-    const auth=req.headers.get('Authorization')||'';
-    const client=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{global:{headers:{Authorization:auth}}});
-    const {data:{user}}=await client.auth.getUser(); if(!user)return json({error:'Not authenticated'},401);
-    const {to,invoice,pdfBase64,filename}=await req.json();
-    if(!to||!invoice?.id)return json({error:'Invoice and recipient are required.'},400);
-    const {data:owned,error}=await client.from('invoices').select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot').eq('id',invoice.id).single();
-    if(error||!owned)return json({error:'Invoice not found for this account.'},403);
-    const snapshot=owned.company_snapshot||{};
-    const {data:businessRow}=await client.from('businesses').select('name,settings').eq('id',owned.business_id).single();
-    const currentSettings=businessRow?.settings||{};
-    const e=currentSettings.emailSettings||snapshot.emailSettings||{};
-    const currency=currentSettings.currency||snapshot.currency||'NZD';
-    const fromEmail=String(currentSettings.outboundEmail||snapshot.outboundEmail||FROM_EMAIL).trim();
-    const trading=currentSettings.trading||currentSettings.company||businessRow?.name||snapshot.trading||snapshot.company||'Your Business';
-    const companyName=currentSettings.company||businessRow?.name||snapshot.company||trading;
-    const phone=currentSettings.phone||snapshot.phone||'';
-    const contactEmail=currentSettings.email||snapshot.email||'';
-    const values={customerName:owned.customer_name||'Customer',invoiceNumber:owned.invoice_number||'Invoice',tradingName:trading,companyName,total:money(owned.total,currency),balanceDue:money(owned.balance_due??owned.total,currency),dueDate:owned.due_date||'',phone,email:contactEmail};
-    const senderName=fill(e.senderName||'{tradingName} Accounts',values).trim()||trading;
-    const subject=fill(e.subject||'Invoice {invoiceNumber} from {tradingName}',values);
-    const body=fill(e.body||'Hi {customerName},\n\nPlease find attached invoice {invoiceNumber}.\n\nTotal: {total}\nBalance due: {balanceDue}\nDue date: {dueDate}\n\nKind regards,\n{tradingName}\n{phone}\n{email}',values);
-    const payload:any={from:`${senderName.replace(/[<>]/g,'')} <${fromEmail}>`,to:[to],subject,html:`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a;white-space:normal">${body.split(/\r?\n/).map((line:string)=>line?esc(line):'&nbsp;').join('<br>')}</div>`};
-    if(contactEmail)payload.reply_to=contactEmail;
-    if(pdfBase64)payload.attachments=[{filename:filename||`${owned.invoice_number}.pdf`,content:pdfBase64}];
-    const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await r.json();
-    if(!r.ok)return json({error:data?.message||'Email provider rejected the message.',details:data},r.status);
-    return json({success:true,id:data.id});
-  }catch(e){return json({error:e instanceof Error?e.message:'Unknown email error'},400)}
-});
+Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});try{const SUPABASE_URL=Deno.env.get('SUPABASE_URL')!,SUPABASE_ANON_KEY=Deno.env.get('SUPABASE_ANON_KEY')!,RESEND_API_KEY=Deno.env.get('RESEND_API_KEY');const configuredFrom=(Deno.env.get('RESEND_FROM_EMAIL')||Deno.env.get('EMAIL_FROM_ADDRESS')||'').trim();const FROM_EMAIL=configuredFrom&&configuredFrom.toLowerCase()!=='info@careclean.co.nz'?configuredFrom:'notifications@frindly.co.nz';if(!RESEND_API_KEY)throw new Error('RESEND_API_KEY is not configured.');const auth=req.headers.get('Authorization')||'';const client=createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{global:{headers:{Authorization:auth}}});const {data:{user}}=await client.auth.getUser();if(!user)return json({error:'Not authenticated'},401);const {to,invoice,pdfBase64,filename}=await req.json();if(!to||!invoice?.id)return json({error:'Invoice and recipient are required.'},400);const {data:owned,error}=await client.from('invoices').select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot').eq('id',invoice.id).single();if(error||!owned)return json({error:'Invoice not found for this account.'},403);const {error:issueError}=await client.rpc('v6170c1_issue_invoice',{p_invoice_id:owned.id});if(issueError)return json({error:issueError.message||'This invoice could not be issued safely.'},400);const snapshot=owned.company_snapshot||{};const {data:businessRow}=await client.from('businesses').select('name,settings').eq('id',owned.business_id).single();const {data:subscriberProfile}=await client.from('profiles').select('email').eq('business_id',owned.business_id).eq('role','owner').limit(1).maybeSingle();const currentSettings=businessRow?.settings||{},e=currentSettings.emailSettings||snapshot.emailSettings||{},currency=currentSettings.currency||snapshot.currency||'NZD',fromEmail=String(currentSettings.outboundEmail||snapshot.outboundEmail||FROM_EMAIL).trim(),trading=currentSettings.trading||currentSettings.company||businessRow?.name||snapshot.trading||snapshot.company||'Your Business',companyName=currentSettings.company||businessRow?.name||snapshot.company||trading,phone=currentSettings.phone||snapshot.phone||'',contactEmail=currentSettings.email||snapshot.email||'',subscriberEmail=String(subscriberProfile?.email||contactEmail||user.email||'').trim();const values={customerName:owned.customer_name||'Customer',invoiceNumber:owned.invoice_number||'Invoice',tradingName:trading,companyName,total:money(owned.total,currency),balanceDue:money(owned.balance_due??owned.total,currency),dueDate:owned.due_date||'',phone,email:contactEmail};const senderName=fill(e.senderName||'{tradingName} Accounts',values).trim()||trading,subject=fill(e.subject||'Invoice {invoiceNumber} from {tradingName}',values),body=fill(e.body||'Hi {customerName},\n\nPlease find attached invoice {invoiceNumber}.\n\nTotal: {total}\nBalance due: {balanceDue}\nDue date: {dueDate}\n\nKind regards,\n{tradingName}\n{phone}\n{email}',values);const payload:any={from:`${senderName.replace(/[<>]/g,'')} <${fromEmail}>`,to:[to],subject,html:`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a;white-space:normal">${body.split(/\r?\n/).map((line:string)=>line?esc(line):'&nbsp;').join('<br>')}</div>`};if(subscriberEmail)payload.reply_to=subscriberEmail;if(pdfBase64)payload.attachments=[{filename:filename||`${owned.invoice_number}.pdf`,content:pdfBase64}];const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${RESEND_API_KEY}`,'Content-Type':'application/json'},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok)return json({error:data?.message||'Email provider rejected the message.',details:data},r.status);return json({success:true,id:data.id});}catch(e){return json({error:e instanceof Error?e.message:'Unknown email error'},400)}});

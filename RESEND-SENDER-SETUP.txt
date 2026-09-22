@@ -1,0 +1,19 @@
+Frindly v61.80 full app package with Resend sender update
+
+This package is based on the supplied latest Frindly-GitHub-UX-cleanup-v61.80-mobile-compact.zip.
+
+The five Supabase Edge Functions below now use the platform/default sender address notifications@frindly.co.nz:
+
+supabase/functions/send-invoice/index.ts
+supabase/functions/send-quote/index.ts
+supabase/functions/send-payslip/index.ts
+supabase/functions/business-invite/index.ts
+supabase/functions/referral-invite/index.ts
+
+Set this Supabase secret in the project used by Frindly:
+
+RESEND_FROM_EMAIL=notifications@frindly.co.nz
+
+Keep RESEND_API_KEY unchanged. The legacy EMAIL_FROM_ADDRESS value remains a compatibility fallback; info@careclean.co.nz is automatically migrated to the Frindly address. Tenant-specific outboundEmail values and existing Reply-To behavior are preserved.
+
+No Netlify email functions or browser-side Resend secrets are used.
