@@ -6,6 +6,7 @@ import {
 } from '../_shared/payment-config.ts';
 import {
   INVOICE_PAYMENTS_MODULE,
+  PAYMENT_CORS,
   appOrigin,
   calculateCustomerFee,
   cents,

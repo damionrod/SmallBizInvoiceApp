@@ -1,0 +1,10 @@
+const fs=require('fs'),assert=require('assert');
+const source=fs.readFileSync('public/saas.js','utf8');
+const enterCheckout=source.slice(source.indexOf('async function maybeContinueSignupCheckout'),source.indexOf('async function openAdminPortal'));
+assert(source.includes("const PENDING_SIGNUP_CHECKOUT_KEY='v61_pending_signup_checkout'"),'pending signup checkout key exists');
+assert(source.includes('setPendingSignupCheckout({userId:data.user?.id||\'\',email,planSlug:selectedPlan,billingInterval:selectedBillingInterval})'),'new paid signup records one-time checkout intent');
+assert(source.includes('setPendingSignupCheckout({email,planSlug:selectedPlan,billingInterval:selectedBillingInterval})'),'email-confirmation signup records one-time checkout intent');
+assert(enterCheckout.includes('readPendingSignupCheckout()'),'resume path requires explicit pending intent');
+assert(enterCheckout.includes('clearPendingSignupCheckout();'),'resume path consumes pending intent');
+assert(!enterCheckout.includes('state.user?.user_metadata?.selected_plan_slug'),'old signup metadata cannot trigger checkout on every login');
+console.log('6/6 V61.84 checkout redirect regression checks PASS');

@@ -1,6 +1,7 @@
 (() => {
   const C = window.APP_CONFIG || {};
   const q = id => document.getElementById(id);
+  const PENDING_SIGNUP_CHECKOUT_KEY='v61_pending_signup_checkout';
   const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false, checkoutAvailable:null, inviteToken:new URLSearchParams(location.search).get('invite')||'', inviteInfo:null, businessMemberships:[], effectiveAccess:{}, referralCode:new URLSearchParams(location.search).get('ref')||'', referralInviteToken:new URLSearchParams(location.search).get('rid')||'' };
   let adminPlanRenderSequence=0;
 
@@ -88,9 +89,11 @@
       // collection is the safe client-side signal Supabase exposes for this case.
       if(data?.user && Array.isArray(data.user.identities) && data.user.identities.length===0){existingAccountMessage(email);return}
       if(data.session){
+        if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({userId:data.user?.id||'',email,planSlug:selectedPlan,billingInterval:selectedBillingInterval});
         message(state.inviteToken?'Account created. Joining the invited business…':(selectedPlan==='trial'?'Account created. Loading your business…':'Account created. Opening secure payment…'),'success');
         await enter(data.session);
       } else {
+        if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({email,planSlug:selectedPlan,billingInterval:selectedBillingInterval});
         message(state.inviteToken?'Account created for the invited business. Check your email to confirm your address, then log in.':(selectedPlan==='trial'?'Account created. Check your email to confirm your address, then log in.':'Account created. Confirm your email, then log in to continue to secure Stripe payment.'),'success');
       }
     };
@@ -268,16 +271,31 @@
     if(migrationFailures){localStorage.setItem('v22_migration_warning',String(migrationFailures));return;}localStorage.setItem(marker,'1');localStorage.setItem('v22_legacy_claimed_by',state.business.id);
   }
 
+  function setPendingSignupCheckout(value){try{localStorage.setItem(PENDING_SIGNUP_CHECKOUT_KEY,JSON.stringify({...value,createdAt:Date.now()}))}catch{}}
+  function clearPendingSignupCheckout(){try{localStorage.removeItem(PENDING_SIGNUP_CHECKOUT_KEY)}catch{}}
+  function readPendingSignupCheckout(){
+    try{
+      const value=JSON.parse(localStorage.getItem(PENDING_SIGNUP_CHECKOUT_KEY)||'null');
+      if(!value||typeof value!=='object')return null;
+      const age=Date.now()-Number(value.createdAt||0);
+      if(!Number.isFinite(age)||age<0||age>24*60*60*1000){clearPendingSignupCheckout();return null}
+      return value;
+    }catch{return null}
+  }
   async function maybeContinueSignupCheckout(){
-    const slug=String(state.user?.user_metadata?.selected_plan_slug||'trial').trim();
-    const interval=state.user?.user_metadata?.selected_billing_interval==='annual'?'annual':'monthly';
-    if(!slug||slug==='trial')return false;
     const billing=new URLSearchParams(location.search).get('billing');
-    if(billing==='success'){history.replaceState(null,'',location.pathname+location.hash);return false;}
-    if(billing==='cancel'){history.replaceState(null,'',location.pathname+location.hash);setTimeout(()=>showPlans().catch(console.warn),500);return false;}
+    if(billing==='success'){clearPendingSignupCheckout();history.replaceState(null,'',location.pathname+location.hash);return false;}
+    if(billing==='cancel'){clearPendingSignupCheckout();history.replaceState(null,'',location.pathname+location.hash);setTimeout(()=>showPlans().catch(console.warn),500);return false;}
+    const pending=readPendingSignupCheckout();
+    if(!pending)return false;
+    const pendingUser=String(pending.userId||'').trim(),pendingEmail=String(pending.email||'').trim().toLowerCase();
+    if((pendingUser&&pendingUser!==String(state.user?.id||''))||(pendingEmail&&pendingEmail!==String(state.user?.email||'').trim().toLowerCase())){clearPendingSignupCheckout();return false}
+    const slug=String(pending.planSlug||'').trim(),interval=pending.billingInterval==='annual'?'annual':'monthly';
+    if(!slug||slug==='trial'){clearPendingSignupCheckout();return false}
     const sub=await getSubscription();
-    if(sub?.plans?.slug===slug && ['active','trialing'].includes(sub.status) && sub.stripe_subscription_id)return false;
-    if(sub?.plans?.slug===slug && sub.status==='active')return false;
+    if(sub?.plans?.slug===slug && ['active','trialing'].includes(sub.status) && sub.stripe_subscription_id){clearPendingSignupCheckout();return false}
+    if(sub?.plans?.slug===slug && sub.status==='active'){clearPendingSignupCheckout();return false}
+    clearPendingSignupCheckout();
     const result=await startCheckout(slug,null,{silent:true,billingInterval:interval});
     return result===true;
   }
@@ -1350,7 +1368,13 @@ ${businessName}`,'');
   }
 
   async function invoicePaymentsRequest(body){
-    return invokeAuthenticatedFunction('invoice-payments',body);
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),15000);
+    try{return await invokeAuthenticatedFunction('invoice-payments',body,controller.signal)}
+    catch(error){
+      const message=error?.name==='AbortError'?'Stripe payment setup timed out. Please refresh and try again.':(error?.message||'Stripe payment setup is unavailable.');
+      return {data:null,error:new Error(message)}
+    }finally{clearTimeout(timer)}
   }
 
   function invoicePaymentMoney(value,currency='NZD'){
@@ -1514,7 +1538,7 @@ ${businessName}`,'');
   }
 
 
-  async function invokeAuthenticatedFunction(functionName,body){
+  async function invokeAuthenticatedFunction(functionName,body,signal){
     if(!state.client)throw new Error('Email requires Supabase setup.');
     let session=null;
     try{const {data}=await state.client.auth.getSession();session=data?.session||null}catch{}
@@ -1527,7 +1551,7 @@ ${businessName}`,'');
     }
     if(!accessToken)throw new Error('Not authenticated. Please sign out and sign in again.');
     const url=`${String(C.supabaseUrl||'').replace(/\/$/,'')}/functions/v1/${encodeURIComponent(functionName)}`;
-    const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,apikey:C.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+    const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,apikey:C.supabaseKey,'Content-Type':'application/json'},body:JSON.stringify(body||{}),signal});
     let data=null;try{data=await response.clone().json()}catch{try{data={error:await response.clone().text()}}catch{data=null}}
     if(!response.ok){const err=new Error(data?.error||data?.message||`Edge Function returned ${response.status}`);err.context=response;return {data:null,error:err}}
     return {data,error:null};

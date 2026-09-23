@@ -28,6 +28,7 @@ assert('direct charge is scoped to the connected account', payments.includes("'S
 assert('webhook settles through the atomic database function', webhook.includes('v6181_record_online_invoice_payment') && webhook.includes('checkout.session.async_payment_succeeded'));
 assert('invoice email adds Pay Now only when setup is active', email.includes('Pay Now') && email.includes('connect_status === \'active\'') && email.includes('invoice_payment_links'));
 assert('settings exposes fee and partial-payment controls', html.includes('id="onlinePaymentsSettingsNav"') && saas.includes('id="invoicePaymentFeeMode"') && saas.includes('id="invoicePaymentPartial"'));
+assert('invoice-payments function handles browser CORS preflight', payments.includes('PAYMENT_CORS') && /PAYMENT_CORS,/.test(payments) && saas.includes('Stripe payment setup timed out'));
 assert('Superadmin gets a separate monitoring page', html.includes('data-admin-view="invoice-payments"') && html.includes('id="adminInvoicePaymentRows"') && saas.includes('renderAdminInvoicePayments'));
 assert('frontend entitlement fails closed when module is globally inactive', saas.includes('modules!inner(slug,is_active)') && saas.includes('module?.is_active!==true') && saas.includes("'invoice_payments'"));
 assert('customer page supports partial amounts and hosted checkout', payHtml.includes('id="paymentAmount"') && payJs.includes("call('checkout'") && payJs.includes('allow_partial_payments'));
