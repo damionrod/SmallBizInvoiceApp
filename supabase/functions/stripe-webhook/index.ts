@@ -1,6 +1,20 @@
 import Stripe from 'npm:stripe@22.4.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { getStripeConfig, stripeHeaders, STRIPE_API_VERSION } from './_shared/payment-config.ts';
+import { getStripeConfig, stripeHeaders, STRIPE_API_VERSION } from '../_shared/payment-config.ts';
+
+function subscriptionBillingPeriod(subscription:any){
+  // Frindly Checkout creates one recurring plan item. New Stripe versions keep
+  // its billing dates on that item; older event snapshots used the subscription.
+  const item=subscription?.items?.data?.[0];
+  const start=subscription?.current_period_start??item?.current_period_start;
+  const end=subscription?.current_period_end??item?.current_period_end;
+  const startDate=new Date(start*1000),endDate=new Date(end*1000);
+  if(!Number.isFinite(start)||!Number.isFinite(end)||end<start||
+    !Number.isFinite(startDate.getTime())||!Number.isFinite(endDate.getTime())){
+    throw new Error('Stripe subscription billing period is missing or invalid.');
+  }
+  return {current_period_start:startDate.toISOString(),current_period_end:endDate.toISOString()};
+}
 
 Deno.serve(async(req)=>{
   const url=Deno.env.get('SUPABASE_URL');
@@ -218,17 +232,17 @@ Deno.serve(async(req)=>{
       const pid=cs.metadata?.plan_id;
       if(bid&&pid&&cs.subscription){
         const sub=await stripe.subscriptions.retrieve(String(cs.subscription));
-        await db.from('subscriptions').update({
+        const {error:subscriptionError}=await db.from('subscriptions').update({
           plan_id:pid,
           status:'active',
           stripe_customer_id:String(cs.customer||''),
           stripe_subscription_id:sub.id,
-          current_period_start:new Date(sub.current_period_start*1000).toISOString(),
-          current_period_end:new Date(sub.current_period_end*1000).toISOString(),
+          ...subscriptionBillingPeriod(sub),
           trial_ends_at:null,
           billing_interval:cs.metadata?.billing_interval==='annual'?'annual':'monthly',
           updated_at:new Date().toISOString()
         }).eq('business_id',bid);
+        if(subscriptionError)throw subscriptionError;
         await referralEvent(bid,'subscription_activated');
       }
     }
@@ -260,15 +274,15 @@ Deno.serve(async(req)=>{
         const status=event.type==='customer.subscription.deleted'?'canceled':(sub.status==='active'?'active':sub.status==='past_due'?'past_due':sub.status==='trialing'?'trialing':'canceled');
         const patch:any={
           status,
-          current_period_start:new Date(sub.current_period_start*1000).toISOString(),
-          current_period_end:new Date(sub.current_period_end*1000).toISOString(),
+          ...subscriptionBillingPeriod(sub),
           cancel_at_period_end:sub.cancel_at_period_end,
           updated_at:new Date().toISOString()
         };
         if(sub.metadata?.plan_id)patch.plan_id=sub.metadata.plan_id;
         if(sub.customer)patch.stripe_customer_id=String(sub.customer);
         patch.stripe_subscription_id=sub.id;
-        await db.from('subscriptions').update(patch).eq('business_id',bid);
+        const {error:subscriptionError}=await db.from('subscriptions').update(patch).eq('business_id',bid);
+        if(subscriptionError)throw subscriptionError;
         if(status==='active') await referralEvent(bid,'subscription_activated');
       }
     }
