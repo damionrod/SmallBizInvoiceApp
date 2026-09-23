@@ -376,7 +376,7 @@
     if(section==='job'){q('jc-panel-settings')?.classList.add('active');window.JobCosting?.onShow?.();}
     if(section==='users'&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))renderTeamAccess();
     if(section==='payments')renderInvoicePaymentSettings?.();
-    if(section==='subscription')refreshUsage();
+    if(section==='subscription')refreshSubscriptionBilling();
     if(section==='import')window.ImportMigration?.onShow?.();
     try{history.replaceState(null,'',`#settings/${section}`)}catch{}
   };
@@ -392,12 +392,18 @@
     applyAdminVisibility();
     if(q('accountChip'))q('accountChip').onclick=e=>{e.stopPropagation();const pop=q('accountPopover');if(pop)pop.hidden=!pop.hidden};
     if(q('openAccountSettings'))q('openAccountSettings').onclick=()=>openAccountSettings();
-    if(q('accountForAccountant'))q('accountForAccountant').onclick=()=>{closeAccountPopover();window.openForMyAccountant?.()};if(q('accountManagePlan'))q('accountManagePlan').onclick=()=>{closeAccountPopover();showPlans()};
+    if(q('accountForAccountant'))q('accountForAccountant').onclick=()=>{closeAccountPopover();window.openForMyAccountant?.()};
     if(q('accountAdminNav'))q('accountAdminNav').onclick=openAdminPortal;
     if(q('accountSignOut'))q('accountSignOut').onclick=()=>state.client.auth.signOut();
     if(q('signOutBtn'))q('signOutBtn').onclick=()=>state.client.auth.signOut();
     if(q('manageSubscription'))q('manageSubscription').onclick=showPlans;
-    if(q('billingPortalBtn'))q('billingPortalBtn').onclick=openBillingPortal;
+    if(q('billingPortalBtn'))q('billingPortalBtn').onclick=()=>openBillingPortal('history',q('billingPortalBtn'));
+    if(q('billingResolveBtn'))q('billingResolveBtn').onclick=()=>openBillingPortal('portal',q('billingResolveBtn'));
+    if(q('billingPaymentMethodBtn'))q('billingPaymentMethodBtn').onclick=()=>openBillingPortal('payment_method',q('billingPaymentMethodBtn'));
+    if(q('cancelSubscriptionBtn'))q('cancelSubscriptionBtn').onclick=()=>openBillingPortal('cancel',q('cancelSubscriptionBtn'));
+    if(q('keepSubscriptionBtn'))q('keepSubscriptionBtn').onclick=()=>openBillingPortal('keep',q('keepSubscriptionBtn'));
+    if(q('undoPlanChangeBtn'))q('undoPlanChangeBtn').onclick=undoScheduledPlanChange;
+    if(q('refreshBillingBtn'))q('refreshBillingBtn').onclick=refreshSubscriptionBilling;
     if(q('closeAccountModal'))q('closeAccountModal').onclick=()=>q('accountModal').classList.remove('open');
     if(q('accountModal'))q('accountModal').onclick=e=>{if(e.target===q('accountModal'))q('accountModal').classList.remove('open')};
     if(q('saveAccountProfile'))q('saveAccountProfile').onclick=saveAccountProfile;
@@ -488,6 +494,7 @@
   }
   function roleCanWrite(area){
     if(state.profile?.is_super_admin)return true;
+    if(!['billing','team','business_settings'].includes(area)&&subscriptionReadOnly())return false;
     if(state.effectiveAccess?.[area])return !!state.effectiveAccess[area].write;
     const r=state.accessRole||'viewer';
     if(r==='owner')return true;
@@ -512,8 +519,7 @@
     ['accountBusinessName','accountBusinessPhone','accountBusinessAddress','accountSenderEmail','accountCurrency'].forEach(id=>{const el=q(id);if(el)el.disabled=!businessWrite});
     ['saveAccountEmail','saveAccountPreferences'].forEach(id=>{const el=q(id);if(el)el.hidden=!businessWrite});
     if(q('manageSubscription'))q('manageSubscription').hidden=role!=='owner';
-    if(q('billingPortalBtn')&&role!=='owner')q('billingPortalBtn').hidden=true;
-    if(q('accountManagePlan'))q('accountManagePlan').hidden=role!=='owner';
+    renderSubscriptionSummary();
     if(q('addBusinessBtn'))q('addBusinessBtn').hidden=role!=='owner';
     document.querySelectorAll('[data-invoice-view="settings"],[data-jc-tab="settings"]').forEach(el=>el.hidden=!businessWrite);
     if(q('exportMyData'))q('exportMyData').hidden=!businessWrite;
@@ -776,19 +782,16 @@
     const {count}=await query; const used=count||0; const limit=sub.invoice_limit_override??sub.plans?.invoice_limit;
     const label=limit==null?`${used} / Unlimited`:`${used} / ${limit}`;
     if(q('accountPlan'))q('accountPlan').textContent=sub.plans?.name||'—'; if(q('accountUsage'))q('accountUsage').textContent=label;
-    if(q('accountMenuPlan'))q('accountMenuPlan').textContent=`${sub.plans?.name||'Plan'} · ${label}`;
-    if(q('accountStatus'))q('accountStatus').textContent=sub.status==='trialing'?'Trial':sub.status.replace('_',' ');
     if(q('accountEmail'))q('accountEmail').textContent=state.user.email||'';
     if(q('usageBar')){const pct=limit?Math.min(100,Math.round(used/limit*100)):0;q('usageBar').style.width=pct+'%'}
-    if(q('accountPlanHint')&&sub.status==='trialing'&&sub.trial_ends_at){const d=new Date(sub.trial_ends_at);q('accountPlanHint').textContent=`Trial ends ${d.toLocaleDateString()}. Your data is synced across devices.`}
-    if(q('billingPortalBtn'))q('billingPortalBtn').hidden=!sub.stripe_customer_id;
+    renderSubscriptionSummary();
     return {sub,used,limit};
   }
 
   async function canCreateInvoice(){
     const x=await refreshUsage(); if(!x)return {ok:false,message:'No subscription is attached to this business.'};
     const {sub,used,limit}=x;
-    if(['suspended','canceled','past_due'].includes(sub.status))return{ok:false,message:'Your subscription is not active. Open Settings → Manage plan.'};
+    if(subscriptionReadOnly(sub)||['suspended','canceled','past_due'].includes(sub.status))return{ok:false,message:'Your subscription is not active. Open Settings → Subscription & Billing.'};
     if(sub.status==='trialing'&&sub.trial_ends_at&&new Date(sub.trial_ends_at)<new Date())return{ok:false,message:'Your trial has ended. Choose a plan to continue creating invoices.'};
     if(limit!=null&&used>=limit)return{ok:false,message:`You have reached your ${limit}-invoice limit for this period. Upgrade your plan to create more invoices.`};
     return {ok:true};
@@ -799,10 +802,119 @@
     if(!error){state.business.settings=clean;writeBusinessSettingsCache(clean,state.business.id);return true} console.warn('Business settings cloud sync failed',error);return false;
   }
 
-  async function openBillingPortal(){
-    const {data,error}=await state.client.functions.invoke('create-portal',{body:{returnUrl:location.origin}});
-    if(error||!data?.url)return alert(error?.message||data?.error||'Billing portal is not available yet.');
-    location.href=data.url;
+  let billingReadyBusiness='',billingLoading=false,billingPrice=null,billingDuplicateSubscriptions=[],billingScheduledChange=null;
+  function subscriptionReadOnly(sub=state.subscription){
+    if(!sub)return false;
+    const end=sub.cancel_at||(sub.cancel_at_period_end?sub.current_period_end:null);
+    return sub.status==='canceled'||(!!end&&new Date(end).getTime()<=Date.now())||
+      (sub.status==='trialing'&&!!sub.trial_ends_at&&new Date(sub.trial_ends_at).getTime()<=Date.now());
+  }
+  function billingDateText(value){const d=new Date(value);return value&&Number.isFinite(d.getTime())?d.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'}):'—'}
+  function billingReturnTarget(){return /^https?:$/.test(location.protocol)?location.origin+location.pathname:'https://frindly.co.nz/'}
+  function renderSubscriptionSummary(){
+    const sub=state.subscription;if(!sub)return;
+    const owner=state.accessRole==='owner',canCancel=['owner','bookkeeper'].includes(state.accessRole);
+    const duplicates=billingDuplicateSubscriptions.length>1;
+    const scheduled=!!(sub.cancel_at_period_end||sub.cancel_at),readOnly=subscriptionReadOnly(sub);
+    const active=['active','trialing','past_due'].includes(sub.status)&&!readOnly;
+    const end=sub.cancel_at||sub.current_period_end,freeTrial=sub.status==='trialing'&&!sub.stripe_subscription_id;
+    const set=(id,text)=>{if(q(id))q(id).textContent=text};
+    set('billingBusinessName',state.business?.name||'Subscription');
+    set('accountStatus',readOnly?'Read-only':scheduled?'Cancellation scheduled':sub.status==='trialing'?'Trial':human(sub.status||'Unknown'));
+    const amount=billingPrice?.businessId===state.business?.id?billingPrice:null;
+    const interval=amount?.interval==='year'||sub.billing_interval==='annual'?'year':'month';
+    const rate=amount?amount.amount/100:(interval==='year'?sub.plans?.annual_price:sub.plans?.monthly_price);
+    set('billingPrice',freeTrial?'Free trial':rate==null?'—':`${invoicePaymentMoney(rate,amount?.currency||'NZD')} / ${interval}`);
+    set('billingDateLabel',freeTrial?'Trial ends':scheduled||readOnly?'Access ends':'Next billing date');
+    set('billingDate',billingDateText(freeTrial?sub.trial_ends_at:end));
+    set('accountPlanHint',freeTrial?'No subscription payment is scheduled. Choose a paid plan to continue after the trial.':
+      readOnly?'Your existing records are retained. You can view and export them using your existing permissions. Choose a plan to use paid features again.':
+      scheduled?`Cancellation scheduled — access until ${billingDateText(end)}. Your subscription will not renew.`:
+      'Your subscription renews automatically. Plan changes show the amount and effective date before confirmation.');
+    if(q('billingScheduledChange')){
+      const change=billingScheduledChange;
+      q('billingScheduledChange').textContent=change?`Your ${change.planName} plan is scheduled for ${billingDateText(change.effectiveAt*1000)} at ${change.amount==null?'the configured price':invoicePaymentMoney(change.amount/100,amount?.currency||'NZD')} / ${change.interval}. Your current plan remains available until then.`:'';
+      q('billingScheduledChange').hidden=!change;
+    }
+    set('billingCancellationHint',freeTrial?'Your free trial ends automatically; there is no paid subscription to cancel.':
+      scheduled&&!readOnly?'Changed your mind? Keep your subscription before access ends.':
+      active&&sub.stripe_subscription_id?'The owner or bookkeeper can cancel. Access continues until the end of the current paid period.':
+      readOnly?'Cancellation does not delete your records or close your connected Stripe account.':'');
+    if(q('billingDuplicateWarning')){
+      const charges=billingDuplicateSubscriptions.map(p=>p.amount==null?'an active subscription':`${invoicePaymentMoney(p.amount/100,p.currency)} / ${p.interval==='year'?'year':'month'}`).join(' and ');
+      q('billingDuplicateWarning').textContent=duplicates?`Stripe has ${billingDuplicateSubscriptions.length} active subscriptions for this business (${charges}). Billing changes are paused until the owner reviews both subscriptions in Stripe. Canceling one will not stop charges for the other.`:'';
+      q('billingDuplicateWarning').hidden=!duplicates;
+    }
+    const show=(id,visible)=>{if(q(id))q(id).hidden=!visible};
+    show('manageSubscription',owner&&!duplicates&&!billingScheduledChange);show('undoPlanChangeBtn',owner&&!!billingScheduledChange&&!duplicates);
+    show('billingPortalBtn',owner&&!!sub.stripe_customer_id);
+    show('billingPaymentMethodBtn',owner&&!!sub.stripe_customer_id&&!duplicates);
+    show('billingResolveBtn',owner&&duplicates);
+    show('cancelSubscriptionBtn',canCancel&&active&&!!sub.stripe_subscription_id&&!scheduled&&!duplicates);
+    show('keepSubscriptionBtn',canCancel&&active&&!!sub.stripe_subscription_id&&scheduled&&!duplicates);
+    ['cancelSubscriptionBtn','keepSubscriptionBtn','undoPlanChangeBtn'].forEach(id=>{if(q(id))q(id).disabled=billingLoading||billingReadyBusiness!==state.business?.id});
+  }
+  async function billingApi(action){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const result=await invokeAuthenticatedFunction('create-portal',{action,returnUrl:billingReturnTarget()},controller.signal);
+      if(result.error||result.data?.error)throw result.error||new Error(result.data.error);
+      return result.data;
+    }finally{clearTimeout(timer)}
+  }
+  async function refreshSubscriptionBilling(){
+    if(billingLoading)return;
+    const businessId=state.business?.id;if(!businessId)return;
+    billingLoading=true;billingReadyBusiness='';billingPrice=null;billingDuplicateSubscriptions=[];billingScheduledChange=null;
+    const messageEl=q('billingMessage'),button=q('refreshBillingBtn');
+    if(button)button.disabled=true;if(messageEl)messageEl.textContent='Refreshing billing…';
+    renderSubscriptionSummary();
+    try{
+      await getSubscription();
+      if(['owner','bookkeeper'].includes(state.accessRole)&&state.subscription?.stripe_subscription_id){
+        const data=await billingApi('status');
+        if(state.business?.id!==businessId)return;
+        if(data?.price)billingPrice={...data.price,businessId};
+        billingDuplicateSubscriptions=Array.isArray(data?.duplicateSubscriptions)?data.duplicateSubscriptions:[];
+        billingScheduledChange=data?.scheduledChange||null;
+      }
+      await refreshUsage();
+      const {data:access}=await state.client.rpc('v6148_my_effective_access',{p_business_id:businessId});
+      if(state.business?.id!==businessId)return;
+      if(Array.isArray(access)){state.effectiveAccess={};access.forEach(x=>{state.effectiveAccess[x.area]={read:!!x.can_read,write:!!x.can_write}})}
+      clearModuleAccessCache();
+      const {data:modules,error}=await state.client.from('modules').select('slug,name,is_active').eq('is_active',true).order('name');
+      if(error)throw error;
+      const available=await Promise.all((modules||[]).map(async m=>await hasModule(m.slug)?m:null));
+      if(state.business?.id!==businessId)return;
+      if(q('billingModules'))q('billingModules').innerHTML=available.filter(Boolean).map(m=>`<span>${escapeHtml(m.name||human(m.slug))}</span>`).join('')||'<span>No additional modules enabled</span>';
+      billingReadyBusiness=businessId;
+      if(messageEl)messageEl.textContent='';
+    }catch(error){if(messageEl)messageEl.textContent=`Could not refresh billing: ${error?.name==='AbortError'?'The request timed out. Please try again.':error?.message||'Please try again.'}`;}
+    finally{billingLoading=false;if(button)button.disabled=false;renderSubscriptionSummary()}
+  }
+  async function openBillingPortal(action='portal',button){
+    if(billingLoading)return;
+    const canCancel=['owner','bookkeeper'].includes(state.accessRole);
+    if(['cancel','keep'].includes(action)?!canCancel:state.accessRole!=='owner')return;
+    if(['cancel','keep'].includes(action)){
+      await refreshSubscriptionBilling();if(billingReadyBusiness!==state.business?.id)return;
+      const sub=state.subscription,scheduled=!!(sub?.cancel_at_period_end||sub?.cancel_at);
+      if(subscriptionReadOnly(sub)||!sub?.stripe_subscription_id)return;
+      if((action==='cancel'&&scheduled)||(action==='keep'&&!scheduled))return;
+      const text=action==='cancel'?`Cancel the Frindly subscription for ${state.business.name}? Access continues until ${billingDateText(sub.cancel_at||sub.current_period_end)}. ${billingScheduledChange?'This will replace your scheduled plan change with a period-end cancellation.':'You will confirm cancellation securely in Stripe.'}`:
+        `Keep the Frindly subscription for ${state.business.name}? Automatic renewal will continue at your existing plan price.`;
+      if(!confirm(text))return;
+    }
+    const original=button?.textContent;if(button){button.disabled=true;button.textContent=action==='keep'?'Keeping subscription…':'Opening Stripe…'}
+    try{
+      const data=await billingApi(action);
+      if(action==='keep'){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Your subscription will continue to renew.';return}
+      if(action==='cancel'&&data?.canceledAtPeriodEnd){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Cancellation scheduled for the end of your paid period.';return}
+      if(!data?.url||!/^https:\/\/billing\.stripe\.com\//.test(data.url))throw new Error('Stripe did not return a billing portal link.');
+      location.href=data.url;
+    }catch(error){if(q('billingMessage'))q('billingMessage').textContent=error?.message||'Billing is unavailable. Please try again.';}
+    finally{if(button){button.disabled=false;button.textContent=original}renderSubscriptionSummary()}
   }
 
   function showPlanUpgradePrompt({title='Employee limit reached',message='',primaryLabel='Upgrade plan'}={}){
@@ -837,6 +949,7 @@
   window.SAAS.showPlanUpgradePrompt=showPlanUpgradePrompt;
 
   async function showPlans(){
+    if(state.accessRole!=='owner')return alert('Only the Business Owner can change the subscription plan.');
     const [{data:plans},checkoutReady]=await Promise.all([
       state.client.from('plans').select('*').eq('is_public',true).order('sort_order'),
       getCheckoutAvailability(true)
@@ -845,14 +958,15 @@
     await getSubscription();
     const root=q('customerPlanGrid');
     root.innerHTML=(plans||[]).map(p=>{
-      const current=state.plan?.id===p.id,ap=annualPricing(p),isTrial=p.slug==='trial';
+      const current=state.plan?.id===p.id&&!subscriptionReadOnly(),ap=annualPricing(p),isTrial=p.slug==='trial';
+      const currentMonthly=current&&state.subscription?.billing_interval!=='annual',currentAnnual=current&&state.subscription?.billing_interval==='annual';
       const monthlyConfigured=!!p.stripe_price_id;
       const annualConfigured=ap.annual!=null&&!!p.stripe_annual_price_id;
       const monthlyPurchasable=current||(checkoutReady&&monthlyConfigured);
       const annualPurchasable=current||(checkoutReady&&annualConfigured);
       const annualSaving=ap.annual!=null&&ap.saving>0;
-      const monthlyButton=current?'Current plan':(!checkoutReady?'Subscriptions unavailable':(!monthlyConfigured?'Monthly not configured':'Choose monthly'));
-      const annualButton=current?'Current plan':(!checkoutReady?'Subscriptions unavailable':(!annualConfigured?'Annual not configured':'Choose annual'));
+      const monthlyButton=currentMonthly?'Current plan':(!checkoutReady?'Subscriptions unavailable':(!monthlyConfigured?'Monthly not configured':'Choose monthly'));
+      const annualButton=currentAnnual?'Current plan':(!checkoutReady?'Subscriptions unavailable':(!annualConfigured?'Annual not configured':'Choose annual'));
 
       const annualOffer=isTrial?'':(ap.annual==null
         ?`<div class="pricing-annual pricing-annual-unavailable">
@@ -885,8 +999,8 @@
         <div class="plan-modules pricing-modules">${(p.included_modules||[]).map(m=>`<span>${escapeHtml(human(m))}</span>`).join('')}</div>
 
         <div class="plan-purchase-actions pricing-actions ${isTrial?'single':''}">
-          <button class="${current?'secondary':'primary'}" data-choose-plan="${p.slug}" data-billing-interval="monthly" ${monthlyPurchasable&&!current?'':'disabled'}>${monthlyButton}</button>
-          ${isTrial?'':`<button class="secondary pricing-annual-action" data-choose-plan="${p.slug}" data-billing-interval="annual" ${annualPurchasable&&!current?'':'disabled'}>${annualButton}</button>`}
+          <button class="${currentMonthly?'secondary':'primary'}" data-choose-plan="${p.slug}" data-billing-interval="monthly" ${monthlyPurchasable&&monthlyConfigured&&!currentMonthly?'':'disabled'}>${monthlyButton}</button>
+          ${isTrial?'':`<button class="secondary pricing-annual-action" data-choose-plan="${p.slug}" data-billing-interval="annual" ${annualPurchasable&&annualConfigured&&!currentAnnual?'':'disabled'}>${annualButton}</button>`}
         </div>
       </div>`;
     }).join('');
@@ -902,26 +1016,59 @@
       return false;
     }
     const original=btn?.textContent||'Choose plan';
-    if(btn){btn.disabled=true;btn.textContent='Opening checkout…'}
+    if(btn){btn.disabled=true;btn.textContent='Checking price…'}
     const billingInterval=opts.billingInterval==='annual'?'annual':'monthly';
-    const {data,error}=await state.client.functions.invoke('create-checkout',{body:{planSlug:slug,billingInterval,returnUrl:location.origin}});
-    if(error||!data?.url){
+    try{
+      const data=await planBillingAction({planSlug:slug,billingInterval,returnUrl:billingReturnTarget(),action:'start'});
+      if(data?.url){location.href=data.url;return true}
+      const change=data?.change;
+      if(!change)throw new Error('Stripe did not provide a plan change preview.');
+      const currency=String(change.currency||'NZD').toUpperCase();
+      const due=invoicePaymentMoney(Number(change.amountDue)/100,currency);
+      const recurring=invoicePaymentMoney(Number(change.nextAmount)/100,currency);
+      const effective=billingDateText(change.effectiveAt*1000);
+      const message=change.kind==='downgrade'
+        ?`Schedule ${change.planName} for ${effective}? Your current plan stays available until then. Nothing is charged now. From that date the new price is ${recurring} / ${change.interval==='annual'?'year':'month'}. You can undo this before the change takes effect.`
+        :`Change to ${change.planName} now? Stripe will charge ${due} now, including any applicable credit or tax, and then ${recurring} / ${change.interval==='annual'?'year':'month'}. ${change.renewsAt?`Your next renewal is ${billingDateText(change.renewsAt*1000)}.`:'Your billing date may change with the new interval.'} If payment fails, your existing plan stays in place.`;
+      if(!confirm(message))return false;
+      if(btn)btn.textContent=change.kind==='downgrade'?'Scheduling…':'Processing payment…';
+      const result=await planBillingAction({planSlug:slug,billingInterval,action:'confirm',quote:change.quote});
+      if(!result?.scheduled&&!result?.upgraded)throw new Error('Stripe has not confirmed the change. Refresh billing before retrying.');
+      if(q('planModal'))q('planModal').classList.remove('open');
+      await refreshSubscriptionBilling();
+      const success=result.scheduled?'Your new plan is scheduled for the next renewal.':'Your payment succeeded and your new plan is active.';
+      if(q('billingMessage'))q('billingMessage').textContent=success;
+      return true;
+    }catch(error){
       if(btn){btn.disabled=false;btn.textContent=original}
-      let serverError=data?.error||'';
-      if(!serverError&&error?.context){
-        try{
-          const response=typeof error.context.clone==='function'?error.context.clone():error.context;
-          const payload=await response.json();
-          serverError=payload?.error||'';
-          if(payload?.stage)serverError=`${serverError} (stage: ${payload.stage})`;
-        }catch{}
-      }
-      const text=serverError||error?.message||'Billing is not configured yet.';
+      const text=error?.message||'Billing is not configured yet.';
       if(!opts.silent)alert(`Checkout unavailable: ${text}`);
       else message(text,'error');
       return false;
     }
-    location.href=data.url; return true;
+    finally{if(btn){btn.disabled=false;btn.textContent=original}}
+  }
+
+  async function planBillingAction(body){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const result=await invokeAuthenticatedFunction('create-checkout',body,controller.signal);
+      if(result.error||result.data?.error)throw result.error||new Error(result.data.error);
+      return result.data;
+    }finally{clearTimeout(timer)}
+  }
+
+  async function undoScheduledPlanChange(){
+    if(state.accessRole!=='owner'||!billingScheduledChange)return;
+    const name=billingScheduledChange.planName;
+    if(!confirm(`Undo the scheduled change to ${name}? Your current subscription will continue to renew.`))return;
+    const btn=q('undoPlanChangeBtn');if(btn)btn.disabled=true;
+    try{
+      await planBillingAction({action:'undo'});
+      await refreshSubscriptionBilling();
+      if(q('billingMessage'))q('billingMessage').textContent='The scheduled plan change was undone.';
+    }catch(error){if(q('billingMessage'))q('billingMessage').textContent=error?.message||'Could not undo this change.'}
+    finally{if(btn)btn.disabled=false}
   }
 
   function openAdminUserModal(){
@@ -1364,7 +1511,8 @@ ${businessName}`,'');
     if(module?.is_active!==true)return false;
     const sub=state.subscription||await getSubscription();
     const subscriptionActive=sub?.status==='active'||(sub?.status==='trialing'&&(!sub?.trial_ends_at||new Date(sub.trial_ends_at)>=new Date()));
-    return subscriptionActive&&Array.isArray(sub?.plans?.included_modules)&&sub.plans.included_modules.includes(slug);
+    const archiveAccess=slug!=='invoice_payments'&&subscriptionReadOnly(sub);
+    return (subscriptionActive||archiveAccess)&&Array.isArray(sub?.plans?.included_modules)&&sub.plans.included_modules.includes(slug);
   }
 
   async function invoicePaymentsRequest(body){
@@ -1456,7 +1604,7 @@ ${businessName}`,'');
     if(sub){state.subscription=sub;state.plan=sub.plans||null}
     clearModuleAccessCache();
     if(biz?.status)state.business.status=biz.status;
-    const locked=biz?.status==='suspended'||biz?.status==='closed'||['suspended','canceled'].includes(sub?.status);
+    const locked=biz?.status==='suspended'||biz?.status==='closed'||sub?.status==='suspended';
     const lock=ensureAccountLock();
     if(locked){
       const reason=(biz?.status==='suspended'||sub?.status==='suspended')?'This business account has been suspended by the platform administrator.':'This business account is not active.';

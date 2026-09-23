@@ -3597,3 +3597,6 @@ body.report-widget-moving .report-widget-handle{cursor:grabbing}
   #view-invoices .invoice-list-card .invoice-number-link{font-size:12px}
   #view-invoices .invoice-list-card .invoice-icon-action{width:42px;min-width:42px;height:42px;min-height:42px!important;padding:9px!important}
 }
+
+#subscriptionCard .billing-cancellation{margin:22px 0;padding-top:18px;border-top:1px solid #e0e7eb}
+#subscriptionCard h4{margin:22px 0 9px}

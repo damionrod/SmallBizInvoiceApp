@@ -1,6 +1,7 @@
 import Stripe from 'npm:stripe@22.4.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getStripeConfig, stripeHeaders, STRIPE_API_VERSION } from '../_shared/payment-config.ts';
+import { subscriptionPlanPatch, subscriptionCancellationPatch } from '../_shared/subscription-billing.ts';
 
 function subscriptionBillingPeriod(subscription:any){
   // Frindly Checkout creates one recurring plan item. New Stripe versions keep
@@ -43,11 +44,33 @@ Deno.serve(async(req)=>{
   const referralEvent=async(bid:string|undefined,eventName:string)=>{
     if(!bid)return;
     const {error}=await db.rpc('v6151_process_referral_event',{p_business_id:bid,p_event:eventName});
-    if(error) console.warn('Referral event failed',eventName,bid,error.message);
+    if(error) throw new Error(`Referral event ${eventName} failed: ${error.message}`);
+  };
+
+  const invoiceSubscriptionId=(invoice:Stripe.Invoice)=>{
+    const related=(invoice as any).parent?.subscription_details?.subscription||(invoice as any).subscription;
+    return typeof related==='string'?related:String(related?.id||'');
+  };
+  const recordRefereeDiscount=async(bid:string,referralId:string|undefined,couponId:string|undefined)=>{
+    if(!bid||!referralId||!couponId)return;
+    const {data,error}=await db.from('referrals')
+      .update({referee_checkout_coupon_id:couponId})
+      .eq('id',referralId).eq('referred_business_id',bid)
+      .is('referee_checkout_coupon_id',null).select('id');
+    if(error)throw error;
+    // On retries the existing coupon is already recorded; only a missing
+    // referral signals a mismatch that would otherwise award twice.
+    if(!data?.length){
+      const {data:existing,error:lookupError}=await db.from('referrals')
+        .select('referee_checkout_coupon_id').eq('id',referralId)
+        .eq('referred_business_id',bid).maybeSingle();
+      if(lookupError||existing?.referee_checkout_coupon_id!==couponId)
+        throw new Error('Referral coupon could not be matched to the business.');
+    }
   };
 
   const resolveBusiness=async(invoice:Stripe.Invoice)=>{
-    const subscriptionId=invoice.subscription?String(invoice.subscription):'';
+    const subscriptionId=invoiceSubscriptionId(invoice);
     if(subscriptionId){
       const {data:s}=await db.from('subscriptions').select('business_id').eq('stripe_subscription_id',subscriptionId).maybeSingle();
       if(s?.business_id) return String(s.business_id);
@@ -59,13 +82,16 @@ Deno.serve(async(req)=>{
 
     const customerId=invoice.customer?String(invoice.customer):'';
     if(customerId){
-      const {data:s}=await db.from('subscriptions').select('business_id').eq('stripe_customer_id',customerId).maybeSingle();
+      const {data:s}=await db.from('subscriptions').select('business_id').eq('stripe_customer_id',customerId).limit(1).maybeSingle();
       if(s?.business_id) return String(s.business_id);
     }
     return '';
   };
 
   const applyFinloCredit=async(invoice:Stripe.Invoice)=>{
+    // Credits belong to the subscriber's Billing invoice, never an unrelated
+    // invoice that happens to share the same Stripe customer.
+    if(!invoiceSubscriptionId(invoice))return;
     const invoiceId=String(invoice.id||'');
     const customerId=invoice.customer?String(invoice.customer):'';
     if(!invoiceId||!customerId)return;
@@ -81,10 +107,7 @@ Deno.serve(async(req)=>{
       p_currency:currency
     });
 
-    if(reserveError){
-      console.warn('Finlo credit reservation failed',invoiceId,reserveError.message);
-      return;
-    }
+    if(reserveError)throw new Error(`Finlo credit reservation failed for ${invoiceId}: ${reserveError.message}`);
 
     const amount=Number(reservation?.amount||0);
     const applicationId=String(reservation?.applicationId||'');
@@ -232,12 +255,16 @@ Deno.serve(async(req)=>{
       const pid=cs.metadata?.plan_id;
       if(bid&&pid&&cs.subscription){
         const sub=await stripe.subscriptions.retrieve(String(cs.subscription));
+        // Checkout is the only place the referee's free months are redeemed.
+        // Persist that redemption before a later paid invoice issues rewards.
+        await recordRefereeDiscount(bid,cs.metadata?.referral_id,cs.metadata?.referee_coupon_id);
         const {error:subscriptionError}=await db.from('subscriptions').update({
           plan_id:pid,
           status:'active',
           stripe_customer_id:String(cs.customer||''),
           stripe_subscription_id:sub.id,
           ...subscriptionBillingPeriod(sub),
+          ...subscriptionCancellationPatch(sub),
           trial_ends_at:null,
           billing_interval:cs.metadata?.billing_interval==='annual'?'annual':'monthly',
           updated_at:new Date().toISOString()
@@ -268,19 +295,29 @@ Deno.serve(async(req)=>{
     }
 
     if(event.type==='customer.subscription.created'||event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'){
-      const sub=event.data.object as Stripe.Subscription;
+      // Read current state so delayed cancellation events cannot undo Keep subscription.
+      const snapshot=event.data.object as Stripe.Subscription;
+      const sub=event.type==='customer.subscription.deleted'?snapshot:await stripe.subscriptions.retrieve(snapshot.id);
       const bid=sub.metadata?.business_id;
       if(bid){
+        const {data:current,error:currentError}=await db.from('subscriptions').select('stripe_subscription_id,status').eq('business_id',bid).maybeSingle();
+        if(currentError)throw currentError;
+        // A deleted older subscription must not cancel its replacement.
+        if(current?.stripe_subscription_id&&current.stripe_subscription_id!==sub.id&&
+          (event.type==='customer.subscription.deleted'||current.status!=='canceled'))return new Response('ok');
         const status=event.type==='customer.subscription.deleted'?'canceled':(sub.status==='active'?'active':sub.status==='past_due'?'past_due':sub.status==='trialing'?'trialing':'canceled');
         const patch:any={
           status,
           ...subscriptionBillingPeriod(sub),
-          cancel_at_period_end:sub.cancel_at_period_end,
+          ...subscriptionCancellationPatch(sub),
           updated_at:new Date().toISOString()
         };
-        if(sub.metadata?.plan_id)patch.plan_id=sub.metadata.plan_id;
+        // Portal changes update the Stripe price, not the original Checkout metadata.
+        Object.assign(patch,await subscriptionPlanPatch(db,sub));
+        patch.trial_ends_at=sub.trial_end?new Date(sub.trial_end*1000).toISOString():null;
         if(sub.customer)patch.stripe_customer_id=String(sub.customer);
         patch.stripe_subscription_id=sub.id;
+        if(current?.status==='suspended')patch.status='suspended';
         const {error:subscriptionError}=await db.from('subscriptions').update(patch).eq('business_id',bid);
         if(subscriptionError)throw subscriptionError;
         if(status==='active') await referralEvent(bid,'subscription_activated');
@@ -295,8 +332,9 @@ Deno.serve(async(req)=>{
 
     if(event.type==='invoice.payment_succeeded'){
       const invoice=event.data.object as Stripe.Invoice;
-      const subscriptionId=invoice.subscription?String(invoice.subscription):'';
-      if(subscriptionId){
+      const subscriptionId=invoiceSubscriptionId(invoice);
+      // A fully discounted invoice is successful, but no first payment has been received.
+      if(subscriptionId&&Number(invoice.amount_paid||0)>0){
         const {data:s}=await db.from('subscriptions').select('business_id').eq('stripe_subscription_id',subscriptionId).maybeSingle();
         let bid=s?.business_id;
         if(!bid){
@@ -305,7 +343,17 @@ Deno.serve(async(req)=>{
             bid=sub.metadata?.business_id;
           }catch{}
         }
-        if(bid) await referralEvent(bid,'first_successful_payment');
+        if(bid){
+          const {data:pending,error:pendingError}=await db.from('referrals')
+            .select('id').eq('referred_business_id',bid)
+            .in('status',['signed_up','pending_qualification','qualified']).maybeSingle();
+          if(pendingError)throw pendingError;
+          if(pending){
+            const billingSub=await stripe.subscriptions.retrieve(subscriptionId);
+            await recordRefereeDiscount(bid,billingSub.metadata?.referral_id,billingSub.metadata?.referee_coupon_id);
+          }
+          await referralEvent(bid,'first_successful_payment');
+        }
       }
     }
 
