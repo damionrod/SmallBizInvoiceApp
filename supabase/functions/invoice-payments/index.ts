@@ -57,12 +57,13 @@ async function requireEnabled(admin: any, businessId: string) {
 }
 
 async function stripeAccount(secret: string, accountId: string) {
+  // API v2 requires JSON headers even for GETs, with indexed include fields.
   const params = new URLSearchParams();
-  params.append('include[]', 'configuration.merchant');
-  params.append('include[]', 'identity');
-  params.append('include[]', 'requirements');
+  params.append('include[0]', 'configuration.merchant');
+  params.append('include[1]', 'identity');
+  params.append('include[2]', 'requirements');
   const response = await fetch(`https://api.stripe.com/v2/core/accounts/${encodeURIComponent(accountId)}?${params.toString()}`, {
-    headers: stripeConnectHeaders(secret),
+    headers: stripeConnectHeaders(secret, true),
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data?.error?.message || 'Unable to retrieve the connected Stripe account.');
