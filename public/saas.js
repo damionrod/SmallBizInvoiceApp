@@ -2,6 +2,7 @@
   const C = window.APP_CONFIG || {};
   const q = id => document.getElementById(id);
   const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false, checkoutAvailable:null, inviteToken:new URLSearchParams(location.search).get('invite')||'', inviteInfo:null, businessMemberships:[], effectiveAccess:{}, referralCode:new URLSearchParams(location.search).get('ref')||'', referralInviteToken:new URLSearchParams(location.search).get('rid')||'' };
+  let adminPlanRenderSequence=0;
 
   function message(text, kind=''){
     const el=q('authMessage'); if(!el)return; el.textContent=text||''; el.className='auth-message '+kind;
@@ -310,7 +311,7 @@
     else renderAdmin();
     setAdminView(adminViewFromHash(),false);
   }
-  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','payments','referrals','finlo-helper','import-migration']);
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','payments','invoice-payments','referrals','finlo-helper','import-migration']);
   function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
   function setAdminView(view='dashboard',push=true){
     if(!state.profile?.is_super_admin)return;
@@ -318,7 +319,7 @@
     document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
     document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
     const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
-    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();
   }
   function setupAdminNavigation(){
     document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
@@ -348,13 +349,15 @@
     if(job){const el=q('jc-panel-settings');if(el){el.classList.add('active');job.appendChild(el)}}
     document.querySelectorAll('[data-settings-nav]').forEach(btn=>btn.onclick=()=>window.openCentralSettings?.(btn.dataset.settingsNav));
   }
-  window.openCentralSettings=function(section='account'){
-    const allowed=['account','tax','invoicing','job','users','subscription','import'];if(!allowed.includes(section))section='account';
+  window.openCentralSettings=async function(section='account'){
+    const allowed=['account','tax','invoicing','payments','job','users','subscription','import'];if(!allowed.includes(section))section='account';
+    if(section==='payments'&&!state.profile?.is_super_admin&&!(await hasModule('invoice_payments'))){section='account'}
     document.querySelectorAll('[data-settings-nav]').forEach(b=>b.classList.toggle('active',b.dataset.settingsNav===section));
     document.querySelectorAll('[data-settings-panel]').forEach(p=>p.hidden=p.dataset.settingsPanel!==section);
     if(section==='tax')window.Financials?.refresh?.();
     if(section==='job'){q('jc-panel-settings')?.classList.add('active');window.JobCosting?.onShow?.();}
     if(section==='users'&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))renderTeamAccess();
+    if(section==='payments')renderInvoicePaymentSettings?.();
     if(section==='subscription')refreshUsage();
     if(section==='import')window.ImportMigration?.onShow?.();
     try{history.replaceState(null,'',`#settings/${section}`)}catch{}
@@ -412,6 +415,7 @@
     if(q('adminRefresh'))q('adminRefresh').onclick=renderAdmin;
     if(q('adminReloadPlans'))q('adminReloadPlans').onclick=renderAdminPlans;
     if(q('adminReloadPayments'))q('adminReloadPayments').onclick=renderPaymentSettings;
+    if(q('adminReloadInvoicePayments'))q('adminReloadInvoicePayments').onclick=renderAdminInvoicePayments;
     if(q('adminReloadModules'))q('adminReloadModules').onclick=renderAdminModules;
     if(q('adminAddModule'))q('adminAddModule').onclick=addAdminModule;
     if(q('adminCheckPayrollUpdates'))q('adminCheckPayrollUpdates').onclick=checkAdminPayrollCompliance;
@@ -420,6 +424,8 @@
     if(q('adminPayrollRuleCountry'))q('adminPayrollRuleCountry').onchange=renderAdminCountryPayrollRules;
     if(q('adminSearch'))q('adminSearch').oninput=renderAdmin;
     if(q('adminStatusFilter'))q('adminStatusFilter').onchange=renderAdmin;
+    if(q('adminInvoicePaymentSearch'))q('adminInvoicePaymentSearch').oninput=renderAdminInvoicePayments;
+    if(q('adminInvoicePaymentStatus'))q('adminInvoicePaymentStatus').onchange=renderAdminInvoicePayments;
     if(q('adminAddBusiness'))q('adminAddBusiness').onclick=openAdminUserModal;
     if(q('closeAdminUserModal'))q('closeAdminUserModal').onclick=()=>q('adminUserModal').classList.remove('open');
     if(q('cancelAdminUser'))q('cancelAdminUser').onclick=()=>q('adminUserModal').classList.remove('open');
@@ -924,12 +930,12 @@
     const included=new Set(sub?.plans?.included_modules||[]);
     q('moduleModal').dataset.businessId=businessId;q('moduleBusinessName').textContent=businessName;
     q('moduleChecklist').innerHTML=(mods||[]).map(m=>{
-      const override=overrides.get(m.id),explicit=override?.status;
+      const override=overrides.get(m.id),explicit=override?.status,globallyActive=m.is_active===true;
       const inherited=included.has(m.slug);
-      const effective=explicit||(inherited?'active':'suspended');
-      const source=explicit==='suspended'?'Blocked for this business':(explicit==='trialing'?'Trial for this business':(explicit==='active'?'Enabled for this business':(inherited?'Included by subscription plan':'Not included')));
+      const effective=!globallyActive?'suspended':(explicit||(inherited?'active':'suspended'));
+      const source=!globallyActive?'Globally disabled':(explicit==='suspended'?'Blocked for this business':(explicit==='trialing'?'Trial for this business':(explicit==='active'?'Enabled for this business':(inherited?'Included by subscription plan':'Not included'))));
       const trialDate=override?.trial_ends_at?String(override.trial_ends_at).slice(0,10):'';
-      return `<div class="module-toggle module-toggle-access"><span><strong>${escapeHtml(m.name)}</strong><small>${escapeHtml(m.description||'')} · ${source}</small></span><select data-module-id="${m.id}" data-module-status><option value="active" ${effective==='active'?'selected':''}>Enabled</option><option value="trialing" ${effective==='trialing'?'selected':''}>Trial</option><option value="suspended" ${effective==='suspended'?'selected':''}>Disabled</option></select><input type="date" data-module-trial-end="${m.id}" value="${trialDate}" title="Trial end date"></div>`;
+      return `<div class="module-toggle module-toggle-access"><span><strong>${escapeHtml(m.name)}</strong><small>${escapeHtml(m.description||'')} · ${source}</small></span><select data-module-id="${m.id}" data-module-status ${globallyActive?'':'disabled'}><option value="active" ${effective==='active'?'selected':''}>Enabled</option><option value="trialing" ${effective==='trialing'?'selected':''}>Trial</option><option value="suspended" ${effective==='suspended'?'selected':''}>Disabled</option></select><input type="date" data-module-trial-end="${m.id}" value="${trialDate}" title="Trial end date" ${globallyActive?'':'disabled'}></div>`;
     }).join('')||'<p>No modules have been configured yet.</p>';
     q('moduleModal').classList.add('open');
   }
@@ -1165,7 +1171,7 @@ ${businessName}`,'');
     const savingLabel=!annualSet?'Annual rate not set':savingPositive?(p.annual_saving_message||`Save ${Math.round(ap.pct)}% · $${ap.saving.toFixed(2)} per year`):'No annual saving';
     const annualSummary=annualSet?`$${ap.annual.toFixed(2)} / year`:'Not set';
     const equivalent=annualSet?`$${ap.equivalent.toFixed(2)} / month equivalent`:'Add an annual rate below';
-    return `<div class="plan-card ${isNew?'new-plan-card':''}" data-plan-card="${id}">
+    return `<div class="plan-card ${isNew?'new-plan-card':''}" data-plan-card="${id}" data-plan-existing-modules="${escapeHtml((Array.isArray(p.included_modules)?p.included_modules:[]).join(','))}">
       <div class="row-between"><span class="plan-name">${isNew?'Create new plan':escapeHtml(p.name)}</span>${!isNew?`<span class="badge">${p.is_public?'Public':'Hidden'}</span>`:''}</div>
       <div class="subscription-admin-rate-summary wide">
         <div class="subscription-admin-rate-box"><small>MONTHLY</small><strong>$${Number(p.monthly_price||0).toFixed(2)} <span>/ month</span></strong></div>
@@ -1202,7 +1208,10 @@ ${businessName}`,'');
     const lv=card.querySelector(`[data-plan-limit="${id}"]`).value,elv=card.querySelector(`[data-plan-employee-limit="${id}"]`).value;
     const stripe=card.querySelector(`[data-plan-stripe="${id}"]`).value.trim();
     const stripeAnnual=card.querySelector(`[data-plan-stripe-annual="${id}"]`).value.trim();
+    const visibleModuleSlugs=[...card.querySelectorAll(`[data-plan-module="${id}"]`)].map(x=>x.value).filter(Boolean);
     const modules=[...card.querySelectorAll(`[data-plan-module="${id}"]:checked`)].map(x=>x.value).filter(Boolean);
+    const existingModules=String(card.dataset.planExistingModules||'').split(',').map(x=>x.trim()).filter(Boolean);
+    if(existingModules.includes('invoice_payments')&&!visibleModuleSlugs.includes('invoice_payments'))modules.push('invoice_payments');
     const sortOrder=Number(card.querySelector(`[data-plan-sort="${id}"]`).value||0);
     const isPublic=card.querySelector(`[data-plan-public="${id}"]`).checked;
     if(!name||!slug)return alert('Plan name and slug are required.');
@@ -1226,10 +1235,15 @@ ${businessName}`,'');
 
   async function renderAdminPlans(){
     if(!state.profile?.is_super_admin||!q('adminPlanGrid'))return;
+    const renderSequence=++adminPlanRenderSequence;
     const [{data:plans,error},{data:availableModules,error:moduleError}]=await Promise.all([
       state.client.from('plans').select('*').order('sort_order'),
       state.client.from('modules').select('id,slug,name,is_active').eq('is_active',true).order('name')
     ]);
+    // A reload can overlap a save or another reload. Only the newest response
+    // may replace the editor, otherwise an older response can make a saved
+    // module checkbox appear to disappear intermittently.
+    if(renderSequence!==adminPlanRenderSequence)return;
     if(error||moduleError){if(q('adminPlanMessage')){q('adminPlanMessage').textContent='Could not load plans: '+(error?.message||moduleError?.message||'Unknown error');q('adminPlanMessage').className='admin-inline-message error'}return}
     q('adminPlanGrid').innerHTML=planEditorCard({name:'',slug:'',description:'',monthly_price:0,annual_price:null,annual_saving_message:'',invoice_limit:null,employee_limit:null,included_modules:['invoice_manager'],stripe_price_id:null,stripe_annual_price_id:null,is_public:true,sort_order:40},true,availableModules)+(plans||[]).map(p=>planEditorCard(p,false,availableModules)).join('');
 
@@ -1264,7 +1278,7 @@ ${businessName}`,'');
 
   async function addAdminModule(){
     const name=q('adminModuleName').value.trim(),slug=q('adminModuleSlug').value.trim().toLowerCase().replace(/[^a-z0-9_]+/g,'_'),description=q('adminModuleDescription').value.trim(),monthly_price=Number(q('adminModulePrice').value||0),stripe_price_id=q('adminModuleStripe').value.trim()||null;if(!name||!slug)return alert('Enter a module name and slug.');
-    const {error}=await state.client.from('modules').insert({name,slug,description,monthly_price,stripe_price_id,is_active:true});if(error)return alert(error.message);['adminModuleName','adminModuleSlug','adminModuleDescription','adminModuleStripe'].forEach(id=>q(id).value='');q('adminModulePrice').value='0';renderAdminModules();
+    const {error}=await state.client.from('modules').insert({name,slug,description,monthly_price,stripe_price_id,is_active:false});if(error)return alert(error.message);['adminModuleName','adminModuleSlug','adminModuleDescription','adminModuleStripe'].forEach(id=>q(id).value='');q('adminModulePrice').value='0';renderAdminModules();
   }
 
   function complianceDate(v){if(!v)return '—';try{return new Date(v).toLocaleString('en-NZ',{dateStyle:'medium',timeStyle:'short'})}catch{return String(v)}}
@@ -1318,8 +1332,8 @@ ${businessName}`,'');
     if(moduleAccessCache.key===key&&moduleAccessCache.promise)return moduleAccessCache.promise;
     moduleAccessCache.key=key;
     moduleAccessCache.promise=(async()=>{
-      const values=new Map(),{data,error}=await state.client.from('business_modules').select('status,trial_ends_at,modules!inner(slug)').eq('business_id',businessId);
-      if(!error)(data||[]).forEach(row=>{const slug=row.modules?.slug;if(!slug)return;const active=row.status==='active'||(row.status==='trialing'&&(!row.trial_ends_at||new Date(row.trial_ends_at)>=new Date()));values.set(slug,active)});
+      const values=new Map(),{data,error}=await state.client.from('business_modules').select('status,trial_ends_at,modules!inner(slug,is_active)').eq('business_id',businessId);
+      if(!error)(data||[]).forEach(row=>{const slug=row.modules?.slug;if(!slug)return;const globallyActive=row.modules?.is_active===true;const active=globallyActive&&(row.status==='active'||(row.status==='trialing'&&(!row.trial_ends_at||new Date(row.trial_ends_at)>=new Date())));values.set(slug,active)});
       moduleAccessCache.values=values;moduleAccessCache.expires=Date.now()+15000;moduleAccessCache.promise=null;return values
     })().catch(error=>{clearModuleAccessCache();throw error});
     return moduleAccessCache.promise;
@@ -1328,8 +1342,66 @@ ${businessName}`,'');
     if(slug==='invoice_manager')return true;
     const values=await moduleAccessValues();
     if(values.has(slug))return values.get(slug);
+    const {data:module}=await state.client.from('modules').select('is_active').eq('slug',slug).maybeSingle();
+    if(module?.is_active!==true)return false;
     const sub=state.subscription||await getSubscription();
-    return Array.isArray(sub?.plans?.included_modules)&&sub.plans.included_modules.includes(slug);
+    const subscriptionActive=sub?.status==='active'||(sub?.status==='trialing'&&(!sub?.trial_ends_at||new Date(sub.trial_ends_at)>=new Date()));
+    return subscriptionActive&&Array.isArray(sub?.plans?.included_modules)&&sub.plans.included_modules.includes(slug);
+  }
+
+  async function invoicePaymentsRequest(body){
+    return invokeAuthenticatedFunction('invoice-payments',body);
+  }
+
+  function invoicePaymentMoney(value,currency='NZD'){
+    try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency:String(currency||'NZD').toUpperCase()}).format(Number(value||0))}catch{return `${String(currency||'NZD').toUpperCase()} ${Number(value||0).toFixed(2)}`}
+  }
+
+  function invoicePaymentStatusLabel(status){return ({not_started:'Not connected',pending:'Setup in progress',active:'Ready to accept payments',restricted:'Action required',disabled:'Disabled'}[status]||human(status||'Not connected'))}
+
+  async function renderInvoicePaymentSettings(){
+    const root=q('invoicePaymentSettingsRoot');if(!root)return;
+    if(state.profile?.is_super_admin===true){root.innerHTML='<div class="card"><p class="hint">Open Super Admin → Modules to enable Online Invoice Payments for this business, then grant it through a plan or business override.</p></div>';return}
+    root.innerHTML='<div class="card"><p class="hint">Loading Stripe payment setup…</p></div>';
+    const {data,error}=await invoicePaymentsRequest({action:'status'});
+    if(error||data?.error){root.innerHTML=`<div class="card"><p class="hint">${escapeHtml(data?.error||error?.message||'Online payment setup is unavailable.')}</p></div>`;return}
+    const settings=data?.settings||{};
+    const accountReady=settings.connect_status==='active'&&settings.card_payments_status==='active';
+    const canManage=state.accessRole==='owner';
+    const requirements=Array.isArray(settings.requirements?.currently_due)?settings.requirements.currently_due:[];
+    const setupLabel=!settings.stripe_account_id?'Connect Stripe and set up bank account':accountReady?'Manage Stripe account and bank details':'Continue Stripe setup';
+    root.innerHTML=`<div class="card invoice-payment-settings-card"><div class="card-title"><div><h3>Stripe Connect</h3><p class="hint">Stripe collects the business identity and bank details. Frindly stores the connected-account ID and setup status only.</p></div><span class="gateway-status ${accountReady?'enabled':settings.connect_status==='restricted'?'warning':'ready'}">${escapeHtml(invoicePaymentStatusLabel(settings.connect_status))}</span></div><div class="invoice-payment-connect-summary"><div><span>Card payments</span><strong>${escapeHtml(human(settings.card_payments_status||'not_requested'))}</strong></div><div><span>Partial payments</span><strong>${settings.allow_partial_payments===false?'Off':'On'}</strong></div><div><span>Fee handling</span><strong>${settings.fee_mode==='pass'?'Pass to customer':settings.fee_mode==='split'?'Split estimate':'Business absorbs'}</strong></div></div>${requirements.length?`<div class="admin-inline-message warning">Stripe still needs: ${requirements.map(escapeHtml).join(', ')}</div>`:''}<div class="actions"><button class="primary" type="button" id="invoicePaymentConnectBtn" ${canManage?'':'disabled'}>${setupLabel}</button></div><p class="hint">The button opens Stripe’s hosted onboarding. Complete the business verification and bank-account steps there before sending invoices with Pay Now.</p></div><div class="card"><div class="card-title"><div><h3>Customer payment options</h3><p class="hint">The original invoice amount stays unchanged. Any online processing charge is shown separately at checkout.</p></div></div><div class="form-grid compact"><label>Processing fee<select id="invoicePaymentFeeMode" ${canManage?'':'disabled'}><option value="bear" ${settings.fee_mode==='bear'?'selected':''}>Business absorbs the Stripe fee</option><option value="split" ${settings.fee_mode==='split'?'selected':''}>Split the estimated fee 50 / 50</option><option value="pass" ${settings.fee_mode==='pass'?'selected':''}>Pass the estimated fee to the customer</option></select><small>Stripe’s actual fee is recorded separately; this setting controls the estimated fee shown before Checkout.</small></label><label class="tick-option"><input id="invoicePaymentPartial" type="checkbox" ${settings.allow_partial_payments!==false?'checked':''} ${canManage?'':'disabled'}><span>Allow customers to make partial payments</span></label></div><div class="actions"><button class="primary" type="button" id="saveInvoicePaymentSettings" ${canManage?'':'disabled'}>Save payment settings</button></div><p class="hint" id="invoicePaymentSettingsMessage"></p></div>`;
+    q('invoicePaymentConnectBtn')?.addEventListener('click',async()=>{
+      const button=q('invoicePaymentConnectBtn');if(!button||!canManage)return;button.disabled=true;button.textContent=settings.stripe_account_id?'Opening Stripe setup…':'Creating Stripe account…';
+      try{
+        let result;
+        if(!settings.stripe_account_id){result=await invoicePaymentsRequest({action:'create-account'});if(result.error||result.data?.error)throw result.error||new Error(result.data.error);}
+        result=await invoicePaymentsRequest({action:'create-account-link'});if(result.error||result.data?.error)throw result.error||new Error(result.data.error);if(!result.data?.url)throw new Error('Stripe did not return an onboarding link.');location.href=result.data.url;
+      }catch(e){button.disabled=false;button.textContent=setupLabel;alert(e?.message||'Stripe setup could not be opened.')}
+    });
+    q('saveInvoicePaymentSettings')?.addEventListener('click',async()=>{
+      const button=q('saveInvoicePaymentSettings'),messageEl=q('invoicePaymentSettingsMessage');if(!button||!canManage)return;button.disabled=true;button.textContent='Saving…';
+      const {data:saveData,error:saveError}=await invoicePaymentsRequest({action:'save-settings',fee_mode:q('invoicePaymentFeeMode')?.value||'bear',allow_partial_payments:!!q('invoicePaymentPartial')?.checked});button.disabled=false;button.textContent='Save payment settings';if(saveError||saveData?.error){messageEl.textContent=saveData?.error||saveError?.message||'Could not save payment settings.';messageEl.className='hint error';return}messageEl.textContent='Payment settings saved.';messageEl.className='hint success';
+    });
+  }
+
+  async function renderAdminInvoicePayments(){
+    if(!state.profile?.is_super_admin||!q('adminInvoicePaymentRows'))return;
+    const rowsEl=q('adminInvoicePaymentRows');rowsEl.innerHTML='<tr><td colspan="7">Loading invoice payments…</td></tr>';
+    const search=String(q('adminInvoicePaymentSearch')?.value||'').trim().toLowerCase(),status=q('adminInvoicePaymentStatus')?.value||'';
+    let query=state.client.from('invoice_payment_transactions').select('id,business_id,invoice_id,amount,gross_amount,customer_fee_amount,stripe_fee_amount,currency,status,payment_date,created_at,stripe_checkout_session_id,stripe_payment_intent_id,businesses(name),invoices(invoice_number,customer_name)').order('created_at',{ascending:false}).limit(500);
+    if(status)query=query.eq('status',status);
+    const {data,error}=await query;
+    if(error){rowsEl.innerHTML=`<tr><td colspan="7">${escapeHtml(error.message||'Invoice payment monitoring is unavailable until the payment migration is applied.')}</td></tr>`;return}
+    const all=data||[],filtered=search?all.filter(row=>[row.businesses?.name,row.invoices?.invoice_number,row.stripe_checkout_session_id,row.stripe_payment_intent_id].join(' ').toLowerCase().includes(search)):all;
+    const succeeded=all.filter(row=>row.status==='succeeded');
+    const received=succeeded.reduce((sum,row)=>sum+Number(row.gross_amount||0),0),fees=succeeded.reduce((sum,row)=>sum+Number(row.stripe_fee_amount||0),0),review=all.filter(row=>row.status==='needs_review').length;
+    if(q('adminInvoicePaymentsReceived'))q('adminInvoicePaymentsReceived').textContent=invoicePaymentMoney(received);
+    if(q('adminInvoicePaymentsFees'))q('adminInvoicePaymentsFees').textContent=invoicePaymentMoney(fees);
+    if(q('adminInvoicePaymentsSucceeded'))q('adminInvoicePaymentsSucceeded').textContent=String(succeeded.length);
+    if(q('adminInvoicePaymentsReview'))q('adminInvoicePaymentsReview').textContent=String(review);
+    const date=value=>value?new Date(value).toLocaleString('en-NZ'):'—';
+    rowsEl.innerHTML=filtered.map(row=>`<tr><td>${escapeHtml(row.businesses?.name||'—')}</td><td><strong>${escapeHtml(row.invoices?.invoice_number||'—')}</strong><small>${escapeHtml(row.invoices?.customer_name||'')}</small></td><td>${invoicePaymentMoney(row.amount,row.currency)}</td><td>${invoicePaymentMoney(row.customer_fee_amount,row.currency)}</td><td><span class="status-pill ${row.status==='succeeded'?'sent':row.status==='needs_review'?'error':'draft'}">${escapeHtml(invoicePaymentStatusLabel(row.status))}</span></td><td>${escapeHtml(date(row.payment_date||row.created_at))}</td><td><small>${escapeHtml(row.stripe_payment_intent_id||row.stripe_checkout_session_id||'—')}</small></td></tr>`).join('')||'<tr><td colspan="7">No invoice payments found.</td></tr>';
   }
 
 
@@ -1407,6 +1479,13 @@ ${businessName}`,'');
       if(!allowed && view?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.BankReconciliation?.init?.();
     }
+    if(q('onlinePaymentsSettingsNav')){
+      const entitled=await hasModule('invoice_payments'),allowed=entitled&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||''));
+      q('onlinePaymentsSettingsNav').dataset.entitlementBlocked=entitled?'0':'1';q('onlinePaymentsSettingsNav').hidden=!allowed;
+      const panel=q('view-settings')?.querySelector('[data-settings-panel="payments"]');if(panel&&!allowed)panel.hidden=true;
+      if(!allowed&&location.hash==='#settings/payments')window.openCentralSettings?.('account');
+      if(allowed&&document.querySelector('[data-settings-panel="payments"]')?.hidden===false)renderInvoicePaymentSettings?.();
+    }
     applyRoleAccessUI();
   }
 
@@ -1420,6 +1499,7 @@ ${businessName}`,'');
     if(q('payrollNav')){const entitled=state.profile?.is_super_admin||await hasModule('payroll');q('payrollNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('payroll');q('payrollNav').hidden=!allowed;if(allowed)window.Payroll?.init?.()}
     if(q('financialsNav')){const entitled=state.profile?.is_super_admin||await hasModule('financials');q('financialsNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('financials');q('financialsNav').hidden=!allowed;if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed||!roleCanWrite('financials');if(allowed)window.Financials?.init?.()}
     if(q('bankReconciliationNav')){const entitled=state.profile?.is_super_admin||await hasModule('bank_reconciliation');q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('bank');q('bankReconciliationNav').hidden=!allowed;const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;if(allowed)window.BankReconciliation?.init?.()}
+    if(q('onlinePaymentsSettingsNav')){const entitled=state.profile?.is_super_admin||await hasModule('invoice_payments');const allowed=entitled&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||''));q('onlinePaymentsSettingsNav').dataset.entitlementBlocked=entitled?'0':'1';q('onlinePaymentsSettingsNav').hidden=!allowed}
     await refreshEntitlements();
     applyRoleAccessUI();
     if(typeof window.switchView==='function')window.switchView('dashboard');

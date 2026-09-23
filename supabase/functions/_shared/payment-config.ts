@@ -1,4 +1,7 @@
 export const STRIPE_API_VERSION = '2026-07-29.dahlia';
+// Stripe Connect Accounts v2 endpoints use their current preview API surface
+// separately from the platform subscription API version above.
+export const STRIPE_CONNECT_API_VERSION = '2026-08-26.preview';
 
 /** Read Stripe credentials from Supabase Vault, with env vars as a deployment fallback. */
 export async function getStripeConfig(admin: any, requireEnabled = false) {
@@ -53,6 +56,14 @@ export function stripeHeaders(secretKey: string, form = false): Record<string, s
     Authorization: `Bearer ${secretKey}`,
     'Stripe-Version': STRIPE_API_VERSION,
     ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}),
+  };
+}
+
+export function stripeConnectHeaders(secretKey: string, json = false): Record<string, string> {
+  return {
+    Authorization: `Bearer ${secretKey}`,
+    'Stripe-Version': STRIPE_CONNECT_API_VERSION,
+    ...(json ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/x-www-form-urlencoded' }),
   };
 }
 

@@ -1,0 +1,9 @@
+# Public invoice-payment links authenticate customers with an opaque, hashed
+# token inside the function. The admin actions authenticate the Supabase user
+# explicitly, so the platform JWT gate must be disabled for this mixed endpoint.
+[functions.invoice-payments]
+verify_jwt = false
+
+# Stripe signs webhook requests instead of sending a Supabase user JWT.
+[functions.stripe-webhook]
+verify_jwt = false

@@ -115,6 +115,88 @@ Deno.serve(async(req)=>{
   };
 
   try{
+    const connectedPaymentIntent=async(accountId:string,paymentIntentId:string)=>{
+      if(!accountId||!paymentIntentId)return null;
+      const params=new URLSearchParams();params.append('expand[]','latest_charge.balance_transaction');
+      const response=await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntentId)}?${params.toString()}`,{headers:{...stripeHeaders(secret), 'Stripe-Account':accountId}});
+      const data=await response.json();
+      if(!response.ok){console.warn('Connected payment intent lookup failed',paymentIntentId,data?.error?.message||response.status);return null}
+      return data;
+    };
+
+    const sendOnlineReceipt=async(transactionId:string)=>{
+      const resendKey=Deno.env.get('RESEND_API_KEY');
+      if(!resendKey)return;
+      const {data:tx,error:txError}=await db.from('invoice_payment_transactions').select('id,amount,gross_amount,customer_fee_amount,currency,status,payment_date,stripe_payment_intent_id,stripe_checkout_session_id,metadata,invoices(invoice_number,customer_name,customer_email,total,balance_due),businesses(name,settings)').eq('id',transactionId).maybeSingle();
+      if(txError||!tx||tx.status!=='succeeded'||tx.metadata?.receipt_sent_at||!tx.invoices?.customer_email)return;
+      const settings=tx.businesses?.settings||{},invoice=tx.invoices||{},currency=String(tx.currency||settings.currency||'NZD').toUpperCase();
+      const fromEmail=String(Deno.env.get('RESEND_FROM_EMAIL')||Deno.env.get('EMAIL_FROM_ADDRESS')||'notifications@frindly.co.nz').trim();
+      const businessName=String(settings.trading||settings.company||tx.businesses?.name||'Your Business');
+      const esc=(value:any)=>String(value??'').replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]||m));
+      const money=(value:any)=>{try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency}).format(Number(value||0))}catch{return `${currency} ${Number(value||0).toFixed(2)}`}};
+      const invoiceNumber=String(invoice.invoice_number||'Invoice');
+      const subject=`Payment received for ${invoiceNumber} · ${businessName}`;
+      const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a"><h2>Payment received</h2><p>Hi ${esc(invoice.customer_name||'Customer')},</p><p>${esc(businessName)} has received your payment for invoice <strong>${esc(invoiceNumber)}</strong>.</p><table cellpadding="6" cellspacing="0"><tr><td>Invoice payment</td><td><strong>${money(tx.amount)}</strong></td></tr>${Number(tx.customer_fee_amount||0)>0?`<tr><td>Payment processing fee</td><td>${money(tx.customer_fee_amount)}</td></tr>`:''}<tr><td>Total charged</td><td><strong>${money(tx.gross_amount)}</strong></td></tr><tr><td>Remaining invoice balance</td><td>${money(invoice.balance_due)}</td></tr></table><p>Reference: ${esc(tx.stripe_payment_intent_id||tx.stripe_checkout_session_id||'Stripe payment')}</p><p>Thank you,<br>${esc(businessName)}</p></div>`;
+      const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:`${businessName.replace(/[<>]/g,'')} <${fromEmail}>`,to:[invoice.customer_email],reply_to:settings.email||settings.outboundEmail||undefined,subject,html})});
+      if(!response.ok){console.warn('Online payment receipt email failed',await response.text());return;}
+      await db.from('invoice_payment_transactions').update({metadata:{...(tx.metadata||{}),receipt_sent_at:new Date().toISOString()},updated_at:new Date().toISOString()}).eq('id',transactionId);
+    };
+
+    const settleOnlineCheckout=async(session:any,success:boolean)=>{
+      const accountId=String((event as any).account||'');
+      const transactionId=String(session?.metadata?.payment_transaction_id||'');
+      if(!accountId||!transactionId)return false;
+      const paymentIntentId=String(session?.payment_intent||'');
+      if(!success){
+        const {error}=await db.from('invoice_payment_transactions').update({status:'failed',failure_reason:'Stripe reported that the customer payment failed.',stripe_checkout_session_id:session?.id||null,stripe_payment_intent_id:paymentIntentId||null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',transactionId).neq('status','succeeded');
+        if(error)throw error;
+        return true;
+      }
+
+      const intent=paymentIntentId?await connectedPaymentIntent(accountId,paymentIntentId):null;
+      const charge=intent?.latest_charge&&typeof intent.latest_charge==='object'?intent.latest_charge:null;
+      const balance=intent?.latest_charge?.balance_transaction&&typeof intent.latest_charge.balance_transaction==='object'?intent.latest_charge.balance_transaction:null;
+      const grossAmount=Number(session?.amount_total||intent?.amount||0)/100;
+      const stripeFee=balance?.fee==null?null:Number(balance.fee)/100;
+      const netAmount=balance?.net==null?null:Number(balance.net)/100;
+      const patch:any={
+        status:'processing',
+        stripe_checkout_session_id:session?.id||null,
+        stripe_payment_intent_id:paymentIntentId||null,
+        stripe_charge_id:charge?.id?String(charge.id):null,
+        stripe_event_id:event.id,
+        gross_amount:grossAmount>0?grossAmount:undefined,
+        stripe_fee_amount:stripeFee,
+        net_amount:netAmount,
+        payment_date:new Date(Number(event.created||Date.now()/1000)*1000).toISOString(),
+        updated_at:new Date().toISOString()
+      };
+      Object.keys(patch).forEach(k=>patch[k]===undefined&&delete patch[k]);
+      const {error:updateError}=await db.from('invoice_payment_transactions').update(patch).eq('id',transactionId);
+      if(updateError)throw updateError;
+      const {error:recordError}=await db.rpc('v6181_record_online_invoice_payment',{
+        p_transaction_id:transactionId,
+        p_payment_date:new Date(Number(event.created||Date.now()/1000)*1000).toISOString().slice(0,10),
+        p_reference:`Stripe Checkout ${String(session?.id||paymentIntentId||'payment')}`
+      });
+      if(recordError)throw recordError;
+      await sendOnlineReceipt(transactionId);
+      return true;
+    };
+
+    const settleOnlinePaymentIntent=async(intent:any,success:boolean)=>{
+      const accountId=String((event as any).account||'');
+      const transactionId=String(intent?.metadata?.payment_transaction_id||'');
+      if(!accountId||!transactionId)return false;
+      if(!success){
+        const {error}=await db.from('invoice_payment_transactions').update({status:'failed',failure_reason:'Stripe reported that the payment intent failed.',stripe_payment_intent_id:intent?.id||null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',transactionId).neq('status','succeeded');
+        if(error)throw error;
+        return true;
+      }
+      const sessionLike={id:null,payment_intent:intent?.id,amount_total:intent?.amount_received||intent?.amount,metadata:intent?.metadata};
+      return settleOnlineCheckout(sessionLike,true);
+    };
+
     // V61.52 additive behavior: when Stripe creates the next subscription invoice,
     // transfer eligible earned Finlo credit to the Stripe customer invoice balance.
     // Stripe then applies that credit to the invoice during normal finalization.
@@ -126,6 +208,12 @@ Deno.serve(async(req)=>{
     // Existing V61.51 subscription + referral behavior below remains unchanged.
     if(event.type==='checkout.session.completed'){
       const cs=event.data.object as Stripe.Checkout.Session;
+      if(cs.metadata?.payment_transaction_id&&cs.payment_status!=='paid'){
+        const {error}=await db.from('invoice_payment_transactions').update({status:'processing',stripe_checkout_session_id:cs.id,stripe_payment_intent_id:cs.payment_intent?String(cs.payment_intent):null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',String(cs.metadata.payment_transaction_id)).neq('status','succeeded');
+        if(error)throw error;
+        return new Response('ok');
+      }
+      if(await settleOnlineCheckout(cs,true)) return new Response('ok');
       const bid=cs.metadata?.business_id;
       const pid=cs.metadata?.plan_id;
       if(bid&&pid&&cs.subscription){
@@ -143,6 +231,26 @@ Deno.serve(async(req)=>{
         }).eq('business_id',bid);
         await referralEvent(bid,'subscription_activated');
       }
+    }
+
+    if(event.type==='checkout.session.async_payment_succeeded'){
+      const cs=event.data.object as Stripe.Checkout.Session;
+      if(await settleOnlineCheckout(cs,true)) return new Response('ok');
+    }
+
+    if(event.type==='checkout.session.async_payment_failed'){
+      const cs=event.data.object as Stripe.Checkout.Session;
+      if(await settleOnlineCheckout(cs,false)) return new Response('ok');
+    }
+
+    if(event.type==='payment_intent.succeeded'){
+      const intent=event.data.object as Stripe.PaymentIntent;
+      if(await settleOnlinePaymentIntent(intent,true)) return new Response('ok');
+    }
+
+    if(event.type==='payment_intent.payment_failed'){
+      const intent=event.data.object as Stripe.PaymentIntent;
+      if(await settleOnlinePaymentIntent(intent,false)) return new Response('ok');
     }
 
     if(event.type==='customer.subscription.created'||event.type==='customer.subscription.updated'||event.type==='customer.subscription.deleted'){

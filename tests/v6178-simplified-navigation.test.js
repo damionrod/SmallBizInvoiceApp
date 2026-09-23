@@ -21,7 +21,7 @@ const C=[
 ['mobile nav no hover dependency',()=>{assert(c.includes('@media(max-width:760px)'));assert(c.includes('.report-module-tabs{display:grid;grid-template-columns:1fr 1fr'));assert(c.includes('min-height:44px'))}],
 ['business switch resets report nav',()=>assert(a.includes("if(lastReportBusinessId!==bid){activeReportTab='performance';lastReportBusinessId=bid}"))],
 ['business switch resets financial nav',()=>assert(f.includes("if(state.businessId!==bid)state.activeTab='overview'"))],
-['money in out wording only',()=>{assert(h.includes('<h2>Money In &amp; Out</h2>'));assert(h.includes('Cash movement based on payments recorded in Finlo'))}],
+['money in out wording only',()=>{assert(h.includes('<h2>Money In &amp; Out</h2>'));assert(h.includes('Cash movement based on payments recorded in Frindly'))}],
 ['no migration reference added',()=>assert(![h,a,f,s,c].some(x=>/create table|alter table|create policy|drop policy/i.test(x)))]
 ];
 let n=0;for(const[x,fn]of C){try{fn();n++;console.log('PASS',x)}catch(e){console.error('FAIL',x,e.message);process.exitCode=1}}console.log(`${n}/${C.length} PASS`);

@@ -1949,6 +1949,37 @@ body:has(#payrollRunModal.open){
   #payrollRunModal .payrun-step span{width:22px;height:22px}
 }
 
+/* V61.81 online invoice payments */
+.public-payment-page{min-height:100vh;background:linear-gradient(145deg,#f5fbfd 0%,#eef4fa 100%);color:#24313a}
+.public-payment-shell{width:min(680px,calc(100% - 32px));margin:0 auto;padding:42px 0 28px}
+.public-payment-brand{display:flex;align-items:center;gap:12px;margin:0 0 20px;color:#66808d;font-size:13px;font-weight:700;letter-spacing:.02em}
+.public-payment-brand img{width:112px;height:auto}
+.public-payment-card{background:#fff;border:1px solid #dbe7ee;border-radius:18px;box-shadow:0 18px 50px rgba(31,67,91,.1);padding:28px}
+.public-payment-loading{padding:40px 0;text-align:center;color:#66808d}
+.public-payment-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;border-bottom:1px solid #e5edf2;padding-bottom:22px}
+.public-payment-head h1{margin:4px 0 4px;font-size:30px;color:#1c4053}
+.public-payment-head p{margin:0;color:#66808d}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#7e9aaa;font-weight:800}
+.payment-status-pill{display:inline-flex;padding:7px 11px;border-radius:999px;background:#fff4df;color:#9a6413;font-size:12px;font-weight:800;white-space:nowrap}
+.payment-status-pill.paid{background:#e7f7ef;color:#13764a}
+.public-payment-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:22px 0;border-bottom:1px solid #e5edf2}
+.public-payment-summary span,.public-payment-fee-row span,.public-payment-total-row span{display:block;font-size:12px;color:#73909e}
+.public-payment-summary strong{display:block;margin-top:5px;color:#23465a;font-size:16px}
+.public-payment-form{padding-top:22px}
+.public-payment-form label{display:block;color:#32566a;font-size:13px;font-weight:700}
+.public-payment-form input{display:block;width:100%;margin-top:8px;padding:13px 14px;border:1px solid #bfd0da;border-radius:9px;font:inherit;color:#173a4d;box-sizing:border-box}
+.public-payment-form input:focus{outline:3px solid rgba(31,113,160,.16);border-color:#277eac}
+.public-payment-fee-row,.public-payment-total-row{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid #edf2f5}
+.public-payment-fee-row strong{color:#587584}
+.public-payment-total-row{border-bottom:0;padding-top:18px}.public-payment-total-row strong{font-size:22px;color:#173f55}
+.public-payment-button{width:100%;margin-top:4px;padding:14px 18px;font-size:16px}
+.public-payment-button:disabled{opacity:.55;cursor:not-allowed}
+.public-payment-note,.public-payment-footer{font-size:12px;color:#76909e;text-align:center;line-height:1.5}
+.public-payment-message{padding:18px;border-radius:10px;line-height:1.55}.public-payment-message.error{background:#fff0f0;color:#9d2f2f}.public-payment-message.info{background:#eef7fc;color:#28617d}.public-payment-message.success{background:#ebf9f0;color:#176942}
+@media(max-width:600px){.public-payment-shell{padding-top:22px}.public-payment-card{padding:20px}.public-payment-head{display:block}.payment-status-pill{margin-top:14px}.public-payment-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}.public-payment-head h1{font-size:25px}}
+.invoice-payment-connect-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}.invoice-payment-connect-summary>div{padding:13px 14px;border:1px solid #e3edf2;border-radius:10px;background:#fbfdfe}.invoice-payment-connect-summary span{display:block;color:#7893a0;font-size:12px}.invoice-payment-connect-summary strong{display:block;margin-top:5px;color:#264b60}.invoice-payment-settings-card .gateway-status.warning{background:#fff4df;color:#9a6413}.invoice-payment-settings-card .gateway-status.ready{background:#eef7fc;color:#28617d}
+@media(max-width:600px){.invoice-payment-connect-summary{grid-template-columns:1fr}}
+
 
 /* ============================================================
    v61.16 NEW PAY RUN TAB + CLEANUP
