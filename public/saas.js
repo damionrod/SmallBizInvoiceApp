@@ -329,7 +329,7 @@
     else renderAdmin();
     setAdminView(adminViewFromHash(),false);
   }
-  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','payments','invoice-payments','referrals','finlo-helper','import-migration']);
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','referrals','finlo-helper','import-migration']);
   function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
   function setAdminView(view='dashboard',push=true){
     if(!state.profile?.is_super_admin)return;
@@ -337,7 +337,7 @@
     document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
     document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
     const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
-    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();
   }
   function setupAdminNavigation(){
     document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
@@ -510,6 +510,7 @@
     setHidden(document.querySelector('[data-module="invoicing"]'),!roleCanRead('core'));
     setHidden(q('jobCostingNav'),!roleCanRead('core')||q('jobCostingNav')?.dataset.entitlementBlocked==='1');
     setHidden(q('expensesNav'),!roleCanRead('expenses')||q('expensesNav')?.dataset.entitlementBlocked==='1');
+    setHidden(q('stockEquipmentNav'),!roleCanRead('expenses')||q('stockEquipmentNav')?.dataset.entitlementBlocked!=='0');
     setHidden(q('bankReconciliationNav'),!roleCanRead('bank')||q('bankReconciliationNav')?.dataset.entitlementBlocked==='1');
     setHidden(q('financialsNav'),!roleCanRead('financials')||q('financialsNav')?.dataset.entitlementBlocked==='1');
     setHidden(q('payrollNav'),!roleCanRead('payroll')||q('payrollNav')?.dataset.entitlementBlocked==='1');
@@ -1628,6 +1629,13 @@ ${businessName}`,'');
       q('expensesNav').dataset.entitlementBlocked=entitled?'0':'1';q('expensesNav').hidden=!allowed;
       if(!allowed && document.getElementById('view-expenses')?.classList.contains('active') && window.switchView)window.switchView('create');
       if(allowed)window.Expenses?.init?.();
+    }
+    if(q('stockEquipmentNav')){
+      const entitled=await hasModule('stock_equipment'),allowed=entitled&&roleCanRead('expenses');
+      q('stockEquipmentNav').dataset.entitlementBlocked=entitled?'0':'1';q('stockEquipmentNav').hidden=!allowed;
+      const view=q('view-stock-equipment');if(view)view.hidden=!allowed;
+      if(!allowed&&view?.classList.contains('active'))window.switchView?.('create');
+      if(allowed)window.StockEquipment?.onShow?.();
     }
     if(q('payrollNav')){
       const entitled=await hasModule('payroll'),allowed=entitled&&roleCanRead('payroll');
