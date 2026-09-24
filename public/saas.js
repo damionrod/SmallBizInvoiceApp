@@ -167,7 +167,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      await window.FinloCore.loader.loadScriptsSequentially(['app.js?v=61.79-phase-b','schedule.js?v=61.79h-quote-recurrence','dashboard.js?v=61.79i-unscheduled-quote-filter','job-costing.js?v=61.72A.1-gst','job-profitability.js?v=61.71','expenses.js?v=61.77-aged-payables','payroll-nz-holidays.js?v=61.73-P3.1','payroll-nz-statutory-leave.js?v=61.73-P4B.1','payroll-nz-public-holidays.js?v=61.73-P5B.1','payroll-nz-final-pay.js?v=61.73-P6C.2','payroll-nz-tax.js?v=61.73-P7','payroll.js?v=61.75A-employee-limit-upgrade-prompt','financials.js?v=61.78-simplified-financials-reports','accountant-centre.js?v=61.71','bank-reconciliation.js?v=61.72A.1-gst']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
+      await window.FinloCore.loader.loadScriptsSequentially(['app.js?v=61.79-phase-b','schedule.js?v=61.79h-quote-recurrence','dashboard.js?v=61.89-voided-bills','job-costing.js?v=61.72A.1-gst','job-profitability.js?v=61.71','expenses.js?v=61.89-item-review','payroll-nz-holidays.js?v=61.73-P3.1','payroll-nz-statutory-leave.js?v=61.73-P4B.1','payroll-nz-public-holidays.js?v=61.73-P5B.1','payroll-nz-final-pay.js?v=61.73-P6C.2','payroll-nz-tax.js?v=61.73-P7','payroll.js?v=61.75A-employee-limit-upgrade-prompt','financials.js?v=61.89-voided-bills','accountant-centre.js?v=61.71','bank-reconciliation.js?v=61.89-voided-bills']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
     }
   }
 
@@ -1507,7 +1507,14 @@ ${businessName}`,'');
   async function hasModule(slug){
     if(slug==='invoice_manager')return true;
     const values=await moduleAccessValues();
-    if(values.has(slug))return values.get(slug);
+    if(values.has(slug)&&values.get(slug))return true;
+    // A server-verified, expiring grant can expose the preview to one business
+    // while the global catalogue switch remains off. Never trust a browser flag.
+    if(slug==='stock_equipment'&&state.business?.id){
+      const {data,error}=await state.client.rpc('se_preview_access_status',{p_business_id:state.business.id});
+      if(!error&&data===true)return true;
+    }
+    if(values.has(slug))return false;
     const {data:module}=await state.client.from('modules').select('is_active').eq('slug',slug).maybeSingle();
     if(module?.is_active!==true)return false;
     const sub=state.subscription||await getSubscription();

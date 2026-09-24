@@ -26,7 +26,13 @@ const schema={
     expense_category:{type:['string','null']},
     payment_status:{type:['string','null']},
     payment_method:{type:['string','null']},
-    line_items:{type:'array',items:{type:'object',additionalProperties:false,properties:{description:{type:['string','null']},quantity:{type:['number','null']},unit_price:{type:['number','null']},amount:{type:['number','null']}},required:['description','quantity','unit_price','amount']}},
+    line_items:{type:'array',items:{type:'object',additionalProperties:false,properties:{
+      description:{type:['string','null']},quantity:{type:['number','null']},
+      unit_price:{type:['number','null']},amount:{type:['number','null']},
+      suggested_use:{type:'string',enum:['regular','stock','supplies','depreciable_equipment','low_value_equipment','needs_review']},
+      classification_confidence:{type:'string',enum:['high','medium','low']},
+      classification_reason:{type:['string','null']}
+    },required:['description','quantity','unit_price','amount','suggested_use','classification_confidence','classification_reason']}},
     confidence:{type:'object',additionalProperties:false,properties:{supplier_name:{type:'string',enum:['high','medium','low']},invoice_number:{type:'string',enum:['high','medium','low']},invoice_date:{type:'string',enum:['high','medium','low']},subtotal:{type:'string',enum:['high','medium','low']},gst:{type:'string',enum:['high','medium','low']},total:{type:'string',enum:['high','medium','low']},expense_category:{type:'string',enum:['high','medium','low']}},required:['supplier_name','invoice_number','invoice_date','subtotal','gst','total','expense_category']}
   },
   required:['document_type','supplier_name','supplier_gst_number','invoice_number','invoice_date','due_date','currency','subtotal','gst','total','description','expense_category','payment_status','payment_method','line_items','confidence']
@@ -101,7 +107,14 @@ Deno.serve(async(req)=>{
     }catch{/* Optional telemetry only. */}
 
     const categoryList=categories.map((c:any)=>`${c.name}${c.group_name?` (${c.group_name})`:''}`).join('\n- ');
-    const instruction=`Extract expense data from this New Zealand business receipt/invoice. Never invent data. Return null when a field cannot be confidently determined. Dates must be YYYY-MM-DD. Distinguish invoice date from due date. Carefully identify subtotal, GST and final total, including GST-inclusive documents. Keep document amounts exactly as shown rather than silently correcting them. Generate a short useful expense description. Choose exactly one expense_category from the supplied category names; do not create a new category. If none clearly applies, choose Other if it exists, otherwise return null. Payment status should be paid only when the document clearly indicates payment/receipt completion.\n\nAvailable expense categories:\n- ${categoryList||'Other'}\n\nThe business currency is generally NZD, but use the document currency when clearly shown.`;
+    const instruction=`Extract expense data from this New Zealand business receipt/invoice. Never invent data. Return null when a field cannot be confidently determined. Dates must be YYYY-MM-DD. Distinguish invoice date from due date. Carefully identify subtotal, GST and final total, including GST-inclusive documents. Keep document amounts exactly as shown rather than silently correcting them. Generate a short useful expense description. Choose exactly one expense_category from the supplied category names; do not create a new category. If none clearly applies, choose Other if it exists, otherwise return null. Payment status should be paid only when the document clearly indicates payment/receipt completion.
+
+Extract EVERY visible purchase item as a separate line_items row with its printed description, quantity, unit price and extended amount. Keep unclear figures null; do not assign the full invoice total to one item. Do not merge different items or silently include GST, freight or discounts in an item. Preserve the amounts exactly as printed. If a separate freight/discount row is visible, include it as its own row. For each item, suggest only a use, never a final accounting or tax decision: regular for an ordinary operating cost; stock for products held for resale; supplies for materials used on jobs; depreciable_equipment for durable equipment that may need capitalisation and depreciation; low_value_equipment for a small durable item worth tracking, subject to owner and accountant review; needs_review when the document cannot establish its purpose or unit cost. When the buyer’s intended use cannot be inferred from the document (for example the same product could be resold or used on a job), choose needs_review and low confidence rather than guessing from the supplier or price. Choose needs_review for uncertain low-value vs depreciable decisions. Return a short reason and confidence. The owner will confirm every item later; do not calculate tax depreciation or claim an immediate deduction.
+
+Available expense categories:
+- ${categoryList||'Other'}
+
+The business currency is generally NZD, but use the document currency when clearly shown.`;
     const content:any[]=[{type:'input_text',text:instruction}];
     if(mime==='application/pdf')content.push({type:'input_file',filename,file_data:`data:${mime};base64,${fileBase64}`});
     else content.push({type:'input_image',image_url:`data:${mime};base64,${fileBase64}`,detail:'high'});
@@ -110,7 +123,7 @@ Deno.serve(async(req)=>{
     const response=await fetch('https://api.openai.com/v1/responses',{
       method:'POST',
       headers:{Authorization:`Bearer ${openai}`,'Content-Type':'application/json'},
-      body:JSON.stringify({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'finlo_expense_scan',strict:true,schema}},max_output_tokens:1800})
+      body:JSON.stringify({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'finlo_expense_scan',strict:true,schema}},max_output_tokens:3200})
     });
     const payload=await response.json();
     if(!response.ok){
