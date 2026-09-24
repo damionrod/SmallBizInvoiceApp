@@ -180,7 +180,6 @@ The business currency is generally NZD, but use the document currency when clear
         business_id:businessId,
         supplier_name:String(result.supplier_name).trim(),
         tax_number:String(result.supplier_gst_number||'').trim()||null,
-        default_gst_treatment:Number(result.gst)>0?'gst':'no_gst',
         updated_by:user.id
       };
       const created=await client.from('suppliers').insert(supplierRow).select('id,supplier_name,trading_name,tax_number').single();
