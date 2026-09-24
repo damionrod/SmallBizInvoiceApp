@@ -27,15 +27,19 @@ const schema={
     payment_status:{type:['string','null']},
     payment_method:{type:['string','null']},
     line_items:{type:'array',items:{type:'object',additionalProperties:false,properties:{
-      description:{type:['string','null']},quantity:{type:['number','null']},
+      description:{type:['string','null']},quantity:{type:['number','null']},page_number:{type:['integer','null']},
       unit_price:{type:['number','null']},amount:{type:['number','null']},
+      amount_basis:{type:'string',enum:['ex_gst','incl_gst','unknown']},
+      gst_treatment:{type:'string',enum:['taxable','no_gst','unknown']},
+      printed_gst:{type:['number','null']},
       suggested_use:{type:'string',enum:['regular','stock','supplies','depreciable_equipment','low_value_equipment','needs_review']},
       classification_confidence:{type:'string',enum:['high','medium','low']},
       classification_reason:{type:['string','null']}
-    },required:['description','quantity','unit_price','amount','suggested_use','classification_confidence','classification_reason']}},
+    },required:['description','quantity','page_number','unit_price','amount','amount_basis','gst_treatment','printed_gst','suggested_use','classification_confidence','classification_reason']}},
+    page_conflict:{type:'boolean'},page_warning:{type:['string','null']},
     confidence:{type:'object',additionalProperties:false,properties:{supplier_name:{type:'string',enum:['high','medium','low']},invoice_number:{type:'string',enum:['high','medium','low']},invoice_date:{type:'string',enum:['high','medium','low']},subtotal:{type:'string',enum:['high','medium','low']},gst:{type:'string',enum:['high','medium','low']},total:{type:'string',enum:['high','medium','low']},expense_category:{type:'string',enum:['high','medium','low']}},required:['supplier_name','invoice_number','invoice_date','subtotal','gst','total','expense_category']}
   },
-  required:['document_type','supplier_name','supplier_gst_number','invoice_number','invoice_date','due_date','currency','subtotal','gst','total','description','expense_category','payment_status','payment_method','line_items','confidence']
+  required:['document_type','supplier_name','supplier_gst_number','invoice_number','invoice_date','due_date','currency','subtotal','gst','total','description','expense_category','payment_status','payment_method','line_items','page_conflict','page_warning','confidence']
 };
 
 function base64Bytes(value:string){
@@ -79,12 +83,14 @@ Deno.serve(async(req)=>{
     const {data:allowedBusiness,error:allowedBusinessError}=await client.from('businesses').select('id').eq('id',businessId).maybeSingle();
     if(allowedBusinessError||!allowedBusiness)return out({ok:false,error:'Business account not available'},403);
 
-    const filename=String(body?.filename||'document').slice(0,180);
-    const mime=String(body?.mime_type||'').toLowerCase();
-    const fileBase64=String(body?.file_base64||'').replace(/\s/g,'');
-    if(!ALLOWED.has(mime))return out({ok:false,error:'Please upload a JPG, PNG, WEBP or PDF.'},400);
-    if(!fileBase64)return out({ok:false,error:'No document data received'},400);
-    if(base64Bytes(fileBase64)>MAX_BYTES)return out({ok:false,error:'This file is too large. Please choose a smaller file.'},413);
+    const documents=Array.isArray(body?.documents)?body.documents:[{filename:body?.filename,mime_type:body?.mime_type,file_base64:body?.file_base64}];
+    if(!documents.length||documents.length>12)return out({ok:false,error:'Select 1 to 12 pages for one bill.'},400);
+    const prepared=documents.map((d:any)=>({filename:String(d?.filename||'page').slice(0,180),mime:String(d?.mime_type||'').toLowerCase(),data:String(d?.file_base64||'').replace(/\s/g,'')}));
+    if(prepared.some(d=>!ALLOWED.has(d.mime)||!d.data))return out({ok:false,error:'Each page must be a JPG, PNG, WEBP or PDF.'},400);
+    if(prepared.some(d=>base64Bytes(d.data)>MAX_BYTES)||prepared.reduce((n,d)=>n+base64Bytes(d.data),0)>MAX_BYTES)
+      return out({ok:false,error:'Combined scan is over 10 MB. Compress the pages or upload a smaller PDF.'},413);
+    const filename=prepared.length===1?prepared[0].filename:`${prepared.length} pages`;
+    const mime=prepared.length===1?prepared[0].mime:'multi-page';
 
     // Soft abuse protection: 60 scans per user/business per rolling hour.
     try{
@@ -100,6 +106,7 @@ Deno.serve(async(req)=>{
     if(cats.error)throw cats.error;if(sups.error)throw sups.error;
     const categories=(cats.data||[]);
     const suppliers=(sups.data||[]);
+    const reviewCategory=categories.find((c:any)=>c.id===body?.review_category_id);
 
     try{
       const {data}=await admin.from('expense_ai_scans').insert({business_id:businessId,user_id:user.id,status:'processing',filename,mime_type:mime}).select('id').single();
@@ -109,21 +116,27 @@ Deno.serve(async(req)=>{
     const categoryList=categories.map((c:any)=>`${c.name}${c.group_name?` (${c.group_name})`:''}`).join('\n- ');
     const instruction=`Extract expense data from this New Zealand business receipt/invoice. Never invent data. Return null when a field cannot be confidently determined. Dates must be YYYY-MM-DD. Distinguish invoice date from due date. Carefully identify subtotal, GST and final total, including GST-inclusive documents. Keep document amounts exactly as shown rather than silently correcting them. Generate a short useful expense description. Choose exactly one expense_category from the supplied category names; do not create a new category. If none clearly applies, choose Other if it exists, otherwise return null. Payment status should be paid only when the document clearly indicates payment/receipt completion.
 
-Extract EVERY visible purchase item as a separate line_items row with its printed description, quantity, unit price and extended amount. Keep unclear figures null; do not assign the full invoice total to one item. Do not merge different items or silently include GST, freight or discounts in an item. Preserve the amounts exactly as printed. If a separate freight/discount row is visible, include it as its own row. For each item, suggest only a use, never a final accounting or tax decision: regular for an ordinary operating cost; stock for products held for resale; supplies for materials used on jobs; depreciable_equipment for durable equipment that may need capitalisation and depreciation; low_value_equipment for a small durable item worth tracking, subject to owner and accountant review; needs_review when the document cannot establish its purpose or unit cost. When the buyer’s intended use cannot be inferred from the document (for example the same product could be resold or used on a job), choose needs_review and low confidence rather than guessing from the supplier or price. Choose needs_review for uncertain low-value vs depreciable decisions. Return a short reason and confidence. The owner will confirm every item later; do not calculate tax depreciation or claim an immediate deduction.
+Extract EVERY visible purchase item as a separate line_items row with its printed description, quantity, unit price and extended amount. Keep unclear figures null; do not assign the full invoice total to one item. Do not merge different items or silently include GST, freight or discounts in an item. Preserve the amounts exactly as printed. If a separate freight/discount row is visible, include it as its own row. For EACH row identify amount_basis: ex_gst when the printed amount excludes GST, incl_gst when it includes GST, unknown when the document does not establish this. Identify gst_treatment: taxable if the row clearly attracts standard NZ GST at 15%, no_gst if it clearly has no GST, unknown if the document does not establish this. printed_gst is the row's explicitly printed GST if shown; otherwise null. Do not infer GST simply because a supplier or other item is GST registered. Keep an unknown basis or treatment unknown; the reviewer will resolve it. For each item, preselect the single most likely use as an editable suggestion: regular for an ordinary operating cost; stock for products held for resale; supplies for materials used on jobs; depreciable_equipment for durable equipment that may need capitalisation and depreciation; low_value_equipment for a small durable item worth tracking, subject to owner and accountant review. The buyer's actual use may not be on the document: make a cautious best guess with low confidence and explain the uncertainty briefly. The saved invoice category, when supplied below, is context, not proof that every item has the same use. Use needs_review only if even a tentative use cannot be inferred. Never assume a tax deduction or depreciation treatment from price alone. Return a short reason and confidence. The owner will confirm every item later; do not calculate tax depreciation or claim an immediate deduction.
+
+${reviewCategory?`Saved invoice category for review: ${reviewCategory.group_name} · ${reviewCategory.name}.`:''}
 
 Available expense categories:
 - ${categoryList||'Other'}
 
 The business currency is generally NZD, but use the document currency when clearly shown.`;
     const content:any[]=[{type:'input_text',text:instruction}];
-    if(mime==='application/pdf')content.push({type:'input_file',filename,file_data:`data:${mime};base64,${fileBase64}`});
-    else content.push({type:'input_image',image_url:`data:${mime};base64,${fileBase64}`,detail:'high'});
+    content.push({type:'input_text',text:`The ${prepared.length} attached files are ordered pages of ONE supplier bill. Read every page and return ONE combined header and complete item list. Set page_conflict=true if supplier, currency or bill number conflicts, and explain in page_warning. Explain missing or illegible pages in page_warning. Give each purchase item its source page_number (one-based; PDF page if possible). Do not duplicate carried-forward items or include repeated headers, page subtotals or page totals as purchase items. Only the final bill totals belong in subtotal, gst and total. If a page is uncertain leave amounts null for human review.`});
+    for(const [index,doc] of prepared.entries()){
+      content.push({type:'input_text',text:`Attachment ${index+1} of ${prepared.length}: ${doc.filename}`});
+      if(doc.mime==='application/pdf')content.push({type:'input_file',filename:doc.filename,file_data:`data:${doc.mime};base64,${doc.data}`});
+      else content.push({type:'input_image',image_url:`data:${doc.mime};base64,${doc.data}`,detail:'high'});
+    }
 
     const model=Deno.env.get('OPENAI_EXPENSE_MODEL')||'gpt-5.6-luna';
     const response=await fetch('https://api.openai.com/v1/responses',{
       method:'POST',
       headers:{Authorization:`Bearer ${openai}`,'Content-Type':'application/json'},
-      body:JSON.stringify({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'finlo_expense_scan',strict:true,schema}},max_output_tokens:3200})
+      body:JSON.stringify({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'finlo_expense_scan',strict:true,schema}},max_output_tokens:prepared.length>1||prepared.some(d=>d.mime==='application/pdf')?9000:3200})
     });
     const payload=await response.json();
     if(!response.ok){
@@ -133,6 +146,7 @@ The business currency is generally NZD, but use the document currency when clear
     }
     const text=extractText(payload);if(!text)throw new Error('The AI returned no structured result');
     const result=JSON.parse(text);
+    if(result.page_conflict)return out({ok:false,error:result.page_warning||'These pages appear to be from different bills. Separate them before scanning.'},422);
     result.invoice_date=cleanDate(result.invoice_date);result.due_date=cleanDate(result.due_date);
     if(result.currency)result.currency=String(result.currency).toUpperCase().slice(0,3);
 
