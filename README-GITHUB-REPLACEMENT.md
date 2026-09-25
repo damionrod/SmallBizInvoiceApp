@@ -1,3 +1,13 @@
+# Frindly v61.90U — complete 100-file GitHub package
+
+25 September 2026. Extract and upload all 100 files to the repository root, retaining folder paths. Uploading the ZIP itself will not extract its files on GitHub. Compare your current repository for newer files before replacing it. A GitHub push may deploy automatically if Netlify is linked.
+
+## v61.90U sign-in hang fix
+
+- The `onAuthStateChange` listener is now synchronous and schedules account loading after Supabase completes its auth event, preventing the documented session-lock deadlock. Initial session, sign-in and signup share one account-loading promise, preventing duplicate initialization. The login form reports rejected sign-in or account-load errors rather than leaving `Logging in…` indefinitely. Sign-out still reloads the page.
+- Only `public/saas.js`, its cache reference in `public/index.html`, the package README and manifest, and a focused auth regression test were changed. No backend changes, migrations, secrets, customer data, or deployment were performed. The test simulates Supabase's auth lock and verifies sign-in completes once and error messaging works. The existing regression suite passed. Live authenticated browser checks remain outstanding.
+- To remain under 100 files, the additional historical non-runtime document `docs/V61.81-ONLINE-INVOICE-PAYMENTS.md` is omitted from this release. All app code, configuration, Edge Functions, database migrations and test files are included. The earlier release notes follow.
+
 # Frindly v61.90T — complete 100-file GitHub package
 
 25 September 2026. This release fixes the new pay run's usual-payday choice, while retaining the complete Frindly application within GitHub's 100-file upload limit. Extract the ZIP and upload the contents to the repository root, retaining folder paths. Uploading the ZIP itself does not extract it in GitHub. Compare your repository for files newer than this package before replacing it. A GitHub push may trigger a Netlify deploy if your site is linked.

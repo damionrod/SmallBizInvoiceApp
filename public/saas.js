@@ -4,6 +4,7 @@
   const PENDING_SIGNUP_CHECKOUT_KEY='v61_pending_signup_checkout';
   const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false, checkoutAvailable:null, inviteToken:new URLSearchParams(location.search).get('invite')||'', inviteInfo:null, businessMemberships:[], effectiveAccess:{}, referralCode:new URLSearchParams(location.search).get('ref')||'', referralInviteToken:new URLSearchParams(location.search).get('rid')||'' };
   let adminPlanRenderSequence=0;
+  let accountEntry=null;
 
   function message(text, kind=''){
     const el=q('authMessage'); if(!el)return; el.textContent=text||''; el.className='auth-message '+kind;
@@ -28,11 +29,21 @@
     await prepareInviteMode();
     if(state.referralCode&&!state.inviteToken){switchAuthTab('signup');message('You were referred to Frindly. Create your business account to continue.');}
     const {data:{session}}=await state.client.auth.getSession();
-    if(session) await enter(session); else q('authShell').classList.add('open');
-    state.client.auth.onAuthStateChange(async (event,session)=>{
+    if(session) await enterOnce(session); else q('authShell').classList.add('open');
+    state.client.auth.onAuthStateChange((event,session)=>{
       if(event==='SIGNED_OUT'){location.reload();return}
-      if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!state.loadedApp) await enter(session);
+      if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!state.loadedApp){
+        // Supabase auth events run under its session lock. Do not await database calls here.
+        setTimeout(()=>enterOnce(session).catch(err=>{console.error('Loading signed-in account failed',err);q('authShell').classList.add('open');message(err?.message||'Unable to load your account. Refresh and try again.','error')}),0);
+      }
     });
+  }
+
+  function enterOnce(session){
+    if(state.loadedApp)return Promise.resolve();
+    if(accountEntry)return accountEntry;
+    accountEntry=enter(session).finally(()=>{accountEntry=null});
+    return accountEntry;
   }
 
   function switchAuthTab(tab,email=''){
@@ -61,8 +72,12 @@
     if(q('alreadyAccountBtn'))q('alreadyAccountBtn').onclick=()=>{const email=q('signupEmail')?.value.trim()||'';switchAuthTab('login',email);message('Log in with your existing account.');};
     q('loginForm').onsubmit=async e=>{
       e.preventDefault(); message('Logging in…');
-      const {error}=await state.client.auth.signInWithPassword({email:q('loginEmail').value.trim(),password:q('loginPassword').value});
-      if(error)message(error.message,'error');
+      try{
+        const {data,error}=await state.client.auth.signInWithPassword({email:q('loginEmail').value.trim(),password:q('loginPassword').value});
+        if(error)message(error.message,'error');
+        else if(data?.session)await enterOnce(data.session);
+        else message('Signed in, but no session was returned. Refresh and try again.','error');
+      }catch(err){console.error('Sign-in failed',err);message(err?.message||'Unable to log in. Please try again.','error')}
     };
     q('signupForm').onsubmit=async e=>{
       e.preventDefault();
@@ -91,7 +106,7 @@
       if(data.session){
         if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({userId:data.user?.id||'',email,planSlug:selectedPlan,billingInterval:selectedBillingInterval});
         message(state.inviteToken?'Account created. Joining the invited business…':(selectedPlan==='trial'?'Account created. Loading your business…':'Account created. Opening secure payment…'),'success');
-        await enter(data.session);
+        await enterOnce(data.session);
       } else {
         if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({email,planSlug:selectedPlan,billingInterval:selectedBillingInterval});
         message(state.inviteToken?'Account created for the invited business. Check your email to confirm your address, then log in.':(selectedPlan==='trial'?'Account created. Check your email to confirm your address, then log in.':'Account created. Confirm your email, then log in to continue to secure Stripe payment.'),'success');
