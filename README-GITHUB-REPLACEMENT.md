@@ -1,3 +1,14 @@
+# Frindly v61.90T — complete 100-file GitHub package
+
+25 September 2026. This release fixes the new pay run's usual-payday choice, while retaining the complete Frindly application within GitHub's 100-file upload limit. Extract the ZIP and upload the contents to the repository root, retaining folder paths. Uploading the ZIP itself does not extract it in GitHub. Compare your repository for files newer than this package before replacing it. A GitHub push may trigger a Netlify deploy if your site is linked.
+
+## v61.90T payroll payday transition
+
+- Existing pay runs keep their saved pay dates, regardless of later Payroll Settings changes. For a new weekly or fortnightly run whose previous payday weekday differs from the saved usual payday, Pay Run Details requires a clear choice: enter the first date on the new usual weekday or keep the old weekday for this run. The next new run checks Settings again. The work-period dates are not automatically changed as a side effect of choosing a payday.
+- Changing Pay Date on a calculated run immediately recalculates the loaded employee tax and statutory results using the chosen date; manually added items are retained. Changing the work period or frequency requires Load / Calculate before the run can be saved, preserving manual entries on recalculation. Finalised runs remain locked.
+- No migration, database records, Supabase functions, unrelated modules, or live production settings were changed. Four focused payroll checks passed, alongside the complete Node suite. Live browser and authenticated database checks were not available; review the weekday choice and a draft with actual employees before finalising or filing payroll.
+- This 100-file package adds `tests/v6190t-payroll-payday.test.js` and omits one more historical non-runtime document, `docs/V61.86-SUBSCRIPTION-SYNC-FIX.md`. The three historical guidance files excluded in v61.90S remain excluded. The historical release notes below describe their original packages.
+
 # Frindly v61.90S — 100-file GitHub upload package
 
 25 September 2026. This is the **complete v61.90S application** within the 100-file browser upload limit. Extract the ZIP and place its contents at the repository root, retaining folder paths. Uploading the ZIP itself does not unpack it on GitHub. If your repository has any of the three omitted documents from an older version, remove them separately if you want its file list to match this package exactly.

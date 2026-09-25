@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Frindly" />
   <title>Frindly</title>
   <link rel="stylesheet" href="styles-core.css?v=61.72A" />
-  <link rel="stylesheet" href="styles.css?v=61.90s-invoice-redesign" />
+  <link rel="stylesheet" href="styles.css?v=61.90t-payday-choice" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.53" />
   <script src="app-config.js?v=61.79D-production-config-20260921"></script>
   <script src="finlo-core.js?v=61.72A"></script>
@@ -766,6 +766,12 @@ Please find attached quote {quoteNumber}."></textarea></label>
             <label>Pay Period Start<input id="prStart" type="date"></label>
             <label>Pay Period End<input id="prEnd" type="date"></label>
             <label>Pay Date<input id="prPayDate" type="date"></label>
+          </div>
+          <div id="prPaydayChange" class="payrun-payday-change" hidden>
+            <strong>Usual payday has changed</strong>
+            <p id="prPaydayChangeMessage"></p>
+            <div class="payrun-payday-choices"><label>First payday on the new schedule<input id="prConfiguredPaydayDate" type="date"></label><button class="secondary" id="prUseConfiguredPayday" type="button">Use usual payday</button><button class="secondary" id="prKeepPreviousPayday" type="button">Keep previous schedule for this run</button></div>
+            <small>Your pay period dates will stay the same. Check the actual date you will pay employees before saving.</small>
           </div>
         </section>
 
