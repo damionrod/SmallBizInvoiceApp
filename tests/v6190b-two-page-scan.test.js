@@ -41,6 +41,6 @@ test('function accepts ordered documents and review rescans saved pages automati
  assert.match(edge,/Array\.isArray\(body\?\.documents\)/);
  assert.match(edge,/for\(const \[index,doc\] of prepared\.entries\(\)\)/);
  assert.match(edge,/page_conflict/);
- assert.match(reviewer,/if\(needsScan\)await scan\(\)/);
- assert.match(reviewer,/scan\.data\?\.attachment_ids/);
+ assert.match(reviewer,/state.scans=new Map/);assert.match(reviewer,/state.expanded=new Set/);
+ assert.match(reviewer,/state.scans.set\(id,\{attachment_ids:pages.map/);
 });

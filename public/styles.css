@@ -326,7 +326,7 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   box-shadow:none;
   font-size:13px;
 }
-.invoice-pdf-render-host .invoice-pdf-sheet .preview-top img{width:125px;height:76px}
+.invoice-pdf-render-host .invoice-pdf-sheet .preview-top img{width:auto;height:auto;max-width:125px;max-height:76px;object-fit:contain;flex:none}
 .invoice-pdf-render-host .invoice-pdf-sheet .preview-company strong{font-size:16px}
 .invoice-pdf-render-host .invoice-pdf-sheet .preview-title h3{font-size:31px}
 .invoice-pdf-render-host .invoice-pdf-sheet table{font-size:12px}
@@ -334,6 +334,9 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 .invoice-pdf-render-host .invoice-pdf-sheet td{padding:9px}
 .invoice-pdf-render-host .invoice-pdf-sheet .preview-totals{width:300px}
 .invoice-pdf-render-host .invoice-pdf-sheet .preview-grand{font-size:16px}
+
+/* Hide PAYG fixed-term evidence for irregular/intermittent employees. */
+#pePaygFixedFields[hidden]{display:none!important}
 
 
 /* v39 — quote PDF uses the exact same quote HTML renderer as live/actual preview. */
@@ -3600,3 +3603,241 @@ body.report-widget-moving .report-widget-handle{cursor:grabbing}
 
 #subscriptionCard .billing-cancellation{margin:22px 0;padding-top:18px;border-top:1px solid #e0e7eb}
 #subscriptionCard h4{margin:22px 0 9px}
+
+/* Payroll Settings: compact summaries with full editing available on demand. */
+#payroll-panel-settings .payroll-settings-context{font-size:12px;font-weight:700;color:#496276;white-space:nowrap}
+#payroll-panel-settings .payroll-simple-section{min-width:0}
+#payroll-panel-settings .payroll-simple-section>summary{cursor:pointer;font-size:14px;font-weight:700;color:#17324d;list-style:none;display:flex;align-items:center;gap:8px;padding:8px 0}
+#payroll-panel-settings .payroll-simple-section>summary::-webkit-details-marker,#payroll-panel-settings .payroll-item-detail>summary::-webkit-details-marker{display:none}
+#payroll-panel-settings .payroll-simple-section>summary::before{content:'▸';font-size:13px;color:#526c80}
+#payroll-panel-settings .payroll-simple-section[open]>summary::before{content:'▾'}
+#payroll-panel-settings .payroll-simple-section>summary small{font-size:12px;font-weight:400;color:#667784}
+#payroll-panel-settings #payrollMoreDefaults{border-top:1px solid #e5ecf2;margin-top:12px;padding-top:3px}
+#payroll-panel-settings .payroll-readonly-value{display:block;padding:9px 0;font-size:14px;font-weight:700}
+#payroll-panel-settings .payroll-group{padding:11px 14px}
+#payroll-panel-settings .payroll-group>summary{padding:1px 0}
+#payroll-panel-settings .payroll-group-body{padding:10px 0 3px}
+#payroll-panel-settings .payroll-group-body>.secondary{margin-bottom:8px}
+#payroll-panel-settings .payroll-rule-section{margin-bottom:12px}
+#payroll-panel-settings .payroll-rule-columns{display:grid;gap:16px;margin-top:10px}
+#payroll-panel-settings .payroll-rule-columns h3{font-size:14px;margin:0 0 8px}
+#payroll-panel-settings .payroll-rule-columns>div+div{border-top:1px solid #e5ecf2;padding-top:12px}
+#payroll-panel-settings .payroll-compact-list{display:grid;gap:0}
+#payroll-panel-settings .payroll-item-detail{border-top:1px solid #e5ecf2;min-width:0}
+#payroll-panel-settings .payroll-item-summary{list-style:none;cursor:pointer;display:flex;gap:12px;align-items:center;padding:10px 4px;font-size:13px;min-height:42px}
+#payroll-panel-settings .payroll-item-summary::before{content:'▸';color:#526c80;flex:none}
+#payroll-panel-settings .payroll-item-detail[open]>.payroll-item-summary::before{content:'▾'}
+#payroll-panel-settings .payroll-item-summary strong{min-width:0;flex:1 1 160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#payroll-panel-settings .payroll-item-summary>span:not(.payroll-item-edit){flex:0 0 95px;color:#526774;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#payroll-panel-settings .payroll-item-summary [data-pi-summary-rate]{flex-basis:62px!important;text-align:right}
+#payroll-panel-settings .payroll-item-summary .payroll-item-edit{color:#175987;font-weight:700;margin-left:auto}
+#payroll-panel-settings .payroll-needs-classification{color:#85530b;background:#fff4dc;border-radius:999px;padding:4px 7px;font-size:11px;white-space:nowrap}
+#payroll-panel-settings [hidden]{display:none!important}
+#payroll-panel-settings .payroll-item-editor{padding:10px 12px 14px;background:#f8fafc;border-top:1px solid #e5ecf2;border-radius:0 0 8px 8px}
+#payroll-panel-settings .payroll-item-basic,#payroll-panel-settings .payroll-item-advanced{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+#payroll-panel-settings .payroll-item-basic label,#payroll-panel-settings .payroll-item-advanced label{min-width:0;font-size:12px}
+#payroll-panel-settings .payroll-item-basic :is(input,select),#payroll-panel-settings .payroll-item-advanced select{width:100%;min-width:0}
+#payroll-panel-settings .payroll-item-taxfree{margin:8px 0;font-size:12px}
+#payroll-panel-settings .payroll-advanced-toggle{font-size:12px;padding:7px 10px}
+#payroll-panel-settings .payroll-item-advanced{margin:10px 0}
+#payroll-panel-settings .payroll-item-advanced .hint{grid-column:1/-1;margin:0}
+#payroll-panel-settings .payroll-archive-action{margin-top:8px;font-size:12px;padding:7px 11px}
+#payroll-panel-settings .payroll-small-row{display:grid;grid-template-columns:minmax(130px,1fr) auto auto;gap:8px;align-items:center;border-top:1px solid #e5ecf2;padding:7px 0}
+#payroll-panel-settings .payroll-small-row>label:first-child{min-width:0}
+#payroll-panel-settings .payroll-small-row>label:first-child span{font-size:11px}
+#payroll-panel-settings .payroll-small-row input:not([type=checkbox]){width:100%;min-width:0;padding:7px 8px;font-size:13px}
+#payroll-panel-settings .payroll-small-row .tick-option{white-space:nowrap;font-size:12px}
+#payroll-panel-settings .payroll-small-row .danger{width:auto;font-size:12px;padding:7px 10px}
+#payroll-panel-settings .payroll-settings-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#payroll-panel-settings #payrollSettingsStatus{font-size:12px;color:#526774}
+@media(max-width:760px){
+ #payroll-panel-settings .payroll-simple-section>summary{flex-wrap:wrap}
+ #payroll-panel-settings .payroll-simple-section>summary small{flex-basis:100%;padding-left:19px}
+ #payroll-panel-settings .payroll-item-summary{gap:6px;flex-wrap:wrap}
+ #payroll-panel-settings .payroll-item-summary strong{flex-basis:calc(100% - 35px)}
+ #payroll-panel-settings .payroll-item-summary>span:not(.payroll-item-edit){flex-basis:auto;font-size:12px}
+ #payroll-panel-settings .payroll-item-summary .payroll-item-edit{margin-left:auto}
+ #payroll-panel-settings .payroll-item-basic,#payroll-panel-settings .payroll-item-advanced{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #payroll-panel-settings .payroll-small-row{grid-template-columns:minmax(0,1fr) auto}
+ #payroll-panel-settings .payroll-small-row>label:first-child{grid-column:1/-1}
+}
+
+/* Add/Edit Customer form only: compact fields, contacts and accessible save action. */
+#customerModal .customer-modal-box{max-width:800px}
+#customerModal .customer-form-compact{min-width:0}
+#customerModal .customer-core{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+#customerModal .customer-core>label{min-width:0}
+#customerModal .customer-core :is(input,select,textarea){width:100%;min-width:0}
+#customerModal #cfAddress{height:42px;min-height:42px;max-height:120px;line-height:22px;resize:vertical;overflow:auto}
+#customerModal .customer-primary-contact{padding:12px 0 6px;border-top:1px solid var(--border);margin-top:15px}
+#customerModal .customer-contact-heading{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:9px}
+#customerModal .customer-contact-heading h3{margin:0 auto 0 0;font-size:15px;color:var(--navy)}
+#customerModal .customer-contact-heading .billing-check{display:inline-flex;align-items:center;gap:5px;margin:0;font-size:12px;white-space:nowrap}
+#customerModal .customer-contact-heading .billing-check input{width:auto;margin:0}
+#customerModal .customer-contact-remove{border:0;background:none;color:#9d3c38;text-decoration:underline;cursor:pointer;font-size:12px;padding:7px 2px}
+#customerModal .customer-contact-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px}
+#customerModal .customer-contact-fields>label{min-width:0}
+#customerModal .customer-contact-fields input{width:100%;min-width:0}
+#customerModal .customer-add-contact{margin:12px 0 4px;font-size:13px}
+#customerModal .customer-contact-extra{border-top:1px solid var(--border);margin-top:12px}
+#customerModal .customer-contact-extra>summary{display:flex;align-items:center;gap:10px;cursor:pointer;padding:11px 2px;color:var(--navy);font-size:13px}
+#customerModal .customer-contact-extra>summary::before{content:'▸';color:#526c80}
+#customerModal .customer-contact-extra[open]>summary::before{content:'▾'}
+#customerModal .customer-contact-extra>summary small{color:#526774;margin-left:auto}
+#customerModal .customer-contact-extra-body{padding:3px 0 11px}
+#customerModal .customer-more-details{margin-top:15px;border-top:1px solid var(--border)}
+#customerModal .customer-more-details>summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--navy);padding:12px 0}
+#customerModal .customer-more-details>summary small{font-size:12px;font-weight:400;color:var(--muted);margin-left:6px}
+#customerModal .customer-more-details .card-title{margin:5px 0 8px}
+#customerModal .customer-more-details .card-title h3{font-size:13px;margin:0}
+#customerModal .customer-more-details .card-title button{font-size:12px;padding:7px 10px}
+#customerModal .customer-modal-box>.actions{position:sticky;bottom:0;z-index:2;background:#fff;border-top:1px solid var(--border);padding:12px 0;margin-top:12px}
+@media(max-width:760px){
+ #customerModal .customer-core,#customerModal .customer-contact-fields{grid-template-columns:1fr}
+ #customerModal .customer-modal-box{width:100%;max-width:none}
+ #customerModal .customer-contact-heading{gap:8px}
+ #customerModal .customer-contact-heading h3{flex-basis:100%}
+ #customerModal .customer-modal-box>.actions{padding:10px 0}
+}
+
+/* Australian GST treatment is available only on AU invoices. Respect its hidden state. */
+#invoiceAuTaxClassLabel[hidden]{display:none!important}
+
+/* Create Invoice: shared rhythm, short metadata, visible essentials. */
+#view-create .invoice-details-card.invoice-details-compact label#invoiceAuTaxClassLabel[hidden]{display:none!important}
+#view-create .page-head{margin-bottom:8px!important;padding-bottom:7px!important}
+#view-create .invoice-details-card.invoice-details-compact{
+  grid-template-columns:minmax(0,1fr)!important;
+  padding:12px 16px!important;
+  gap:0!important;
+}
+#view-create .invoice-details-card.invoice-details-compact .invoice-meta-panel{
+  display:grid;
+  grid-template-columns:112px minmax(0,1fr);
+  gap:12px;
+  align-items:center;
+  padding:0 0 10px!important;
+  background:transparent;
+  border:0;
+  border-bottom:1px solid #e2e8ed;
+}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-panel{
+  padding:10px 0 0!important;
+}
+#view-create .invoice-details-card.invoice-details-compact .compact-section-title{
+  border:0;
+  padding:0;
+  margin:0 0 8px;
+}
+#view-create .invoice-details-card.invoice-details-compact .invoice-meta-panel .compact-section-title{margin:0}
+#view-create .invoice-details-card.invoice-details-compact .compact-section-title p{display:none}
+#view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields{
+  grid-template-columns:150px 165px 165px minmax(0,1fr)!important;
+  gap:10px;
+  align-items:start;
+}
+#view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields>label:first-child{
+  grid-column:auto!important;
+  max-width:none;
+}
+#view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields>#invoiceAuTaxClassLabel{
+  grid-column:4!important;
+  max-width:370px;
+}
+#view-create .invoice-details-card.invoice-details-compact #invoiceNumber{max-width:150px}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields{
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:8px 12px;
+}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-customer-name{grid-column:1/5!important;grid-row:1!important}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-category{grid-column:5/7!important;grid-row:1!important}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-billing-contact{grid-column:11/13!important;grid-row:1!important}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-email{grid-column:1/5!important;grid-row:2!important}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-address{grid-column:7/11!important;grid-row:1!important}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-phone{grid-column:5/7!important;grid-row:2!important}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-mobile{grid-column:7/9!important;grid-row:2!important}
+#view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-reference{grid-column:9/13!important;grid-row:2!important}
+#view-create .invoice-details-card.invoice-details-compact #customerAddress{
+  resize:vertical!important;
+  overflow:auto!important;
+  max-height:115px;
+}
+#view-create > .card:not(.invoice-details-card){padding:10px 12px!important;margin-bottom:9px!important}
+#view-create .invoice-more-options{margin:0 0 9px}
+#view-create .invoice-more-options>summary{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:max-content;
+  max-width:100%;
+  min-height:38px;
+  border:1px solid #ccd8e3;
+  border-radius:7px;
+  background:#fff;
+  padding:7px 12px;
+  cursor:pointer;
+  color:#173e60;
+  font-size:13px;
+  font-weight:750;
+  list-style:none;
+}
+#view-create .invoice-more-options>summary::-webkit-details-marker{display:none}
+#view-create .invoice-more-options>summary::before{content:'▸';font-size:15px}
+#view-create .invoice-more-options[open]>summary::before{content:'▾'}
+#view-create .invoice-more-options>summary small{font-size:11px;font-weight:500;color:#5a7083}
+#view-create .invoice-more-options .invoice-options-grid{
+  margin:8px 0 0!important;
+  padding:10px 12px!important;
+  gap:10px!important;
+}
+#view-create .invoice-more-options .invoice-options-grid h2{margin:0 0 5px;font-size:14px}
+#view-create .invoice-more-options .invoice-options-grid .hint{margin-top:4px}
+#view-create .totals-wrap{gap:10px!important}
+#view-create .notes-card,#view-create .totals{padding:10px 12px!important}
+@media(max-width:1100px) and (min-width:761px){
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-customer-name{grid-column:1/7!important;grid-row:1!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-category{grid-column:7/13!important;grid-row:1!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-billing-contact{grid-column:8/13!important;grid-row:2!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-address{grid-column:1/8!important;grid-row:2!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-email{grid-column:1/5!important;grid-row:3!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-phone{grid-column:5/7!important;grid-row:3!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-mobile{grid-column:7/9!important;grid-row:3!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-reference{grid-column:9/13!important;grid-row:3!important}
+}
+@media(max-width:760px){
+  #view-create .invoice-details-card.invoice-details-compact{padding:12px!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-meta-panel{
+    display:block;
+    padding-bottom:11px!important;
+  }
+  #view-create .invoice-details-card.invoice-details-compact .invoice-meta-panel .compact-section-title{margin:0 0 9px}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px!important;
+  }
+  #view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields>label:first-child{
+    grid-column:1/-1!important;
+    max-width:160px;
+  }
+  #view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields>#invoiceAuTaxClassLabel{grid-column:1/-1!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-panel{padding-top:11px!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px!important;
+  }
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields>*{
+    grid-column:1/-1!important;
+    grid-row:auto!important;
+  }
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-phone,
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-mobile{grid-column:span 1!important}
+  #view-create .invoice-more-options>summary{width:100%;justify-content:flex-start;flex-wrap:wrap}
+  #view-create .totals-wrap{display:flex!important;flex-direction:column}
+  #view-create .totals-wrap>.totals{order:-1}
+}
+@media(max-width:390px){
+  #view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields{grid-template-columns:1fr!important}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-meta-fields>label{max-width:200px}
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-phone,
+  #view-create .invoice-details-card.invoice-details-compact .invoice-customer-fields .invoice-mobile{grid-column:1/-1!important}
+}

@@ -31,3 +31,5 @@
 .se-review-item .se-asset-fields[hidden]{display:none}
 @media(max-width:850px){.se-review-item>label:first-of-type,.se-review-item>label:nth-of-type(1),.se-review-item>label:nth-of-type(2){grid-column:auto}}
 @media(max-width:700px){.se-review-item{min-height:54px}.se-review-help{line-height:1.35}.se-invoice-review{padding:10px}}
+/* Keep the optional register's six category tabs visible without horizontal scrolling. */
+#view-stock-equipment .se-tabs{flex-wrap:wrap;overflow:visible}

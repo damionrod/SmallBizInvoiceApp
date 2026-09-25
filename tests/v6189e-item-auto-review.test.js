@@ -1,88 +1,18 @@
-const test=require('node:test');
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const vm=require('node:vm');
-
-const source=fs.readFileSync('public/stock-equipment.js','utf8').replace('window.StockEquipment={onShow,renderTaxRules};','window.StockEquipment={onShow,renderTaxRules,__review:{state,initialRows,reviewForm,readReviewRows,proposedAmounts,act}};');
-function setup(){
- const window={SAAS:{canWriteArea:()=>true,currentBusinessId:()=> 'bingo'}};
- const document={querySelectorAll:()=>[],addEventListener:()=>{},getElementById:()=>null};
- vm.runInNewContext(source,{window,document,console,FormData});
- return window.StockEquipment.__review;
-}
-// The saved photo shows page two only. Rendering each recognized row must never
-// fill the unobserved balance of the full supplier invoice with invented prices.
-test('Bingo page-two proposals display as three priced rows awaiting full invoice allocation',()=>{
- const {state,initialRows,reviewForm}=setup();
- const bill={id:'exp-0004',expense_number:'EXP-0004',supplier_name:'NZ CLEANING SUPPLIES LTD',category_id:'cat-other',ex_gst:361.94,gst_amount:54.29,total_amount:416.23,expense_attachments:[{id:'image'}]};
- state.expenses=[bill];
- state.categories=[{id:'cat-other',name:'Other',group_name:'Operating Expenses'},{id:'cat-tools',name:'Tools',group_name:'Operating Expenses'}];
- state.documentItems.set(bill.id,{proposals:[
-  {description:'SABCO/PULEX WINDOW BUCKET 13L BLUE',amount:20.22,quantity:1},
-  {description:'OATES CONTRACTOR MOP RED 400GMS',amount:14.64,quantity:1},
-  {description:'OATES CONTRACTOR ALUMINIUM HANDLE RED 1.5M',amount:18.25,quantity:1}
- ]});
- const rows=initialRows(bill);
- assert.equal(rows.length,3);
- assert.equal(rows.reduce((sum,row)=>sum+Number(row.ai_amount),0).toFixed(2),'53.11');
- assert.ok(rows.every(row=>row.ex_gst===''&&row.gst===''));
- assert.ok(rows.every(row=>row.kind==='regular'&&row.category_id==='cat-other'));
- const html=reviewForm(bill.id);
- assert.equal((html.match(/class="se-review-item"/g)||[]).length,3);
- assert.equal((html.match(/value="cat-other" selected/g)||[]).length,3);
- assert.equal((html.match(/data-field="kind" value="regular" checked/g)||[]).length,3);
- assert.ok(html.includes('value="cat-tools"'));
- for(const amount of ['$20.22','$14.64','$18.25'])assert.ok(html.includes(amount));
- assert.ok(html.indexOf('WINDOW BUCKET')<html.indexOf('MOP RED')&&html.indexOf('MOP RED')<html.indexOf('ALUMINIUM HANDLE'));
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
+function harness(){const source=fs.readFileSync('public/purchase-review.js','utf8').replace('window.PurchaseReview={showList,open};','window.PurchaseReview={showList,open,__test:{state,allocations,baseRows,rowHtml,cardHtml,categoryFor}};');const window={SAAS:{state:{business:{id:'bingo',settings:{country:'NZ'}}}}};vm.runInNewContext(source,{window,document:{getElementById:()=>null}});return window.PurchaseReview.__test}
+test('saved phone scan prefills several rows, uses and original category without opening bill',()=>{const {state,baseRows,cardHtml}=harness();const bill={id:'b',expense_number:'EXP-004',supplier_name:'NZ Cleaning',category_id:'clean',ex_gst:100,gst_amount:15,total_amount:115,expense_attachments:[{id:'p1'},{id:'p2'}]};state.categories=[{id:'clean',name:'Cleaning'}];state.scans.set('b',{attachment_ids:['p1','p2'],proposals:[{description:'Bucket',amount:20,amount_basis:'ex_gst',gst_treatment:'taxable',suggested_use:'supplies'},{description:'Mop',amount:80,amount_basis:'ex_gst',gst_treatment:'taxable',suggested_use:'stock'}]});state.expanded.add('b');const rows=baseRows(bill);assert.equal(rows.length,2);assert.equal(rows[0].ex_gst,'20.00');assert.equal(rows[0].gst,'3.00');assert.equal(rows[1].gst,'12.00');assert.equal(rows[0].category_id,'clean');assert.equal(rows[0].kind,'supplies');assert.match(cardHtml(bill),/Bucket/);assert.match(cardHtml(bill),/Mop/);assert.match(cardHtml(bill),/\$115.00 incl GST/)});
+test('GST-free and mixed-tax lines use only confirmed tax evidence',()=>{const {allocations}=harness();const zero=allocations([{description:'No GST',amount:50,amount_basis:'incl_gst',gst_treatment:'unknown'}],{ex_gst:50,gst_amount:0,total_amount:50});assert.equal(zero[0].gst,'0.00');const mixed=allocations([{description:'taxed',amount:100,amount_basis:'ex_gst',gst_treatment:'taxable'},{description:'exempt',amount:50,amount_basis:'ex_gst',gst_treatment:'no_gst'}],{ex_gst:150,gst_amount:15,total_amount:165});assert.equal(mixed[0].gst,'15.00');assert.equal(mixed[1].gst,'0.00');const unclear=allocations([{description:'taxed?',amount:100,amount_basis:'ex_gst',gst_treatment:'unknown'},{description:'exempt',amount:50,amount_basis:'ex_gst',gst_treatment:'no_gst'}],{ex_gst:150,gst_amount:15,total_amount:165});assert.equal(unclear[0].gst,'')});
+test('inclusive GST allocates correctly and incomplete source stays unresolved',()=>{const {allocations}=harness();const incl=allocations([{description:'A',amount:23,amount_basis:'incl_gst',gst_treatment:'taxable'},{description:'B',amount:92,amount_basis:'incl_gst',gst_treatment:'taxable'}],{ex_gst:100,gst_amount:15,total_amount:115});assert.equal(JSON.stringify(incl.map(x=>[x.ex_gst,x.gst])),JSON.stringify([['20.00','3.00'],['80.00','12.00']]));const incomplete=allocations([{description:'Missing items',amount:20.22,amount_basis:'unknown',gst_treatment:'unknown'}],{ex_gst:361.94,gst_amount:54.29,total_amount:416.23});assert.equal(incomplete[0].ex_gst,'');assert.equal(incomplete[0].gst,'')});
+test('single compact row exposes amount columns, editable categories and equipment details',()=>{const {rowHtml,state}=harness();state.categories=[{id:'a',name:'Default'},{id:'b',name:'Changed'}];const markup=rowHtml({description:'Machine',kind:'equipment',category_id:'a',quantity:1,ex_gst:'100.00',gst:'15.00'},0);assert.match(markup,/name="category_id"/);assert.match(markup,/value="a" selected/);assert.match(markup,/value="b"/);assert.match(markup,/name="kind"/);assert.match(markup,/\$115.00/);assert.match(markup,/name="available_on"/);const css=fs.readFileSync('public/purchase-review.css','utf8');assert.match(css,/\.pr-item\{display:grid/);assert.match(css,/\.pr-mobile-summary\{display:flex/);assert.match(css,/overflow:visible/)});
+test('reviewed bills remain in list, collapsed; Stock & Equipment has no purchase review tab',()=>{const {state,cardHtml}=harness();state.reviews.set('b',{revision:1,rows:[{description:'Bucket',kind:'supplies',category_id:'a',quantity:1,ex_gst:20,gst:3}]});const card=cardHtml({id:'b',ex_gst:20,gst_amount:3,total_amount:23});assert.match(card,/Reviewed/);assert.match(card,/data-pr-items hidden/);assert.match(card,/View reviewed items/);const html=fs.readFileSync('public/index.html','utf8');assert.match(html,/data-exp-tab="review"/);assert.doesNotMatch(html,/data-se-tab="review"/);for(const kind of ['stock_sale','supplies','equipment','small_tools'])assert.match(html,new RegExp(`data-se-tab="${kind}"`))});
+test('Mercury bill credits reduce ex GST and GST to the saved invoice without a guessed adjustment',()=>{
+ const {allocations}=harness();const amounts=[243.83,45,6.5,139.14,4.5,43.2,4];const names=['Anytime','Daily Fixed Charge','2% EASY PAY DISCOUNT','Variable Usage Charge','Dual Fuel Discount','Daily Fixed Charge','2% EASY PAY DISCOUNT'];
+ const rows=allocations(names.map((description,i)=>({description,amount:amounts[i],amount_basis:'ex_gst',gst_treatment:'taxable',quantity:1})),{ex_gst:456.17,gst_amount:68.41,total_amount:524.58,category_id:'utilities'});
+ assert.equal(JSON.stringify(rows.filter(x=>x.kind==='discount').map(x=>[x.ex_gst,x.gst,x.discount_target_index])),JSON.stringify([['-6.50','-0.98',1],['-4.50','-0.68',3],['-4.00','-0.60',5]]));
+ assert.equal(rows.reduce((n,x)=>n+Math.round(Number(x.ex_gst)*100),0),45617);
+ assert.equal(rows.reduce((n,x)=>n+Math.round(Number(x.gst)*100),0),6841);
 });
-test('review collects only the checked Use and preserves a changed category for each item',()=>{
- const {readReviewRows}=setup();
- const input=(name,value,checked=true,type='text')=>({name,value,checked,type,dataset:{field:name.startsWith('kind_')?'kind':undefined}});
- const sections=[
-  [input('kind_0','regular',false,'radio'),input('kind_0','supplies',true,'radio'),input('category_id','cat-a'),input('description','Mop')],
-  [input('kind_1','regular',true,'radio'),input('kind_1','supplies',false,'radio'),input('category_id','cat-b'),input('description','Paper')]
- ];
- const form={querySelectorAll:()=>sections.map(inputs=>({querySelectorAll:()=>inputs}))};
- const rows=readReviewRows(form);
- assert.equal(JSON.stringify(rows.map(r=>[r.kind,r.category_id])),JSON.stringify([['supplies','cat-a'],['regular','cat-b']]));
-});
-test('split invoice defaults only an identifiable line category',()=>{
- const {initialRows,state}=setup();
- const bill={id:'split',is_split:true,ex_gst:30,gst_amount:4.5,expense_lines:[{description:'Bucket',category_id:'tools',ex_gst:10,gst_amount:1.5},{description:'Chemicals',category_id:'materials',ex_gst:20,gst_amount:3}]};
- state.documentItems.set('split',{proposals:[{description:'Chemicals',amount:20,suggested_use:'supplies'},{description:'Unknown',amount:10,suggested_use:'needs_review'}]});
- const [matched,ambiguous]=initialRows(bill);
- assert.equal(matched.category_id,'materials');
- assert.equal(ambiguous.category_id,'');
- assert.equal(matched.kind,'supplies');
- assert.equal(ambiguous.kind,'regular');
-});
-test('GST drafts match complete ex-GST and inclusive invoices to the cent',()=>{
- const {proposedAmounts}=setup();
- const exclusive=proposedAmounts([{amount:20},{amount:80}],{ex_gst:100,gst_amount:15,total_amount:115});
- assert.equal(JSON.stringify(exclusive),JSON.stringify([{ex_gst:'20.00',gst:'3.00'},{ex_gst:'80.00',gst:'12.00'}]));
- const inclusive=proposedAmounts([{amount:23},{amount:92}],{ex_gst:100,gst_amount:15,total_amount:115});
- assert.equal(JSON.stringify(inclusive),JSON.stringify([{ex_gst:'20.00',gst:'3.00'},{ex_gst:'80.00',gst:'12.00'}]));
-});
-test('zero GST, mixed GST and partial ambiguous scans do not invent taxable amounts',()=>{
- const {proposedAmounts}=setup();
- const none=proposedAmounts([{amount:20},{amount:30}],{ex_gst:50,gst_amount:0,total_amount:50});
- assert.equal(JSON.stringify(none),JSON.stringify([{ex_gst:'20.00',gst:'0.00'},{ex_gst:'30.00',gst:'0.00'}]));
- const mixed=proposedAmounts([{amount:100,amount_basis:'ex_gst',gst_treatment:'taxable'},{amount:50,amount_basis:'ex_gst',gst_treatment:'no_gst'}],{ex_gst:150,gst_amount:15,total_amount:165});
- assert.equal(JSON.stringify(mixed),JSON.stringify([{ex_gst:'100.00',gst:'15.00'},{ex_gst:'50.00',gst:'0.00'}]));
- const ambiguous=proposedAmounts([{amount:20.22},{amount:14.64},{amount:18.25}],{ex_gst:361.94,gst_amount:54.29,total_amount:416.23});
- assert.ok(ambiguous.every(row=>row.ex_gst===''&&row.gst===''));
- const partialKnown=proposedAmounts([{amount:20.22,amount_basis:'ex_gst',gst_treatment:'taxable'}],{ex_gst:361.94,gst_amount:54.29,total_amount:416.23});
- assert.equal(JSON.stringify(partialKnown),JSON.stringify([{ex_gst:'20.22',gst:'3.03'}]));
-});
-test('compact review keeps requested columns and remove control in the same grid row',()=>{
- const {reviewForm,state}=setup();
- state.categories=[{id:'cat',name:'Other',group_name:'Operating Expenses'}];
- state.expenses=[{id:'one',expense_number:'EXP-1',supplier_name:'Sample',category_id:'cat',ex_gst:10,gst_amount:1.5,total_amount:11.5}];
- state.draftRows=[{description:'Tool',category_id:'cat',kind:'equipment',quantity:1,ex_gst:'10.00',gst:'1.50',ai_amount:10}];
- const html=reviewForm('one');
- const fields=['class="se-item-description"','class="se-item-category"','class="se-use-options"','class="se-qty"','name="ex_gst"','name="gst"','class="se-incl"','class="se-remove-item"'];
- let pos=0;for(const marker of fields){const next=html.indexOf(marker,pos);assert.ok(next>pos,marker+' must follow prior field');pos=next}
- assert.match(html,/name="available_on"/);
- const css=fs.readFileSync('public/stock-equipment.css','utf8');
- assert.match(css,/\.se-review-item \.se-remove-item\{grid-column:auto/);
+test('mixed GST discount remains unresolved unless its printed tax treatment is known',()=>{
+ const {allocations}=harness();const rows=allocations([{description:'Taxed',amount:100,amount_basis:'ex_gst',gst_treatment:'taxable'},{description:'Exempt',amount:50,amount_basis:'ex_gst',gst_treatment:'no_gst'},{description:'Invoice discount',amount:-10,amount_basis:'ex_gst',gst_treatment:'unknown'}],{ex_gst:140,gst_amount:13.50,total_amount:153.50});
+ assert.equal(rows[2].kind,'discount');assert.equal(rows[2].gst,'');
 });
