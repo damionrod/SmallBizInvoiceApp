@@ -89,30 +89,7 @@ td,
   html, body { width:100%; max-width:100%; overflow-x:hidden; }
   body.mobile-nav-open { overflow:hidden; }
 
-  /* One authoritative mobile drawer. This intentionally wins over legacy bottom-nav rules. */
-  #primaryNav {
-    position:fixed !important;
-    left:max(10px, env(safe-area-inset-left)) !important;
-    right:max(10px, env(safe-area-inset-right)) !important;
-    top:calc(64px + env(safe-area-inset-top)) !important;
-    bottom:auto !important;
-    width:auto !important;
-    max-width:none !important;
-    max-height:calc(100dvh - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
-    margin:0 !important;
-    padding:10px !important;
-    display:none !important;
-    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
-    gap:8px !important;
-    overflow-y:auto !important;
-    overflow-x:hidden !important;
-    overscroll-behavior:contain;
-    -webkit-overflow-scrolling:touch;
-    z-index:10000 !important;
-  }
-  body.mobile-nav-open #primaryNav { display:grid !important; }
-  #mobileMenuBtn { position:relative !important; z-index:10001 !important; pointer-events:auto !important; touch-action:manipulation; }
-  #primaryNav > :not([hidden]) { min-width:0 !important; max-width:100% !important; }
+  /* Mobile navigation is owned exclusively by styles.css (v61.99A). */
 
   /* Prevent desktop-sized children from widening the whole page. */
   main, .view, .card, .page-head, .form-grid, .settings-grid, .summary-grid,

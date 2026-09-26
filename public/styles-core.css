@@ -344,17 +344,7 @@ tbody tr:last-child td{border-bottom:0}
     background:linear-gradient(180deg,#1b7fc4,#1875b8);box-shadow:0 2px 8px rgba(18,63,99,.18)
   }
   .brand{min-width:0;gap:9px}.brand img{width:40px;height:40px;flex-basis:40px}.brand strong{font-size:15px;color:#fff}.brand span{display:block;color:rgba(255,255,255,.75);font-size:9px}
-  nav{
-    background:rgba(255,255,255,.98);border-top:1px solid #d6e0e6;
-    box-shadow:0 -5px 18px rgba(28,57,73,.10);padding:5px 5px calc(5px + env(safe-area-inset-bottom));
-    grid-template-columns:repeat(5,1fr)
-  }
-  .nav-btn{
-    min-height:54px;color:#61727d!important;background:transparent!important;border-radius:6px!important;
-    font-size:10px!important;font-weight:700;padding:5px 2px!important
-  }
-  .nav-btn.active{color:#176fae!important;background:#edf6fc!important}
-  .nav-btn.active:after{left:22%;right:22%;bottom:2px;height:3px;background:#1976bd;border-radius:4px}
+  /* Primary mobile navigation is owned exclusively by styles.css (v61.99A). */
   main{padding:18px 10px 38px}
   .page-head{border-bottom:0;padding-bottom:0;margin-bottom:14px}.page-head h1{font-size:23px}.page-head p{font-size:12px}
   .card{border-radius:7px;padding:14px;box-shadow:0 2px 8px rgba(30,55,70,.055)}

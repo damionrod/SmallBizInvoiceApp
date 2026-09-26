@@ -3990,3 +3990,44 @@ button[aria-busy="true"]::after{content:"";width:14px;height:14px;margin-left:8p
   .modal-box{width:100%!important;max-width:100%!important;margin:10px auto!important;min-width:0!important}
   .quote-theme-preview,.settings-invoice-preview{max-width:none}
 }
+
+/* ============================================================
+   v61.99A PHASE 1 — authoritative mobile navigation
+   Navigation only. No page/module/business-logic changes.
+   ============================================================ */
+@media (max-width:760px){
+  body.mobile-nav-open{overflow:hidden!important}
+  #mobileMenuBtn{
+    display:inline-flex!important;position:relative!important;z-index:10001!important;
+    align-items:center!important;justify-content:center!important;min-height:44px!important;
+    pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent;
+  }
+  #primaryNav{
+    position:fixed!important;
+    left:max(10px,env(safe-area-inset-left))!important;
+    right:max(10px,env(safe-area-inset-right))!important;
+    top:calc(64px + env(safe-area-inset-top))!important;
+    bottom:auto!important;width:auto!important;height:auto!important;max-width:none!important;
+    max-height:calc(100dvh - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
+    margin:0!important;padding:10px!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;
+    overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    background:rgba(255,255,255,.98)!important;border:1px solid rgba(205,217,225,.95)!important;
+    border-radius:16px!important;box-shadow:0 18px 45px rgba(14,42,60,.25)!important;
+    z-index:10000!important;
+  }
+  body:not(.mobile-nav-open) #primaryNav{
+    display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;
+  }
+  body.mobile-nav-open #primaryNav{
+    display:grid!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+  }
+  #primaryNav>.nav-btn:not([hidden]),#primaryNav>.account-chip:not([hidden]){
+    display:flex!important;min-width:0!important;max-width:100%!important;min-height:46px!important;
+  }
+}
+@media (min-width:761px){
+  #mobileMenuBtn{display:none!important}
+  body.mobile-nav-open{overflow:auto!important}
+}

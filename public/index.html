@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Frindly" />
   <title>Frindly</title>
-  <link rel="stylesheet" href="styles-core.css?v=61.98P-mobile-forensic" />
-  <link rel="stylesheet" href="styles.css?v=61.98P-mobile-forensic" />
-  <link rel="stylesheet" href="frontend-quality.css?v=61.53" />
-  <script defer src="mobile-shell.js?v=61.98P-mobile-forensic"></script>
+  <link rel="stylesheet" href="styles-core.css?v=61.99A-mobile-nav" />
+  <link rel="stylesheet" href="styles.css?v=61.99A-mobile-nav" />
+  <link rel="stylesheet" href="frontend-quality.css?v=61.99A-mobile-nav" />
+  <script defer src="mobile-shell.js?v=61.99A-mobile-nav"></script>
   <script src="app-config.js?v=61.98B-google-auth-guard"></script>
   <script src="finlo-core.js?v=61.97-performance-fixes"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -846,15 +846,6 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <aside class="finlo-helper-panel" id="finloHelperPanel" hidden aria-label="Finlo Helper"><div class="helper-head"><div><strong>Finlo Helper</strong><span id="finloHelperUsage">—</span></div><button id="finloHelperClose" class="close" type="button" aria-label="Close">×</button></div><div class="helper-starters"><button data-helper-starter="What does this mean?">What does this mean?</button><button data-helper-starter="Where can I find this?">Where can I find this?</button><button data-helper-starter="Can I do this later?">Can I do this later?</button></div><div class="helper-messages" id="finloHelperMessages"><div class="helper-msg assistant">Hi — ask me anything about using Finlo.</div></div><div class="helper-compose"><div class="helper-input-wrap"><textarea id="finloHelperQuestion" rows="2" placeholder="Ask a question…"></textarea><div class="helper-voice-controls"><button class="helper-mic" id="finloHelperMic" type="button" aria-label="Speak your question" title="Speak your question" hidden><span class="helper-mic-icon" aria-hidden="true">🎙</span><span id="finloHelperMicLabel">Speak</span></button><button class="helper-voice-cancel" id="finloHelperVoiceCancel" type="button" hidden>Cancel</button><button class="helper-live-start" id="finloHelperLiveStart" type="button" aria-label="Start Finlo Live Voice" title="Start Finlo Live Voice" hidden>LIVE VOICE — GPT-LIVE</button><button class="helper-conversation-start" id="finloHelperConversationStart" type="button" aria-label="Start natural voice conversation" title="Start natural voice conversation" hidden>START CONVERSATION</button><span class="helper-voice-status" id="finloHelperVoiceStatus" role="status" aria-live="polite"></span></div><div class="helper-live" id="finloHelperLive" hidden><div class="helper-live-title"><strong>LIVE VOICE — GPT-LIVE</strong><span id="finloHelperLiveBadge">GPT-Live-1</span></div><span id="finloHelperLiveStatus" role="status" aria-live="polite">Ready</span><div class="helper-live-pulse" id="finloHelperLivePulse" aria-hidden="true"><i></i><i></i><i></i><i></i></div><p id="finloHelperLiveHint">Natural two-way GPT-Live voice. This mode never silently falls back to Basic Voice.</p><div class="helper-live-diagnostics" id="finloHelperLiveDiagnostics" aria-label="Live Voice diagnostics"></div><button id="finloHelperLiveEnd" type="button">End Live Voice</button></div><div class="helper-conversation" id="finloHelperConversation" hidden><strong>BASIC VOICE</strong><span id="finloHelperConversationStatus" role="status" aria-live="polite">Ready for you…</span><div><button id="finloHelperConversationPause" type="button" aria-label="Pause voice conversation">Pause</button><button id="finloHelperConversationEnd" type="button" aria-label="End voice conversation">End conversation</button></div></div></div><button class="primary" id="finloHelperSend" type="button">Send</button></div></aside>
   <div class="app-version">© 2026 Finlo · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script>
-  /* v61.98N: mobile-nav dismissal behaviour only; toggle itself is bootstrap-independent in <head>. */
-  (function(){
-    document.addEventListener('click',function(e){if(document.body.classList.contains('mobile-nav-open')&&!e.target.closest('.topbar'))window.FrindlyMobileNav.close()});
-    document.addEventListener('click',function(e){if(e.target.closest('#primaryNav .nav-btn'))window.FrindlyMobileNav.close()});
-    document.addEventListener('keydown',function(e){if(e.key==='Escape')window.FrindlyMobileNav.close()});
-    window.addEventListener('resize',function(){if(window.innerWidth>760)window.FrindlyMobileNav.close()},{passive:true});
-  })();
-  </script>
   <script src="referrals.js?v=61.70G"></script>
   <script src="saas.js?v=61.98J-schedule-fix"></script>
   <script src="stock-equipment.js?v=61.90f-inline-review"></script>
