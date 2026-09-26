@@ -98,9 +98,27 @@ begin
     nullif(x.tax_code,''),
     x.tax_rate,
     round(coalesce(x.tax_amount,0),2),
-    x.customer_id,
-    x.supplier_id,
-    x.job_costing_id,
+    case
+      when x.customer_id is not null and exists (
+        select 1 from public.customers c
+        where c.business_id = p_business_id and c.id = x.customer_id
+      ) then x.customer_id
+      else null
+    end,
+    case
+      when x.supplier_id is not null and exists (
+        select 1 from public.suppliers s
+        where s.business_id = p_business_id and s.id = x.supplier_id
+      ) then x.supplier_id
+      else null
+    end,
+    case
+      when x.job_costing_id is not null and exists (
+        select 1 from public.job_costings j
+        where j.business_id = p_business_id and j.id = x.job_costing_id
+      ) then x.job_costing_id
+      else null
+    end,
     x.source_line_id
   from jsonb_to_recordset(p_lines) as x(
     account_id uuid,

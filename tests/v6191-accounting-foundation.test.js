@@ -65,6 +65,17 @@ test('v6192b posting hotfix skips zero value invoices',()=>{
   assert.doesNotMatch(sql,/update public\.(invoices|expenses|customer_payments|expense_payments)\b/i);
 });
 
+test('v6192c posting helper omits stale optional source links',()=>{
+  const base=fs.readFileSync('supabase/migrations/20260926175500_v6192_posting_engine.sql','utf8');
+  const hotfix=fs.readFileSync('supabase/migrations/20260926182500_v6192c_sanitise_journal_line_links.sql','utf8');
+  for(const sql of [base,hotfix]){
+    assert.match(sql,/where c\.business_id = p_business_id and c\.id = x\.customer_id/);
+    assert.match(sql,/where s\.business_id = p_business_id and s\.id = x\.supplier_id/);
+    assert.match(sql,/where j\.business_id = p_business_id and j\.id = x\.job_costing_id/);
+    assert.doesNotMatch(sql,/update public\.(invoices|expenses|customer_payments|expense_payments)\b/i);
+  }
+});
+
 test('accountant centre exposes manual ledger posting with confirmation',()=>{
   const html=fs.readFileSync('public/index.html','utf8');
   const js=fs.readFileSync('public/accountant-centre.js','utf8');
