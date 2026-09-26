@@ -169,3 +169,11 @@ The purchase-review SQL migration **was applied to the main Supabase project** o
 Deploy the updated frontend when you want the automatic two-photo scan, readable failure messages, null-safe amounts and automatic saved-bill rescan. If GitHub main automatically deploys to Netlify, uploading the extracted package may consume a deploy. Refresh the browser after deploying. See `docs/V61.90C-TWO-PAGE-SCANNER-FORENSICS.md` for the root causes, verification and practical limits.
 
 **Accounting scope:** The review does not post inventory balances, cost of sales, depreciation, low-value deductions or journal reclassifications. The Financials Summary is an estimate and must not be used as a filed tax calculation. The posted Profit & Loss and Balance Sheet still use their posted ledger. Further accountant-reviewed posting integration is required for complete NZ accounting treatment.
+
+
+## v61.99C Phase 1 portrait menu correction
+- Replaced touch/pointer-event-only menu activation with a native checkbox + label state.
+- This makes the collapsed portrait menu open even if app bootstrap is delayed or PointerEvent/click synthesis differs on mobile Safari/Chrome.
+- `mobile-shell.js` now synchronizes accessibility/body state and handles close-on-selection, outside click, Escape and breakpoint changes.
+- Removed the malformed literal `\n` CSS tail left by v61.99B and added a clean final portrait navigation layer.
+- No business logic, routing, permissions, entitlements, accounting, Supabase, scheduling or desktop navigation workflows were changed.

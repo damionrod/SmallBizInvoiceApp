@@ -1,65 +1,61 @@
-/* Frindly v61.99B — authoritative mobile navigation controller only. */
+/* Frindly v61.99C — authoritative mobile navigation state controller.
+   Opening/closing is backed by a native checkbox + label so portrait touch activation
+   does not depend on application bootstrap, Pointer Events, or synthetic click timing. */
 (function(){
   'use strict';
   var OPEN='mobile-nav-open';
   var BREAKPOINT=760;
-  var lastActivation=0;
   function byId(id){ return document.getElementById(id); }
   function button(){ return byId('mobileMenuBtn'); }
+  function toggleInput(){ return byId('mobileNavToggle'); }
   function nav(){ return byId('primaryNav'); }
-  function isMobile(){ return window.matchMedia ? window.matchMedia('(max-width:'+BREAKPOINT+'px)').matches : window.innerWidth <= BREAKPOINT; }
-  function isOpen(){ return !!document.body && document.body.classList.contains(OPEN); }
+  function isMobile(){
+    try{return window.matchMedia('(max-width:'+BREAKPOINT+'px)').matches;}
+    catch(e){return (document.documentElement.clientWidth||window.innerWidth||9999)<=BREAKPOINT;}
+  }
+  function isOpen(){ var t=toggleInput(); return !!(isMobile() && t && t.checked); }
   function sync(open){
-    var mobile=isMobile(), state=!!open && mobile, b=button(), n=nav();
+    var mobile=isMobile(), state=!!open&&mobile, t=toggleInput(), b=button(), n=nav();
+    if(t && t.checked!==state) t.checked=state;
     if(document.body) document.body.classList.toggle(OPEN,state);
     if(b) b.setAttribute('aria-expanded',state?'true':'false');
-    if(n) n.setAttribute('aria-hidden',state?'false':(mobile?'true':'false'));
+    if(n) n.setAttribute('aria-hidden',mobile?(state?'false':'true'):'false');
   }
-  function close(){ sync(false); }
-  function open(){ if(isMobile()) sync(true); }
-  function toggle(ev){
-    if(ev){ ev.preventDefault(); ev.stopPropagation(); }
-    if(!isMobile()){ close(); return; }
-    sync(!isOpen());
-  }
-  function activate(ev){
-    var now=Date.now();
-    /* pointerup is the primary phone path; suppress the synthetic click that follows it. */
-    if(ev.type==='click' && now-lastActivation<700){ ev.preventDefault(); ev.stopPropagation(); return; }
-    lastActivation=now;
-    toggle(ev);
-  }
-  function bindButton(){
-    var b=button();
-    if(!b || b.dataset.frindlyMobileNavBound==='1') return;
-    b.dataset.frindlyMobileNavBound='1';
-    if(window.PointerEvent) b.addEventListener('pointerup',activate,{passive:false});
-    else b.addEventListener('touchend',activate,{passive:false});
-    b.addEventListener('click',activate,false);
-  }
+  function close(){sync(false);}
+  function open(){if(isMobile())sync(true);}
+  function toggle(ev){if(ev){ev.preventDefault();ev.stopPropagation();}sync(!isOpen());}
   function bind(){
-    bindButton();
-    var n=nav();
+    var t=toggleInput(), b=button(), n=nav();
+    if(t && t.dataset.frindlyMobileNavBound!=='1'){
+      t.dataset.frindlyMobileNavBound='1';
+      t.addEventListener('change',function(){sync(t.checked);});
+    }
+    if(b && b.dataset.frindlyMobileNavKeyBound!=='1'){
+      b.dataset.frindlyMobileNavKeyBound='1';
+      b.addEventListener('keydown',function(e){
+        if(e.key==='Enter'||e.key===' '){e.preventDefault();sync(!isOpen());}
+      });
+    }
     if(n && n.dataset.frindlyMobileNavBound!=='1'){
       n.dataset.frindlyMobileNavBound='1';
-      n.addEventListener('click',function(e){ if(e.target.closest('.nav-btn')) close(); });
+      n.addEventListener('click',function(e){if(isMobile()&&e.target.closest('.nav-btn'))close();});
     }
     if(document.documentElement.dataset.frindlyMobileNavGlobalBound!=='1'){
       document.documentElement.dataset.frindlyMobileNavGlobalBound='1';
-      document.addEventListener('pointerdown',function(e){
-        if(!isOpen()) return;
-        var b=button(), n=nav();
-        if((b&&b.contains(e.target)) || (n&&n.contains(e.target))) return;
+      document.addEventListener('click',function(e){
+        if(!isOpen())return;
+        var bb=button(),nn=nav();
+        if((bb&&bb.contains(e.target))||(nn&&nn.contains(e.target)))return;
         close();
-      },true);
-      document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&isOpen()) close(); });
-      window.addEventListener('resize',function(){ if(!isMobile()) close(); },{passive:true});
-      window.addEventListener('orientationchange',function(){ setTimeout(function(){ if(!isMobile()) close(); else sync(false); },120); },{passive:true});
-      /* If another app bootstrap ever replaces the header node, restore the one controller binding. */
-      new MutationObserver(bindButton).observe(document.body,{childList:true,subtree:true});
+      },false);
+      document.addEventListener('keydown',function(e){if(e.key==='Escape'&&isOpen())close();});
+      if(window.matchMedia){
+        var mq=window.matchMedia('(max-width:'+BREAKPOINT+'px)'), changed=function(){close();};
+        if(mq.addEventListener)mq.addEventListener('change',changed);else if(mq.addListener)mq.addListener(changed);
+      }else window.addEventListener('resize',function(){if(!isMobile())close();},{passive:true});
     }
     sync(false);
   }
-  window.FrindlyMobileNav={open:open,close:close,toggle:toggle,isOpen:isOpen};
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bind,{once:true}); else bind();
+  window.FrindlyMobileNav={open:open,close:close,toggle:toggle,isOpen:isOpen,sync:sync};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
