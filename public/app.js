@@ -276,10 +276,7 @@ async function renderInvoiceList(){await loadCustomerCreditNotes();let arr=await
 
 async function loadForEdit(x){if(isIssuedInvoice(x))return issuedInvoiceGuidance();currentId=x.id;sourceQuoteId=x.source_quote_id||null;sourceJobCostingId=x.job_costing_id||null;$('invoiceNumber').value=x.invoice_number;$('invoiceDate').value=x.invoice_date;$('dueDate').value=x.due_date;if($('invoiceAuTaxClass'))$('invoiceAuTaxClass').value=x.au_tax_classification||'';await refreshInvoiceTaxRuntime(x.invoice_date,true);if($('invoiceAuTaxClass'))$('invoiceAuTaxClass').value=x.au_tax_classification||$('invoiceAuTaxClass').value;$('customerName').value=x.customer_name||'';$('customerAddress').value=x.customer_address||'';$('customerEmail').value=x.customer_email||'';$('reference').value=x.reference||'';$('customerNote').value=x.customer_note||'';items=x.items||[];$('discountType').value=x.discount_type||'percent';$('discountValue').value=num(x.discount_value)||'';$('amountPaid').value=num(x.amount_paid)||'';$('recurringEnabled').checked=!!x.recurring;$('recurringFrequency').value=x.recurring_frequency||'fortnightly';$('recurringOptions').style.display=x.recurring?'block':'none';$('invoiceMoreOptions').open=!!(num(x.discount_value)||num(x.amount_paid)||x.recurring);renderItems();recalc();switchView('create');toast('Invoice loaded for editing')}
 let lastInvoiceView='create';
-function closeMobileNav(){if(window.FrindlyMobileNav)return window.FrindlyMobileNav.close();document.body.classList.remove('mobile-nav-open');const b=$('mobileMenuBtn');if(b)b.setAttribute('aria-expanded','false')}
-function toggleMobileNav(){if(window.FrindlyMobileNav)return window.FrindlyMobileNav.toggle();const open=!document.body.classList.contains('mobile-nav-open');document.body.classList.toggle('mobile-nav-open',open);const b=$('mobileMenuBtn');if(b)b.setAttribute('aria-expanded',open?'true':'false')}
 window.switchView=function switchView(v){
-  closeMobileNav();
   if(v==='schedule'&&$('scheduleNav')?.hidden){v='dashboard'}
   if(v==='stock-equipment'&&$('stockEquipmentNav')?.hidden){v='dashboard'}
   const invoiceViews=['create','invoices','customers','settings'];

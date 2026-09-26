@@ -1,4 +1,4 @@
-/* Frindly v61.99G — authoritative mobile navigation state controller.
+/* Frindly v61.99H — authoritative mobile navigation state controller.
    The Menu button invokes toggle() inline so activation does not depend on
    DOMContentLoaded timing, dynamic app bootstrap, or listener attachment. */
 (function(){
