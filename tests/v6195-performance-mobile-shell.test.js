@@ -24,3 +24,18 @@ test('shared busy button styles are present without changing workflows',()=>{
  assert.match(css,/@keyframes frindlySpin/);
  assert.match(css,/button:disabled/);
 });
+
+test('shared Frindly UI consistency layer is present and cache-busted',()=>{
+ assert.match(html,/styles\.css\?v=61\.98L-dashboard-overlap/);
+ assert.match(css,/V61\.98K Frindly UI consistency pass/);
+ assert.match(css,/--fr-primary:#1976bd/);
+ assert.match(css,/\.primary,\s*\.secondary,\s*\.danger,\s*\.compact-btn,\s*\.mini-btn/s);
+ assert.match(css,/\.module-tab\.active/);
+ assert.match(css,/\.table-card \.table-scroll/);
+});
+
+test('dashboard cash movement labels cannot overlap progress bars',()=>{
+ assert.match(css,/V61\.98L Dashboard: prevent cash movement labels overlapping the bars/);
+ assert.match(css,/#view-dashboard \.cash-bars>div\{\s*grid-template-columns:minmax\(94px,max-content\) minmax\(80px,1fr\) minmax\(82px,max-content\)/s);
+ assert.match(css,/#view-dashboard \.cash-bars span/);
+});

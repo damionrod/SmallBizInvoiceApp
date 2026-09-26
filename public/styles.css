@@ -2838,6 +2838,35 @@ body.auth-locked .app-version{display:none}
 @media(max-width:720px){#financial-panel-gst .gst-return-head{display:block}#financial-panel-gst .gst-return-head .head-actions{display:grid;grid-template-columns:1fr;margin-top:12px}#financial-panel-gst .gst-return-head .head-actions button{width:100%}#financial-panel-gst .financial-gst-controls{display:grid;grid-template-columns:1fr}#financial-panel-gst .gst-simple-summary{grid-template-columns:1fr}.gst-myir-grid{grid-template-columns:1fr}.gst-myir-grid>div:nth-last-child(-n+2){border-bottom:1px solid #edf2f6}.gst-myir-grid>div:last-child{border-bottom:0}.gst-check-item{grid-template-columns:1fr}.gst-check-item button{width:100%;min-height:44px}.gst-segmented{display:grid;grid-template-columns:1fr 1fr}.gst-segmented button{min-height:46px}#financial-panel-gst .gst-transaction-table{min-width:0;border:0}#financial-panel-gst .gst-transaction-table thead{display:none}#financial-panel-gst .gst-transaction-table tbody,#financial-panel-gst .gst-transaction-table tr,#financial-panel-gst .gst-transaction-table td{display:block;width:100%;box-sizing:border-box}#financial-panel-gst .gst-transaction-table tr{border:1px solid #e1eaf1;border-radius:12px;margin:10px 0;padding:8px;background:#fff}#financial-panel-gst .gst-transaction-table td{border:0!important;padding:6px 4px;display:flex;justify-content:space-between;gap:12px;text-align:right}#financial-panel-gst .gst-transaction-table td:before{content:attr(data-label);font-weight:700;color:var(--muted,#64748b);text-align:left}#financial-panel-gst .gst-actions{position:static;display:grid;grid-template-columns:1fr}#financial-panel-gst .gst-actions button{width:100%}}
 @media(max-width:720px){#financial-panel-gst [data-gst-tx-panel="sales"] td:nth-child(1):before,#financial-panel-gst [data-gst-tx-panel="expenses"] td:nth-child(1):before,#financial-panel-gst [data-gst-tx-panel="adjustments"] td:nth-child(1):before,#financial-panel-gst [data-gst-tx-panel="excluded"] td:nth-child(1):before{content:"Date"}#financial-panel-gst [data-gst-tx-panel="sales"] td:nth-child(2):before{content:"Invoice"}#financial-panel-gst [data-gst-tx-panel="sales"] td:nth-child(3):before{content:"Customer"}#financial-panel-gst [data-gst-tx-panel="expenses"] td:nth-child(2):before{content:"Supplier"}#financial-panel-gst [data-gst-tx-panel="expenses"] td:nth-child(3):before{content:"Bill"}#financial-panel-gst [data-gst-tx-panel="sales"] td:nth-child(4):before,#financial-panel-gst [data-gst-tx-panel="expenses"] td:nth-child(4):before{content:"Total"}#financial-panel-gst [data-gst-tx-panel="sales"] td:nth-child(5):before,#financial-panel-gst [data-gst-tx-panel="expenses"] td:nth-child(5):before{content:"GST"}#financial-panel-gst [data-gst-tx-panel="adjustments"] td:nth-child(2):before{content:"Description"}#financial-panel-gst [data-gst-tx-panel="adjustments"] td:nth-child(3):before{content:"GST impact"}#financial-panel-gst [data-gst-tx-panel="adjustments"] td:nth-child(4):before{content:"Reason"}#financial-panel-gst [data-gst-tx-panel="excluded"] td:nth-child(2):before{content:"Type"}#financial-panel-gst [data-gst-tx-panel="excluded"] td:nth-child(3):before{content:"Description"}#financial-panel-gst [data-gst-tx-panel="excluded"] td:nth-child(4):before{content:"Total"}#financial-panel-gst [data-gst-tx-panel="excluded"] td:nth-child(5):before{content:"Reason"}}
 
+/* V61.98E GST Returns ultra-simple first screen. */
+#financial-panel-gst .gst-return-head{align-items:flex-start}
+#view-financials:has(#financial-panel-gst:not([hidden])) #financialReportPeriodCard{display:none!important}
+#financial-panel-gst .gst-return-head .gst-status-line{margin-top:0}
+#financial-panel-gst .gst-simple-card{display:grid;gap:16px;padding:18px}
+#financial-panel-gst .gst-simple-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#financial-panel-gst .gst-simple-top .eyebrow{display:block;color:var(--muted,#64748b);font-size:11px;text-transform:uppercase;font-weight:800;margin-bottom:4px}
+#financial-panel-gst .gst-simple-top strong{display:block;color:var(--navy,#173f5c);font-size:18px}
+#financial-panel-gst .gst-simple-controls{display:grid;grid-template-columns:170px 170px auto;gap:10px;align-items:end}
+#financial-panel-gst .gst-result-card{border:1px solid #cfe0ec;border-left:5px solid #3978b8;border-radius:12px;background:#f8fbfe;padding:18px}
+#financial-panel-gst .gst-result-card span{display:block;color:var(--muted,#64748b);font-size:12px;font-weight:850;text-transform:uppercase}
+#financial-panel-gst .gst-result-card strong{display:block;color:var(--navy,#173f5c);font-size:34px;line-height:1.1;margin:7px 0}
+#financial-panel-gst .gst-result-card small{display:block;color:#405462;line-height:1.45;max-width:620px}
+#financial-panel-gst .gst-breakdown{border:1px solid #e4ebf2;border-radius:12px;background:#fff;overflow:hidden}
+#financial-panel-gst .gst-breakdown>div{display:flex;justify-content:space-between;gap:18px;padding:12px 14px;border-bottom:1px solid #edf2f6}
+#financial-panel-gst .gst-breakdown>div:last-child{border-bottom:0;background:#f8fbfd}
+#financial-panel-gst .gst-breakdown span{color:var(--muted,#64748b);font-weight:700}
+#financial-panel-gst .gst-breakdown strong{color:var(--navy,#173f5c);text-align:right}
+#financial-panel-gst .gst-filing-note{margin:0;color:var(--muted,#64748b);font-size:13px}
+#financial-panel-gst .gst-checklist-card .notice{margin:0 0 10px}
+#financial-panel-gst .notice.notice-strong{background:#fff1f0;border-color:#f3b4ae;border-left:5px solid #b42318;color:#7a271a;font-weight:650}
+#financial-panel-gst details.card summary{cursor:pointer;list-style:none}
+#financial-panel-gst details.card summary::-webkit-details-marker{display:none}
+#financial-panel-gst details.card summary strong{display:block;color:var(--navy,#173f5c)}
+#financial-panel-gst details.card[open] summary{margin-bottom:12px}
+#financial-panel-gst .gst-main-actions{margin:8px 0 16px}
+#financial-panel-gst .gst-hidden-calc{grid-template-columns:repeat(3,minmax(0,1fr));margin:8px 0 12px}
+@media(max-width:720px){#financial-panel-gst .gst-simple-top{display:block}#financial-panel-gst .gst-period-shortcuts{margin-top:12px}#financial-panel-gst .gst-simple-controls{grid-template-columns:1fr}#financial-panel-gst .gst-result-card strong{font-size:30px}#financial-panel-gst .gst-breakdown>div{display:block}#financial-panel-gst .gst-breakdown strong{display:block;margin-top:4px;text-align:left}#financial-panel-gst .gst-hidden-calc{grid-template-columns:1fr}}
+
 /* V61.68B Settings IA — full-page central settings; existing controls/handlers are reused. */
 .settings-page-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;align-items:start}
 .settings-page-nav{position:sticky;top:82px;display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--card,#fff);border:1px solid var(--border,#dfe6ee);border-radius:14px}
@@ -3200,6 +3229,70 @@ body.report-widget-moving .report-widget-handle{cursor:grabbing}
 .dashboard-source-warning,.schedule-data-warning{display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #e2c98d;background:#fffaf0;border-radius:12px;padding:10px 12px;margin:0 0 14px;color:#65501e}.dashboard-source-warning span,.schedule-data-warning span{flex:1;min-width:220px;font-size:.82rem}.metric-retry{font-size:.72rem;font-weight:800;color:#0b6078}.attention-unavailable{border:1px dashed #d8dee2!important}.insight-unavailable{padding:12px 0;color:#68747e;border-bottom:1px solid #edf0f2}.insight-unavailable button{border:0;background:transparent;color:#0b6078;font-weight:800}.recurrence-coming{background:#f8fafb}.schedule-editor button:disabled,.schedule-head button:disabled{opacity:.55;cursor:wait}.schedule-editor[aria-busy="true"]{pointer-events:none;opacity:.82}.calendar-shell{overscroll-behavior:contain}.schedule-data-warning button,.dashboard-source-warning button{margin-left:auto}
 @media(max-width:759px){body{overflow-x:hidden}.schedule-toolbar{display:grid;grid-template-columns:1fr 1fr}.schedule-toolbar .segmented:first-child{grid-column:1/-1;width:max-content}.schedule-toolbar select{width:100%;max-width:none!important}.calendar-shell{width:100%;overflow:auto}.mobile-day-list{min-width:0}.schedule-data-warning,.dashboard-source-warning{align-items:flex-start}.schedule-data-warning button,.dashboard-source-warning button{margin-left:0}}
 #view-dashboard,#view-schedule{box-sizing:border-box;width:100%}.dashboard-actions{max-width:100%}.pulse-grid{max-width:100%}
+
+/* V61.98L Dashboard: prevent cash movement labels overlapping the bars. */
+#view-dashboard .cash-bars>div{
+  grid-template-columns:minmax(94px,max-content) minmax(80px,1fr) minmax(82px,max-content);
+  gap:12px;
+}
+#view-dashboard .cash-bars span{
+  line-height:1.25;
+  min-width:0;
+  overflow-wrap:normal;
+}
+#view-dashboard .cash-bars i{
+  min-width:0;
+}
+@media(max-width:520px){
+  #view-dashboard .cash-bars>div{
+    grid-template-columns:1fr;
+    gap:7px;
+  }
+  #view-dashboard .cash-bars strong{
+    text-align:left;
+  }
+}
+
+/* V61.98J Schedule drag-drop reliability + modern visual polish. Scoped to Schedule only. */
+#view-schedule{background:linear-gradient(180deg,#f7fbff 0,#f3f7fa 240px,#f6f8fb 100%)}
+#view-schedule .schedule-head{align-items:center;margin-bottom:20px}
+#view-schedule .schedule-head h1{font-size:clamp(2rem,3.2vw,3rem);letter-spacing:-.045em;color:#24313b}
+#view-schedule .schedule-head p{color:#5d6b78;font-weight:500}
+#view-schedule .schedule-head .primary{border-radius:10px;box-shadow:0 10px 22px rgba(38,104,168,.18)}
+#view-schedule .schedule-toolbar{background:rgba(255,255,255,.78);border:1px solid rgba(210,221,229,.9);border-radius:18px;padding:12px;box-shadow:0 14px 34px rgba(21,40,56,.06);backdrop-filter:blur(10px)}
+#view-schedule .schedule-toolbar select,#view-schedule .segmented{border-color:#d6e2ea;border-radius:12px;box-shadow:0 1px 0 rgba(255,255,255,.8)}
+#view-schedule .segmented button{min-height:44px;padding:0 16px;font-weight:750;color:#1f3342}
+#view-schedule .segmented button.active{background:linear-gradient(135deg,#175f78,#287fb0);color:#fff}
+#view-schedule .schedule-workspace{grid-template-columns:minmax(250px,300px) minmax(0,1fr);gap:18px}
+#view-schedule .unscheduled-zone,#view-schedule .calendar-shell{border:1px solid #dfe9ef;border-radius:20px;box-shadow:0 18px 42px rgba(22,38,51,.08)}
+#view-schedule .unscheduled-zone{padding:18px;background:linear-gradient(180deg,#fff,#fbfdff)}
+#view-schedule .unscheduled-zone h2{font-size:1.06rem;color:#22313d}
+#view-schedule .unscheduled-zone>div>span{background:#edf7fb;color:#175f78;padding:5px 10px}
+#view-schedule .unscheduled-zone>p{font-size:.86rem;color:#637281}
+#view-schedule .unscheduled-list{gap:10px;overflow:auto;padding-right:4px}
+#view-schedule .schedule-job{border:1px solid #dbe6ed;border-left:5px solid #8b5fbf;background:#fff;border-radius:14px;padding:11px 12px;box-shadow:0 8px 18px rgba(33,48,63,.055);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+#view-schedule .schedule-job:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(33,48,63,.09);border-color:#c5d6e0}
+#view-schedule .schedule-job:active{transform:scale(.995)}
+#view-schedule .schedule-job.status-scheduled{border-left-color:#2d87c6}
+#view-schedule .schedule-job.status-confirmed{border-left-color:#2f9f73}
+#view-schedule .schedule-job.quote-card{background:linear-gradient(180deg,#fff,#fcf8ff)}
+#view-schedule .schedule-job strong{font-size:.9rem;color:#263541}
+#view-schedule .schedule-job small,#view-schedule .schedule-job-time{color:#667685}
+#view-schedule .calendar-shell{background:#fff;overflow:auto}
+#view-schedule .week-grid{min-width:980px;background:#fff}
+#view-schedule .week-day{border-right:1px solid #e9eff3;background:linear-gradient(180deg,#fff,#fbfcfe)}
+#view-schedule .week-day-head{position:sticky;top:0;z-index:3;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);padding:14px 16px}
+#view-schedule .week-day-head strong{font-size:.76rem;letter-spacing:.05em;color:#647381}
+#view-schedule .week-day-head span{font-size:1.12rem;color:#25323d}
+#view-schedule .week-hour{min-height:82px;border-bottom:1px solid #edf2f5;padding-left:32px;background:linear-gradient(90deg,#fbfdff 0,#fbfdff 31px,transparent 31px)}
+#view-schedule .week-hour.drag-over{background:#eaf7ff;box-shadow:inset 0 0 0 2px rgba(45,135,198,.28)}
+#view-schedule .hour-label{left:8px;top:8px;color:#8b99a5;font-weight:700}
+#view-schedule .mobile-day-list{background:#fff;border-radius:18px}
+#view-schedule .day-title{align-items:center;border-bottom:1px solid #edf2f5;margin-bottom:12px}
+#view-schedule .day-title strong{font-size:1.05rem;color:#263541}
+@media(max-width:1000px){#view-schedule .schedule-workspace{grid-template-columns:220px minmax(0,1fr)}}
+@media(max-width:759px){#view-schedule{padding:12px;background:#f6f8fb}#view-schedule .schedule-head{gap:14px;margin-bottom:14px}#view-schedule .schedule-head .primary{width:100%;min-height:46px}#view-schedule .schedule-toolbar{border-radius:16px;padding:10px}#view-schedule .schedule-workspace{display:flex;flex-direction:column;gap:12px}#view-schedule .calendar-shell{order:1;min-height:260px;border-radius:18px}#view-schedule .unscheduled-zone{order:2;min-height:0;border-radius:18px}#view-schedule .unscheduled-list{max-height:320px}#view-schedule .schedule-job{min-height:58px}}
+
 .schedule-editor{box-sizing:border-box;max-width:calc(100vw - 20px)}
 
 /* V61.79F: employee assignment is optional and normal clicks toggle multiple people. */
@@ -3642,6 +3735,158 @@ body.report-widget-moving .report-widget-handle{cursor:grabbing}
 #prPaydayChange .payrun-payday-choices input{min-height:36px;padding:5px 7px;font-size:.8rem}
 #prPaydayChange .payrun-payday-choices button{min-height:36px;white-space:normal;text-align:center;font-size:.76rem}
 @media(max-width:600px){#prPaydayChange .payrun-payday-choices{display:grid;grid-template-columns:1fr 1fr}#prPaydayChange .payrun-payday-choices label{grid-column:1/-1}#prPaydayChange .payrun-payday-choices input{width:100%}}
+
+/* V61.98K Frindly UI consistency pass.
+   Shared presentation only: no IDs, workflows, calculations or module gates are changed. */
+:root{
+  --fr-surface:#fff;
+  --fr-page:#f6f8fb;
+  --fr-card:#fff;
+  --fr-border:#dfe7ee;
+  --fr-border-soft:#edf2f6;
+  --fr-text:#1f2f3d;
+  --fr-muted:#64748b;
+  --fr-primary:#1976bd;
+  --fr-primary-dark:#145f98;
+  --fr-primary-soft:#edf6fc;
+  --fr-danger:#b42318;
+  --fr-warning-bg:#fff8db;
+  --fr-warning-border:#f4dda0;
+  --fr-radius-sm:8px;
+  --fr-radius:12px;
+  --fr-radius-lg:16px;
+  --fr-shadow:0 10px 28px rgba(21,40,56,.07);
+  --fr-shadow-soft:0 3px 12px rgba(21,40,56,.045);
+}
+body{background:var(--fr-page);color:var(--fr-text)}
+main{max-width:1440px}
+.view:not(#view-dashboard):not(#view-schedule){animation:frindlyFadeIn .16s ease-out}
+@keyframes frindlyFadeIn{from{opacity:.92;transform:translateY(2px)}to{opacity:1;transform:none}}
+.page-head{gap:16px}
+.page-head h1,.page-head h2{letter-spacing:-.025em;color:var(--fr-text)}
+.page-head p,.hint,small{color:var(--fr-muted)}
+.card,.table-card,.filters,.metric,.modal-box,.notice{
+  border-color:var(--fr-border);
+}
+.card,.table-card,.metric{
+  background:var(--fr-card);
+  border-radius:var(--fr-radius);
+  box-shadow:var(--fr-shadow-soft);
+}
+.card-title{gap:12px}
+.card-title h2,.card-title h3{letter-spacing:-.01em;color:var(--fr-text)}
+.summary-grid{gap:14px}
+.metric{padding:15px 16px}
+.metric span{color:var(--fr-muted);font-weight:700;letter-spacing:.01em}
+.metric strong{color:var(--fr-text);letter-spacing:-.025em}
+.primary,.secondary,.danger,.compact-btn,.mini-btn,.row-actions button,.head-actions button{
+  border-radius:var(--fr-radius-sm);
+  min-height:40px;
+  transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.primary{
+  background:linear-gradient(180deg,var(--fr-primary),var(--fr-primary-dark));
+  color:#fff;
+  box-shadow:0 3px 9px rgba(25,118,189,.18);
+}
+.secondary{
+  background:#fff;
+  color:#173f5c;
+  border-color:var(--fr-border);
+}
+.danger{
+  background:#fff4f2;
+  color:var(--fr-danger);
+  border-color:#f1c6c1;
+}
+.primary:hover,.secondary:hover,.danger:hover{transform:translateY(-1px)}
+.primary:hover{box-shadow:0 7px 16px rgba(25,118,189,.2)}
+.secondary:hover{border-color:#c6d5df;background:#f8fbfd}
+.danger:hover{border-color:#e0a5a0;background:#fff0ef}
+.module-tabs{
+  gap:6px;
+  border-bottom:1px solid var(--fr-border);
+  margin-bottom:16px;
+}
+.module-tab{
+  border-radius:10px 10px 0 0;
+  color:#435567;
+  min-height:42px;
+}
+.module-tab.active{
+  background:var(--fr-primary-soft);
+  color:var(--fr-primary-dark);
+  border-color:#b8d8ed;
+  font-weight:800;
+}
+.filters{
+  background:rgba(255,255,255,.88);
+  border-radius:var(--fr-radius);
+  box-shadow:var(--fr-shadow-soft);
+}
+input,textarea,select{
+  border-color:#cdd9e3;
+  border-radius:var(--fr-radius-sm);
+}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--fr-primary);
+  box-shadow:0 0 0 3px rgba(25,118,189,.12);
+  outline:0;
+}
+.table-scroll{
+  border-radius:var(--fr-radius);
+}
+.table-card .table-scroll{
+  border:1px solid var(--fr-border-soft);
+  background:#fff;
+}
+table th{
+  color:#667789;
+  background:#f8fafc;
+  letter-spacing:.045em;
+}
+table td{color:#273746}
+.badge{
+  border-radius:999px;
+  padding:.22rem .5rem;
+  background:#eef4f8;
+  color:#31556b;
+  font-weight:800;
+}
+.notice{
+  border-radius:var(--fr-radius);
+  background:var(--fr-warning-bg);
+  border-color:var(--fr-warning-border);
+}
+.modal{backdrop-filter:blur(3px)}
+.modal-box{
+  border-radius:var(--fr-radius-lg);
+  box-shadow:0 24px 70px rgba(12,30,44,.24);
+}
+.close{
+  border-radius:999px;
+  width:38px;
+  height:38px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.close:hover{background:#f1f5f8}
+.actions{gap:9px}
+.settings-grid,.profile-grid{gap:14px}
+
+@media(max-width:760px){
+  .card,.table-card,.filters,.metric{border-radius:10px;box-shadow:none}
+  .summary-grid{gap:9px}
+  .metric{padding:12px}
+  .metric strong{font-size:20px}
+  .module-tabs{overflow:auto;padding-bottom:2px}
+  .module-tab{white-space:nowrap;border-radius:999px;margin-bottom:7px}
+  .actions{display:grid;grid-template-columns:1fr;gap:8px}
+  .actions>*{width:100%}
+  .modal{padding:10px}
+  .modal-box{margin:10px auto;padding:18px}
+}
 
 /* v61.95 audit pass: one predictable mobile app shell and shared busy states. */
 .mobile-menu-btn{display:none}

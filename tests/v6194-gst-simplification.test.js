@@ -1,13 +1,23 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
 const html=fs.readFileSync('public/index.html','utf8'),js=fs.readFileSync('public/financials.js','utf8'),css=fs.readFileSync('public/styles.css','utf8');
-test('GST page is a guided review screen with myIR figures and safe wording',()=>{
- assert.match(html,/GST Returns/);
- assert.match(html,/Figures for myIR/);
- assert.match(html,/Before you finish/);
- assert.match(html,/Included transactions/);
- assert.match(html,/Review GST collected and paid before exporting or marking as filed/);
+test('GST page is a guided review screen with simple first-screen wording',()=>{
+ assert.match(html,/GST Return/);
+ assert.match(html,/Simple GST review before saving, exporting, or marking as filed/);
+ assert.doesNotMatch(html,/View myIR figures/);
+ assert.doesNotMatch(html,/Before you finish/);
+ assert.doesNotMatch(html,/id="finGstChecklist"/);
+ assert.doesNotMatch(html,/id="finGstWarning"/);
+ assert.match(html,/GST Collected on Sales/);
+ assert.match(html,/GST Paid on Purchases \/ Expenses/);
+ assert.match(html,/GST Adjustments &amp; Review/);
+ assert.match(html,/Saved GST Returns/);
  assert.match(html,/id="financialReportPeriodCard"/);
  assert.match(html,/id="finGstCsv"/);
+ assert.match(html,/id="finGstPdf"/);
+ assert.doesNotMatch(html,/id="finGstRun"/);
+ assert.match(html,/class="card gst-simple-card"/);
+ assert.match(html,/class="gst-result-card"/);
+ assert.match(html,/class="gst-breakdown"/);
  assert.doesNotMatch(html,/id="finGstExcel"/);
  assert.doesNotMatch(html,/IRD upload file|myIR-ready CSV|Submit to IRD/i);
 });
@@ -19,27 +29,51 @@ test('GST simplification keeps existing calculation, export and finalise hooks',
  assert.match(js,/function exportGstPdf/);
  assert.match(js,/function syncFinancialPeriodCard/);
  assert.match(js,/state\.activeTab==='gst'/);
- assert.match(js,/Sales included/);
- assert.match(js,/Expenses included/);
- assert.match(js,/q\('finGstCsv'\)\.onclick=\(\)=>downloadCsvRows/);
+ assert.match(js,/q\('finGstCsv'\)\?\.addEventListener\('click'/);
+ assert.match(js,/q\('finGstPdf'\)\?\.addEventListener\('click',exportGstPdf\)/);
+ assert.match(js,/q\('finGstFrom'\)\?\.addEventListener\('change',renderGst\)/);
+ assert.match(js,/q\('finGstTo'\)\?\.addEventListener\('change',renderGst\)/);
+ assert.match(js,/q\('finGstRun'\)\?\.addEventListener\('click',renderGst\)/);
  assert.doesNotMatch(js,/finGstExcel/);
+ assert.match(js,/q\('finGstSaveDraft'\)\.onclick=\(\)=>saveGst\('draft'\)/);
+ assert.match(js,/q\('finGstMarkReviewed'\)\.onclick=\(\)=>saveGst\('reviewed'\)/);
  assert.match(js,/q\('finGstFinalise'\)\.onclick=\(\)=>saveGst\('finalised'\)/);
  assert.doesNotMatch(js,/IRD upload file|myIR-ready CSV|Submit to IRD/i);
 });
 test('GST redesign has mobile-specific compact transaction rows',()=>{
- assert.match(css,/gst-simple-summary/);
- assert.match(css,/gst-checklist/);
- assert.match(css,/gst-segmented/);
+ assert.match(css,/gst-simple-card/);
+ assert.match(css,/gst-result-card/);
+ assert.match(css,/gst-breakdown/);
+ assert.match(css,/#view-financials:has\(#financial-panel-gst:not\(\[hidden\]\)\) #financialReportPeriodCard\{display:none!important\}/);
+ assert.match(html,/class="card gst-review-section"/);
  assert.match(css,/@media\(max-width:720px\).*gst-transaction-table/s);
 });
-test('GST UX pass keeps one active period selector and de-emphasises setup fields',()=>{
- assert.match(html,/class="card financial-gst-period-card"/);
+test('GST UX pass keeps detail sections out of the main first screen',()=>{
+ assert.doesNotMatch(html,/class="card financial-gst-period-card"/);
+ assert.match(html,/class="gst-filing-note"/);
+ assert.doesNotMatch(html,/More options/);
+ assert.doesNotMatch(html,/Accountant details/);
+ assert.doesNotMatch(html,/Included transactions/);
+});
+test('GST page replaces old lower detail blocks with requested sections',()=>{
+ assert.doesNotMatch(html,/<details class="card gst-myir-card">/);
+ assert.doesNotMatch(html,/<details class="card gst-transactions-card">/);
+ assert.match(html,/id="finGstPdf"/);
+ assert.match(html,/id="finGstCsv"/);
+ assert.match(html,/<details class="card gst-review-section"><summary><strong>GST Collected on Sales<\/strong><\/summary>/);
+ assert.match(html,/<details class="card gst-review-section"><summary><strong>GST Paid on Purchases \/ Expenses<\/strong><\/summary>/);
+ assert.match(html,/<details class="card gst-review-section"><summary><strong>GST Adjustments &amp; Review<\/strong><\/summary>/);
+ assert.match(html,/class="card table-card gst-saved-returns"/);
+ assert.match(js,/setText\('finGstBreakdownNet'/);
+ assert.match(css,/V61\.98E GST Returns ultra-simple first screen/);
+});
+test('GST UX pass keeps one active period selector and removes visible checklist section',()=>{
+ assert.doesNotMatch(html,/class="card financial-gst-period-card"/);
  assert.match(html,/class="gst-filing-note"/);
  assert.doesNotMatch(html,/summary-grid gst-period-summary/);
  assert.match(js,/syncFinancialPeriodCard\(\);if\(!state\.businessId\)return/);
  assert.match(js,/function renderGstChecklist/);
- assert.match(js,/data-gst-show-checks/);
- assert.match(js,/All checks passed/);
+ assert.doesNotMatch(html,/gst-checklist-card/);
  assert.match(css,/notice\.notice-strong/);
  assert.match(css,/gst-check-summary/);
  assert.match(css,/gst-filing-note/);
