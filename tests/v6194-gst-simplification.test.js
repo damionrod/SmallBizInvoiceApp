@@ -13,6 +13,8 @@ test('GST simplification keeps existing calculation, export and finalise hooks',
  assert.match(js,/rpc\('v6170e_save_gst_return'/);
  assert.match(js,/function gstExportRows/);
  assert.match(js,/function exportGstPdf/);
+ assert.match(js,/Sales included/);
+ assert.match(js,/Expenses included/);
  assert.match(js,/q\('finGstFinalise'\)\.onclick=\(\)=>saveGst\('finalised'\)/);
  assert.doesNotMatch(js,/IRD upload file|myIR-ready CSV|Submit to IRD/i);
 });
