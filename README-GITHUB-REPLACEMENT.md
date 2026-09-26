@@ -1,3 +1,24 @@
+# Frindly v61.91C — accounting setup safety guard
+
+26 September 2026. This small safety update keeps Accountant Centre usable if the frontend is deployed before the new accounting foundation migration is applied. Supabase may report new tables as missing from the REST schema cache, for example `public.accounting_source_mappings`; the page now shows a clear migration-required message for the Frindly COA sections while keeping the existing Xero mapping/export sections available.
+
+- Updated file: `public/accountant-centre.js`.
+- The `Set Up Default Chart` button is disabled until the migration exists.
+- Existing Xero mapping and accountant export loading no longer fail just because the new COA tables are not present yet.
+- Verification: JavaScript syntax checks passed and `node --test tests/*.test.js` passed from the package root.
+
+# Frindly v61.91 — accounting foundation and Xero-ready accountant pack
+
+26 September 2026. This update adds a non-posting accounting foundation for a stable Frindly chart of accounts, Xero-friendly account metadata, and source mapping support. It does not rewrite invoices, expenses, GST, payroll, bank reconciliation, Stock & Equipment, existing journals, or historical reports.
+
+- New migration: `supabase/migrations/20260926163000_v6191_accounting_foundation_xero_ready.sql`.
+- New function: `v6191_seed_default_chart(business_id)` creates/updates a conservative default NZ small-business chart for the active business. It keeps Xero account code/type fields alongside Frindly account metadata.
+- Accountant Centre now has a controlled `Set Up Default Chart` button, a read-only Frindly chart table, and Frindly category-to-COA mapping before the existing Xero mapping. This is a setup/mapping workflow only; it does not post depreciation, stock, cost of sales, GST, payroll, or asset journals.
+- Accountant Pack now includes `00_Chart_of_Accounts.csv` and `02_Xero_Mapping_Readiness.csv`. `03A_Confirmed_Purchase_Items.csv` now includes mapped Xero account code/name columns where available.
+- The Phase 1 Xero invoice/bill CSV remains conservative: reviewed bills with stock, equipment, materials, small tools or changed categories are still blocked from direct Xero bill CSV export and pushed to the Accountant Pack for accountant mapping.
+- No automatic cost of sales, stock valuation, depreciation, asset disposal, GST correction, or balance-sheet posting is introduced in this release. Those still require the next controlled journal-posting layer.
+- Verification: JavaScript syntax checks passed and `node --test tests/*.test.js` passed from the package root.
+
 # Frindly v61.90U — complete 100-file GitHub package
 
 25 September 2026. Extract and upload all 100 files to the repository root, retaining folder paths. Uploading the ZIP itself will not extract its files on GitHub. Compare your current repository for newer files before replacing it. A GitHub push may deploy automatically if Netlify is linked.
