@@ -1,7 +1,7 @@
 -- v61.91 accounting foundation for Xero-ready exports.
--- This migration is intentionally non-posting: it creates/extends chart and
--- mapping structures, but does not rewrite invoices, expenses, GST, stock,
--- payroll, existing journals, or historical reports.
+-- Production-safe and non-posting: creates/extends chart and mapping structures
+-- without rewriting invoices, expenses, GST, stock, payroll, existing journals,
+-- or historical reports.
 
 begin;
 
@@ -45,19 +45,21 @@ alter table public.accounting_accounts add column if not exists updated_at times
 alter table public.accounting_accounts add column if not exists created_by uuid;
 alter table public.accounting_accounts add column if not exists updated_by uuid;
 
-do $$ begin
-  alter table public.accounting_accounts
-    add constraint accounting_accounts_type_check
-    check (account_type in ('bank','current_asset','fixed_asset','inventory','non_current_asset','current_liability','non_current_liability','equity','income','cost_of_sales','expense','tax','other'));
-exception when duplicate_object then null;
-end $$;
+alter table public.accounting_accounts drop constraint if exists accounting_accounts_type_check;
+alter table public.accounting_accounts drop constraint if exists accounting_accounts_account_type_check;
+alter table public.accounting_accounts
+  add constraint accounting_accounts_account_type_check
+  check (account_type in (
+    'asset','liability','revenue','other_income','other_expense',
+    'bank','current_asset','fixed_asset','inventory','non_current_asset',
+    'current_liability','non_current_liability','equity','income',
+    'cost_of_sales','expense','tax','other'
+  ));
 
-do $$ begin
-  alter table public.accounting_accounts
-    add constraint accounting_accounts_normal_balance_check
-    check (normal_balance in ('debit','credit'));
-exception when duplicate_object then null;
-end $$;
+alter table public.accounting_accounts drop constraint if exists accounting_accounts_normal_balance_check;
+alter table public.accounting_accounts
+  add constraint accounting_accounts_normal_balance_check
+  check (normal_balance in ('debit','credit'));
 
 create unique index if not exists accounting_accounts_business_code_unique
   on public.accounting_accounts(business_id, account_code) where archived = false;
@@ -92,6 +94,8 @@ create unique index if not exists accounting_source_mappings_source_id_unique
 create unique index if not exists accounting_source_mappings_source_key_unique
   on public.accounting_source_mappings(business_id, source_type, source_key, purpose)
   where source_key is not null and archived = false;
+create index if not exists accounting_source_mappings_account_id_idx
+  on public.accounting_source_mappings(account_id) where account_id is not null;
 
 alter table public.accounting_accounts enable row level security;
 alter table public.accounting_source_mappings enable row level security;
@@ -122,7 +126,7 @@ grant select, insert, update on public.accounting_accounts, public.accounting_so
 
 create or replace function public.v6191_seed_default_chart(p_business_id uuid)
 returns integer language plpgsql security definer set search_path=public as $$
-declare inserted integer := 0;
+declare affected integer := 0;
 begin
   if auth.uid() is null or public.current_business_id() is distinct from p_business_id then
     raise exception 'Business access denied';
@@ -133,28 +137,46 @@ begin
 
   with defaults(account_code, account_name, account_type, normal_balance, report_section, system_key, xero_account_type, description) as (
     values
-      ('090','Business Bank','bank','debit','asset','bank_main','BANK','Primary bank or transaction account.'),
-      ('120','Accounts Receivable','current_asset','debit','asset','accounts_receivable','CURRENT','Customer balances owing.'),
-      ('140','Inventory - Stock for Sale','inventory','debit','asset','inventory_stock','INVENTORY','Goods bought for resale; accountant-reviewed postings only.'),
-      ('145','Materials and Consumables on Hand','inventory','debit','asset','materials_on_hand','INVENTORY','Work materials or consumables not yet expensed.'),
-      ('150','Fixed Assets - Equipment','fixed_asset','debit','asset','fixed_assets_equipment','FIXED','Equipment kept by the business.'),
-      ('155','Accumulated Depreciation - Equipment','fixed_asset','credit','asset','accum_depn_equipment','FIXED','Contra-asset for posted depreciation.'),
-      ('200','Sales','income','credit','revenue','sales','REVENUE','Default sales income.'),
-      ('205','Other Income','income','credit','revenue','other_income','REVENUE','Other operating income.'),
-      ('260','GST Collected','tax','credit','liability','gst_collected','CURRLIAB','GST on sales.'),
-      ('261','GST Paid','tax','debit','asset','gst_paid','CURRLIAB','GST on purchases.'),
-      ('265','PAYE / Payroll Liabilities','current_liability','credit','liability','payroll_liability','CURRLIAB','Payroll deductions and employer obligations.'),
-      ('300','Purchases / Cost of Sales','cost_of_sales','debit','cost_of_sales','cost_of_sales','DIRECTCOSTS','Posted cost of goods sold or direct purchases.'),
-      ('310','Materials and Consumables Used','cost_of_sales','debit','cost_of_sales','materials_used','DIRECTCOSTS','Work supplies consumed on jobs.'),
-      ('315','Depreciation Expense','expense','debit','expense','depreciation_expense','EXPENSE','Posted book depreciation.'),
-      ('400','Advertising and Marketing','expense','debit','expense','advertising','EXPENSE','Advertising, marketing and promotion.'),
-      ('404','Bank Fees','expense','debit','expense','bank_fees','EXPENSE','Bank and merchant fees.'),
-      ('420','Motor Vehicle Expenses','expense','debit','expense','motor_vehicle','EXPENSE','Vehicle running costs.'),
-      ('429','General Expenses','expense','debit','expense','general_expenses','EXPENSE','Fallback expense account.'),
-      ('477','Telephone and Internet','expense','debit','expense','telephone_internet','EXPENSE','Phone and internet costs.'),
-      ('800','Owner Drawings / Private Use','equity','debit','equity','owner_drawings','EQUITY','Private-use or owner drawings allocation.'),
-      ('860','Retained Earnings','equity','credit','equity','retained_earnings','EQUITY','Prior year retained profit.')
-  ), upserted as (
+      ('1000','Bank','asset','debit','current_assets','bank','BANK','Main business bank account.'),
+      ('1100','Money customers owe you','asset','debit','current_assets','accounts_receivable','CURRENT','Money owed by customers.'),
+      ('1200','GST you can claim','asset','debit','current_assets','gst_receivable','CURRENT','GST claimable on purchases.'),
+      ('1500','Business equipment & assets','asset','debit','fixed_assets','fixed_assets','FIXED','Business equipment and assets.'),
+      ('1550','Accumulated depreciation','asset','credit','fixed_assets','accumulated_depreciation','FIXED','Accumulated depreciation contra asset.'),
+      ('2000','Bills you need to pay','liability','credit','current_liabilities','accounts_payable','CURRLIAB','Supplier bills payable.'),
+      ('2100','GST you collected','liability','credit','current_liabilities','gst_payable','CURRLIAB','GST collected on sales.'),
+      ('2200','PAYE payable','liability','credit','current_liabilities','paye_payable','CURRLIAB','PAYE payable.'),
+      ('2210','KiwiSaver payable','liability','credit','current_liabilities','kiwisaver_payable','CURRLIAB','KiwiSaver payable.'),
+      ('2220','Wages payable','liability','credit','current_liabilities','wages_payable','CURRLIAB','Wages payable.'),
+      ('3000','Owner funds / share capital','equity','credit','equity','owner_funds','EQUITY','Owner funds or share capital.'),
+      ('3100','Owner drawings','equity','debit','equity','owner_drawings','EQUITY','Owner drawings.'),
+      ('3200','Retained earnings','equity','credit','equity','retained_earnings','EQUITY','Prior year retained earnings.'),
+      ('3300','Current year earnings','equity','credit','equity','current_year_earnings','EQUITY','Current year earnings.'),
+      ('4000','Sales','revenue','credit','income','sales','REVENUE','Sales and invoice revenue.'),
+      ('5000','Cost of sales','cost_of_sales','debit','cost_of_sales','cost_of_sales','DIRECTCOSTS','Direct cost of sales.'),
+      ('6000','Business expenses','expense','debit','operating_expenses','business_expenses','EXPENSE','General business expenses.'),
+      ('6100','Wages','expense','debit','operating_expenses','wages','EXPENSE','Wages expense.'),
+      ('6110','Employer contributions','expense','debit','operating_expenses','employer_contributions','EXPENSE','Employer payroll contributions.'),
+      ('6200','Depreciation','expense','debit','operating_expenses','depreciation','DEPRECIATN','Depreciation expense.'),
+      ('9999','Needs review','asset','debit','review','needs_review','EXPENSE','Temporary account for items needing accountant review.')
+  ), updated as (
+    update public.accounting_accounts a
+    set account_name = d.account_name,
+        normal_balance = d.normal_balance,
+        report_section = d.report_section,
+        system_key = coalesce(a.system_key, d.system_key),
+        xero_account_code = coalesce(a.xero_account_code, a.account_code),
+        xero_account_type = coalesce(a.xero_account_type, d.xero_account_type),
+        description = coalesce(nullif(a.description,''), d.description),
+        is_system = true,
+        is_control = d.system_key in ('accounts_receivable','accounts_payable','gst_receivable','gst_payable','paye_payable','kiwisaver_payable','wages_payable','retained_earnings'),
+        updated_at = now(),
+        updated_by = auth.uid()
+    from defaults d
+    where a.business_id = p_business_id
+      and a.account_code = d.account_code
+      and coalesce(a.archived,false) = false
+    returning 1
+  ), inserted as (
     insert into public.accounting_accounts(
       business_id, account_code, account_name, account_type, normal_balance,
       report_section, system_key, xero_account_code, xero_account_type,
@@ -162,25 +184,25 @@ begin
     )
     select p_business_id, d.account_code, d.account_name, d.account_type, d.normal_balance,
       d.report_section, d.system_key, d.account_code, d.xero_account_type,
-      d.description, true, d.system_key in ('accounts_receivable','gst_collected','gst_paid','payroll_liability','retained_earnings'), auth.uid(), auth.uid()
+      d.description, true,
+      d.system_key in ('accounts_receivable','accounts_payable','gst_receivable','gst_payable','paye_payable','kiwisaver_payable','wages_payable','retained_earnings'),
+      auth.uid(), auth.uid()
     from defaults d
-    on conflict (business_id, account_code) where archived = false do update
-      set account_name = excluded.account_name,
-          account_type = excluded.account_type,
-          normal_balance = excluded.normal_balance,
-          report_section = excluded.report_section,
-          system_key = coalesce(public.accounting_accounts.system_key, excluded.system_key),
-          xero_account_code = coalesce(public.accounting_accounts.xero_account_code, excluded.xero_account_code),
-          xero_account_type = coalesce(public.accounting_accounts.xero_account_type, excluded.xero_account_type),
-          description = coalesce(public.accounting_accounts.description, excluded.description),
-          is_system = true,
-          updated_at = now(),
-          updated_by = auth.uid()
+    where not exists (
+      select 1 from public.accounting_accounts a
+      where a.business_id = p_business_id
+        and a.account_code = d.account_code
+        and coalesce(a.archived,false) = false
+    )
     returning 1
   )
-  select count(*) into inserted from upserted;
+  select count(*) into affected from (
+    select 1 from updated
+    union all
+    select 1 from inserted
+  ) x;
 
-  return inserted;
+  return affected;
 end $$;
 
 revoke all on function public.v6191_seed_default_chart(uuid) from public, anon;
@@ -205,5 +227,7 @@ where coalesce(a.archived,false) = false
   and a.business_id = public.current_business_id();
 
 grant select on public.v6191_xero_chart_export to authenticated;
+
+notify pgrst, 'reload schema';
 
 commit;

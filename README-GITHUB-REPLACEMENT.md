@@ -1,3 +1,14 @@
+# Frindly v61.91D — production-safe accounting setup and Xero metadata alignment
+
+26 September 2026. This package aligns the GitHub upload with the production Supabase accounting setup. It keeps the existing ledger-compatible account types used by posted P&L, Balance Sheet and Trial Balance reports, while enriching chart rows with report sections, system keys and Xero account metadata for accountant export readiness.
+
+- Updated migration: `supabase/migrations/20260926163000_v6191_accounting_foundation_xero_ready.sql` is now production-safe for existing v61.70 ledger charts.
+- New metadata migration: `supabase/migrations/20260926164000_v6191b_enrich_existing_chart_metadata.sql`.
+- Updated file: `public/accountant-centre.js`.
+- The Frindly COA mapping dropdowns now recognise both old ledger labels like `revenue`, `asset`, `liability` and newer labels like `income`, `current_asset`, `tax`.
+- No invoices, expenses, GST returns, stock/equipment records, payroll records, journals, bank records, or historical financial reports are rewritten.
+- Verification: JavaScript syntax checks passed and `node --test tests/*.test.js` passed from the package root.
+
 # Frindly v61.91C — accounting setup safety guard
 
 26 September 2026. This small safety update keeps Accountant Centre usable if the frontend is deployed before the new accounting foundation migration is applied. Supabase may report new tables as missing from the REST schema cache, for example `public.accounting_source_mappings`; the page now shows a clear migration-required message for the Frindly COA sections while keeping the existing Xero mapping/export sections available.
