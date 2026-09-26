@@ -5,7 +5,7 @@ const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&qu
 const money=n=>`$${Number(n||0).toLocaleString('en-NZ',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const cents=n=>Math.round(Number(n)*100),cash=n=>(n/100).toFixed(2);
 const allowed=new Set(['image/jpeg','image/png','image/webp','application/pdf']);
-const uses=[['regular','Expense'],['stock','Stock for sale'],['supplies','Materials & supplies'],['equipment','Equipment'],['low_value_equipment','Small tools'],['discount','Discount / credit']];
+const uses=[['regular','Normal expense'],['stock','Stock to sell'],['supplies','Consumables / used on jobs'],['equipment','CapEx equipment'],['low_value_equipment','Small tools'],['discount','Discount / credit']];
 const signedMoney=n=>Number(n)<0?`−${money(-n)}`:money(n);
 const isDiscount=x=>/\b(discount|rebate)\b|\bcredit\s*$/i.test(String(x.description||''))&&!/\bcredit card\b/i.test(String(x.description||''));
 const state={tenant:null,bills:[],categories:[],reviews:new Map(),scans:new Map(),drafts:new Map(),expanded:new Set(),search:'',page:0,nonce:0,busy:null};
