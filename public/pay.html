@@ -9,7 +9,7 @@
 </head>
 <body class="public-payment-page">
   <main class="public-payment-shell">
-    <div class="public-payment-brand"><img src="frindly-logo.png" alt="Frindly"><span>Secure invoice payment</span></div>
+    <div class="public-payment-brand"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly"></picture><span>Secure invoice payment</span></div>
     <section class="public-payment-card" id="paymentCard" aria-live="polite">
       <div class="public-payment-loading" id="paymentLoading">Loading invoice…</div>
       <div id="paymentContent" hidden>
@@ -29,6 +29,7 @@
     <p class="public-payment-footer">Powered by Frindly · Payments are processed securely by Stripe.</p>
   </main>
   <script src="app-config.js"></script>
+  <script src="finlo-core.js?v=61.97-performance-fixes"></script>
   <script src="pay.js"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@ function shiftDate(key,n){const [y,m,d]=key.split('-').map(Number),x=new Date(Da
 function weekday(key){const [y,m,d]=key.split('-').map(Number);return new Date(Date.UTC(y,m-1,d)).getUTCDay()}
 function labelDate(key,opts){const [y,m,d]=key.split('-').map(Number);return new Intl.DateTimeFormat(undefined,{timeZone:'UTC',...opts}).format(new Date(Date.UTC(y,m-1,d,12)))}
 function todayKey(){return partsInZone(new Date(),businessTimezone()).date}
-function toast(msg,bad=false){let e=$('scheduleToast');if(!e){e=document.createElement('div');e.id='scheduleToast';e.className='schedule-toast';document.body.appendChild(e)}e.textContent=msg;e.classList.toggle('error',bad);e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2600)}
+function toast(msg,bad=false){if(!$('scheduleToast')){const e=document.createElement('div');e.id='scheduleToast';e.className='schedule-toast';document.body.appendChild(e)}window.FinloCore.ui.toast(msg,{id:'scheduleToast',duration:2600,error:bad})}
 function diag(source,error){console.warn('[Schedule] data source unavailable',{source,code:error?.code||null,message:error?.message||'Unknown error',businessId:S.businessId})}
 function canUse(){return S.allowed&&S.entitled&&bid()===S.businessId}
 function range(){const anchor=S.anchor||todayKey();if(S.view==='day')return[anchor,shiftDate(anchor,1)];const delta=(weekday(anchor)+6)%7,a=shiftDate(anchor,-delta);return[a,shiftDate(a,7)]}

@@ -581,7 +581,7 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
    sit after the existing theme so they do not alter accounting or data styles. */
 .topbar .brand-shell{display:flex;align-items:center;gap:16px;min-width:0;flex:1}
 .topbar .product-brand{display:inline-flex;align-items:center;color:inherit;text-decoration:none;font-weight:900;letter-spacing:.01em;white-space:nowrap}
-.topbar .product-brand img{width:118px;height:40px;object-fit:contain;display:block}
+.topbar .product-brand picture{display:block}.topbar .product-brand img{width:118px;height:40px;object-fit:contain;display:block}
 .topbar .business-brand{display:flex;flex-direction:row;align-items:center;gap:6px;min-width:0;margin-left:auto;padding-left:12px;border-left:1px solid rgba(255,255,255,.32)}
 .topbar .business-brand>img{width:24px;height:24px;flex:0 0 24px;object-fit:contain;border-radius:5px;background:#fff}
 .topbar .business-brand strong{display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;line-height:1.2}
@@ -2600,68 +2600,6 @@ body > main{padding:22px 22px 64px}
 .page-head h2,.page-head h3,#payroll-panel-settings .page-head h2{font-weight:600;color:#333}
 .page-head p,#view-create .page-head p{font-size:11px!important;color:#76838b!important}
 
-.card,#payroll-panel-settings .card,.metric{
-  border:1px solid #d2d9dd!important;
-  border-radius:3px!important;
-  background:#fff;
-  box-shadow:none!important;
-}
-.card,#payroll-panel-settings .card{padding:15px!important;margin-bottom:14px!important}
-.card-title{padding-bottom:8px;gap:10px}
-.card-title h2,.card-title h3,.card>h2,.card>h3,.help h2{font-size:14px;font-weight:600;color:#333}
-.hint{font-size:11px;color:#7b878e}
-
-/* Reference-style compact buttons and controls. */
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea{
-  min-height:34px;
-  padding:7px 9px;
-  border-color:#cbd3d8;
-  border-radius:2px;
-  font-size:12px;
-  background:#fff;
-}
-textarea{min-height:76px}
-label{font-size:11px;font-weight:600;color:#59666e}
-.primary,.secondary,.danger,.send-unsent,.send-sent,.mini-btn,.actions button,.head-actions button,.row-actions button{
-  min-height:32px;
-  padding:7px 11px;
-  border-radius:2px!important;
-  font-size:11px;
-  font-weight:600;
-  box-shadow:none!important;
-}
-.primary{background:#2f8dbc;border-color:#267ca6}
-.primary:hover{background:#277fa9}
-.secondary{background:#fff;border-color:#cbd3d8;color:#397491}
-.secondary:hover{background:#f5f8f9;border-color:#aebbc3}
-.compact-btn,.row-actions button,.quote-list-actions button{min-height:28px!important;padding:5px 8px!important;font-size:10px!important}
-
-.actions{margin-top:16px}
-.form-grid{gap:10px 14px}
-.filters,.report-date-grid,.expense-filters,.expense-report-controls{gap:10px}
-.settings-grid,.summary-grid,.expense-dashboard-grid,.report-widget-grid{gap:12px}
-
-/* Dashboard metrics resemble the strong-number tiles in the first reference. */
-.metric{padding:14px;text-align:left}
-.metric span,.metric small{font-size:10px;color:#687780}
-.metric strong{margin-top:6px;font-size:25px;font-weight:700;color:#111;letter-spacing:-.02em}
-
-/* Crisp accounting tables, compact headers and subtle zebra/hover treatment. */
-.table-card{padding:0!important}
-.table-card>.card-title{padding:13px 14px 8px}
-.table-scroll th,.table-scroll td{padding:8px 9px;font-size:11px;line-height:1.3}
-.table-scroll th{
-  background:#f6f7f8;
-  color:#6d777e;
-  font-size:10px;
-  font-weight:600;
-  letter-spacing:0;
-  text-transform:none;
-  border-bottom:1px solid #ccd4d8;
-}
-.table-scroll tbody tr:nth-child(even){background:#fbfbfb}
-.table-scroll tbody tr:hover{background:#f3f8fb}
-
 /* Reporting canvas: pale-blue dashboard field and clean white chart tiles. */
 #report-panel-sales,#report-panel-expenses,#report-panel-payroll{background:#dff1fb;border:1px solid #c6e3f3;padding:12px;border-radius:3px}
 #report-panel-sales .card,#report-panel-expenses .card,#report-panel-payroll .card{
@@ -2952,7 +2890,7 @@ label{font-size:11px;font-weight:600;color:#59666e}
 @media(max-width:320px){.bank-recon-secondary-actions,.bank-recon-book-actions{grid-template-columns:1fr}}
 
 /* V61.43.1 Finlo branding only */
-.finlo-auth-logo{width:46px;height:46px;object-fit:cover;border-radius:10px}
+.auth-brand picture{display:block;flex:0 0 auto}.finlo-auth-logo{width:46px;height:46px;object-fit:cover;border-radius:10px}
 .app-version{position:fixed;left:14px;bottom:8px;z-index:15;font-size:11px;color:#74838d;pointer-events:none}
 body.auth-locked .app-version{display:none}
 @media(max-width:760px){.app-version{left:10px;bottom:6px;font-size:10px}}

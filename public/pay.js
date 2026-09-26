@@ -9,7 +9,7 @@
     return String(value ?? '').replace(/[&<>"']/g, (match) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[match] || match));
   }
   function money(value) {
-    try { return new Intl.NumberFormat('en-NZ', { style: 'currency', currency: String(details?.currency || 'nzd').toUpperCase() }).format(Number(value || 0)); } catch { return `${String(details?.currency || 'NZD').toUpperCase()} ${Number(value || 0).toFixed(2)}`; }
+    return window.FinloCore.format.money(value,{currency:String(details?.currency||'NZD').toUpperCase(),locale:'en-NZ'});
   }
   function showMessage(message, kind = 'error') {
     const el = $('paymentMessage');

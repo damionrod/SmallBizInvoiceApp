@@ -4,11 +4,11 @@
   const business=()=>window.SAAS?.state?.business;
   const num=v=>Number(v)||0;
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  const money=n=>{const code=String(window.invoiceAppHelpers?.settings?.()?.currency||'NZD').toUpperCase();try{return new Intl.NumberFormat(undefined,{style:'currency',currency:code,currencyDisplay:'code'}).format(num(n))}catch{return `${code} ${num(n).toFixed(2)}`}};
+  const money=n=>window.FinloCore.format.money(n,{currency:String(window.invoiceAppHelpers?.settings?.()?.currency||'NZD').toUpperCase(),locale:undefined,currencyDisplay:'code'});
   const human=s=>String(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
   const STATUS={draft:'Draft',estimated:'Estimated',quoted:'Quoted',approved_won:'Approved / Won',in_progress:'In Progress',completed:'Completed',cancelled:'Cancelled'};
   const state={currentJobId:null,lastSummary:new Map(),detail:null};
-  function toast(s){const t=$('toast');if(t){t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}else alert(s)}
+  function toast(s){window.FinloCore.ui.toast(s,{duration:2800})}
   function navAvailable(id){const el=$(id);return !!el && !el.hidden && el.dataset.entitlementBlocked!=='1'}
   function statusBadge(s){return `<span class="quote-status status-${esc(s)}">${esc(STATUS[s]||human(s))}</span>`}
   function estimateSnapshot(job){return job.original_estimate_snapshot||job.current_estimate_snapshot||job.costing_snapshot||{} }

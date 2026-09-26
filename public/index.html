@@ -9,10 +9,10 @@
   <meta name="apple-mobile-web-app-title" content="Frindly" />
   <title>Frindly</title>
   <link rel="stylesheet" href="styles-core.css?v=61.72A" />
-  <link rel="stylesheet" href="styles.css?v=61.90t-payday-choice" />
+  <link rel="stylesheet" href="styles.css?v=61.97-performance-fixes" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.53" />
   <script src="app-config.js?v=61.79D-production-config-20260921"></script>
-  <script src="finlo-core.js?v=61.72A"></script>
+  <script src="finlo-core.js?v=61.97-performance-fixes"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
@@ -22,7 +22,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand brand-shell"><a class="product-brand" id="frindlyBrandLink" href="#dashboard" aria-label="Frindly Dashboard"><img src="frindly-logo.png" alt="Frindly logo"></a><div class="business-brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Business</strong><span id="activeBusinessIndicator">Business</span></div></div></div><button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-expanded="false" aria-controls="primaryNav">Menu</button>
+    <div class="brand brand-shell"><a class="product-brand" id="frindlyBrandLink" href="#dashboard" aria-label="Frindly Dashboard"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly logo"></picture></a><div class="business-brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Business</strong><span id="activeBusinessIndicator">Business</span></div></div></div><button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-expanded="false" aria-controls="primaryNav">Menu</button>
     <nav aria-label="Primary navigation" id="primaryNav"><button class="nav-btn" data-view="dashboard" id="dashboardNav" type="button">Dashboard</button><button class="nav-btn module-nav" data-view="schedule" id="scheduleNav" type="button" hidden>Schedule</button><button class="nav-btn referral-shortcut" id="referralShortcut" type="button" hidden>Share the love & Save</button><button class="nav-btn module-nav" data-view="jobcosting" id="jobCostingNav" hidden>Job Costing</button><button class="nav-btn active" data-module="invoicing">Invoices</button><button class="nav-btn module-nav" data-view="expenses" id="expensesNav" hidden>Expenses</button><button class="nav-btn module-nav" data-view="stock-equipment" id="stockEquipmentNav" hidden>Stock &amp; Equipment</button><button class="nav-btn module-nav" data-view="payroll" id="payrollNav" hidden>Payroll</button><button class="nav-btn module-nav" data-view="bankreconciliation" id="bankReconciliationNav" hidden>Banking</button><button class="nav-btn module-nav" data-view="financials" id="financialsNav" hidden>Financials</button><button class="nav-btn" data-view="reports">Reports</button><button class="account-chip" id="accountChip" type="button" title="Account" aria-label="Open account menu"><span id="accountInitials">A</span></button></nav>
   </header>
   <div class="account-popover" id="accountPopover" hidden>
@@ -39,7 +39,7 @@
   </div>
   <section class="onboarding-shell" id="onboardingShell" hidden aria-label="Frindly setup">
     <div class="onboarding-card">
-      <div class="onboarding-top"><div class="auth-brand"><img class="finlo-auth-logo" src="frindly-logo.png" alt="Frindly"><div><strong>Frindly</strong><span>Quick setup</span></div></div><span id="onboardingProgress">1 of 5</span></div>
+      <div class="onboarding-top"><div class="auth-brand"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img class="finlo-auth-logo" src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly"></picture><div><strong>Frindly</strong><span>Quick setup</span></div></div><span id="onboardingProgress">1 of 5</span></div>
       <div class="onboarding-progress"><span id="onboardingBar"></span></div>
       <div id="onboardingBody"></div>
     </div>
@@ -676,7 +676,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
 
   <div class="auth-shell" id="authShell">
     <div class="auth-card">
-      <div class="auth-brand"><img class="finlo-auth-logo" src="frindly-logo.png" alt="Frindly"><div><strong>Frindly</strong><span>Simple business management</span></div></div>
+      <div class="auth-brand"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img class="finlo-auth-logo" src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly"></picture><div><strong>Frindly</strong><span>Simple business management</span></div></div>
       <div class="auth-tabs"><button class="active" data-auth-tab="login">Log in</button><button data-auth-tab="signup">Create account</button></div>
       <form id="loginForm" class="auth-form">
         <h1>Welcome back</h1><p>Log in to access your business from any device.</p>
@@ -840,7 +840,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="app-version">© 2026 Finlo · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="referrals.js?v=61.70G"></script>
-  <script src="saas.js?v=61.90u-auth-hang-fix"></script>
+  <script src="saas.js?v=61.97-performance-fixes"></script>
   <script src="stock-equipment.js?v=61.90f-inline-review"></script>
   <link rel="stylesheet" href="stock-equipment.css?v=61.90f-inline-review" />
   <link rel="stylesheet" href="purchase-review.css?v=61.90g-discounts" />

@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[m]));
 const D={businessId:null,loading:false,token:0};const c=()=>window.SAAS?.client?.(),bid=()=>window.SAAS?.currentBusinessId?.();
 const timezone=()=>String(window.SAAS?.state?.business?.settings?.timezone||window.SAAS?.state?.business?.timezone||'Pacific/Auckland');
-const money=n=>new Intl.NumberFormat(undefined,{style:'currency',currency:String(window.SAAS?.state?.business?.settings?.currency||'NZD'),maximumFractionDigits:0}).format(Number(n));
+const money=n=>window.FinloCore.format.money(n,{currency:String(window.SAAS?.state?.business?.settings?.currency||'NZD'),locale:undefined,maximumFractionDigits:0,minimumFractionDigits:0});
 function zoneDate(value=new Date()){const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:timezone(),year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(value).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`}
 function monthStart(){return `${zoneDate().slice(0,7)}-01`}
 function unavailable(reason='Data unavailable'){return `<strong class="metric-unavailable">—</strong><small>${esc(reason)}</small><span class="metric-retry" data-dashboard-retry>Retry</span>`}

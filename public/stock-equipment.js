@@ -1,7 +1,7 @@
 /* Stock & Equipment: simple operational register. Expenses stays the source of truth. */
 (()=>{'use strict';
 const q=id=>document.getElementById(id), E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=n=>`$${Number(n||0).toLocaleString('en-NZ',{minimumFractionDigits:2,maximumFractionDigits:2})}`, num=n=>Number(n||0), today=()=>new Date().toISOString().slice(0,10);
+const money=n=>window.FinloCore.format.money(n,{currency:String(window.SAAS?.state?.business?.settings?.currency||'NZD'),locale:'en-NZ'}), num=n=>Number(n||0), today=()=>new Date().toISOString().slice(0,10);
 const state={bid:null,tab:'overview',items:[],assets:[],movements:[],activity:[],selected:null,mode:null,lookupInvoices:[],lookupJobs:[],chosenInvoice:null};
 const api=()=>window.SAAS?.client?.(), bid=()=>window.SAAS?.currentBusinessId?.(), write=()=>window.SAAS?.canWriteArea?.('expenses')===true;
 function message(t){const el=q('seAccessMessage');if(el){el.hidden=!t;el.textContent=t||''}}

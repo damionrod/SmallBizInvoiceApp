@@ -9,14 +9,13 @@ const toast=s=>window.toast?window.toast(s):console.log(s);
 const businessCurrency=()=>String(state.business?.settings?.currency||state.settings?.currency||'NZD').toUpperCase();
 const businessCountry=()=>String(state.business?.settings?.country||'NZ').toUpperCase();
 const countryName=()=>businessCountry()==='AU'?'Australia':'New Zealand';
-const money=n=>{const currency=businessCurrency();try{return new Intl.NumberFormat(undefined,{style:'currency',currency}).format(num(n))}catch{return `${currency} ${num(n).toFixed(2)}`}};
+const money=n=>window.FinloCore.format.money(n,{currency:businessCurrency(),locale:undefined});
 const round2=n=>Math.round((num(n)+Number.EPSILON)*100)/100;
 const iso=d=>{const x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
 const ddmmyyyy=s=>{if(!s)return'';const [y,m,d]=String(s).slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:''};
 const within=(d,from,to)=>d&&String(d).slice(0,10)>=from&&String(d).slice(0,10)<=to;
-function csvSafe(v){let s=String(v??'');if(/^[=+@]/.test(s)||(/^-/).test(s)&&!/^-[0-9.]+$/.test(s))s="'"+s;return `"${s.replace(/"/g,'""')}"`}
-function csv(rows){return '\ufeff'+rows.map(r=>r.map(csvSafe).join(',')).join('\r\n')}
-function downloadBlob(name,blob){const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+function csv(rows){return window.FinloCore.csv.rowsToCsv(rows,{bom:true})}
+function downloadBlob(name,blob){window.FinloCore.csv.downloadBlob(name,blob)}
 function downloadCsv(name,rows){downloadBlob(name,new Blob([csv(rows)],{type:'text/csv;charset=utf-8'}))}
 function currentRange(){return{from:q('accountantFrom')?.value||iso(new Date(new Date().getFullYear(),0,1)),to:q('accountantTo')?.value||iso(new Date())}}
 function firstContact(c){const a=Array.isArray(c?.contacts)?c.contacts:[];return a.find(x=>x?.billing)||a[0]||{}}
