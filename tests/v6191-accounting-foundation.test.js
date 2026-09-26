@@ -57,6 +57,14 @@ test('v6192 posting engine is explicit, balanced and idempotent',()=>{
   assert.doesNotMatch(sql,/delete from public\.accounting_journal/i);
 });
 
+test('v6192b posting hotfix skips zero value invoices',()=>{
+  const sql=fs.readFileSync('supabase/migrations/20260926181500_v6192b_skip_zero_value_invoices.sql','utf8');
+  assert.match(sql,/Zero-dollar invoices are valid operational records/);
+  assert.match(sql,/round\(coalesce\(i\.total,0\),2\) > 0/);
+  assert.match(sql,/create or replace function public\.v6192_post_operational_ledger/);
+  assert.doesNotMatch(sql,/update public\.(invoices|expenses|customer_payments|expense_payments)\b/i);
+});
+
 test('accountant centre exposes manual ledger posting with confirmation',()=>{
   const html=fs.readFileSync('public/index.html','utf8');
   const js=fs.readFileSync('public/accountant-centre.js','utf8');
