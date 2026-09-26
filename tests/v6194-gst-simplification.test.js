@@ -17,7 +17,8 @@ test('GST simplification keeps existing calculation, export and finalise hooks',
  assert.match(js,/function gstExportRows/);
  assert.match(js,/function downloadCsvRows/);
  assert.match(js,/function exportGstPdf/);
- assert.match(js,/periodCard\.hidden=tab==='gst'/);
+ assert.match(js,/function syncFinancialPeriodCard/);
+ assert.match(js,/state\.activeTab==='gst'/);
  assert.match(js,/Sales included/);
  assert.match(js,/Expenses included/);
  assert.match(js,/q\('finGstCsv'\)\.onclick=\(\)=>downloadCsvRows/);
@@ -35,7 +36,7 @@ test('GST UX pass keeps one active period selector and de-emphasises setup field
  assert.match(html,/class="card financial-gst-period-card"/);
  assert.match(html,/class="gst-filing-note"/);
  assert.doesNotMatch(html,/summary-grid gst-period-summary/);
- assert.match(js,/periodCard\.hidden=tab==='gst'/);
+ assert.match(js,/syncFinancialPeriodCard\(\);if\(!state\.businessId\)return/);
  assert.match(js,/function renderGstChecklist/);
  assert.match(js,/data-gst-show-checks/);
  assert.match(js,/All checks passed/);
