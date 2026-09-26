@@ -4031,3 +4031,4 @@ button[aria-busy="true"]::after{content:"";width:14px;height:14px;margin-left:8p
   #mobileMenuBtn{display:none!important}
   body.mobile-nav-open{overflow:auto!important}
 }
+\n/* v61.99B Phase 1 portrait activation hardening — navigation only. */\n@media (max-width:760px){\n  #mobileMenuBtn{isolation:isolate!important;cursor:pointer!important;user-select:none!important;-webkit-user-select:none!important;}\n  .topbar>.brand{position:relative!important;z-index:1!important;overflow:hidden!important;}\n  .topbar>#mobileMenuBtn{position:relative!important;z-index:10001!important;flex:none!important;}\n}\n
