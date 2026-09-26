@@ -40,3 +40,29 @@ test('v6191b metadata migration enriches existing chart without changing ledger 
   assert.doesNotMatch(sql,/\n\s*account_type\s*=/i);
   assert.doesNotMatch(sql,/insert into public\.accounting_journal_lines/i);
 });
+
+test('v6192 posting engine is explicit, balanced and idempotent',()=>{
+  const sql=fs.readFileSync('supabase/migrations/20260926175500_v6192_posting_engine.sql','utf8');
+  assert.match(sql,/create or replace function public\.v6192_post_operational_ledger/);
+  assert.match(sql,/v6192_create_posted_journal/);
+  assert.match(sql,/v6169a_accountant_centre_access\(v_business_id, true\)/);
+  assert.match(sql,/not exists \(\s*select 1 from public\.accounting_journals j[\s\S]+j\.source_type = 'invoice'/);
+  assert.match(sql,/j\.source_type = 'customer_payment'/);
+  assert.match(sql,/j\.source_type = 'expense'/);
+  assert.match(sql,/j\.source_type = 'supplier_payment'/);
+  assert.match(sql,/j\.source_type = 'depreciation'/);
+  assert.match(sql,/Posted journal must have at least two balanced lines/);
+  assert.match(sql,/status = 'posted'/);
+  assert.doesNotMatch(sql,/update public\.(invoices|expenses|customer_payments|expense_payments)\b/i);
+  assert.doesNotMatch(sql,/delete from public\.accounting_journal/i);
+});
+
+test('accountant centre exposes manual ledger posting with confirmation',()=>{
+  const html=fs.readFileSync('public/index.html','utf8');
+  const js=fs.readFileSync('public/accountant-centre.js','utf8');
+  assert.match(html,/postAccountingLedger/);
+  assert.match(html,/Post Accounting Ledger/);
+  assert.match(js,/rpc\('v6192_post_operational_ledger'/);
+  assert.match(js,/confirm\(`Post accounting journals/);
+  assert.match(js,/Already posted source records are skipped|Posted \$\{num\(x\.posted\)\} journals/);
+});
