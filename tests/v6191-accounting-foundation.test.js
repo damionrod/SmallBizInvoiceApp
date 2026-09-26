@@ -11,6 +11,8 @@ test('accountant pack includes Xero-ready chart and mapping evidence',()=>{
   assert.match(source,/accounting_source_mappings'\)\.select\('\*'\)/);
   assert.match(source,/v6191_seed_default_chart/);
   assert.match(source,/renderSourceMappings/);
+  assert.match(source,/income','revenue','other_income/);
+  assert.match(source,/asset','current_asset/);
   assert.match(source,/PGRST205/);
   assert.match(source,/Migration required/);
   assert.match(source,/Apply the accounting foundation migration in Supabase first/);
@@ -20,9 +22,21 @@ test('v6191 accounting foundation is non-posting and uses business settings acce
   const sql=fs.readFileSync('supabase/migrations/20260926163000_v6191_accounting_foundation_xero_ready.sql','utf8');
   assert.match(sql,/create table if not exists public\.accounting_accounts/);
   assert.match(sql,/create or replace function public\.v6191_seed_default_chart/);
+  assert.match(sql,/'asset','liability','revenue','other_income','other_expense'/);
+  assert.match(sql,/accounting_accounts_account_type_check/);
+  assert.match(sql,/where not exists \(/);
   assert.match(sql,/v6147_can_write_area\(business_id,'business_settings'\)/);
   assert.match(sql,/with \(security_invoker = true\)/);
   assert.match(sql,/a\.business_id = public\.current_business_id\(\)/);
   assert.doesNotMatch(sql,/insert into public\.accounting_journal_lines/i);
   assert.doesNotMatch(sql,/update public\.(expenses|invoices|gst_returns|se_items|se_assets)\b/i);
+});
+
+test('v6191b metadata migration enriches existing chart without changing ledger type',()=>{
+  const sql=fs.readFileSync('supabase/migrations/20260926164000_v6191b_enrich_existing_chart_metadata.sql','utf8');
+  assert.match(sql,/metadata-only/i);
+  assert.match(sql,/report_section = d\.report_section/);
+  assert.match(sql,/xero_account_type = coalesce/);
+  assert.doesNotMatch(sql,/\n\s*account_type\s*=/i);
+  assert.doesNotMatch(sql,/insert into public\.accounting_journal_lines/i);
 });
