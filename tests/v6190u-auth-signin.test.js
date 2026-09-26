@@ -29,7 +29,7 @@ function harness(fail=false){
     window:{supabase:{createClient:()=>({auth})}},document:{body:{classList:{add(){}}},querySelectorAll:()=>[]},
     location:{reload:()=>{reloads++}},setTimeout,console:{error:()=>{}},
     loadSignupPlans:async()=>{},prepareInviteMode:async()=>{},switchAuthTab:()=>{},
-    message:(msg)=>messages.push(msg),enter:async()=>{entries++;await unlocked;state.loadedApp=true}
+    message:(msg)=>messages.push(msg),syncGoogleAuthButtons:()=>{},enter:async()=>{entries++;await unlocked;state.loadedApp=true}
   };
   const initSource=source.slice(source.indexOf('  async function init(){'),source.indexOf('  function switchAuthTab('));
   const formSource=source.slice(source.indexOf('  function bindAuthUI(){'),source.indexOf("    q('signupForm').onsubmit=async e=>"))+'  }';

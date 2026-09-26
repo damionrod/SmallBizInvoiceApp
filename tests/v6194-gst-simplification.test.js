@@ -31,3 +31,15 @@ test('GST redesign has mobile-specific compact transaction rows',()=>{
  assert.match(css,/gst-segmented/);
  assert.match(css,/@media\(max-width:720px\).*gst-transaction-table/s);
 });
+test('GST UX pass keeps one active period selector and de-emphasises setup fields',()=>{
+ assert.match(html,/class="card financial-gst-period-card"/);
+ assert.match(html,/class="gst-filing-note"/);
+ assert.doesNotMatch(html,/summary-grid gst-period-summary/);
+ assert.match(js,/periodCard\.hidden=tab==='gst'/);
+ assert.match(js,/function renderGstChecklist/);
+ assert.match(js,/data-gst-show-checks/);
+ assert.match(js,/All checks passed/);
+ assert.match(css,/notice\.notice-strong/);
+ assert.match(css,/gst-check-summary/);
+ assert.match(css,/gst-filing-note/);
+});
