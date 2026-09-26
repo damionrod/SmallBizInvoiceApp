@@ -4032,27 +4032,7 @@ button[aria-busy="true"]::after{content:"";width:14px;height:14px;margin-left:8p
   body.mobile-nav-open{overflow:auto!important}
 }
 
-/* v61.99C Phase 1 — portrait navigation final isolation. */
-@media (max-width:760px){
-  .topbar{overflow:visible!important;}
-  #mobileMenuBtn{isolation:isolate!important;cursor:pointer!important;user-select:none!important;-webkit-user-select:none!important;}
-  .topbar>.brand{position:relative!important;z-index:1!important;overflow:hidden!important;pointer-events:auto!important;}
-  .topbar>#mobileMenuBtn{position:relative!important;z-index:10001!important;flex:none!important;pointer-events:auto!important;}
-  #primaryNav{contain:none!important;transform:none!important;}
-}
-
-/* v61.99C Phase 1 — native portrait menu activation fallback.
-   The checkbox is the authoritative open/closed state on phone widths. */
-.mobile-nav-toggle{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;clip-path:inset(50%)!important}
-@media (max-width:760px){
-  .topbar{overflow:visible!important}
-  #mobileMenuBtn{isolation:isolate!important;cursor:pointer!important;user-select:none!important;-webkit-user-select:none!important;pointer-events:auto!important}
-  .topbar>.brand{position:relative!important;z-index:1!important;overflow:hidden!important}
-  .topbar>#mobileMenuBtn{position:relative!important;z-index:10001!important;flex:none!important}
-  #mobileNavToggle:not(:checked) ~ #primaryNav{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-  #mobileNavToggle:checked ~ #primaryNav{display:grid!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
-}
-@media (min-width:761px){.mobile-nav-toggle{display:none!important}}
+/* v61.99G: removed obsolete v61.99C checkbox/duplicate portrait navigation rules. */
 
 /* ============================================================
    v61.99D PHASE 1+2 — portrait navigation + common mobile shell

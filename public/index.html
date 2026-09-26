@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Frindly" />
   <title>Frindly</title>
-  <link rel="stylesheet" href="styles-core.css?v=61.99F-phase5" />
-  <link rel="stylesheet" href="styles.css?v=61.99F-phase5" />
-  <link rel="stylesheet" href="frontend-quality.css?v=61.99F-phase5" />
-  <script defer src="mobile-shell.js?v=61.99F-phase5"></script>
+  <link rel="stylesheet" href="styles-core.css?v=61.99G-nav-rootcause" />
+  <link rel="stylesheet" href="styles.css?v=61.99G-nav-rootcause" />
+  <link rel="stylesheet" href="frontend-quality.css?v=61.99G-nav-rootcause" />
+  <script defer src="mobile-shell.js?v=61.99G-nav-rootcause"></script>
   <script src="app-config.js?v=61.98B-google-auth-guard"></script>
   <script src="finlo-core.js?v=61.97-performance-fixes"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,7 +23,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand brand-shell"><a class="product-brand" id="frindlyBrandLink" href="#dashboard" aria-label="Frindly Dashboard"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly logo"></picture></a><div class="business-brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Business</strong><span id="activeBusinessIndicator">Business</span></div></div></div><button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-expanded="false" aria-controls="primaryNav">Menu</button>
+    <div class="brand brand-shell"><a class="product-brand" id="frindlyBrandLink" href="#dashboard" aria-label="Frindly Dashboard"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly logo"></picture></a><div class="business-brand"><img id="brandLogo" alt="Business logo"><div><strong id="brandCompanyName">Business</strong><span id="activeBusinessIndicator">Business</span></div></div></div><button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-expanded="false" aria-controls="primaryNav" onclick="if(window.FrindlyMobileNav){window.FrindlyMobileNav.toggle(event)}else{event.preventDefault();event.stopPropagation();document.body.classList.toggle('mobile-nav-open');this.setAttribute('aria-expanded',document.body.classList.contains('mobile-nav-open')?'true':'false')}">Menu</button>
     <nav aria-label="Primary navigation" id="primaryNav"><button class="nav-btn" data-view="dashboard" id="dashboardNav" type="button">Dashboard</button><button class="nav-btn module-nav" data-view="schedule" id="scheduleNav" type="button" hidden>Schedule</button><button class="nav-btn referral-shortcut" id="referralShortcut" type="button" hidden>Share the love & Save</button><button class="nav-btn module-nav" data-view="jobcosting" id="jobCostingNav" hidden>Job Costing</button><button class="nav-btn active" data-module="invoicing">Invoices</button><button class="nav-btn module-nav" data-view="expenses" id="expensesNav" hidden>Expenses</button><button class="nav-btn module-nav" data-view="stock-equipment" id="stockEquipmentNav" hidden>Stock &amp; Equipment</button><button class="nav-btn module-nav" data-view="payroll" id="payrollNav" hidden>Payroll</button><button class="nav-btn module-nav" data-view="bankreconciliation" id="bankReconciliationNav" hidden>Banking</button><button class="nav-btn module-nav" data-view="financials" id="financialsNav" hidden>Financials</button><button class="nav-btn" data-view="reports">Reports</button><button class="account-chip" id="accountChip" type="button" title="Account" aria-label="Open account menu"><span id="accountInitials">A</span></button></nav>
   </header>
   <div class="account-popover" id="accountPopover" hidden>
