@@ -59,6 +59,55 @@
     q('loginPassword')?.focus();
   }
 
+  function oauthRedirectUrl(){
+    const fallback=publicAppUrl()||location.origin;
+    try{
+      const u=new URL(fallback);
+      const current=new URLSearchParams(location.search);
+      for(const key of ['invite','ref','rid']){
+        const value=current.get(key);
+        if(value)u.searchParams.set(key,value);
+      }
+      return u.toString();
+    }catch{return fallback}
+  }
+
+  function selectedSignupPlan(){
+    return state.inviteToken?'invite':(q('signupPlan')?.value||'trial');
+  }
+
+  function selectedSignupBillingInterval(){
+    return q('signupBillingAnnual')?.classList.contains('active')?'annual':'monthly';
+  }
+
+  async function signInWithGoogle(mode){
+    if(!state.client)return message('Application cloud configuration is missing.','error');
+    const isSignup=mode==='signup';
+    let selectedPlan='trial',selectedBillingInterval='monthly';
+    if(isSignup){
+      selectedPlan=selectedSignupPlan();
+      selectedBillingInterval=selectedSignupBillingInterval();
+      if(!selectedPlan){message('Choose a subscription plan first.','error');return}
+      if(!state.inviteToken&&!q('signupBusiness')?.value.trim()){message('Enter your business name before signing up with Google.','error');q('signupBusiness')?.focus();return}
+      if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({planSlug:selectedPlan,billingInterval:selectedBillingInterval});
+    }
+    const btn=q(isSignup?'googleSignupBtn':'googleLoginBtn'),old=btn?.textContent;
+    if(btn){btn.disabled=true;btn.textContent='Opening Google…'}
+    message(isSignup?'Opening Google sign up…':'Opening Google sign in…');
+    const {error}=await state.client.auth.signInWithOAuth({
+      provider:'google',
+      options:{
+        redirectTo:oauthRedirectUrl(),
+        queryParams:{prompt:'select_account'}
+      }
+    });
+    if(error){
+      if(isSignup)clearPendingSignupCheckout();
+      if(btn){btn.disabled=false;btn.textContent=old}
+      message(error.message||'Google sign in is not available yet. Check Supabase Google provider setup.','error');
+    }
+  }
+
   async function getCheckoutAvailability(force=false){
     if(!state.client)return false;
     if(!force&&typeof state.checkoutAvailable==='boolean')return state.checkoutAvailable;
@@ -81,8 +130,8 @@
     };
     q('signupForm').onsubmit=async e=>{
       e.preventDefault();
-      const selectedPlan=state.inviteToken?'invite':(q('signupPlan')?.value||'trial');
-      const selectedBillingInterval=q('signupBillingAnnual')?.classList.contains('active')?'annual':'monthly';
+      const selectedPlan=selectedSignupPlan();
+      const selectedBillingInterval=selectedSignupBillingInterval();
       const submit=q('signupSubmitBtn');
       if(!selectedPlan){message('Choose a subscription plan first.','error');return}
       if(submit){submit.disabled=true;submit.textContent=selectedPlan==='trial'?'Creating account…':'Creating account…'}
@@ -112,6 +161,8 @@
         message(state.inviteToken?'Account created for the invited business. Check your email to confirm your address, then log in.':(selectedPlan==='trial'?'Account created. Check your email to confirm your address, then log in.':'Account created. Confirm your email, then log in to continue to secure Stripe payment.'),'success');
       }
     };
+    if(q('googleLoginBtn'))q('googleLoginBtn').onclick=()=>signInWithGoogle('login');
+    if(q('googleSignupBtn'))q('googleSignupBtn').onclick=()=>signInWithGoogle('signup');
     q('forgotPasswordBtn').onclick=async()=>{
       const email=q('loginEmail').value.trim(); if(!email)return message('Enter your email address first.','error');
       const {error}=await state.client.auth.resetPasswordForEmail(email,{redirectTo:location.origin});

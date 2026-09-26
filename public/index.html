@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="Frindly" />
   <title>Frindly</title>
   <link rel="stylesheet" href="styles-core.css?v=61.72A" />
-  <link rel="stylesheet" href="styles.css?v=61.97-performance-fixes" />
+  <link rel="stylesheet" href="styles.css?v=61.98-google-auth" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.53" />
   <script src="app-config.js?v=61.79D-production-config-20260921"></script>
   <script src="finlo-core.js?v=61.97-performance-fixes"></script>
@@ -680,12 +680,14 @@ Please find attached quote {quoteNumber}."></textarea></label>
       <div class="auth-tabs"><button class="active" data-auth-tab="login">Log in</button><button data-auth-tab="signup">Create account</button></div>
       <form id="loginForm" class="auth-form">
         <h1>Welcome back</h1><p>Log in to access your business from any device.</p>
+        <button class="oauth-btn google-btn" id="googleLoginBtn" type="button"><span aria-hidden="true">G</span> Continue with Google</button><div class="auth-divider"><span>or</span></div>
         <label>Email<input id="loginEmail" type="email" required autocomplete="email"></label><label>Password<input id="loginPassword" type="password" required autocomplete="current-password"></label>
         <button class="primary" type="submit">Log in</button><button class="auth-link" id="forgotPasswordBtn" type="button">Forgot password?</button>
       </form>
       <form id="signupForm" class="auth-form" hidden>
         <h1>Create your account</h1><p>Choose a subscription, then set up your business. Trial accounts start immediately; paid plans continue to secure online checkout.</p><div class="billing-toggle" aria-label="Billing frequency"><button type="button" class="active" id="signupBillingMonthly">Monthly</button><button type="button" id="signupBillingAnnual">Annual</button></div>
         <div class="form-grid compact"><label>Your name<input id="signupName" required></label><label>Business name<input id="signupBusiness" required></label><label>Email<input id="signupEmail" type="email" required autocomplete="email"></label><label>Password<input id="signupPassword" type="password" minlength="8" required autocomplete="new-password"></label><label class="wide">Subscription plan<select id="signupPlan" required><option value="">Loading plans…</option></select><small id="signupPlanSummary">Choose the plan that suits your business.</small></label></div>
+        <button class="oauth-btn google-btn" id="googleSignupBtn" type="button"><span aria-hidden="true">G</span> Sign up with Google</button><div class="auth-divider"><span>or use email</span></div>
         <button class="primary" id="signupSubmitBtn" type="submit">Create account</button><button class="auth-link" id="alreadyAccountBtn" type="button">Already have an account? Log in</button><small>By creating an account you agree to the service terms and privacy policy.</small>
       </form>
       <div class="auth-message" id="authMessage"></div>
@@ -840,7 +842,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="app-version">© 2026 Finlo · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="referrals.js?v=61.70G"></script>
-  <script src="saas.js?v=61.97-performance-fixes"></script>
+  <script src="saas.js?v=61.98-google-auth"></script>
   <script src="stock-equipment.js?v=61.90f-inline-review"></script>
   <link rel="stylesheet" href="stock-equipment.css?v=61.90f-inline-review" />
   <link rel="stylesheet" href="purchase-review.css?v=61.90g-discounts" />
