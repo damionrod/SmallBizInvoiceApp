@@ -36,3 +36,21 @@
 
 .se-topline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.se-topline>div{border:1px solid #d6e1ea;background:#fff;border-radius:10px;padding:13px;min-width:0}.se-topline span,.se-topline strong{display:block}.se-topline span{font-size:.82rem;color:#556778}.se-topline strong{font-size:1.22rem;margin-top:6px}.se-summary small,.se-summary em{display:block;color:#53677b;margin-top:5px;font-style:normal}.se-panel h2{margin:18px 0 8px}.se-table-wrap{width:100%;overflow-x:auto;border:1px solid #d5e1eb;border-radius:12px;background:#fff;margin:12px 0}.se-table{width:100%;border-collapse:collapse;min-width:900px}.se-table th,.se-table td{padding:11px 12px;border-bottom:1px solid #edf1f5;text-align:left;vertical-align:top}.se-table th{font-size:.78rem;color:#53677b;background:#f6f9fc;white-space:nowrap}.se-table td strong,.se-table td small{display:block}.se-table td small{color:#53677b;margin-top:3px}.se-table tr:last-child td{border-bottom:0}.se-actions{display:flex;gap:6px;flex-wrap:wrap;min-width:180px}.se-actions button{min-height:36px;padding:7px 9px;border-radius:8px;border:1px solid #b8cbdc;background:#f4f9fd;color:#184a78;cursor:pointer}.se-form.wide{max-width:none}.se-form .form-grid.compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.se-form input[readonly]{background:#f5f8fb;color:#53677b}.se-table input,.se-table select{min-height:38px;border:1px solid #b8cbdc;border-radius:8px;padding:7px;box-sizing:border-box;width:100%;font:inherit}
 @media(max-width:760px){.se-topline{grid-template-columns:1fr}.se-summary{grid-template-columns:1fr}.se-form .form-grid.compact{grid-template-columns:1fr}.se-table{min-width:760px}.se-actions{min-width:150px}}
+
+/* v61.99W manual stock/consumable entry — scoped to Stock & Equipment only */
+#view-stock-equipment .se-toolbar .primary{margin-left:auto;background:#1672f3;color:#fff;border-color:#1672f3;font-weight:700}
+#view-stock-equipment .se-manual-item{max-width:760px;margin:10px 0 16px}
+#view-stock-equipment .se-form-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#view-stock-equipment .se-form-heading h3{margin:0 0 4px}
+#view-stock-equipment .se-form-heading p{font-size:12px;max-width:520px}
+#view-stock-equipment .se-form-heading button{flex:0 0 auto}
+#view-stock-equipment .se-manual-item .optional{font-weight:400;color:#7182a2;font-size:11px}
+#view-stock-equipment .se-form-actions{display:flex;justify-content:flex-end}
+#view-stock-equipment .se-form-actions .primary{background:#1672f3;color:#fff;border-color:#1672f3;font-weight:700}
+@media(max-width:550px){
+ #view-stock-equipment .se-toolbar{align-items:stretch}
+ #view-stock-equipment .se-toolbar .primary{width:100%;margin-left:0}
+ #view-stock-equipment .se-form-heading{flex-direction:column}
+ #view-stock-equipment .se-form-heading button{align-self:flex-start}
+ #view-stock-equipment .se-form-actions .primary{width:100%}
+}
