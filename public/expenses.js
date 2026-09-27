@@ -132,7 +132,8 @@
     if(pages.length>12||pages.some(f=>!AI_FILE_TYPES.has(f.type))){aiStatus('Unsupported pages','Choose up to 12 JPG, PNG, WEBP or PDF pages for one bill.','error');return}
     const sb=client();if(!sb){aiStatus('AI unavailable','AI scanning is temporarily unavailable. You can still enter the expense manually.','error');return}
     state.aiScanning=true;state.aiFile=pages[0];state.aiResultFile=null;state.aiResultFiles=null;renderAiPreview(pages[0]);aiStatus('Scanning all pages…',`Reading ${pages.length} page${pages.length===1?'':'s'} as one supplier bill.`,'loading');
-    if($('expTakePhoto'))$('expTakePhoto').disabled=true;if($('expUploadDoc'))$('expUploadDoc').disabled=true;
+    // Keep capture controls available while AI reads the current page set so mobile users can add page 2, 3, etc. immediately.
+    if($('expTakePhoto'))$('expTakePhoto').disabled=false;if($('expUploadDoc'))$('expUploadDoc').disabled=false;
     try{
       const documents=[];for(const file of pages){const optimised=await optimiseImage(file);documents.push({filename:file.name,mime_type:optimised.type||file.type,file_base64:await fileToBase64(optimised)})}
       if(documents.reduce((n,d)=>n+Math.floor(d.file_base64.length*3/4),0)>10*1024*1024)throw new Error('Together these pages exceed the 10 MB scan limit. Compress them or upload a smaller PDF.');
@@ -143,7 +144,7 @@
       // the reference lists before applying the result so the new supplier/category
       // can be selected immediately in the existing dropdowns.
       if((data.result?.matched_supplier_id&&!state.suppliers.some(s=>s.id===data.result.matched_supplier_id))||(data.result?.matched_category_id&&!state.categories.some(c=>c.id===data.result.matched_category_id)))await loadReferenceData();
-      if(generation!==state.aiScanGeneration||pages.length!==state.pendingFiles.length||pages.some((f,i)=>state.pendingFiles[i]!==f))throw new Error('Pages changed while scanning. Scanning the current set again.');
+      if(generation!==state.aiScanGeneration||pages.length!==state.pendingFiles.length||pages.some((f,i)=>state.pendingFiles[i]!==f))return;
       applyAiResult(data.result);state.aiResultFile=pages[0];state.aiResultFiles=pages;
       if(data.result?.page_warning)aiStatus('Check invoice pages',data.result.page_warning,'warn');
     }catch(e){
@@ -312,6 +313,6 @@
     if($('expenseSearch'))$('expenseSearch').oninput=renderBills;if($('expenseFrom'))$('expenseFrom').onchange=()=>{if($('expenseListRange'))$('expenseListRange').value='custom';renderBills()};if($('expenseTo'))$('expenseTo').onchange=()=>{if($('expenseListRange'))$('expenseListRange').value='custom';renderBills()};if($('expenseResetFilters'))$('expenseResetFilters').onclick=()=>{$('expenseSearch').value='';$('expenseListRange').value='this_month';syncExpenseListDates();renderBills()};if($('expenseBillsExportCsv'))$('expenseBillsExportCsv').onclick=exportBillsCsv;
     $('supplierSearch').oninput=renderSuppliers;$('addSupplierBtn').onclick=()=>openSupplierModal();$('addExpenseCategory').onclick=()=>addCategory(false);$('createBatchPayment').onclick=openBatch;if($('expenseChartRange'))$('expenseChartRange').onchange=renderDashboardCharts;if($('expenseReportRange'))$('expenseReportRange').onchange=runExpenseReport;if($('expenseReportFrom'))$('expenseReportFrom').onchange=runExpenseReport;if($('expenseReportTo'))$('expenseReportTo').onchange=runExpenseReport;if($('expenseExportCsv'))$('expenseExportCsv').onclick=exportCsv;}
 
-  async function init(){bind();await loadReferenceData();await loadExpenses();switchTab('bills')}
+  async function init(){if(state.init)return;bind();await loadReferenceData();await loadExpenses();switchTab('bills')}
   window.Expenses={init,onShow,switchTab,reviewBills:()=>state.expenses.filter(isRecordedExpense),showReport:async()=>{if(!state.init)await init();else{await loadReferenceData();await loadExpenses()}renderDashboard()},refresh:async()=>{await loadReferenceData();await loadExpenses();switchTab(state.activeTab)},openAddForJob:async(jobId)=>{if(!state.init)await init();else await loadReferenceData();await newExpense();if($('expJob'))$('expJob').value=jobId||''}};
 })();
