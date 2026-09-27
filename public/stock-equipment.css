@@ -68,3 +68,20 @@
   #view-stock-equipment .se-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;min-width:max-content}
   #view-stock-equipment .se-actions button{flex:0 0 auto;min-height:34px;padding:7px 9px;font-size:11px;white-space:nowrap}
 }
+
+/* v61.100U Stock & Equipment desktop width fit — presentation only.
+   Keep tracked-item lists within the module viewport like Invoices / Expenses,
+   so the list does not create a horizontal scrollbar. Mobile rules are unchanged. */
+@media (min-width:761px){
+  #view-stock-equipment .se-table-wrap{overflow-x:hidden}
+  #view-stock-equipment .se-table{width:100%;min-width:0;table-layout:fixed}
+  #view-stock-equipment .se-table th,
+  #view-stock-equipment .se-table td{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #view-stock-equipment .se-table th:first-child,
+  #view-stock-equipment .se-table td:first-child{width:22%}
+  #view-stock-equipment .se-table th:last-child,
+  #view-stock-equipment .se-table td:last-child{width:35%;overflow:visible;text-overflow:clip}
+  #view-stock-equipment .se-table td:not(:first-child):not(:last-child){font-size:12px}
+  #view-stock-equipment .se-actions{width:100%;min-width:0;gap:4px;justify-content:flex-start}
+  #view-stock-equipment .se-actions button{min-width:0;padding:6px 7px;font-size:10.5px}
+}
