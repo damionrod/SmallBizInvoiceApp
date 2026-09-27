@@ -5692,3 +5692,12 @@ tbody tr:last-child td{border-bottom:0!important}
     font-weight:400!important;
   }
 }
+
+/* v61.100Q REFERRAL SEND CONFIRMATION — feedback only. */
+#referralMessage.referral-sent-confirmation{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:36px!important;
+  color:#167044!important;
+  font-weight:600!important;
+}
