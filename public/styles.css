@@ -5638,3 +5638,41 @@ tbody tr:last-child td{border-bottom:0!important}
     line-height:22px!important;white-space:nowrap!important;
   }
 }
+
+/* v61.100O LOGIN BRANDING — login screen only. */
+#authShell .auth-card>.auth-brand-login{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:16px!important;
+  margin-bottom:24px!important;
+}
+#authShell .auth-card>.auth-brand-login picture{
+  display:block!important;
+  flex:0 0 auto!important;
+}
+#authShell .auth-card>.auth-brand-login .finlo-auth-logo{
+  display:block!important;
+  width:72px!important;
+  height:72px!important;
+  object-fit:cover!important;
+  border-radius:15px!important;
+}
+#authShell .auth-card>.auth-brand-login .auth-brand-copy{
+  display:flex!important;
+  align-items:center!important;
+}
+#authShell .auth-card>.auth-brand-login .auth-brand-copy span{
+  display:block!important;
+  margin:0!important;
+  color:#294765!important;
+  font-size:18px!important;
+  font-weight:600!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+}
+@media(max-width:480px){
+  #authShell .auth-card>.auth-brand-login{gap:12px!important}
+  #authShell .auth-card>.auth-brand-login .finlo-auth-logo{width:62px!important;height:62px!important;border-radius:13px!important}
+  #authShell .auth-card>.auth-brand-login .auth-brand-copy span{font-size:16px!important}
+}
