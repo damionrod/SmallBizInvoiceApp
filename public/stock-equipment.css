@@ -54,3 +54,17 @@
  #view-stock-equipment .se-form-heading button{align-self:flex-start}
  #view-stock-equipment .se-form-actions .primary{width:100%}
 }
+
+/* v61.100T Stock & Equipment desktop list alignment — presentation only.
+   Keep each Stock to Sell, Consumables, CapEx and Small Tools record on one row,
+   matching the compact Invoice / Expense list treatment. */
+@media (min-width:761px){
+  #view-stock-equipment .se-table{min-width:1180px}
+  #view-stock-equipment .se-table th,
+  #view-stock-equipment .se-table td{vertical-align:middle;padding:9px 10px;white-space:nowrap}
+  #view-stock-equipment .se-table td:first-child{max-width:300px;overflow:hidden;text-overflow:ellipsis}
+  #view-stock-equipment .se-table td:first-child strong,
+  #view-stock-equipment .se-table td:first-child small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #view-stock-equipment .se-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;min-width:max-content}
+  #view-stock-equipment .se-actions button{flex:0 0 auto;min-height:34px;padding:7px 9px;font-size:11px;white-space:nowrap}
+}
