@@ -5441,3 +5441,92 @@ tbody tr:last-child td{border-bottom:0!important}
     border-radius:10px!important;
   }
 }
+
+/* v61.100L JOB COSTING QUOTES — compact desktop list.
+   Presentation only: keep every existing quote field/action, but fit each quote on one row. */
+@media(min-width:761px){
+  #view-job-costing #jc-panel-quotes .table-card .table-scroll{
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:hidden!important;
+  }
+  #view-job-costing #jc-panel-quotes .table-card table{
+    width:100%!important;
+    min-width:0!important;
+    table-layout:fixed!important;
+  }
+  #view-job-costing #jc-panel-quotes .table-card th,
+  #view-job-costing #jcQuoteRows td{
+    box-sizing:border-box!important;
+    vertical-align:middle!important;
+    padding:10px 8px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  /* Shared header/body widths = 100%. */
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(1){width:8%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(2){width:8%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(3){width:16%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(4){width:15%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(5){width:7%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(6){width:6%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(7){width:7%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(8){width:7%!important}
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(9){width:26%!important}
+
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(5),
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(6),
+  #view-job-costing #jc-panel-quotes .table-card tr>*:nth-child(7){
+    text-align:right!important;
+  }
+
+  #view-job-costing #jcQuoteRows td:last-child{
+    overflow:visible!important;
+    padding-left:5px!important;
+    padding-right:5px!important;
+  }
+  #view-job-costing #jcQuoteRows .quote-list-actions{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    gap:6px!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+  #view-job-costing #jcQuoteRows .quote-list-actions>.row-actions{
+    display:flex!important;
+    flex:0 0 auto!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:4px!important;
+  }
+  #view-job-costing #jcQuoteRows .quote-email-send{
+    display:flex!important;
+    flex:1 1 auto!important;
+    min-width:0!important;
+    align-items:center!important;
+    gap:4px!important;
+  }
+  #view-job-costing #jcQuoteRows .quote-email-send input{
+    flex:1 1 auto!important;
+    min-width:80px!important;
+    height:34px!important;
+    padding:5px 7px!important;
+    font-size:10px!important;
+  }
+  #view-job-costing #jcQuoteRows .quote-list-actions button{
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:0!important;
+    min-height:34px!important;
+    height:34px!important;
+    padding:5px 8px!important;
+    margin:0!important;
+    border-radius:10px!important;
+    font-size:10px!important;
+    line-height:22px!important;
+    white-space:nowrap!important;
+  }
+}
