@@ -5530,3 +5530,58 @@ tbody tr:last-child td{border-bottom:0!important}
     white-space:nowrap!important;
   }
 }
+
+/* v61.100M JOB COSTING QUOTES — corrected selector + authoritative one-row desktop actions.
+   Actual view id is #view-jobcosting (not #view-job-costing). */
+@media(min-width:761px){
+  #view-jobcosting #jc-panel-quotes .table-card .table-scroll{
+    width:100%!important;max-width:100%!important;overflow-x:hidden!important;
+  }
+  #view-jobcosting #jc-panel-quotes .table-card table{
+    width:100%!important;min-width:0!important;table-layout:fixed!important;
+  }
+  #view-jobcosting #jc-panel-quotes .table-card th,
+  #view-jobcosting #jcQuoteRows td{
+    box-sizing:border-box!important;vertical-align:middle!important;
+    padding:9px 7px!important;white-space:nowrap!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(1){width:7.5%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(2){width:7.5%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(3){width:15%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(4){width:13%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(5){width:6.5%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(6){width:5.5%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(7){width:6.5%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(8){width:6.5%!important}
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(9){width:32%!important}
+
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(5),
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(6),
+  #view-jobcosting #jc-panel-quotes .table-card tr>*:nth-child(7){text-align:right!important}
+
+  #view-jobcosting #jcQuoteRows td:last-child{overflow:hidden!important;padding:5px!important}
+  #view-jobcosting #jcQuoteRows .quote-list-actions{
+    display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+    align-items:center!important;justify-content:flex-end!important;
+    gap:4px!important;width:100%!important;min-width:0!important;
+  }
+  #view-jobcosting #jcQuoteRows .quote-list-actions>.row-actions{
+    display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+    align-items:center!important;gap:3px!important;flex:0 0 auto!important;
+  }
+  #view-jobcosting #jcQuoteRows .quote-email-send{
+    display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+    align-items:center!important;gap:3px!important;flex:1 1 auto!important;min-width:0!important;
+  }
+  #view-jobcosting #jcQuoteRows .quote-email-send input{
+    flex:1 1 90px!important;width:auto!important;min-width:70px!important;
+    height:32px!important;padding:4px 6px!important;font-size:9.5px!important;
+  }
+  #view-jobcosting #jcQuoteRows .quote-list-actions button{
+    flex:0 0 auto!important;width:auto!important;min-width:0!important;
+    min-height:32px!important;height:32px!important;padding:4px 7px!important;
+    margin:0!important;border-radius:10px!important;font-size:9.5px!important;
+    line-height:22px!important;white-space:nowrap!important;
+  }
+}
