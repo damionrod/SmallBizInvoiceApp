@@ -5585,3 +5585,56 @@ tbody tr:last-child td{border-bottom:0!important}
     line-height:22px!important;white-space:nowrap!important;
   }
 }
+
+/* v61.100N MY CUSTOMERS — compact single-row desktop list.
+   Presentation only; all customer data and actions remain unchanged. */
+@media(min-width:761px){
+  #view-customers .customer-list-card .table-scroll{
+    width:100%!important;max-width:100%!important;overflow-x:hidden!important;
+  }
+  #view-customers .customer-list-card table{
+    width:100%!important;min-width:0!important;table-layout:fixed!important;
+  }
+  #view-customers .customer-list-card th,
+  #view-customers #customerRows td{
+    box-sizing:border-box!important;vertical-align:middle!important;
+    padding:9px 7px!important;white-space:nowrap!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;
+    line-height:1.2!important;
+  }
+
+  /* Shared header/body widths = 100%. */
+  #view-customers .customer-list-card tr>*:nth-child(1){width:7%!important}
+  #view-customers .customer-list-card tr>*:nth-child(2){width:14%!important}
+  #view-customers .customer-list-card tr>*:nth-child(3){width:7%!important}
+  #view-customers .customer-list-card tr>*:nth-child(4){width:17%!important}
+  #view-customers .customer-list-card tr>*:nth-child(5){width:13%!important}
+  #view-customers .customer-list-card tr>*:nth-child(6){width:9%!important}
+  #view-customers .customer-list-card tr>*:nth-child(7){width:12%!important}
+  #view-customers .customer-list-card tr>*:nth-child(8){width:7%!important}
+  #view-customers .customer-list-card tr>*:nth-child(9){width:14%!important}
+
+  #view-customers #customerRows td strong,
+  #view-customers #customerRows td small{
+    display:block!important;max-width:100%!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+  }
+  #view-customers #customerRows td small{
+    margin-top:2px!important;font-size:9.5px!important;
+  }
+  #view-customers #customerRows td:nth-child(8) br{display:none!important}
+  #view-customers #customerRows td:last-child{
+    overflow:hidden!important;padding-left:4px!important;padding-right:4px!important;
+  }
+  #view-customers #customerRows td:last-child .row-actions{
+    display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+    justify-content:flex-end!important;align-items:center!important;
+    gap:3px!important;width:100%!important;min-width:0!important;
+  }
+  #view-customers #customerRows td:last-child .row-actions button{
+    flex:0 1 auto!important;width:auto!important;min-width:0!important;
+    min-height:32px!important;height:32px!important;padding:4px 6px!important;
+    margin:0!important;border-radius:10px!important;font-size:9.5px!important;
+    line-height:22px!important;white-space:nowrap!important;
+  }
+}
