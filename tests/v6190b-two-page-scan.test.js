@@ -8,16 +8,19 @@ const reviewer=fs.readFileSync('public/purchase-review.js','utf8');
 const edge=fs.readFileSync('supabase/functions/scan-expense-document/index.ts','utf8');
 
 function extract(name,next){const from=expenses.indexOf(`  function ${name}(`);const to=expenses.indexOf(`  function ${next}(`,from+1);assert.ok(from>=0&&to>from);return expenses.slice(from,to)}
-test('selecting two images starts a scan of both pages in order without another tap',async()=>{
+test('file upload scans the selected batch while camera capture waits until all pages are added',async()=>{
  const code=extract('queueInvoiceScan','renderPendingFiles');
  const state={pendingFiles:[],aiScanGeneration:0,aiScanPromise:null,aiResult:null},scans=[];
- const context={state,AI_FILE_TYPES:new Set(['image/jpeg']),scanExpenseFile:async files=>scans.push(files.map(f=>f.name)),renderPendingFiles(){},toast(){}};
+ const context={state,AI_FILE_TYPES:new Set(['image/jpeg']),scanExpenseFile:async files=>scans.push(files.map(f=>f.name)),renderPendingFiles(){},renderAiPreview(){},aiStatus(){},toast(){}};
  vm.runInNewContext(code+';globalThis.pick=pickFiles;',context);
  const a={name:'page-one.jpg',type:'image/jpeg',size:120},b={name:'page-two.jpg',type:'image/jpeg',size:120},c={name:'page-three.jpg',type:'image/jpeg',size:120};
  context.pick([a,b]);await state.aiScanPromise;
  assert.equal(JSON.stringify(scans),JSON.stringify([['page-one.jpg','page-two.jpg']]));
- context.pick([c]);await state.aiScanPromise;
- assert.equal(JSON.stringify(scans[1]),JSON.stringify(['page-one.jpg','page-two.jpg','page-three.jpg']));
+ context.pick([c],'camera');await state.aiScanPromise;
+ assert.equal(scans.length,1);
+ assert.equal(state.pendingFiles.length,3);
+ assert.match(code,/source==='camera'/);
+ assert.match(code,/Add another photo if this bill has more pages/);
 });
 test('absent AI amounts are unknown rather than a zero total or verified zero GST',()=>{
  const from=expenses.indexOf('  function scanAmount('),to=expenses.indexOf('  function applyAiResult(',from);

@@ -70,6 +70,8 @@ Deno.serve(async(req)=>{
   const client=createClient(url,anon,{global:{headers:{Authorization:auth}}});
   const admin=createClient(url,service);
   let logId:string|null=null;
+  const perfStarted=performance.now();
+  let perfAuthDone=perfStarted,perfReferenceDone=perfStarted,perfOpenAiStart=0,perfOpenAiDone=0,perfPostDone=0;
   try{
     const {data:{user}}=await client.auth.getUser();
     if(!user)return out({ok:false,error:'Not authenticated'},401);
@@ -82,6 +84,7 @@ Deno.serve(async(req)=>{
     // also makes super-admin testing use the business currently open in Finlo.
     const {data:allowedBusiness,error:allowedBusinessError}=await client.from('businesses').select('id').eq('id',businessId).maybeSingle();
     if(allowedBusinessError||!allowedBusiness)return out({ok:false,error:'Business account not available'},403);
+    perfAuthDone=performance.now();
 
     const documents=Array.isArray(body?.documents)?body.documents:[{filename:body?.filename,mime_type:body?.mime_type,file_base64:body?.file_base64}];
     if(!documents.length||documents.length>12)return out({ok:false,error:'Select 1 to 12 pages for one bill.'},400);
@@ -104,6 +107,7 @@ Deno.serve(async(req)=>{
       client.from('suppliers').select('id,supplier_name,trading_name,tax_number').eq('business_id',businessId).eq('archived',false).order('supplier_name')
     ]);
     if(cats.error)throw cats.error;if(sups.error)throw sups.error;
+    perfReferenceDone=performance.now();
     const categories=(cats.data||[]);
     const suppliers=(sups.data||[]);
     const reviewCategory=categories.find((c:any)=>c.id===body?.review_category_id);
@@ -133,12 +137,14 @@ The business currency is generally NZD, but use the document currency when clear
     }
 
     const model=Deno.env.get('OPENAI_EXPENSE_MODEL')||'gpt-5.6-luna';
+    perfOpenAiStart=performance.now();
     const response=await fetch('https://api.openai.com/v1/responses',{
       method:'POST',
       headers:{Authorization:`Bearer ${openai}`,'Content-Type':'application/json'},
       body:JSON.stringify({model,input:[{role:'user',content}],text:{format:{type:'json_schema',name:'finlo_expense_scan',strict:true,schema}},max_output_tokens:prepared.length>1||prepared.some(d=>d.mime==='application/pdf')?9000:3200})
     });
     const payload=await response.json();
+    perfOpenAiDone=performance.now();
     if(!response.ok){
       const apiMessage=payload?.error?.message||'OpenAI request failed';
       console.error('OpenAI Responses API error',{status:response.status,statusText:response.statusText,error:payload?.error||payload});
@@ -191,8 +197,23 @@ The business currency is generally NZD, but use the document currency when clear
       result.supplier_created=false;
     }
 
+    perfPostDone=performance.now();
+    const performanceTiming={
+      auth_and_tenant_ms:Math.round(perfAuthDone-perfStarted),
+      reference_data_ms:Math.round(perfReferenceDone-perfAuthDone),
+      request_build_ms:Math.round(perfOpenAiStart-perfReferenceDone),
+      openai_ms:Math.round(perfOpenAiDone-perfOpenAiStart),
+      post_processing_ms:Math.round(perfPostDone-perfOpenAiDone),
+      total_ms:Math.round(perfPostDone-perfStarted),
+      pages:prepared.length,
+      input_bytes:prepared.reduce((n,d)=>n+base64Bytes(d.data),0),
+      input_tokens:payload?.usage?.input_tokens||null,
+      output_tokens:payload?.usage?.output_tokens||null,
+      model
+    };
+    console.info('expense_scan_performance',performanceTiming);
     try{if(logId)await admin.from('expense_ai_scans').update({status:'success',model,openai_response_id:payload?.id||null,input_tokens:payload?.usage?.input_tokens||null,output_tokens:payload?.usage?.output_tokens||null,completed_at:new Date().toISOString()}).eq('id',logId)}catch{}
-    return out({ok:true,result});
+    return out({ok:true,result,performance:performanceTiming});
   }catch(e){
     console.error(e);
     try{if(logId)await admin.from('expense_ai_scans').update({status:'failed',error_message:String(e instanceof Error?e.message:e).slice(0,500),completed_at:new Date().toISOString()}).eq('id',logId)}catch{}
