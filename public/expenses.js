@@ -75,8 +75,15 @@
   async function optimiseImage(file){if(!file.type.startsWith('image/')||['image/heic','image/heif'].includes(file.type)||file.size<700*1024)return file;try{const bmp=await createImageBitmap(file);const max=1800,scale=Math.min(1,max/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(bmp.width*scale));c.height=Math.max(1,Math.round(bmp.height*scale));c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.82));if(blob&&blob.size<file.size)return new File([blob],file.name.replace(/\.[^.]+$/,'.jpg'),{type:'image/jpeg'});return file}catch{return file}}
 
   const AI_FILE_TYPES=new Set(['image/jpeg','image/png','image/webp','application/pdf']);
-  function resetAiUi(){if($('expAiScanState'))$('expAiScanState').hidden=true;if($('expAiReview')){$('expAiReview').hidden=true;$('expAiReview').innerHTML=''}if($('expAiPreview'))$('expAiPreview').innerHTML='';if($('expAiRescan'))$('expAiRescan').hidden=true}
-  function aiStatus(title,text,kind=''){const box=$('expAiScanState');if(!box)return;box.hidden=false;box.dataset.state=kind||'';$('expAiStatusTitle').textContent=title;$('expAiStatusText').textContent=text||'';$('expAiRescan').hidden=state.aiScanning||!state.aiFile}
+  let aiProgressTimer=null,aiProgressValue=0,aiProgressTarget=0,aiProgressCap=95;
+  function paintAiProgress(value){const wrap=$('expAiProgress'),fill=$('expAiProgressFill'),pct=$('expAiProgressPercent');if(!wrap||!fill||!pct)return;aiProgressValue=Math.max(0,Math.min(100,Math.round(value)));fill.style.width=`${aiProgressValue}%`;pct.textContent=`${aiProgressValue}%`;wrap.setAttribute('aria-valuenow',String(aiProgressValue))}
+  function stopAiProgress(){if(aiProgressTimer){clearInterval(aiProgressTimer);aiProgressTimer=null}}
+  function progressStage(target,label,text){const wrap=$('expAiProgress');if(wrap)wrap.hidden=false;aiProgressTarget=Math.max(aiProgressValue,Math.min(aiProgressCap,target));if(label||text)aiStatus(label||$('expAiStatusTitle')?.textContent,text??$('expAiStatusText')?.textContent,'loading');if(!aiProgressTimer)aiProgressTimer=setInterval(()=>{if(aiProgressValue>=aiProgressTarget)return;const gap=aiProgressTarget-aiProgressValue,step=gap>30?2:1;paintAiProgress(Math.min(aiProgressTarget,aiProgressValue+step))},90)}
+  function beginAiProgress(pageCount){stopAiProgress();aiProgressValue=0;aiProgressTarget=0;aiProgressCap=95;paintAiProgress(1);const wrap=$('expAiProgress');if(wrap)wrap.hidden=false;progressStage(8,'Uploading image…',`Preparing ${pageCount} page${pageCount===1?'':'s'} for scanning.`)}
+  function completeAiProgress(){stopAiProgress();aiProgressCap=100;paintAiProgress(100);const wrap=$('expAiProgress');if(wrap)wrap.hidden=false}
+  function failAiProgress(){stopAiProgress();const wrap=$('expAiProgress');if(wrap)wrap.hidden=true}
+  function resetAiUi(){stopAiProgress();aiProgressValue=0;aiProgressTarget=0;if($('expAiProgress'))$('expAiProgress').hidden=true;paintAiProgress(0);if($('expAiScanState'))$('expAiScanState').hidden=true;if($('expAiReview')){$('expAiReview').hidden=true;$('expAiReview').innerHTML=''}if($('expAiPreview'))$('expAiPreview').innerHTML='';if($('expAiRescan'))$('expAiRescan').hidden=true}
+  function aiStatus(title,text,kind=''){const box=$('expAiScanState');if(!box)return;box.hidden=false;box.dataset.state=kind||'';$('expAiStatusTitle').textContent=title;$('expAiStatusText').textContent=text||'';if(kind==='success')completeAiProgress();else if(kind==='error')failAiProgress();$('expAiRescan').hidden=state.aiScanning||!state.aiFile}
   function renderAiPreview(file){const root=$('expAiPreview');if(!root)return;root.innerHTML='';if(file?.type?.startsWith('image/')){const img=document.createElement('img');img.alt='Selected receipt preview';const u=URL.createObjectURL(file);img.src=u;img.onload=()=>URL.revokeObjectURL(u);root.appendChild(img)}else if(file){root.innerHTML='<div class="expense-ai-pdf">PDF</div>'}}
   function fileToBase64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const raw=String(r.result||'');resolve(raw.includes(',')?raw.split(',')[1]:raw)};r.onerror=()=>reject(r.error||new Error('Could not read file'));r.readAsDataURL(file)})}
   function setIfUntouched(id,value){const el=$(id);if(!el||value===null||value===undefined||value==='')return false;if(state.userTouched.has(id))return false;el.value=String(value);return true}
@@ -131,19 +138,23 @@
     const pages=[...files],generation=state.aiScanGeneration;
     if(pages.length>12||pages.some(f=>!AI_FILE_TYPES.has(f.type))){aiStatus('Unsupported pages','Choose up to 12 JPG, PNG, WEBP or PDF pages for one bill.','error');return}
     const sb=client();if(!sb){aiStatus('AI unavailable','AI scanning is temporarily unavailable. You can still enter the expense manually.','error');return}
-    state.aiScanning=true;state.aiFile=pages[0];state.aiResultFile=null;state.aiResultFiles=null;renderAiPreview(pages[0]);aiStatus('Scanning all pages…',`Reading ${pages.length} page${pages.length===1?'':'s'} as one supplier bill.`,'loading');
+    state.aiScanning=true;state.aiFile=pages[0];state.aiResultFile=null;state.aiResultFiles=null;renderAiPreview(pages[0]);beginAiProgress(pages.length);
     // Keep capture controls available while AI reads the current page set so mobile users can add page 2, 3, etc. immediately.
     if($('expTakePhoto'))$('expTakePhoto').disabled=false;if($('expUploadDoc'))$('expUploadDoc').disabled=false;
     try{
-      const documents=[];for(const file of pages){const optimised=await optimiseImage(file);documents.push({filename:file.name,mime_type:optimised.type||file.type,file_base64:await fileToBase64(optimised)})}
+      const documents=[];for(let i=0;i<pages.length;i++){const file=pages[i];progressStage(10+Math.round((i/pages.length)*20),'Preparing image…',`Preparing page ${i+1} of ${pages.length}.`);const optimised=await optimiseImage(file);documents.push({filename:file.name,mime_type:optimised.type||file.type,file_base64:await fileToBase64(optimised)})}
+      progressStage(32,'AI scanning…',`Reading ${pages.length} page${pages.length===1?'':'s'} as one supplier bill.`);
       if(documents.reduce((n,d)=>n+Math.floor(d.file_base64.length*3/4),0)>10*1024*1024)throw new Error('Together these pages exceed the 10 MB scan limit. Compress them or upload a smaller PDF.');
+      progressStage(88,'AI scanning…','Extracting invoice information.');
       const {data,error}=await sb.functions.invoke('scan-expense-document',{body:{documents,business_id:business()?.id}});
+      progressStage(91,'Extracting information…','Checking supplier, dates, totals and GST.');
       if(error){let message=error.message||'AI scan failed';try{const details=await error.context?.clone?.().json();if(details?.error)message=details.error}catch{}throw new Error(message)}
       if(!data?.ok)throw new Error(data?.error||'AI scan failed');
       // A scan may create a previously unknown supplier on the server. Refresh only
       // the reference lists before applying the result so the new supplier/category
       // can be selected immediately in the existing dropdowns.
-      if((data.result?.matched_supplier_id&&!state.suppliers.some(s=>s.id===data.result.matched_supplier_id))||(data.result?.matched_category_id&&!state.categories.some(c=>c.id===data.result.matched_category_id)))await loadReferenceData();
+      if((data.result?.matched_supplier_id&&!state.suppliers.some(s=>s.id===data.result.matched_supplier_id))||(data.result?.matched_category_id&&!state.categories.some(c=>c.id===data.result.matched_category_id))){progressStage(94,'Processing line items…','Matching supplier and expense information.');await loadReferenceData()}
+      progressStage(97,'Finalising…','Preparing the extracted bill for review.');
       if(generation!==state.aiScanGeneration||pages.length!==state.pendingFiles.length||pages.some((f,i)=>state.pendingFiles[i]!==f))return;
       applyAiResult(data.result);state.aiResultFile=pages[0];state.aiResultFiles=pages;
       if(data.result?.page_warning)aiStatus('Check invoice pages',data.result.page_warning,'warn');

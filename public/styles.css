@@ -2747,6 +2747,12 @@ body.auth-locked .app-version{display:none}
 .expense-ai-state-copy{min-width:0}
 .expense-ai-state-copy strong,.expense-ai-state-copy span{display:block}
 .expense-ai-state-copy span{margin-top:3px;color:#6f7c86;font-size:.86rem}
+.expense-ai-progress{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:10px;align-items:center;width:100%;max-width:680px;margin-top:10px}
+.expense-ai-progress-track{height:10px;width:100%;min-width:0;overflow:hidden;border-radius:999px;background:#e3ebf1}
+.expense-ai-progress-fill{height:100%;width:0;border-radius:inherit;background:#3f82c4;transition:width .18s ease-out,background-color .2s ease}
+.expense-ai-progress-percent{margin:0!important;color:#36566e!important;font-size:.8rem!important;font-weight:750;text-align:right;white-space:nowrap}
+.expense-ai-state[data-state="success"] .expense-ai-progress-fill{background:#2f9e5b}
+.expense-ai-state[data-state="success"] .expense-ai-progress-percent{color:#287c4a!important}
 .expense-ai-review{margin-top:12px;padding:12px 14px;border:1px solid #dce9df;border-radius:10px;background:#f7fbf8;color:#2e4737}
 .expense-ai-review>strong{display:block;margin-bottom:7px}
 .expense-ai-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 14px;font-size:.84rem;color:#53645a}
@@ -2754,7 +2760,7 @@ body.auth-locked .app-version{display:none}
 .expense-ai-check.warn{color:#8a6418}
 .expense-ai-warning{margin-top:8px;padding-top:8px;border-top:1px solid #e6d9b9;color:#775817;font-size:.84rem}
 .expense-capture-btn:disabled{opacity:.6;cursor:not-allowed}
-@media(max-width:650px){.expense-ai-state{grid-template-columns:52px minmax(0,1fr);padding:10px}.expense-ai-preview{width:52px;height:52px}.expense-ai-state .compact-btn{grid-column:1/-1;width:100%}.expense-ai-review-grid{grid-template-columns:1fr}.expense-ai-card .card-title{gap:8px}}
+@media(max-width:650px){.expense-ai-state{grid-template-columns:44px minmax(0,1fr);padding:10px;gap:10px;max-width:100%;overflow:hidden}.expense-ai-preview{width:44px;height:44px}.expense-ai-state-copy{width:100%;min-width:0}.expense-ai-progress{grid-template-columns:minmax(0,1fr) 40px;gap:7px;width:100%;max-width:100%;margin-top:8px}.expense-ai-progress-track{height:9px}.expense-ai-progress-percent{font-size:.76rem!important}.expense-ai-state .compact-btn{grid-column:1/-1;width:100%}.expense-ai-review-grid{grid-template-columns:1fr}.expense-ai-card .card-title{gap:8px}}
 
 /* V61.56 Accountant Centre — additive styles */
 .accountant-period-card{display:grid;gap:14px}.accountant-quick-range{display:flex;flex-wrap:wrap;gap:8px}.accountant-date-grid{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:12px}.accountant-action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:14px 0}.accountant-action-card{display:flex;flex-direction:column;gap:14px;justify-content:space-between;min-height:190px}.accountant-action-card label{margin:0}.accountant-status{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:10px}.accountant-status strong{font-size:1.05rem}.accountant-status.ready{background:#edf8f1}.accountant-status.error{background:#fff1f0}.accountant-issue-list,.accountant-warning ul{margin:12px 0 0;padding-left:22px}.accountant-issue-list li,.accountant-warning li{margin:5px 0}.accountant-warning{margin-top:12px;padding:12px 14px;background:#fff8e8;border-radius:10px}.badge.success{background:#edf8f1}.accountant-action-card select{width:100%}#accountingMappingSection{display:grid;gap:14px;margin-top:14px}#accountingMappingSection[hidden]{display:none}#accountingMappingSection table input{min-width:140px;width:100%}#accountingMappingRows td:first-child small{display:block;margin-top:3px;color:var(--muted)}
