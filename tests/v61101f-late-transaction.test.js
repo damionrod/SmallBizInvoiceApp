@@ -1,0 +1,14 @@
+const fs=require('fs'),assert=require('assert');
+const js=fs.readFileSync('public/purchase-review.js','utf8');
+const sql=fs.readFileSync('supabase/migrations/20260929093000_v61101f_late_transaction_workflow.sql','utf8');
+assert(js.includes('v61101f_late_expense_status'));
+assert(js.includes('v61101f_record_late_expense'));
+assert(js.includes('Previous GST return needs attention'));
+assert(sql.includes('late_transaction_adjustments'));
+assert(sql.includes("LATE_TRANSACTION_REVIEW_REQUIRED"));
+assert(sql.includes("status='finalised'"));
+assert(sql.includes("basis in ('payments','hybrid')"));
+assert(sql.includes("gst_adjustments"));
+assert(sql.includes("gst_correction_items"));
+assert(sql.includes("Original finalised return snapshot is unchanged."));
+console.log('v61.101F late transaction workflow: 10/10 focused assertions passed');
