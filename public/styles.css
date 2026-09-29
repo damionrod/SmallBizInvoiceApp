@@ -55,12 +55,17 @@
 #jc-panel-costing .jc-compact-card .card-title{min-height:0;margin-bottom:6px;padding-bottom:4px}
 #jc-panel-costing .jc-compact-card .card-title h2{font-size:14px;margin:0}
 #jc-panel-costing .jc-compact-card .hint{font-size:10px;line-height:1.35}
-#jc-panel-costing .jc-job-grid{grid-template-columns:.7fr .7fr 1.15fr 1.15fr;gap:8px 10px}
+#jc-panel-costing .jc-job-grid{grid-template-columns:.7fr .7fr .55fr 1.75fr;gap:8px 10px}
 #jc-panel-costing .jc-job-grid label{margin:0}
 #jc-panel-costing .jc-job-grid input,#jc-panel-costing .jc-job-grid textarea,#jc-panel-costing .jc-job-grid select{padding:8px 9px}
 #jc-panel-costing .jc-customer-field{grid-column:3/5}
 #jc-panel-costing .jc-job-name{grid-column:1/3}
-#jc-panel-costing .jc-job-address{grid-column:3/5}
+#jc-panel-costing .jc-job-duration{grid-column:3/4;min-width:0}
+#jc-panel-costing .jc-job-address{grid-column:4/5}
+#jc-panel-costing .jc-required{color:#c62828;font-weight:700}
+#jc-panel-costing .jc-customer-input-wrap{position:relative;display:block;min-width:0}
+#jc-panel-costing .jc-customer-input-wrap input{width:100%;padding-right:24px}
+#jc-panel-costing .jc-required-inside{position:absolute;right:10px;top:50%;transform:translateY(-50%);line-height:1;pointer-events:none}
 #jc-panel-costing .jc-notes{grid-column:2/5}
 #jc-panel-costing .jc-notes textarea{min-height:42px;resize:vertical}
 #jc-panel-costing .jc-customer-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center}
@@ -87,7 +92,7 @@
 @media(max-width:1180px){
   #jc-panel-costing .jc-workspace{grid-template-columns:minmax(0,1fr) 330px}
   #jc-panel-costing .jc-job-grid{grid-template-columns:1fr 1fr}
-  #jc-panel-costing .jc-customer-field,#jc-panel-costing .jc-job-name,#jc-panel-costing .jc-job-address,#jc-panel-costing .jc-notes{grid-column:1/-1}
+  #jc-panel-costing .jc-customer-field,#jc-panel-costing .jc-job-name,#jc-panel-costing .jc-job-duration,#jc-panel-costing .jc-job-address,#jc-panel-costing .jc-notes{grid-column:1/-1}
 }
 
 @media(max-width:900px){
@@ -99,7 +104,7 @@
 @media(max-width:760px){
   #jc-panel-costing .jc-compact-card{padding:11px;margin-bottom:9px}
   #jc-panel-costing .jc-job-grid{grid-template-columns:1fr 1fr;gap:8px}
-  #jc-panel-costing .jc-customer-field,#jc-panel-costing .jc-job-name,#jc-panel-costing .jc-job-address,#jc-panel-costing .jc-notes{grid-column:1/-1}
+  #jc-panel-costing .jc-customer-field,#jc-panel-costing .jc-job-name,#jc-panel-costing .jc-job-duration,#jc-panel-costing .jc-job-address,#jc-panel-costing .jc-notes{grid-column:1/-1}
   #jc-panel-costing .jc-customer-picker{grid-template-columns:1fr}
   #jc-panel-costing .jc-create-customer{width:100%}
   #jc-panel-costing .jc-sticky-actions{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom));z-index:5;background:rgba(241,244,246,.96);padding:8px 0 4px}
@@ -365,7 +370,7 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
    ============================================================ */
 @media (min-width:1181px){
   #jc-panel-costing .jc-job-grid{
-    grid-template-columns:minmax(150px,.72fr) minmax(170px,.78fr) minmax(0,1.25fr) minmax(0,1.25fr);
+    grid-template-columns:minmax(0,16fr) minmax(0,16fr) minmax(0,20fr) minmax(0,48fr);
     column-gap:10px;
     row-gap:9px;
     align-items:start;
@@ -458,6 +463,7 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 
   #jc-panel-costing .jc-customer-field,
   #jc-panel-costing .jc-job-name,
+  #jc-panel-costing .jc-job-duration,
   #jc-panel-costing .jc-job-address,
   #jc-panel-costing .jc-notes,
   #jc-panel-costing .jc-pricing-card .quote-price-field{
@@ -5707,3 +5713,77 @@ tbody tr:last-child td{border-bottom:0!important}
   color:#167044!important;
   font-weight:600!important;
 }
+
+/* Account profile photo — isolated enhancement */
+.account-chip{overflow:hidden}
+.account-chip .account-avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.account-chip .account-avatar-img[hidden]{display:none!important}
+.account-photo-preview{width:44px;height:44px;flex:0 0 44px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#e8eef7;font-weight:800;color:#29415f}
+.account-photo-preview img{width:100%;height:100%;object-fit:cover}.account-photo-preview img[hidden]{display:none!important}
+.account-address-photo-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end}
+.account-address-field{min-width:0}
+.account-photo-compact{display:flex;align-items:center;gap:10px;min-width:245px}
+.account-photo-actions{display:flex;flex-direction:column;gap:4px}.account-photo-actions>div{display:flex;gap:6px;flex-wrap:wrap}.account-photo-actions .secondary{white-space:nowrap}
+@media(max-width:700px){.account-address-photo-row{grid-template-columns:1fr;align-items:start}.account-photo-compact{min-width:0}.account-photo-preview{width:42px;height:42px;flex-basis:42px}}
+
+
+/* V61.101L — Frindly Helper compact controls + movable desktop panel. */
+@media(min-width:761px){
+  .finlo-helper-panel .helper-head{cursor:move;user-select:none;touch-action:none}
+  .finlo-helper-panel.is-dragging{box-shadow:0 24px 70px rgba(8,47,79,.28)}
+}
+.helper-compose{grid-template-columns:1fr 42px;align-items:end;gap:8px}
+.helper-input-wrap{position:relative}
+.helper-compose textarea{min-height:58px;padding-right:10px}
+.helper-voice-controls{min-height:32px;margin-top:5px;gap:5px;flex-wrap:nowrap}
+.helper-tool-icon,.helper-mic.helper-tool-icon,.helper-conversation-start.helper-tool-icon,.helper-live-start.helper-tool-icon,.helper-voice-cancel.helper-tool-icon{width:32px;min-width:32px;height:32px;min-height:32px;padding:0;border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--navy);display:inline-flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;line-height:1}
+.helper-tool-icon:hover{background:#f3f6fa}
+.helper-tool-icon:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.helper-send-icon{width:42px;min-width:42px;height:42px;min-height:42px;padding:0;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.helper-voice-status{margin-left:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:760px){
+ .helper-compose{grid-template-columns:1fr 44px}
+ .helper-compose .helper-send-icon{width:44px;min-width:44px;height:44px;min-height:44px}
+ .helper-tool-icon,.helper-mic.helper-tool-icon,.helper-conversation-start.helper-tool-icon,.helper-live-start.helper-tool-icon,.helper-voice-cancel.helper-tool-icon{width:40px;min-width:40px;height:40px;min-height:40px}
+ .helper-voice-controls{flex-wrap:wrap}
+ .helper-voice-status{flex:1 1 120px;white-space:normal}
+}
+
+/* V61.101M — Helper customer voice simplification and robust drag affordance. */
+.helper-head-title{display:flex;align-items:flex-start;gap:8px}
+.helper-drag-handle{font-size:18px!important;line-height:18px;color:var(--muted)!important;margin:0!important;letter-spacing:-4px;cursor:grab}
+.finlo-helper-panel.is-dragging .helper-drag-handle{cursor:grabbing}
+.helper-live.helper-live-compact{display:flex;align-items:center;gap:8px;padding:7px 2px 0;border:0;background:transparent;box-shadow:none}
+.helper-live.helper-live-compact[hidden]{display:none}
+.helper-live.helper-live-compact #finloHelperLiveStatus{font-size:12px;color:var(--muted);flex:1}
+.helper-live.helper-live-compact .helper-live-pulse{transform:scale(.72);transform-origin:center}
+.helper-live.helper-live-compact #finloHelperLiveEnd{white-space:nowrap}
+.helper-live-start.active{background:#eef8f0;border-color:#8bc89a;color:#237a35}
+.helper-conversation-start[aria-hidden="true"],.helper-voice-cancel[aria-hidden="true"]{display:none!important}
+
+/* V61.101N — customer voice status only + deterministic desktop floating drag. */
+@media(min-width:761px){
+ .finlo-helper-panel.helper-floating{position:fixed!important;right:auto!important;bottom:auto!important;transform:none!important;margin:0!important}
+ .helper-drag-handle{display:inline-flex!important;align-items:center;justify-content:center;min-width:22px;min-height:26px;cursor:grab!important;touch-action:none!important;user-select:none!important;-webkit-user-select:none!important}
+ .finlo-helper-panel.is-dragging .helper-drag-handle{cursor:grabbing!important}
+}
+.helper-live.helper-live-compact{display:flex!important;align-items:center!important;gap:7px!important;padding:4px 0 0!important;margin-top:3px!important;min-width:0!important}
+.helper-live.helper-live-compact[hidden]{display:none!important}
+.helper-live.helper-live-compact #finloHelperLiveStatus{flex:0 1 auto!important;font-size:12px!important;white-space:nowrap!important}
+.helper-live.helper-live-compact .helper-live-pulse{height:20px!important;width:28px!important;flex:0 0 28px!important;margin:0!important}
+.helper-live.helper-live-compact #finloHelperLiveEnd{min-height:30px!important;height:30px!important;padding:3px 8px!important;font-size:11px!important;margin-left:auto!important;white-space:nowrap!important}
+.helper-live-diagnostics{display:none!important}
+
+
+/* V61.101O — modern voice icons + draggable Ask Frindly launcher (desktop only). */
+.helper-tool-svg{width:17px;height:17px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.helper-mic.helper-tool-icon,.helper-live-start.helper-tool-icon{color:#27863a;border-color:#d7e2dc;background:#fff}
+.helper-mic.helper-tool-icon:hover,.helper-live-start.helper-tool-icon:hover{background:#f3faf5;border-color:#a9d2b3}
+@media(min-width:761px){
+ .finlo-helper-button{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+ .finlo-helper-button.helper-button-floating{position:fixed!important;right:auto!important;bottom:auto!important;transform:none!important;margin:0!important}
+ .finlo-helper-button.is-dragging{cursor:grabbing!important}
+}
+/* v61.102A Support & Health — isolated Super Admin styles */
+.support-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}.support-tabs button{border:1px solid var(--border,#d9dee8);background:#fff;border-radius:10px;padding:9px 13px}.support-tabs button.active{font-weight:700;box-shadow:inset 0 -2px currentColor}.support-search{display:flex;gap:10px;align-items:end}.support-search label{flex:1}.support-customer-list{display:grid;gap:8px}.support-customer-card{width:100%;display:flex;justify-content:space-between;gap:16px;text-align:left;align-items:center;border:1px solid var(--border,#e0e4eb);background:#fff;border-radius:12px;padding:12px}.support-customer-card.static{cursor:default}.support-customer-card span{display:flex;flex-direction:column;gap:3px}.support-customer-card small{color:#667085}.support-badge{display:inline-flex!important;align-self:flex-end;border-radius:999px;padding:4px 8px;background:#eef2f6;font-size:12px;font-weight:700}.support-badge.healthy,.support-badge.operational,.support-badge.successful{background:#e8f7ef}.support-badge.needs-attention,.support-badge.degraded,.support-badge.warning{background:#fff4dd}.support-badge.access-issue,.support-badge.subscription-issue,.support-badge.unavailable,.support-badge.critical{background:#fdecec}.support-drawer{margin-top:14px}.support-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.support-facts>div{background:#f7f8fa;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px}.support-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.support-check-list{display:grid;gap:7px;margin:12px 0}.support-check-list>div{display:flex;justify-content:space-between;gap:12px;padding:9px;border-bottom:1px solid #eceff3}.support-audit-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eceff3}.support-health-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.support-health-card{display:flex;flex-direction:column;gap:8px}.support-health-card .support-badge{align-self:flex-start!important}@media(max-width:760px){.support-search{align-items:stretch;flex-direction:column}.support-customer-card{align-items:flex-start;flex-direction:column}.support-customer-card .support-badge{align-self:flex-start}.support-facts,.support-health-grid{grid-template-columns:1fr}.support-actions{display:grid;grid-template-columns:1fr}.support-check-list>div,.support-audit-row{flex-direction:column}.support-tabs{display:grid;grid-template-columns:1fr 1fr}.support-tabs button{width:100%}}

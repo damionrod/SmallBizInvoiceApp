@@ -251,7 +251,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      await window.FinloCore.loader.loadScriptsSequentially(['app.js?v=61.101B-business-performance-colours','schedule.js?v=61.98J-drag-drop-fix','dashboard.js?v=61.89-voided-bills','job-costing.js?v=61.100K-auto-create-customer','job-profitability.js?v=61.71','expenses.js?v=61.100Z-explicit-batch-scan','purchase-review.js?v=61.101G-late-transaction-ui','payroll-nz-holidays.js?v=61.73-P3.1','payroll-nz-statutory-leave.js?v=61.73-P4B.1','payroll-nz-public-holidays.js?v=61.73-P5B.1','payroll-nz-final-pay.js?v=61.73-P6C.2','payroll-nz-tax.js?v=61.73-P7','payroll.js?v=61.97-performance-fixes','financials.js?v=61.101C-allocations','accountant-centre.js?v=61.90g-discounts','bank-reconciliation.js?v=61.97-performance-fixes']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.101I-form-drafts','app.js?v=61.101B-business-performance-colours','schedule.js?v=61.98J-drag-drop-fix','dashboard.js?v=61.89-voided-bills','job-costing.js?v=61.100K-auto-create-customer','job-profitability.js?v=61.71','expenses.js?v=61.100Z-explicit-batch-scan','purchase-review.js?v=61.101G-late-transaction-ui','payroll-nz-holidays.js?v=61.73-P3.1','payroll-nz-statutory-leave.js?v=61.73-P4B.1','payroll-nz-public-holidays.js?v=61.73-P5B.1','payroll-nz-final-pay.js?v=61.73-P6C.2','payroll-nz-tax.js?v=61.73-P7','payroll.js?v=61.97-performance-fixes','financials.js?v=61.101C-allocations','accountant-centre.js?v=61.90g-discounts','bank-reconciliation.js?v=61.97-performance-fixes']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
     }
   }
 
@@ -413,7 +413,7 @@
     else renderAdmin();
     setAdminView(adminViewFromHash(),false);
   }
-  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','referrals','finlo-helper','import-migration']);
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','referrals','finlo-helper','import-migration','support-health']);
   function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
   function setAdminView(view='dashboard',push=true){
     if(!state.profile?.is_super_admin)return;
@@ -421,7 +421,7 @@
     document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
     document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
     const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
-    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();if(next==='support-health')window.SupportHealth?.render?.();
   }
   function setupAdminNavigation(){
     document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
@@ -469,6 +469,13 @@
     setupCentralSettingsIA();
     const initials=(state.profile.full_name||state.business.name||'A').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
     if(q('accountInitials'))q('accountInitials').textContent=initials||'A';
+    const avatar=state.user?.user_metadata?.frindly_avatar||'';
+    const avatarImg=q('accountAvatarImg'),avatarFallback=q('accountAvatarFallback');
+    if(avatarImg){avatarImg.src=avatar||'';avatarImg.hidden=!avatar}
+    if(avatarFallback)avatarFallback.hidden=!!avatar;
+    if(q('accountPhotoPreviewInitials')){q('accountPhotoPreviewInitials').textContent=initials||'A';q('accountPhotoPreviewInitials').hidden=!!avatar}
+    if(q('accountPhotoPreviewImg')){q('accountPhotoPreviewImg').src=avatar||'';q('accountPhotoPreviewImg').hidden=!avatar}
+    if(q('removeAccountPhoto'))q('removeAccountPhoto').hidden=!avatar;
     if(q('accountAvatarLarge'))q('accountAvatarLarge').textContent=initials||'A';
     if(q('accountDisplayName'))q('accountDisplayName').textContent=state.profile.full_name||state.business.name||'Account';
     if(q('activeBusinessIndicator'))q('activeBusinessIndicator').textContent=state.business?.name||'Business';
@@ -491,6 +498,9 @@
     if(q('closeAccountModal'))q('closeAccountModal').onclick=()=>q('accountModal').classList.remove('open');
     if(q('accountModal'))q('accountModal').onclick=e=>{if(e.target===q('accountModal'))q('accountModal').classList.remove('open')};
     if(q('saveAccountProfile'))q('saveAccountProfile').onclick=saveAccountProfile;
+    if(q('chooseAccountPhoto'))q('chooseAccountPhoto').onclick=()=>q('accountPhotoInput')?.click();
+    if(q('accountPhotoInput'))q('accountPhotoInput').onchange=e=>saveAccountPhoto(e.target.files?.[0]);
+    if(q('removeAccountPhoto'))q('removeAccountPhoto').onclick=()=>removeAccountPhoto();
     if(q('saveAccountPreferences'))q('saveAccountPreferences').onclick=saveAccountPreferences;
     if(q('saveAccountEmail'))q('saveAccountEmail').onclick=saveAccountPreferences;
     if(q('exportMyData'))q('exportMyData').onclick=()=>exportBusinessData(state.business.id,state.business.name,q('exportMyData'));
@@ -557,6 +567,8 @@
     if(q('accountSenderEmail'))q('accountSenderEmail').value=state.business?.settings?.outboundEmail||'';
     populateCurrencySelect();
     if(q('accountCurrency'))q('accountCurrency').value=String(state.business?.settings?.currency||'NZD').toUpperCase();
+    if(q('accountHelperName'))q('accountHelperName').value=String(state.business?.settings?.helperNameOverride||'');
+    if(q('accountHelperNameHint'))q('accountHelperNameHint').textContent=`Leave blank to use the platform default: ${window.FinloHelper?.getDefaultName?.()||'Frindly'}.`;
     await refreshUsage();
     if(['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))await renderTeamAccess();
     applyRoleAccessUI();
@@ -601,7 +613,7 @@
     setHidden(document.querySelector('[data-view="reports"]'),!roleCanRead('reports'));
     if(q('teamAccessCard'))q('teamAccessCard').hidden=!['owner','admin'].includes(role);
     const businessWrite=['owner','admin'].includes(role);
-    ['accountBusinessName','accountBusinessPhone','accountBusinessAddress','accountSenderEmail','accountCurrency'].forEach(id=>{const el=q(id);if(el)el.disabled=!businessWrite});
+    ['accountBusinessName','accountBusinessPhone','accountBusinessAddress','accountSenderEmail','accountCurrency','accountHelperName'].forEach(id=>{const el=q(id);if(el)el.disabled=!businessWrite});
     ['saveAccountEmail','saveAccountPreferences'].forEach(id=>{const el=q(id);if(el)el.hidden=!businessWrite});
     if(q('manageSubscription'))q('manageSubscription').hidden=role!=='owner';
     renderSubscriptionSummary();
@@ -760,6 +772,34 @@
     await renderTeamAccess();
   }
 
+  async function saveAccountPhoto(file){
+    if(!file)return;
+    if(!/^image\/(jpeg|png|webp)$/i.test(file.type||''))return alert('Please choose a JPG, PNG or WebP image.');
+    if(file.size>10*1024*1024)return alert('Please choose an image smaller than 10 MB.');
+    try{
+      const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
+      const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=reject;i.src=dataUrl});
+      const size=256,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d');
+      const side=Math.min(img.naturalWidth,img.naturalHeight),sx=(img.naturalWidth-side)/2,sy=(img.naturalHeight-side)/2;
+      ctx.drawImage(img,sx,sy,side,side,0,0,size,size);
+      const avatar=canvas.toDataURL('image/jpeg',.82);
+      const {data,error}=await state.client.auth.updateUser({data:{...(state.user?.user_metadata||{}),frindly_avatar:avatar}});
+      if(error)throw error;
+      if(data?.user)state.user=data.user; else state.user={...state.user,user_metadata:{...(state.user?.user_metadata||{}),frindly_avatar:avatar}};
+      setupAccountUI();
+    }catch(err){alert(err?.message||'Could not save the profile photo. Please try again.')}
+    finally{if(q('accountPhotoInput'))q('accountPhotoInput').value=''}
+  }
+
+  async function removeAccountPhoto(){
+    if(!confirm('Remove your profile photo?'))return;
+    const meta={...(state.user?.user_metadata||{})};delete meta.frindly_avatar;
+    const {data,error}=await state.client.auth.updateUser({data:meta});
+    if(error)return alert(error.message||'Could not remove the profile photo.');
+    if(data?.user)state.user=data.user; else state.user={...state.user,user_metadata:meta};
+    setupAccountUI();
+  }
+
   async function saveAccountProfile(){
     const full_name=q('accountProfileName')?.value.trim()||'';
     const role=state.profile?.is_super_admin?'owner':(state.accessRole||'viewer');
@@ -784,7 +824,9 @@
     const senderEmail=q('accountSenderEmail')?.value.trim()||'';
     const currency=String(q('accountCurrency')?.value||'NZD').trim().toUpperCase();
     if(senderEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail))return alert('Please enter a valid sender email address.');
+    const helperName=String(q('accountHelperName')?.value||'').trim().replace(/\s+/g,' ').slice(0,30);
     const nextSettings={...(state.business.settings||{}),outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id};
+    if(helperName)nextSettings.helperNameOverride=helperName;else delete nextSettings.helperNameOverride;
     const buttons=[q('saveAccountPreferences'),q('saveAccountEmail')].filter(Boolean);buttons.forEach(btn=>{btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='Saving…'});
     const {error}=await state.client.from('businesses').update({settings:nextSettings,updated_at:new Date().toISOString()}).eq('id',state.business.id);
     buttons.forEach(btn=>{btn.disabled=false;btn.textContent=btn.dataset.oldText||'Save'});
@@ -792,6 +834,8 @@
     state.business.settings=nextSettings;
     writeBusinessSettingsCache(nextSettings,state.business.id);
     window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id});window.invoiceAppHelpers?.resetInvoiceTaxRuntime?.();
+    await window.FinloHelper?.refresh?.();
+    if(q('accountHelperNameHint'))q('accountHelperNameHint').textContent=`Leave blank to use the platform default: ${window.FinloHelper?.getDefaultName?.()||'Frindly'}.`;
     alert('Business preferences saved.');
   }
 
@@ -1331,7 +1375,7 @@
       const subscriptionAmount=annualBilling?plan.annual_price:plan.monthly_price;
       const billingDetail=sub.status==='active'?`${formatAdminMoney(subscriptionAmount)} / ${annualBilling?'annual':'monthly'}`:(sub.status==='trialing'?'Trial':'—');
       const periodDetail=sub.current_period_start||sub.current_period_end?`<small>Start: ${formatAdminDate(sub.current_period_start)}</small><small>End: ${formatAdminDate(sub.current_period_end)}</small>`:'—';
-      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${formatAdminDate(b.created_at)}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select><small>${escapeHtml(billingDetail)}</small></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${escapeHtml(billingDetail)}</td><td>${periodDetail}</td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?formatAdminDate(sub.trial_ends_at):'—'}</td><td>${mods.join(', ')||'Finlo'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${formatAdminDate(b.created_at)}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select><small>${escapeHtml(billingDetail)}</small></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${escapeHtml(billingDetail)}</td><td>${periodDetail}</td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?formatAdminDate(sub.trial_ends_at):'—'}</td><td>${mods.join(', ')||'Finlo'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-support="${b.id}" data-business-name="${escapeHtml(b.name)}">Support</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
       body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
@@ -1343,6 +1387,7 @@
       if(error){btn.textContent='Save';alert('Could not update subscription: '+error.message);return}
       btn.textContent='Saved';setTimeout(()=>btn.textContent='Save',900);await renderAdmin();
     });
+    body.querySelectorAll('[data-admin-support]').forEach(btn=>btn.onclick=()=>{setAdminView('support-health');setTimeout(()=>window.SupportHealth?.openBusiness?.(btn.dataset.adminSupport),0)});
     body.querySelectorAll('[data-admin-modules]').forEach(btn=>btn.onclick=()=>openModuleManager(btn.dataset.adminModules,btn.dataset.businessName));
     body.querySelectorAll('[data-admin-trial]').forEach(btn=>btn.onclick=async()=>{
       btn.disabled=true;btn.textContent='Extending…';
@@ -1713,20 +1758,17 @@ ${businessName}`,'');
       const entitled=await hasModule('job_costing'),allowed=entitled&&roleCanRead('core');
       q('jobCostingNav').dataset.entitlementBlocked=entitled?'0':'1';q('jobCostingNav').hidden=!allowed;
       if(!allowed && document.getElementById('view-jobcosting')?.classList.contains('active') && window.switchView)window.switchView('create');
-      if(allowed)window.JobCosting?.init?.();
     }
     if(q('expensesNav')){
       const entitled=await hasModule('expenses'),allowed=entitled&&roleCanRead('expenses');
       q('expensesNav').dataset.entitlementBlocked=entitled?'0':'1';q('expensesNav').hidden=!allowed;
       if(!allowed && document.getElementById('view-expenses')?.classList.contains('active') && window.switchView)window.switchView('create');
-      if(allowed)window.Expenses?.init?.();
     }
     if(q('stockEquipmentNav')){
       const entitled=await hasModule('stock_equipment'),allowed=entitled&&roleCanRead('expenses');
       q('stockEquipmentNav').dataset.entitlementBlocked=entitled?'0':'1';q('stockEquipmentNav').hidden=!allowed;
       const view=q('view-stock-equipment');if(view)view.hidden=!allowed;
       if(!allowed&&view?.classList.contains('active'))window.switchView?.('create');
-      if(allowed)window.StockEquipment?.onShow?.();
     }
     if(q('payrollNav')){
       const entitled=await hasModule('payroll'),allowed=entitled&&roleCanRead('payroll');
@@ -1734,21 +1776,18 @@ ${businessName}`,'');
       if(q('payrollReportTab'))q('payrollReportTab').hidden=!allowed;
       if(q('payrollSettingsCard'))q('payrollSettingsCard').hidden=!allowed;
       if(!allowed && document.getElementById('view-payroll')?.classList.contains('active') && window.switchView)window.switchView('create');
-      if(allowed)window.Payroll?.init?.();
     }
     if(q('financialsNav')){
       const entitled=await hasModule('financials'),allowed=entitled&&roleCanRead('financials');
       q('financialsNav').dataset.entitlementBlocked=entitled?'0':'1';q('financialsNav').hidden=!allowed;
       if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed;
       if(!allowed && document.getElementById('view-financials')?.classList.contains('active') && window.switchView)window.switchView('create');
-      if(allowed)window.Financials?.init?.();
     }
     if(q('bankReconciliationNav')){
       const entitled=await hasModule('bank_reconciliation'),allowed=entitled&&roleCanRead('bank');
       q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';q('bankReconciliationNav').hidden=!allowed;
       const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;
       if(!allowed && view?.classList.contains('active') && window.switchView)window.switchView('create');
-      if(allowed)window.BankReconciliation?.init?.();
     }
     if(q('onlinePaymentsSettingsNav')){
       const entitled=await hasModule('invoice_payments'),allowed=entitled&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||''));
