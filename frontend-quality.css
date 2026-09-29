@@ -79,3 +79,35 @@ td,
     min-height: 40px;
   }
 }
+
+
+/* =========================================================
+   v61.98N Mobile shell + alignment hardening
+   Final safety layer only. No desktop/business logic changes.
+   ========================================================= */
+@media (max-width: 760px) {
+  html, body { width:100%; max-width:100%; overflow-x:hidden; }
+  body.mobile-nav-open { overflow:hidden; }
+
+  /* Mobile navigation is owned exclusively by styles.css (v61.99A). */
+
+  /* Prevent desktop-sized children from widening the whole page. */
+  main, .view, .card, .page-head, .form-grid, .settings-grid, .summary-grid,
+  .report-widget-grid, .expense-panel, .schedule-shell, .settings-page-layout,
+  .modal-box, .table-scroll, .budget-table-scroll, .financial-pnl-scroll {
+    min-width:0 !important; max-width:100% !important; box-sizing:border-box;
+  }
+  main, .view { width:100% !important; }
+  .form-grid > *, .settings-grid > *, .summary-grid > *, .page-head > *,
+  .card > *, .report-widget-grid > * { min-width:0; max-width:100%; }
+  input, select, textarea { max-width:100%; min-width:0; }
+  img, svg, canvas, video { max-width:100%; height:auto; }
+
+  /* Wide data tables remain intentionally scrollable inside their own container, never at page level. */
+  .table-scroll, .budget-table-scroll, .financial-pnl-scroll, #settingsInvoicePreview {
+    width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  }
+
+  /* Common toolbar/action rows must wrap rather than push content off-screen. */
+  .actions, .head-actions, .card-title, .report-controls, .filters { max-width:100%; }
+}

@@ -1,0 +1,87 @@
+#view-stock-equipment .se-root{max-width:1120px;margin:auto;padding:12px 0 36px}#view-stock-equipment .se-context{background:#eaf3fc;color:#294563;border-radius:12px;padding:14px;line-height:1.45}.se-tabs{display:flex;overflow:auto;gap:6px;padding:8px 0;max-width:100%;scrollbar-width:thin}.se-tabs button{white-space:nowrap;border:1px solid #d5e1eb;border-radius:12px;background:#fff;color:#17324d;padding:12px 14px;min-height:44px;font-weight:600}.se-tabs button[aria-current="page"]{background:#e7f1fb;border-color:#5394ca}.se-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}.se-summary>div{border:1px solid #d6e1ea;background:#fff;border-radius:12px;padding:14px;min-width:0}.se-summary span,.se-summary strong{display:block}.se-summary span{font-size:.84rem;color:#556778}.se-summary strong{font-size:1.28rem;padding-top:8px}.se-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:16px 0}.se-toolbar input{flex:1 1 170px;min-width:0}.se-rows{border:1px solid #d5e1eb;border-radius:12px;background:#fff;margin:12px 0}.se-rows>p{padding:12px}.se-row{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #edf1f5;min-width:0}.se-row:last-child{border-bottom:0}.se-row>div{min-width:0;overflow-wrap:anywhere}.se-row strong,.se-row small{display:block}.se-row small{color:#53677b;line-height:1.45;margin-top:4px}.se-row button,.se-toolbar button,.se-form button,.se-root>button{border:1px solid #b8cbdc;color:#184a78;background:#f4f9fd;border-radius:9px;padding:10px 13px;min-height:44px;cursor:pointer}.se-form{border:1px solid #c9d9e5;background:#fff;border-radius:12px;padding:16px;margin:16px 0;display:grid;gap:12px;max-width:560px}.se-form label{display:grid;gap:5px;font-weight:600}.se-form input,.se-form select,.se-toolbar input{width:100%;box-sizing:border-box;min-height:44px;padding:9px;border-radius:8px;border:1px solid #b8cbdc;font:inherit}.se-form p{line-height:1.5;margin:0;color:#53677b}.se-form button{background:#225c93;color:white;font-weight:700}.se-form button:disabled{opacity:.45}.se-rows a{overflow-wrap:anywhere}@media(max-width:550px){.se-summary{grid-template-columns:1fr 1fr}.se-row{align-items:flex-start;flex-direction:column}.se-row button{align-self:flex-start}.se-summary strong{font-size:1.1rem}.se-tabs button{padding:10px}}
+
+.se-toolbar form[data-se-search]{display:flex;gap:8px;flex:1 1 240px;flex-wrap:wrap}.se-toolbar form[data-se-search] input{flex:1 1 170px}.se-form [hidden],.se-toolbar [hidden]{display:none!important}
+.se-printed-price{display:grid;align-content:center;gap:3px;min-height:44px}.se-printed-price span{font-weight:600}.se-printed-price strong{font-size:1.1rem;color:#163e66}.se-printed-price small{color:#53677b}
+.se-invoice-review{background:#fff;border:1px solid #c9d9e5;border-radius:14px;padding:16px;margin:18px 0;display:grid;gap:14px;max-width:100%;box-sizing:border-box}.se-invoice-review label{font-weight:600;display:grid;gap:5px;min-width:0}.se-invoice-review input,.se-invoice-review select{font:inherit;box-sizing:border-box;width:100%;min-height:44px;border:1px solid #b8cbdc;border-radius:8px;padding:8px}.se-invoice-review button{min-height:44px;border:1px solid #b8cbdc;border-radius:9px;padding:9px 13px;background:#f4f9fd;color:#184a78;cursor:pointer}.se-invoice-review button[type=submit]{background:#225c93;color:#fff;justify-self:start;font-weight:700}.se-invoice-review button:disabled{opacity:.45;cursor:not-allowed}.se-invoice-review p{margin:0;line-height:1.45}.se-review-rows{display:grid;gap:10px}.se-review-item{border:1px solid #e0e9f0;border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(140px,2fr) minmax(155px,1.6fr) repeat(4,minmax(85px,1fr));gap:9px;align-items:end}.se-review-item>strong,.se-review-item>small{grid-column:1/-1}.se-review-item>button{justify-self:start;grid-column:1/-1}.se-asset-fields{grid-column:1/-1;display:flex;gap:9px;flex-wrap:wrap;align-items:end}.se-asset-fields[hidden]{display:none}.se-asset-fields label{flex:1 1 155px}.se-review-balance{padding:12px;border-radius:9px;background:#eef5fb;color:#244764}@media(max-width:850px){.se-review-item{grid-template-columns:repeat(2,minmax(0,1fr))}.se-review-item>label:first-of-type{grid-column:1/-1}}@media(max-width:520px){.se-review-item{grid-template-columns:repeat(2,minmax(0,1fr))}.se-review-item>label:nth-of-type(1),.se-review-item>label:nth-of-type(2){grid-column:1/-1}.se-asset-fields label{flex:1 1 100%}.se-invoice-review .se-toolbar button{flex:1 1 140px}}
+/* Dense invoice review: one item per row, with large enough tap targets on phones. */
+#view-stock-equipment .se-root:has(.se-invoice-review){max-width:1560px}
+.se-invoice-review{font-size:13px;gap:10px}
+.se-review-help{color:#486079;font-size:12px}
+.se-review-scroll{overflow-x:auto;max-width:100%;scrollbar-width:thin}
+.se-review-rows{gap:0;min-width:1350px;border:1px solid #d7e3ed;border-radius:10px;overflow:hidden}
+.se-review-item{display:grid;grid-template-columns:24px minmax(215px,1fr) minmax(150px,240px) max-content 55px 95px 75px 95px 32px;align-items:center;gap:6px;min-height:57px;padding:5px 8px;border:0;border-bottom:1px solid #e5ecf2;border-radius:0;background:#fff}
+.se-review-item:last-child{border-bottom:0}
+.se-review-item:nth-child(even){background:#f8fbfd}
+.se-review-item .se-item-num{font-weight:700;white-space:nowrap}
+.se-review-item label{min-width:0;gap:2px}
+.se-review-item label>span,.se-printed-price>span,.se-use-options legend{font-size:10px;line-height:1;color:#5a6c7b;font-weight:600}
+.se-review-item input:not([type=radio]):not([type=hidden]),.se-review-item select{min-height:32px;padding:4px 6px;font-size:12px}
+.se-review-item .se-item-description input{text-overflow:ellipsis}
+.se-review-item .se-printed-price{min-height:32px;gap:2px}
+.se-review-item .se-printed-price strong{font-size:12px}
+.se-use-options{display:flex;align-items:center;gap:2px;margin:0;padding:0;border:0;min-width:0}
+.se-use-options legend{margin-bottom:3px}
+.se-use-options label{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:0;border:1px solid #c7d7e5;border-radius:6px;padding:4px 3px;white-space:nowrap;font-size:11px;cursor:pointer}
+.se-use-options label:has(input:checked){background:#dfedfc;border-color:#3779bb;color:#143e67;font-weight:700}
+.se-use-options label:focus-within{outline:2px solid #3779bb;outline-offset:2px}
+.se-use-options input[type=radio]{width:14px;height:14px;min-height:14px;margin:0;accent-color:#2869a7}
+.se-review-item .se-remove-item{grid-column:auto;justify-self:center;min-height:32px;padding:0;width:32px;font-size:20px;line-height:1}
+.se-review-item .se-incl-value{background:#f0f5f9;font-weight:700;color:#163e66}
+.se-review-item .se-asset-fields{grid-column:2/-1;display:flex;padding:5px 0;gap:8px}
+.se-review-item .se-asset-fields[hidden]{display:none}
+@media(max-width:850px){.se-review-item>label:first-of-type,.se-review-item>label:nth-of-type(1),.se-review-item>label:nth-of-type(2){grid-column:auto}}
+@media(max-width:700px){.se-review-item{min-height:54px}.se-review-help{line-height:1.35}.se-invoice-review{padding:10px}}
+/* Keep the optional register's six category tabs visible without horizontal scrolling. */
+#view-stock-equipment .se-tabs{flex-wrap:wrap;overflow:visible}
+
+.se-topline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.se-topline>div{border:1px solid #d6e1ea;background:#fff;border-radius:10px;padding:13px;min-width:0}.se-topline span,.se-topline strong{display:block}.se-topline span{font-size:.82rem;color:#556778}.se-topline strong{font-size:1.22rem;margin-top:6px}.se-summary small,.se-summary em{display:block;color:#53677b;margin-top:5px;font-style:normal}.se-panel h2{margin:18px 0 8px}.se-table-wrap{width:100%;overflow-x:auto;border:1px solid #d5e1eb;border-radius:12px;background:#fff;margin:12px 0}.se-table{width:100%;border-collapse:collapse;min-width:900px}.se-table th,.se-table td{padding:11px 12px;border-bottom:1px solid #edf1f5;text-align:left;vertical-align:top}.se-table th{font-size:.78rem;color:#53677b;background:#f6f9fc;white-space:nowrap}.se-table td strong,.se-table td small{display:block}.se-table td small{color:#53677b;margin-top:3px}.se-table tr:last-child td{border-bottom:0}.se-actions{display:flex;gap:6px;flex-wrap:wrap;min-width:180px}.se-actions button{min-height:36px;padding:7px 9px;border-radius:8px;border:1px solid #b8cbdc;background:#f4f9fd;color:#184a78;cursor:pointer}.se-form.wide{max-width:none}.se-form .form-grid.compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.se-form input[readonly]{background:#f5f8fb;color:#53677b}.se-table input,.se-table select{min-height:38px;border:1px solid #b8cbdc;border-radius:8px;padding:7px;box-sizing:border-box;width:100%;font:inherit}
+@media(max-width:760px){.se-topline{grid-template-columns:1fr}.se-summary{grid-template-columns:1fr}.se-form .form-grid.compact{grid-template-columns:1fr}.se-table{min-width:760px}.se-actions{min-width:150px}}
+
+/* v61.99W manual stock/consumable entry — scoped to Stock & Equipment only */
+#view-stock-equipment .se-toolbar .primary{margin-left:auto;background:#1672f3;color:#fff;border-color:#1672f3;font-weight:700}
+#view-stock-equipment .se-manual-item{max-width:760px;margin:10px 0 16px}
+#view-stock-equipment .se-form-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#view-stock-equipment .se-form-heading h3{margin:0 0 4px}
+#view-stock-equipment .se-form-heading p{font-size:12px;max-width:520px}
+#view-stock-equipment .se-form-heading button{flex:0 0 auto}
+#view-stock-equipment .se-manual-item .optional{font-weight:400;color:#7182a2;font-size:11px}
+#view-stock-equipment .se-form-actions{display:flex;justify-content:flex-end}
+#view-stock-equipment .se-form-actions .primary{background:#1672f3;color:#fff;border-color:#1672f3;font-weight:700}
+@media(max-width:550px){
+ #view-stock-equipment .se-toolbar{align-items:stretch}
+ #view-stock-equipment .se-toolbar .primary{width:100%;margin-left:0}
+ #view-stock-equipment .se-form-heading{flex-direction:column}
+ #view-stock-equipment .se-form-heading button{align-self:flex-start}
+ #view-stock-equipment .se-form-actions .primary{width:100%}
+}
+
+/* v61.100T Stock & Equipment desktop list alignment — presentation only.
+   Keep each Stock to Sell, Consumables, CapEx and Small Tools record on one row,
+   matching the compact Invoice / Expense list treatment. */
+@media (min-width:761px){
+  #view-stock-equipment .se-table{min-width:1180px}
+  #view-stock-equipment .se-table th,
+  #view-stock-equipment .se-table td{vertical-align:middle;padding:9px 10px;white-space:nowrap}
+  #view-stock-equipment .se-table td:first-child{max-width:300px;overflow:hidden;text-overflow:ellipsis}
+  #view-stock-equipment .se-table td:first-child strong,
+  #view-stock-equipment .se-table td:first-child small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #view-stock-equipment .se-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;min-width:max-content}
+  #view-stock-equipment .se-actions button{flex:0 0 auto;min-height:34px;padding:7px 9px;font-size:11px;white-space:nowrap}
+}
+
+/* v61.100U Stock & Equipment desktop width fit — presentation only.
+   Keep tracked-item lists within the module viewport like Invoices / Expenses,
+   so the list does not create a horizontal scrollbar. Mobile rules are unchanged. */
+@media (min-width:761px){
+  #view-stock-equipment .se-table-wrap{overflow-x:hidden}
+  #view-stock-equipment .se-table{width:100%;min-width:0;table-layout:fixed}
+  #view-stock-equipment .se-table th,
+  #view-stock-equipment .se-table td{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #view-stock-equipment .se-table th:first-child,
+  #view-stock-equipment .se-table td:first-child{width:22%}
+  #view-stock-equipment .se-table th:last-child,
+  #view-stock-equipment .se-table td:last-child{width:35%;overflow:visible;text-overflow:clip}
+  #view-stock-equipment .se-table td:not(:first-child):not(:last-child){font-size:12px}
+  #view-stock-equipment .se-actions{width:100%;min-width:0;gap:4px;justify-content:flex-start}
+  #view-stock-equipment .se-actions button{min-width:0;padding:6px 7px;font-size:10.5px}
+}
