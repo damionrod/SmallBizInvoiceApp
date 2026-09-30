@@ -1,0 +1,33 @@
+Frindly v61.102E Dashboard Redesign
+
+Files changed:
+- public/dashboard.js
+- public/styles.css
+- public/financials.js (read-only dashboardSnapshot bridge only; existing Financials calculations unchanged)
+
+Dashboard changes:
+- Preserved welcome/header and quick actions; company name reduced ~10%.
+- Business Pulse: Sales this month, Expenses this month, Profit this month, Outstanding invoices, FY Sales YTD.
+- Sales Performance: 6/12 month/FY authoritative invoice-sales trend.
+- Where Your Money Went: current-month expense/payroll cost composition using existing Financials calcPeriod logic.
+- Today's Schedule: existing schedule RPC, up to 5 jobs plus calculated scheduled hours.
+- Cash Movement: customer payments, expense payments, net movement; removed duplicate bar presentation.
+- Getting Paid: current/1-30/31-60/60+ ageing from invoice balances and due dates.
+- Needs Attention: overdue invoices, unreconciled bank items, unscheduled jobs using existing sources.
+- Financial Year So Far: YTD sales, expenses, operating profit/margin, average monthly sales, best sales month, months completed, GST net position.
+
+Accounting source protection:
+- Sales/expenses/profit/categories/FY/GST use the existing Financials state and calcPeriod implementation through a new read-only dashboardSnapshot() export.
+- Cash movement remains separate from sales/profit.
+- Existing Financials calculation functions were not altered.
+- Missing financial snapshot displays unavailable states rather than invented values.
+
+Regression/static checks performed:
+- node --check public/dashboard.js: PASS
+- node --check public/financials.js: PASS
+- Dashboard CSS is scoped under #view-dashboard.
+- No database migration added.
+- No unrelated application files intentionally changed.
+
+Important deployment check:
+- Live Supabase/RLS/data reconciliation cannot be executed in this offline package environment. After deployment/staging, verify dashboard figures against Financials for the same business and period, plus mobile layouts and business switching with live data.

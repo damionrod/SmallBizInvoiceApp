@@ -209,6 +209,20 @@ function bind(){document.querySelectorAll('[data-fin-tab]').forEach(b=>b.onclick
 async function init(){if(!window.SAAS?.state?.business?.id||!client())return;const bid=window.SAAS.state.business.id;if(state.businessId===bid&&state.settings)return;if(state.businessId!==bid)state.activeTab='overview';state.businessId=bid;await loadFinancialData();if(q('finPeriod'))q('finPeriod').value=state.settings?.default_report_period||'fytd';setPeriodControls();renderSettings();renderAll()}
 async function onShow(){await init();await loadFinancialData();setPeriodControls();renderAll()}
 async function refresh(){await init();await loadFinancialData();renderSettings();renderAll()}
-window.Financials={init,onShow,refresh,renderSettings};
+async function dashboardSnapshot(){
+  if(state.businessId!==biz()?.id||!state.settings)await init();else await loadFinancialData();
+  const now=new Date(), month=rangeFor('this_month'), last=rangeFor('last_month'), fy=rangeFor('fytd'), prevFy=rangeFor('previous_fy');
+  const current=calcPeriod(month.from,month.to), previous=calcPeriod(last.from,last.to), ytd=calcPeriod(fy.from,fy.to), priorFy=calcPeriod(prevFy.from,prevFy.to);
+  const trend=[];
+  for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1),from=iso(d),to=iso(new Date(d.getFullYear(),d.getMonth()+1,0)),v=calcPeriod(from,to);trend.push({from,to,label:d.toLocaleDateString('en-NZ',{month:'short'}),sales:v.sales})}
+  const groups=new Map();
+  for(const row of current.costs||[]){const k=row.label||'Uncategorised';groups.set(k,(groups.get(k)||0)+num(row.amount))}
+  const categories=[...groups.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  const fyStart=fyBounds(now).start, elapsed=Math.max(1,(now.getFullYear()-fyStart.getFullYear())*12+now.getMonth()-fyStart.getMonth()+1);
+  const fyMonths=[];for(let d=new Date(fyStart.getFullYear(),fyStart.getMonth(),1);d<=now;d=new Date(d.getFullYear(),d.getMonth()+1,1)){const v=calcPeriod(iso(d),iso(new Date(d.getFullYear(),d.getMonth()+1,0)));fyMonths.push({label:d.toLocaleDateString('en-NZ',{month:'long'}),sales:v.sales})}
+  const best=fyMonths.reduce((a,x)=>!a||x.sales>a.sales?x:a,null);
+  return {businessId:state.businessId,month:{from:month.from,to:month.to,...current},previousMonth:previous,fy:{from:fy.from,to:fy.to,...ytd},previousFy:priorFy,trend,categories,averageMonthlySales:ytd.sales/elapsed,bestSalesMonth:best,monthsCompleted:elapsed,gstPosition:ytd.gstNet};
+}
+window.Financials={init,onShow,refresh,renderSettings,dashboardSnapshot};
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',bind):bind();
 })();
