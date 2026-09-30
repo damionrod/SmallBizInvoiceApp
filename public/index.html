@@ -11,12 +11,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles-core.css?v=61.102J-unified-support" />
-  <link rel="stylesheet" href="styles.css?v=61.102J-unified-support" />
-  <link rel="stylesheet" href="frontend-quality.css?v=61.102J-unified-support" />
-  <script defer src="mobile-shell.js?v=61.102J-unified-support"></script>
-  <script src="app-config.js?v=61.102J-unified-support"></script>
-  <script src="finlo-core.js?v=61.102J-unified-support"></script>
+  <link rel="stylesheet" href="styles-core.css?v=61.102L-login-reliability" />
+  <link rel="stylesheet" href="styles.css?v=61.102L-login-reliability" />
+  <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
+  <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
+  <script src="app-config.js?v=61.102L-login-reliability"></script>
+  <script src="finlo-core.js?v=61.102L-login-reliability"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
@@ -787,7 +787,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
     <div class="card account-team-card" id="teamAccessCard"><div class="card-title"><div><h3>Team &amp; Access</h3><p class="hint">View and manage authorised users for this business. Owner access is protected.</p></div><div class="head-actions"><button class="secondary" id="rolePermissionsBtn" type="button">Role Permissions</button><button class="primary" id="inviteTeamUser" type="button">+ Invite User</button><button class="secondary" id="refreshTeamAccess" type="button">Refresh</button></div></div><div id="teamAccessMessage" class="hint"></div><div class="table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="teamAccessRows"></tbody></table></div><div class="team-pending-wrap" id="teamPendingWrap"><h4>Pending invitations</h4><div class="table-scroll"><table><thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Expires</th><th scope="col">Actions</th></tr></thead><tbody id="teamInviteRows"></tbody></table></div></div></div>
     <div class="card account-email-card"><h3>Email sending</h3><p class="hint">Set the sender address this business uses for invoices and quotations.</p><div class="form-grid compact"><label class="wide">Invoice &amp; quotation sender email<input id="accountSenderEmail" type="email" placeholder="accounts@yourbusiness.co.nz"><small>Used as the From address for invoices and quotations. The email domain must be verified with the configured email provider. Leave blank to use the platform sender.</small></label></div><div class="actions"><button class="primary" id="saveAccountEmail" type="button">Save email settings</button></div></div>
     <div class="card account-preferences-card"><h3>Business preferences</h3><div class="form-grid compact"><label class="wide">Currency<select id="accountCurrency"></select><small>Applies across invoices, quotations, reports and job costing. Amounts display with the selected ISO currency code, for example NZD, AUD or LKR.</small></label><label class="wide">Helper name<input id="accountHelperName" maxlength="30" placeholder="Use platform default"><small id="accountHelperNameHint">Leave blank to use the Frindly default set by the platform.</small></label></div><div class="actions"><button class="primary" id="saveAccountPreferences" type="button">Save business preferences</button></div></div>
-    <div class="card account-export-card"><div class="card-title"><div><h3>Business data</h3><p class="hint">Download a copy of the data stored for this business. Passwords, authentication tokens and payment gateway secrets are never included.</p></div><button class="secondary" id="exportMyData" type="button">Export My Data</button></div></div>
+    <div class="card account-export-card"><div class="card-title"><div><h3>Business data</h3><p class="hint">Download a comprehensive ZIP copy of this business data, including authorised uploaded documents. Passwords, authentication tokens, provider secrets and platform-only diagnostics are never included.</p></div><button class="secondary" id="exportMyData" type="button">Export My Data</button></div></div>
     <div class="card" id="subscriptionCard">
       <div class="card-title"><div><h3 id="billingBusinessName">Subscription</h3><p class="hint">Your Frindly subscription</p></div><button class="secondary" id="refreshBillingBtn" type="button">Refresh billing</button></div>
       <p id="billingMessage" class="hint" role="status" aria-live="polite"></p>
@@ -926,16 +926,16 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <aside class="finlo-helper-panel" id="finloHelperPanel" hidden aria-label="Frindly Helper"><div class="helper-head"><div class="helper-head-title"><span class="helper-drag-handle" aria-hidden="true">⋮⋮</span><div><strong>Frindly Helper</strong><span id="finloHelperUsage">—</span></div></div><button id="finloHelperClose" class="close" type="button" aria-label="Close">×</button></div><button class="helper-human-support" id="finloHelperHumanSupport" type="button">Talk to a person</button><div class="helper-starters"><button data-helper-starter="What does this mean?">What does this mean?</button><button data-helper-starter="Where can I find this?">Where can I find this?</button><button data-helper-starter="Can I do this later?">Can I do this later?</button></div><div class="helper-messages" id="finloHelperMessages"><div class="helper-msg assistant">Hi — ask me anything about using Finlo.</div></div><div class="helper-compose"><div class="helper-input-wrap"><textarea id="finloHelperQuestion" rows="2" placeholder="Ask a question…"></textarea><div class="helper-voice-controls" aria-label="Voice tools"><button class="helper-tool-icon helper-mic" id="finloHelperMic" type="button" aria-label="Dictate a question" title="Dictate a question" hidden><svg class="helper-tool-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6.5 11a5.5 5.5 0 0 0 11 0M12 16.5V21M9 21h6"/></svg><span class="sr-only" id="finloHelperMicLabel">Dictate</span></button><button class="helper-tool-icon helper-conversation-start" id="finloHelperConversationStart" type="button" aria-label="Legacy voice conversation" hidden aria-hidden="true" tabindex="-1"><span aria-hidden="true">◉</span><span class="sr-only">Legacy voice conversation</span></button><button class="helper-tool-icon helper-live-start" id="finloHelperLiveStart" type="button" aria-label="Start voice chat" title="Voice chat" hidden><svg class="helper-tool-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg><span class="sr-only">Voice chat</span></button><button class="helper-tool-icon helper-voice-cancel" id="finloHelperVoiceCancel" type="button" aria-label="Cancel dictation" hidden aria-hidden="true" tabindex="-1"><span aria-hidden="true">×</span></button><span class="helper-voice-status" id="finloHelperVoiceStatus" role="status" aria-live="polite"></span></div><div class="helper-live helper-live-compact" id="finloHelperLive" hidden><span id="finloHelperLiveStatus" role="status" aria-live="polite">Ready</span><div class="helper-live-pulse" id="finloHelperLivePulse" aria-hidden="true"><i></i><i></i><i></i><i></i></div><span id="finloHelperLiveBadge" hidden>GPT-Live-1</span><span id="finloHelperLiveHint" hidden></span><div class="helper-live-diagnostics" id="finloHelperLiveDiagnostics" hidden aria-hidden="true"></div><button id="finloHelperLiveEnd" type="button" class="secondary compact-btn">End</button></div><div class="helper-conversation" id="finloHelperConversation" hidden><strong>BASIC VOICE</strong><span id="finloHelperConversationStatus" role="status" aria-live="polite">Ready for you…</span><div><button id="finloHelperConversationPause" type="button" aria-label="Pause voice conversation">Pause</button><button id="finloHelperConversationEnd" type="button" aria-label="End voice conversation">End conversation</button></div></div></div><button class="primary helper-send-icon" id="finloHelperSend" type="button" aria-label="Send message" title="Send message"><span aria-hidden="true">➤</span><span class="sr-only">Send</span></button></div></aside>
   <div class="app-version">© 2026 Finlo · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-  <script src="referrals.js?v=61.102J-unified-support"></script>
-  <script src="saas.js?v=61.102J-unified-support"></script>
-  <script src="stock-equipment.js?v=61.102J-unified-support"></script>
-  <link rel="stylesheet" href="stock-equipment.css?v=61.102J-unified-support" />
-  <link rel="stylesheet" href="purchase-review.css?v=61.102J-unified-support" />
-  <script src="onboarding.js?v=61.102J-unified-support"></script>
-  <script src="finlo-helper.js?v=61.102J-unified-support"></script>
-  <script src="import-migration.js?v=61.102J-unified-support"></script>
-  <script src="support-console.js?v=61.102J-unified-support"></script>
-  <script src="support-inbox.js?v=61.102J-unified-support"></script>
-  <script src="support-center.js?v=61.102J-unified-support"></script>
+  <script src="referrals.js?v=61.102L-login-reliability"></script>
+  <script src="saas.js?v=61.102L-login-reliability"></script>
+  <script src="stock-equipment.js?v=61.102L-login-reliability"></script>
+  <link rel="stylesheet" href="stock-equipment.css?v=61.102L-login-reliability" />
+  <link rel="stylesheet" href="purchase-review.css?v=61.102L-login-reliability" />
+  <script src="onboarding.js?v=61.102L-login-reliability"></script>
+  <script src="finlo-helper.js?v=61.102L-login-reliability"></script>
+  <script src="import-migration.js?v=61.102L-login-reliability"></script>
+  <script src="support-console.js?v=61.102L-login-reliability"></script>
+  <script src="support-inbox.js?v=61.102L-login-reliability"></script>
+  <script src="support-center.js?v=61.102L-login-reliability"></script>
 </body>
 </html>

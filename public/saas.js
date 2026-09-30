@@ -5,6 +5,29 @@
   const state = { client:null, session:null, user:null, profile:null, business:null, subscription:null, plan:null, loadedApp:false, checkoutAvailable:null, inviteToken:new URLSearchParams(location.search).get('invite')||'', inviteInfo:null, businessMemberships:[], effectiveAccess:{}, referralCode:new URLSearchParams(location.search).get('ref')||'', referralInviteToken:new URLSearchParams(location.search).get('rid')||'' };
   let adminPlanRenderSequence=0;
   let accountEntry=null;
+  const ACCOUNT_STARTUP_TIMEOUT_MS=30000;
+  const STARTUP_RECOVERY_KEY='frindly_login_startup_recovery_v61102l';
+  let startupStage='idle';
+
+  function setStartupStage(stage){startupStage=stage;console.info('[Frindly startup]',stage)}
+  function withStartupTimeout(promise,ms=ACCOUNT_STARTUP_TIMEOUT_MS){
+    let timer;
+    return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`Account startup timed out while ${startupStage||'loading your account'}.`)),ms)})]).finally(()=>clearTimeout(timer));
+  }
+  function recoverStartupFailure(err){
+    console.error('Frindly account startup failed',{stage:startupStage,error:err});
+    state.loadedApp=false;
+    q('authShell')?.classList.add('open');
+    document.body.classList.add('auth-locked');
+    const alreadyRecovered=sessionStorage.getItem(STARTUP_RECOVERY_KEY)==='1';
+    if(!alreadyRecovered&&state.session){
+      sessionStorage.setItem(STARTUP_RECOVERY_KEY,'1');
+      message('Your login succeeded. Finishing account loading…');
+      setTimeout(()=>location.reload(),250);
+      return;
+    }
+    message('You are signed in, but Frindly could not finish loading your account. Please refresh the page and try again.','error');
+  }
 
   function message(text, kind=''){
     const el=q('authMessage'); if(!el)return; el.textContent=text||''; el.className='auth-message '+kind;
@@ -42,7 +65,7 @@
   function enterOnce(session){
     if(state.loadedApp)return Promise.resolve();
     if(accountEntry)return accountEntry;
-    accountEntry=enter(session).finally(()=>{accountEntry=null});
+    accountEntry=withStartupTimeout(enter(session)).catch(err=>{recoverStartupFailure(err);throw err}).finally(()=>{accountEntry=null});
     return accountEntry;
   }
 
@@ -142,7 +165,7 @@
       try{
         const {data,error}=await state.client.auth.signInWithPassword({email:q('loginEmail').value.trim(),password:q('loginPassword').value});
         if(error)message(error.message,'error');
-        else if(data?.session)await enterOnce(data.session);
+        else if(data?.session){message('Loading your account…');await enterOnce(data.session);}
         else message('Signed in, but no session was returned. Refresh and try again.','error');
       }catch(err){console.error('Sign-in failed',err);message(err?.message||'Unable to log in. Please try again.','error')}
     };
@@ -236,13 +259,18 @@
   }
 
   async function enter(session){
-    state.session=session; state.user=session.user;
+    state.session=session; state.user=session.user; state.loadedApp=false;
+    setStartupStage('checking your account');
     if(state.inviteToken){const accepted=await acceptInvitationIfPresent();if(!accepted){q('authShell').classList.add('open');return}}
+    setStartupStage('loading business access');
     const ok=await loadAccount(); if(!ok){q('authShell').classList.add('open');return}
+    setStartupStage('loading business settings');
     await loadBusinessSettings();
+    setStartupStage('checking legacy data');
     await migrateLegacyLocalData();
     q('authShell').classList.remove('open'); document.body.classList.remove('auth-locked');
     setupAccountUI();
+    setStartupStage('loading referrals');
     await window.Referrals?.init?.();
     if(await maybeContinueSignupCheckout())return;
     // A customer must never be able to retain or enter the owner route manually.
@@ -250,8 +278,12 @@
       history.replaceState(null,'',location.pathname+location.search);
     }
     if(!state.loadedApp){
-      state.loadedApp=true;
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102J-unified-support','app.js?v=61.102J-unified-support','schedule.js?v=61.102J-unified-support','dashboard.js?v=61.102J-unified-support','job-costing.js?v=61.102J-unified-support','job-profitability.js?v=61.102J-unified-support','expenses.js?v=61.102J-unified-support','purchase-review.js?v=61.102J-unified-support','payroll-nz-holidays.js?v=61.102J-unified-support','payroll-nz-statutory-leave.js?v=61.102J-unified-support','payroll-nz-public-holidays.js?v=61.102J-unified-support','payroll-nz-final-pay.js?v=61.102J-unified-support','payroll-nz-tax.js?v=61.102J-unified-support','payroll.js?v=61.102J-unified-support','financials.js?v=61.102J-unified-support','accountant-centre.js?v=61.102J-unified-support','bank-reconciliation.js?v=61.102J-unified-support']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
+      setStartupStage('loading application modules');
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.102L-login-reliability','schedule.js?v=61.102L-login-reliability','dashboard.js?v=61.102L-login-reliability','job-costing.js?v=61.102L-login-reliability','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.102L-login-reliability','purchase-review.js?v=61.102L-login-reliability','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.102L-login-reliability','financials.js?v=61.102L-login-reliability','accountant-centre.js?v=61.102L-login-reliability','bank-reconciliation.js?v=61.102L-login-reliability']);
+      setStartupStage('initialising application');
+      await bindAfterAppLoad();
+      state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
+      refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
     }
   }
 
@@ -840,65 +872,82 @@
   }
 
   function safeFileName(value){return String(value||'business').trim().replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase()||'business'}
-  function downloadJson(data,filename){
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  function downloadBlob(data,filename){
+    const url=URL.createObjectURL(data),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
-  async function collectBusinessData(businessId){
-    const queries={
-      business:state.client.from('businesses').select('*').eq('id',businessId).single(),
-      profiles:state.client.from('profiles').select('id,business_id,full_name,email,role,is_super_admin,created_at').eq('business_id',businessId),
-      subscriptions:state.client.from('subscriptions').select('*,plans(*)').eq('business_id',businessId),
-      business_modules:state.client.from('business_modules').select('*,modules(*)').eq('business_id',businessId),
-      customers:state.client.from('customers').select('*').eq('business_id',businessId).order('created_at'),
-      invoices:state.client.from('invoices').select('*').eq('business_id',businessId).order('created_at'),
-      recurring_rules:state.client.from('recurring_rules').select('*').eq('business_id',businessId).order('next_invoice_date'),
-      job_costings:state.client.from('job_costings').select('*').eq('business_id',businessId).order('created_at'),
-      quotes:state.client.from('quotes').select('*').eq('business_id',businessId).order('created_at'),
-      expense_categories:state.client.from('expense_categories').select('*').eq('business_id',businessId).order('sort_order'),
-      suppliers:state.client.from('suppliers').select('*').eq('business_id',businessId).order('created_at'),
-      expenses:state.client.from('expenses').select('*').eq('business_id',businessId).order('created_at'),
-      expense_lines:state.client.from('expense_lines').select('*').eq('business_id',businessId).order('created_at'),
-      expense_attachments:state.client.from('expense_attachments').select('*').eq('business_id',businessId).order('uploaded_at'),
-      expense_payments:state.client.from('expense_payments').select('*').eq('business_id',businessId).order('created_at'),
-      expense_reconciliations:state.client.from('expense_reconciliations').select('*').eq('business_id',businessId).order('created_at'),
-      batch_payments:state.client.from('batch_payments').select('*').eq('business_id',businessId).order('created_at'),
-      batch_payment_items:state.client.from('batch_payment_items').select('*').eq('business_id',businessId).order('created_at'),
-      supplier_credits:state.client.from('supplier_credits').select('*').eq('business_id',businessId).order('created_at'),
-      recurring_expense_rules:state.client.from('recurring_expense_rules').select('*').eq('business_id',businessId).order('created_at'),
-      expense_audit_log:state.client.from('expense_audit_log').select('*').eq('business_id',businessId).order('created_at'),
-      payroll_settings:state.client.from('payroll_settings').select('*').eq('business_id',businessId),
-      payroll_country_rules:state.client.from('payroll_country_rules').select('*').eq('business_id',businessId).order('effective_from'),
-      payroll_employees:state.client.from('payroll_employees').select('*').eq('business_id',businessId).order('created_at'),
-      payroll_document_types:state.client.from('payroll_document_types').select('*').eq('business_id',businessId).order('sort_order'),
-      payroll_employee_documents:state.client.from('payroll_employee_documents').select('*').eq('business_id',businessId).order('uploaded_at'),
-      payroll_pay_items:state.client.from('payroll_pay_items').select('*').eq('business_id',businessId).order('created_at'),
-      payroll_leave_types:state.client.from('payroll_leave_types').select('*').eq('business_id',businessId).order('created_at'),
-      payroll_employee_leave:state.client.from('payroll_employee_leave').select('*').eq('business_id',businessId).order('updated_at'),
-      payroll_leave_transactions:state.client.from('payroll_leave_transactions').select('*').eq('business_id',businessId).order('transaction_date'),
-      payroll_timesheets:state.client.from('payroll_timesheets').select('*').eq('business_id',businessId).order('work_date'),
-      payroll_pay_runs:state.client.from('payroll_pay_runs').select('*').eq('business_id',businessId).order('pay_date'),
-      payroll_pay_run_employees:state.client.from('payroll_pay_run_employees').select('*').eq('business_id',businessId).order('created_at'),
-      payroll_pay_run_lines:state.client.from('payroll_pay_run_lines').select('*').eq('business_id',businessId).order('created_at'),
-      payroll_payslips:state.client.from('payroll_payslips').select('*').eq('business_id',businessId).order('generated_at'),
-      payroll_financial_transactions:state.client.from('payroll_financial_transactions').select('*').eq('business_id',businessId).order('created_at'),
-      payroll_audit_log:state.client.from('payroll_audit_log').select('*').eq('business_id',businessId).order('created_at')
-    };
-    const entries=await Promise.all(Object.entries(queries).map(async([key,promise])=>{const result=await promise;if(result.error)throw new Error(`${key}: ${result.error.message}`);return [key,result.data]}));
-    const data=Object.fromEntries(entries);
-    return {export_version:'1.0',exported_at:new Date().toISOString(),business_id:businessId,note:'Passwords, authentication tokens and payment gateway secrets are intentionally excluded.',...data};
+  const BUSINESS_EXPORT_MANIFEST={
+    '01_Business_Access':['businesses','profiles','business_memberships','business_member_access_overrides','business_role_access_defaults','business_modules','business_onboarding_state','subscriptions','optional_addon_entitlements'],
+    '02_Customers_Sales':['customers','invoices','recurring_rules','quotes','customer_payments','customer_credit_notes','customer_credit_note_lines','customer_refunds'],
+    '03_Expenses_Suppliers':['expense_categories','suppliers','expenses','expense_lines','expense_attachments','expense_payments','expense_reconciliations','batch_payments','batch_payment_items','supplier_credits','supplier_refunds','supplier_refund_allocations','recurring_expense_rules','expense_audit_log','purchase_document_items','purchase_invoice_reviews','late_transaction_adjustments'],
+    '04_Jobs_Schedule':['job_costings','job_actual_costs','job_activity','job_schedules','job_schedule_assignments','job_recurrence_series'],
+    '05_Stock_Equipment':['se_items','se_assets','se_movements','se_reviews','se_activity','se_document_items','se_invoice_reviews'],
+    '06_Payroll':['payroll_settings','payroll_country_rules','payroll_employees','payroll_document_types','payroll_employee_documents','payroll_pay_items','payroll_leave_types','payroll_employee_leave','payroll_leave_transactions','payroll_timesheets','payroll_timesheet_expenses','payroll_pay_runs','payroll_pay_run_employees','payroll_pay_run_lines','payroll_payslips','payroll_financial_transactions','payroll_employee_work_patterns','payroll_owd_determinations','payroll_statutory_leave_calculations','payroll_statutory_leave_entitlements','payroll_bereavement_events','payroll_payg_eligibility_determinations','payroll_annual_holiday_entitlement_periods','payroll_alternative_holiday_entitlements','payroll_final_pay_calculations','payroll_final_pay_components','payroll_public_holiday_regions','payroll_public_holiday_transfers','payroll_audit_log'],
+    '07_Banking':['bank_accounts','bank_import_batches','bank_transactions','bank_reconciliation_allocations','bank_reconciliation_settings','bank_rules','bank_reconciliation_audit'],
+    '08_Accounting_Financials':['accounting_accounts','accounting_periods','accounting_journals','accounting_journal_lines','accounting_source_mappings','accounting_audit_log','accounting_migration_exceptions','financial_settings','financial_category_mappings','financial_budgets','financial_budget_lines','financial_budget_month_values','financial_audit_log'],
+    '09_Tax_GST':['gst_returns','gst_adjustments','gst_correction_items','gst_settings_history','bas_returns'],
+    '10_Accountant_Exports':['accounting_destination_accounts','accounting_export_mappings','tax_export_mappings','accounting_exports'],
+    '11_Invoice_Payments':['invoice_payment_settings','invoice_payment_links','invoice_payment_transactions'],
+    '12_Import_Migration':['import_batches','import_sheets','import_rows','import_mappings','import_record_links'],
+    '13_Calendar':['google_calendar_connections','google_calendar_event_links','google_calendar_sync_log'],
+    '14_Support':['support_threads','support_messages']
+  };
+  const EXPORT_SENSITIVE_KEYS=/(password|passphrase|access[_-]?token|refresh[_-]?token|service[_-]?role|client[_-]?secret|(^|[_-])secret($|[_-])|api[_-]?key|private[_-]?key|stripe.*key)/i;
+  function exportClean(value){
+    if(Array.isArray(value))return value.map(exportClean);
+    if(value&&typeof value==='object'){const out={};for(const [k,v] of Object.entries(value)){if(EXPORT_SENSITIVE_KEYS.test(k))continue;out[k]=exportClean(v)}return out}
+    return value;
+  }
+  function csvCell(v){if(v==null)return '';const s=typeof v==='object'?JSON.stringify(v):String(v);return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
+  function rowsToCsv(rows){
+    if(!Array.isArray(rows)||!rows.length)return '';
+    const keys=[...new Set(rows.flatMap(r=>Object.keys(r||{})))];
+    return [keys.join(','),...rows.map(r=>keys.map(k=>csvCell(r?.[k])).join(','))].join('\r\n');
+  }
+  async function exportTable(table,businessId){
+    let query=state.client.from(table).select('*');
+    if(table==='businesses')query=query.eq('id',businessId);else query=query.eq('business_id',businessId);
+    const {data,error}=await query;
+    if(error)return {table,rows:[],error:error.message};
+    return {table,rows:exportClean(data||[]),error:null};
+  }
+  async function addStoredFiles(zip,folder,bucket,records,pathKey,nameKey,warnings){
+    for(const record of records||[]){
+      const path=String(record?.[pathKey]||'').trim();if(!path)continue;
+      const rawName=String(record?.[nameKey]||path.split('/').pop()||'file');const dot=rawName.lastIndexOf('.'),ext=dot>0?rawName.slice(dot).replace(/[^a-zA-Z0-9.]/g,'').slice(0,12):'',base=safeFileName(dot>0?rawName.slice(0,dot):rawName);const name=(base||'file')+ext;
+      try{const {data,error}=await state.client.storage.from(bucket).download(path);if(error)throw error;zip.file(`${folder}/${record.id||crypto.randomUUID()}-${name}`,data)}
+      catch(e){warnings.push(`${bucket}/${path}: ${e?.message||'file could not be downloaded'}`)}
+    }
+  }
+  async function collectBusinessData(businessId,onProgress){
+    const results={},warnings=[],tables=Object.values(BUSINESS_EXPORT_MANIFEST).flat();let done=0;
+    for(const table of tables){const result=await exportTable(table,businessId);results[table]=result.rows;if(result.error)warnings.push(`${table}: ${result.error}`);done++;onProgress?.(done,tables.length,table)}
+    return {results,warnings,tables};
   }
   async function exportBusinessData(businessId,businessName,button){
     if(!businessId)return alert('Business information is missing.');
-    const original=button?.textContent||'Export';if(button){button.disabled=true;button.textContent='Exporting…'}
+    if(!window.JSZip)return alert('ZIP export library is unavailable. Please reload Frindly and try again.');
+    const original=button?.textContent||'Export';if(button){button.disabled=true;button.textContent='Preparing export…'}
     try{
-      const payload=await collectBusinessData(businessId);
-      const date=new Date().toISOString().slice(0,10);
-      downloadJson(payload,`${safeFileName(businessName)}-business-data-${date}.json`);
+      const startingBusiness=state.business?.id;if(startingBusiness!==businessId)throw new Error('Business changed before the export started.');
+      const {results,warnings,tables}=await collectBusinessData(businessId,(done,total)=>{if(button)button.textContent=`Exporting ${done}/${total}…`});
+      if(state.business?.id!==businessId)throw new Error('Business changed while the export was being prepared. Please run it again.');
+      const zip=new JSZip(),generatedAt=new Date().toISOString(),counts={};
+      for(const [folder,folderTables] of Object.entries(BUSINESS_EXPORT_MANIFEST))for(const table of folderTables){const rows=results[table]||[];counts[table]=rows.length;zip.file(`${folder}/${table}.json`,JSON.stringify(rows,null,2));if(rows.length)zip.file(`${folder}/${table}.csv`,rowsToCsv(rows))}
+      if(button)button.textContent='Adding documents…';
+      await addStoredFiles(zip,'03_Expenses_Suppliers/Documents','expense-documents',results.expense_attachments,'stored_path','original_filename',warnings);
+      await addStoredFiles(zip,'06_Payroll/Documents','payroll-documents',results.payroll_employee_documents,'storage_path','original_filename',warnings);
+      // Support attachments are user-scoped in Storage. Include any the current signed-in user is authorised to download; preserve metadata and record a warning for the rest.
+      await addStoredFiles(zip,'14_Support/Attachments','support-attachments',(results.support_messages||[]).filter(x=>x.attachment_path),'attachment_path','attachment_name',warnings);
+      const manifest={export_version:'2.0',frindly_release:'61.102K',generated_at:generatedAt,business_id:businessId,business_name:businessName,format:'ZIP containing JSON, CSV and authorised stored documents',table_count:tables.length,record_counts:counts,warnings,security_note:'Passwords, authentication tokens, provider secrets and platform-only operational data are intentionally excluded.'};
+      zip.file('export-manifest.json',JSON.stringify(manifest,null,2));
+      zip.file('README.txt',[`Frindly Business Data Export`,`Business: ${businessName||businessId}`,`Generated: ${generatedAt}`,'','This package is a business-data portability export. It is separate from Accountant Centre/Xero exports.','Each exported dataset is provided as JSON and, when records exist, CSV. Uploaded expense and payroll documents are included where the signed-in user is authorised to access them.','Passwords, authentication tokens, payment gateway/provider secrets, platform diagnostics, usage telemetry and internal sequence counters are intentionally excluded.','',`Datasets: ${tables.length}`,`Warnings: ${warnings.length}`,warnings.length?'':'No export warnings.',...warnings.map(x=>`- ${x}`)].join('\r\n'));
+      if(button)button.textContent='Building ZIP…';
+      const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+      const date=generatedAt.slice(0,10);downloadBlob(blob,`Frindly-Business-Data-${safeFileName(businessName)}-${date}.zip`);
+      if(warnings.length)alert(`Business data exported with ${warnings.length} warning${warnings.length===1?'':'s'}. See README.txt and export-manifest.json inside the ZIP.`);
     }catch(e){alert('Could not export business data: '+(e instanceof Error?e.message:'Unknown export error'));}
     finally{if(button){button.disabled=false;button.textContent=original}}
   }
-
   async function getSubscription(){
     const {data}=await state.client.from('subscriptions').select('*,plans(*)').eq('business_id',state.business.id).maybeSingle();
     state.subscription=data||null; state.plan=data?.plans||null; return data;
