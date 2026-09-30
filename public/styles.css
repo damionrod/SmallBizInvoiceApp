@@ -5966,3 +5966,51 @@ tbody tr:last-child td{border-bottom:0!important}
     font-size:.62rem;
   }
 }
+
+
+/* v61.102G dashboard visual correction — cash alignment, ageing legend markers, attention row icons only. */
+#view-dashboard .cash-metrics>div{
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr);
+  grid-template-rows:auto auto;
+  column-gap:8px;
+  align-content:center;
+  align-items:center;
+  padding:14px 12px;
+}
+#view-dashboard .cash-icon{
+  position:static;
+  grid-column:1;
+  grid-row:1 / span 2;
+  align-self:center;
+}
+#view-dashboard .cash-metrics span{grid-column:2;grid-row:1;margin:0;align-self:end}
+#view-dashboard .cash-metrics strong{grid-column:2;grid-row:2;margin-top:5px;align-self:start}
+#view-dashboard .age-label{display:flex!important;align-items:center;gap:6px;white-space:nowrap}
+#view-dashboard .age-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+#view-dashboard .age-dot-0{background:#34bfa3}
+#view-dashboard .age-dot-1{background:#4c9af0}
+#view-dashboard .age-dot-2{background:#f5bd4b}
+#view-dashboard .age-dot-3{background:#f45b75}
+#view-dashboard .dash-attention>button{grid-template-columns:26px minmax(0,1fr) auto 14px;gap:8px;align-items:center}
+#view-dashboard .attention-icon{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal}
+#view-dashboard .attention-icon svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#view-dashboard .attention-icon.red{background:#ffe8ed;color:#ef3659}
+#view-dashboard .attention-icon.orange{background:#fff1dd;color:#ef8c16}
+#view-dashboard .attention-icon.purple{background:#f0e8ff;color:#6f52e8}
+#view-dashboard .attention-icon.blue{background:#e7f1ff;color:#2474ed}
+@media(max-width:420px){
+  #view-dashboard .age-label{white-space:normal}
+}
+
+
+/* v61.102H dashboard visual refinement — sales value labels and consistent quick actions only. */
+#view-dashboard .dash-bar-col{position:relative}
+#view-dashboard .dash-bar-value{position:absolute;left:50%;bottom:calc(25px + var(--bar) + 4px);transform:translateX(-50%);font-size:.56rem;line-height:1;font-weight:700;color:#53698f;white-space:nowrap;pointer-events:none}
+#view-dashboard .dashboard-actions button,#view-dashboard .dashboard-actions button.primary{background:#087cf0!important;color:#fff!important;border-color:#087cf0!important;box-shadow:0 7px 17px rgba(8,124,240,.20)!important}
+#view-dashboard .dashboard-actions button::before{content:none!important;display:none!important}
+#view-dashboard .dashboard-action-icon{display:inline-grid;place-items:center;width:17px;height:17px;flex:0 0 17px;color:#fff}
+#view-dashboard .dashboard-action-icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#view-dashboard .dashboard-actions button:hover{background:#0672dc!important;border-color:#0672dc!important}
+@media(max-width:700px){#view-dashboard .dash-bar-value{font-size:.5rem}}
+@media(max-width:420px){#view-dashboard .dash-bar-value{display:none}}
