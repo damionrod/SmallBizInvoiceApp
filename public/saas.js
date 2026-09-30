@@ -251,7 +251,7 @@
     }
     if(!state.loadedApp){
       state.loadedApp=true;
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102H-dashboard-actions-chart-labels','app.js?v=61.102H-dashboard-actions-chart-labels','schedule.js?v=61.102H-dashboard-actions-chart-labels','dashboard.js?v=61.102H-dashboard-actions-chart-labels','job-costing.js?v=61.102H-dashboard-actions-chart-labels','job-profitability.js?v=61.102H-dashboard-actions-chart-labels','expenses.js?v=61.102H-dashboard-actions-chart-labels','purchase-review.js?v=61.102H-dashboard-actions-chart-labels','payroll-nz-holidays.js?v=61.102H-dashboard-actions-chart-labels','payroll-nz-statutory-leave.js?v=61.102H-dashboard-actions-chart-labels','payroll-nz-public-holidays.js?v=61.102H-dashboard-actions-chart-labels','payroll-nz-final-pay.js?v=61.102H-dashboard-actions-chart-labels','payroll-nz-tax.js?v=61.102H-dashboard-actions-chart-labels','payroll.js?v=61.102H-dashboard-actions-chart-labels','financials.js?v=61.102H-dashboard-actions-chart-labels','accountant-centre.js?v=61.102H-dashboard-actions-chart-labels','bank-reconciliation.js?v=61.102H-dashboard-actions-chart-labels']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102J-unified-support','app.js?v=61.102J-unified-support','schedule.js?v=61.102J-unified-support','dashboard.js?v=61.102J-unified-support','job-costing.js?v=61.102J-unified-support','job-profitability.js?v=61.102J-unified-support','expenses.js?v=61.102J-unified-support','purchase-review.js?v=61.102J-unified-support','payroll-nz-holidays.js?v=61.102J-unified-support','payroll-nz-statutory-leave.js?v=61.102J-unified-support','payroll-nz-public-holidays.js?v=61.102J-unified-support','payroll-nz-final-pay.js?v=61.102J-unified-support','payroll-nz-tax.js?v=61.102J-unified-support','payroll.js?v=61.102J-unified-support','financials.js?v=61.102J-unified-support','accountant-centre.js?v=61.102J-unified-support','bank-reconciliation.js?v=61.102J-unified-support']);await bindAfterAppLoad();refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
     }
   }
 
@@ -413,7 +413,7 @@
     else renderAdmin();
     setAdminView(adminViewFromHash(),false);
   }
-  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','referrals','finlo-helper','import-migration','support-health']);
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','referrals','finlo-helper','import-migration','support-health','support-inbox']);
   function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
   function setAdminView(view='dashboard',push=true){
     if(!state.profile?.is_super_admin)return;
@@ -421,7 +421,7 @@
     document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
     document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
     const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
-    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();if(next==='support-health')window.SupportHealth?.render?.();
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();if(next==='support-health')window.SupportHealth?.render?.();if(next==='support-inbox')window.SupportInbox?.render?.();
   }
   function setupAdminNavigation(){
     document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
