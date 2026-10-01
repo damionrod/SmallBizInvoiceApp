@@ -2,6 +2,7 @@ import Stripe from 'npm:stripe@22.4.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getStripeConfig, stripeHeaders, STRIPE_API_VERSION } from '../_shared/payment-config.ts';
 import { subscriptionPlanPatch, subscriptionCancellationPatch } from '../_shared/subscription-billing.ts';
+import { platformFrom, validReplyTo } from '../_shared/email-sender.ts';
 
 function subscriptionBillingPeriod(subscription:any){
   // Frindly Checkout creates one recurring plan item. New Stripe versions keep
@@ -167,14 +168,13 @@ Deno.serve(async(req)=>{
       const {data:tx,error:txError}=await db.from('invoice_payment_transactions').select('id,amount,gross_amount,customer_fee_amount,currency,status,payment_date,stripe_payment_intent_id,stripe_checkout_session_id,metadata,invoices(invoice_number,customer_name,customer_email,total,balance_due),businesses(name,settings)').eq('id',transactionId).maybeSingle();
       if(txError||!tx||tx.status!=='succeeded'||tx.metadata?.receipt_sent_at||!tx.invoices?.customer_email)return;
       const settings=tx.businesses?.settings||{},invoice=tx.invoices||{},currency=String(tx.currency||settings.currency||'NZD').toUpperCase();
-      const fromEmail=String(Deno.env.get('RESEND_FROM_EMAIL')||Deno.env.get('EMAIL_FROM_ADDRESS')||'notifications@frindly.co.nz').trim();
       const businessName=String(settings.trading||settings.company||tx.businesses?.name||'Your Business');
       const esc=(value:any)=>String(value??'').replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]||m));
       const money=(value:any)=>{try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency}).format(Number(value||0))}catch{return `${currency} ${Number(value||0).toFixed(2)}`}};
       const invoiceNumber=String(invoice.invoice_number||'Invoice');
       const subject=`Payment received for ${invoiceNumber} · ${businessName}`;
       const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a"><h2>Payment received</h2><p>Hi ${esc(invoice.customer_name||'Customer')},</p><p>${esc(businessName)} has received your payment for invoice <strong>${esc(invoiceNumber)}</strong>.</p><table cellpadding="6" cellspacing="0"><tr><td>Invoice payment</td><td><strong>${money(tx.amount)}</strong></td></tr>${Number(tx.customer_fee_amount||0)>0?`<tr><td>Payment processing fee</td><td>${money(tx.customer_fee_amount)}</td></tr>`:''}<tr><td>Total charged</td><td><strong>${money(tx.gross_amount)}</strong></td></tr><tr><td>Remaining invoice balance</td><td>${money(invoice.balance_due)}</td></tr></table><p>Reference: ${esc(tx.stripe_payment_intent_id||tx.stripe_checkout_session_id||'Stripe payment')}</p><p>Thank you,<br>${esc(businessName)}</p></div>`;
-      const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:`${businessName.replace(/[<>]/g,'')} <${fromEmail}>`,to:[invoice.customer_email],reply_to:settings.email||settings.outboundEmail||undefined,subject,html})});
+      const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:platformFrom(businessName),to:[invoice.customer_email],reply_to:validReplyTo(settings.outboundEmail||settings.email),subject,html})});
       if(!response.ok){console.warn('Online payment receipt email failed',await response.text());return;}
       await db.from('invoice_payment_transactions').update({metadata:{...(tx.metadata||{}),receipt_sent_at:new Date().toISOString()},updated_at:new Date().toISOString()}).eq('id',transactionId);
     };

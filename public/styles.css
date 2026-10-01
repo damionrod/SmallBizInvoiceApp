@@ -1161,7 +1161,7 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   align-items:center;
 }
 #view-create .page-head h1{font-size:25px !important;line-height:1.15;margin:0 0 2px}
-#view-create .page-head p{font-size:12.5px !important;line-height:1.3;margin:0}
+#view-create .page-head p{margin:0}
 #view-create .page-head #clearInvoice{padding:7px 12px !important;min-height:36px}
 #view-create #configNotice{margin:0 0 8px !important;padding:7px 10px !important}
 
@@ -1275,7 +1275,6 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
     align-items:start !important;
   }
   #view-create .page-head h1{font-size:22px !important}
-  #view-create .page-head p{font-size:11.5px !important}
   #view-create .invoice-details-card{
     display:grid !important;
     grid-template-columns:1fr !important;
@@ -6040,3 +6039,230 @@ tbody tr:last-child td{border-bottom:0!important}
 .support-chat-status{margin:8px 12px 0}.support-chat-messages{min-height:0;height:auto;flex:1}.support-chat-compose{flex:0 0 auto;padding-bottom:max(12px,env(safe-area-inset-bottom))}
 @media (min-width:640px){.support-center-modal{padding:20px;align-items:center}.support-center-box{width:min(620px,94vw);height:auto;max-height:min(780px,92vh);border-radius:22px}.support-customer-head{padding:18px 20px}.support-customer-head h2{font-size:22px}.support-unified-form{padding:16px 20px 12px}.support-availability{margin:16px 20px 0}.support-history-link{margin:0 20px 16px}.support-chat-messages{height:430px;flex:none}}
 @media (max-width:420px){.support-customer-icon{width:36px;height:36px;font-size:18px}.support-customer-head p{display:none}.support-unified-form textarea{min-height:96px}.support-chat-compose{grid-template-columns:36px 1fr 44px}.support-chat-msg>div{max-width:88%}}
+
+/* v61.102Q — Unified Tabs active-colour refinement. VISUAL ONLY.
+   Canonical style matches Financials Summary tabs. Existing handlers, IDs and navigation logic are unchanged. */
+:root{
+  --fr-tab-blue:var(--fr-blue,#0878f9);
+  --fr-tab-text:#61718e;
+  --fr-tab-line:var(--fr-line,#dce7f4);
+  --fr-tab-active:#1f2f52;
+  --fr-tab-active-text:#ffffff;
+}
+
+/* Genuine navigation tab rows only. */
+#invoiceModuleNav,#invoiceListTabs,#expenseTabs,#bankReconTabs,#payrollTabs,
+#view-financials .financial-module-tabs,#jcTabs,.jc-settings-tabs,#reportTabs,
+.se-tabs.frindly-module-tabs,.job-detail-tabs{
+  display:flex!important;
+  align-items:flex-end!important;
+  flex-wrap:nowrap!important;
+  gap:4px!important;
+  margin-bottom:18px!important;
+  padding:0!important;
+  border:0!important;
+  border-bottom:1px solid var(--fr-tab-line)!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+#invoiceModuleNav>.module-tab,#invoiceListTabs>.module-tab,#expenseTabs>.module-tab,
+#bankReconTabs>.module-tab,#payrollTabs>.module-tab,#view-financials .financial-module-tabs>.module-tab,
+#jcTabs>.module-tab,.jc-settings-tabs>.module-tab,#reportTabs>.module-tab,
+.se-tabs.frindly-module-tabs>.module-tab,.job-detail-tabs>.module-tab{
+  appearance:none!important;
+  flex:0 0 auto!important;
+  min-height:40px!important;
+  margin:0!important;
+  padding:9px 14px 8px!important;
+  border:0!important;
+  border-bottom:4px solid transparent!important;
+  border-radius:9px 9px 0 0!important;
+  background:transparent!important;
+  color:var(--fr-tab-text)!important;
+  box-shadow:none!important;
+  font:inherit!important;
+  font-size:.86rem!important;
+  font-weight:700!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+  cursor:pointer!important;
+}
+
+#invoiceModuleNav>.module-tab.active,#invoiceListTabs>.module-tab.active,#expenseTabs>.module-tab.active,
+#bankReconTabs>.module-tab.active,#payrollTabs>.module-tab.active,#view-financials .financial-module-tabs>.module-tab.active,
+#jcTabs>.module-tab.active,.jc-settings-tabs>.module-tab.active,#reportTabs>.module-tab.active,
+.se-tabs.frindly-module-tabs>.module-tab[aria-current="page"],.se-tabs.frindly-module-tabs>.module-tab.active,
+.job-detail-tabs>.module-tab.active{
+  color:var(--fr-tab-active-text)!important;
+  background:var(--fr-tab-active)!important;
+  border-bottom-color:var(--fr-tab-active)!important;
+}
+
+/* Preserve the v61.102O non-tab visual corrections. */
+#view-create .invoice-details-card.invoice-details-compact,#view-create .invoice-details-card,#view-create .invoice-create-card{
+  border-top:1px solid var(--fr-tab-line)!important;
+}
+#view-create #clearInvoice{
+  background:#fff!important;color:var(--fr-ui-ink,var(--fr-ink,#071333))!important;
+  border:1px solid var(--fr-tab-line)!important;box-shadow:none!important;
+}
+#view-financials #finAccountantBtn,#view-jobcosting #jcNewCostingTop{min-height:40px}
+#view-financials .financial-more-reports>summary.secondary{min-height:38px;display:flex;align-items:center;justify-content:center}
+#invoiceModuleNav{width:100%}
+
+/* Long tab sets keep the same component on small screens and scroll horizontally. */
+@media(max-width:760px){
+  #invoiceModuleNav,#invoiceListTabs,#expenseTabs,#bankReconTabs,#payrollTabs,
+  #view-financials .financial-module-tabs,#jcTabs,.jc-settings-tabs,#reportTabs,
+  .se-tabs.frindly-module-tabs,.job-detail-tabs{
+    overflow-x:auto!important;overflow-y:hidden!important;white-space:nowrap!important;
+    -webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;
+    scroll-snap-type:x proximity;
+  }
+  #invoiceModuleNav::-webkit-scrollbar,#invoiceListTabs::-webkit-scrollbar,#expenseTabs::-webkit-scrollbar,
+  #bankReconTabs::-webkit-scrollbar,#payrollTabs::-webkit-scrollbar,#view-financials .financial-module-tabs::-webkit-scrollbar,
+  #jcTabs::-webkit-scrollbar,.jc-settings-tabs::-webkit-scrollbar,#reportTabs::-webkit-scrollbar,
+  .se-tabs.frindly-module-tabs::-webkit-scrollbar,.job-detail-tabs::-webkit-scrollbar{display:none}
+  #invoiceModuleNav>.module-tab,#invoiceListTabs>.module-tab,#expenseTabs>.module-tab,#bankReconTabs>.module-tab,
+  #payrollTabs>.module-tab,#view-financials .financial-module-tabs>.module-tab,#jcTabs>.module-tab,
+  .jc-settings-tabs>.module-tab,#reportTabs>.module-tab,.se-tabs.frindly-module-tabs>.module-tab,.job-detail-tabs>.module-tab{
+    min-height:44px!important;scroll-snap-align:start;
+  }
+}
+
+/* v61.102R — Main-module top spacing + heading typography consistency. VISUAL ONLY.
+   Uses the Payroll / Invoices / Expenses page-heading typography as the reference.
+   No view IDs, handlers, navigation, data loading, calculations or module logic changed. */
+
+/* Reduce only the shared space immediately below the primary navy navigation. */
+body > main{
+  padding-top:12px!important;
+}
+
+/* Dashboard and Schedule already carry their own inner view padding. Remove only the
+   duplicate top padding so they begin at the same visual level as the other modules. */
+#view-dashboard{
+  padding-top:0!important;
+}
+#view-schedule{
+  padding-top:0!important;
+}
+
+/* Canonical main-heading typography: same family/weight/colour used by the standard
+   Payroll / Invoices / Expenses page headers. Keep existing content and hierarchy. */
+.page-head h1,
+.view:not(#view-dashboard) .page-head h1,
+#view-schedule .schedule-head h1,
+#view-dashboard .dashboard-welcome h1{
+  font-family:"Lato","Zoho Puvi",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;
+  font-weight:800!important;
+  color:var(--fr-ui-ink,#0b1733)!important;
+  letter-spacing:-.02em!important;
+}
+
+/* Schedule title was using a separate legacy Phase-B scale. Align only its page title
+   and subtitle with the normal module header; calendar controls/content are untouched. */
+#view-schedule .schedule-head h1{
+  font-size:1.35rem!important;
+  line-height:1.15!important;
+}
+#view-schedule .schedule-head p{
+  font-family:"Lato","Zoho Puvi",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;
+  font-size:.75rem!important;
+  line-height:1.4!important;
+}
+
+/* Dashboard business/company name uses the same heading family and weight while
+   retaining a slightly larger dashboard-specific scale. */
+#view-dashboard .dashboard-welcome h1{
+  font-size:clamp(1.45rem,1.7vw,1.8rem)!important;
+  line-height:1.1!important;
+}
+#view-dashboard .dashboard-welcome p{
+  font-family:"Lato","Zoho Puvi",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;
+}
+
+@media(max-width:760px){
+  body > main{padding-top:10px!important}
+  #view-dashboard,#view-schedule{padding-top:0!important}
+  #view-schedule .schedule-head h1{font-size:1.18rem!important}
+  #view-dashboard .dashboard-welcome h1{font-size:1.22rem!important}
+}
+
+/* v61.102U — Verified working-module top-position refinement. VISUAL ONLY.
+   The shared <main> owns the 12px navbar-to-content gap. Individual .view elements
+   do not own that gap, so padding the views cannot move them upward.
+   Offset only the eight requested working-module views by 8px; Dashboard and Schedule
+   remain at the v61.102R position. Internal spacing and functionality are untouched. */
+#view-jobcosting,
+#view-create,
+#view-invoices,
+#view-customers,
+#view-settings,
+#view-expenses,
+#view-stock-equipment,
+#view-payroll,
+#view-bankreconciliation,
+#view-financials,
+#view-reports{
+  margin-top:-8px!important;
+}
+
+@media(max-width:760px){
+  #view-jobcosting,
+  #view-create,
+  #view-invoices,
+  #view-customers,
+  #view-settings,
+  #view-expenses,
+  #view-stock-equipment,
+  #view-payroll,
+  #view-bankreconciliation,
+  #view-financials,
+  #view-reports{
+    margin-top:-6px!important;
+  }
+}
+
+/* v61.102V — New Job form refinement (presentation only) */
+#jc-panel-costing .jc-heading-with-help,
+#jc-panel-costing .jc-label-with-help{display:inline-flex;align-items:center;gap:6px}
+#jc-panel-costing .jc-field-label{display:inline-block}
+#jc-panel-costing .jc-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border:1.5px solid #6f63ff;border-radius:50%;color:#6f63ff;font-size:10px;font-weight:700;font-style:normal;line-height:1;cursor:help;vertical-align:middle;outline:none;user-select:none}
+#jc-panel-costing .jc-info:focus-visible{box-shadow:0 0 0 3px rgba(111,99,255,.18)}
+#jc-panel-costing .jc-tooltip{position:absolute;left:50%;bottom:calc(100% + 9px);z-index:80;width:max-content;max-width:260px;transform:translateX(-50%) translateY(3px);padding:8px 10px;border-radius:8px;background:#1f2f52;color:#fff;font-size:11px;font-weight:400;line-height:1.35;white-space:normal;box-shadow:0 8px 22px rgba(15,31,56,.18);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease,transform .12s ease,visibility .12s ease}
+#jc-panel-costing .jc-tooltip::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1f2f52}
+#jc-panel-costing .jc-info:hover .jc-tooltip,
+#jc-panel-costing .jc-info:focus .jc-tooltip,
+#jc-panel-costing .jc-info:focus-within .jc-tooltip{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+#jc-panel-costing #jcCustomerHint:empty{display:none}
+#jc-panel-costing .jc-required{color:#d32f2f;font-weight:700}
+@media (max-width:700px){
+  #jc-panel-costing .jc-tooltip{left:0;max-width:min(240px,calc(100vw - 40px));transform:translateY(3px)}
+  #jc-panel-costing .jc-tooltip::after{left:8px;transform:none}
+  #jc-panel-costing .jc-info:hover .jc-tooltip,
+  #jc-panel-costing .jc-info:focus .jc-tooltip,
+  #jc-panel-costing .jc-info:focus-within .jc-tooltip{transform:translateY(0)}
+}
+
+/* v61.102X — New Job visual refinement only */
+#jc-panel-costing .jc-info{width:10px;height:10px;border-width:1px;font-size:7px}
+#jc-panel-costing input::placeholder,#jc-panel-costing textarea::placeholder{color:#b6bec9;opacity:1}
+
+
+/* v61.102X — Create Invoice form refinement only */
+#view-create .invoice-required{color:#d32f2f;font-weight:700}
+#view-create .invoice-field-label{display:inline-flex;align-items:center;gap:3px}
+#view-create .invoice-heading-with-help{display:inline-flex;align-items:center;gap:7px}
+#view-create .invoice-heading-with-help h2{margin:0}
+#view-create .invoice-info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:10px;height:10px;border:1px solid #6f63ff;border-radius:50%;color:#6f63ff;font-size:7px;font-weight:700;font-style:normal;line-height:1;cursor:help;vertical-align:middle;outline:none;user-select:none;flex:0 0 auto}
+#view-create .invoice-info:focus-visible{box-shadow:0 0 0 3px rgba(111,99,255,.18)}
+#view-create .invoice-tooltip{position:absolute;left:50%;bottom:calc(100% + 9px);z-index:90;width:max-content;max-width:260px;transform:translateX(-50%) translateY(3px);padding:8px 10px;border-radius:8px;background:#1f2f52;color:#fff;font-size:11px;font-weight:400;line-height:1.35;white-space:normal;box-shadow:0 8px 22px rgba(15,31,56,.18);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease,transform .12s ease,visibility .12s ease}
+#view-create .invoice-tooltip::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1f2f52}
+#view-create .invoice-info:hover .invoice-tooltip,#view-create .invoice-info:focus .invoice-tooltip,#view-create .invoice-info:focus-within .invoice-tooltip{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+#view-create input::placeholder,#view-create textarea::placeholder{color:#b6bec9;opacity:1}
+@media(max-width:700px){#view-create .invoice-tooltip{left:0;max-width:min(240px,calc(100vw - 40px));transform:translateY(3px)}#view-create .invoice-tooltip::after{left:8px;transform:none}#view-create .invoice-info:hover .invoice-tooltip,#view-create .invoice-info:focus .invoice-tooltip,#view-create .invoice-info:focus-within .invoice-tooltip{transform:translateY(0)}}
+
+/* v61.102Z — Pricing decision help icon optical alignment only */
+#jc-panel-costing .jc-pricing-card .jc-heading-with-help .jc-info{position:relative;top:1px}

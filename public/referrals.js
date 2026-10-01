@@ -6,7 +6,7 @@
   let portal=null,adminData=null,currentCampaignId='';
   const client=()=>window.SAAS?.client?.();
   const state=()=>window.SAAS?.state;
-  const baseUrl=()=>location.protocol==='http:'||location.protocol==='https:'?location.origin+location.pathname:'https://finlo.co.nz/';
+  const baseUrl=()=>location.protocol==='http:'||location.protocol==='https:'?location.origin+location.pathname:'https://frindly.co.nz/';
   const referralLink=code=>{const u=new URL(baseUrl());u.searchParams.set('ref',code);return u.toString()};
 
   async function loadPortal(){

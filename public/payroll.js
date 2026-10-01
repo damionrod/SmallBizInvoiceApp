@@ -543,8 +543,8 @@
   async function sendPayslipEmail(p,to){
     const pdf=await buildPayslipPdf(p);
     if(!pdf)throw new Error('Could not prepare payslip PDF.');
-    const base64=pdf.output('datauristring').split(',')[1];
-    const {error}=window.SAAS?.invokeAuthenticatedFunction?await window.SAAS.invokeAuthenticatedFunction('send-payslip',{payslipId:p.id,to,pdfBase64:base64,filename:`${p.payslip_number}.pdf`}):await client().functions.invoke('send-payslip',{body:{payslipId:p.id,to,pdfBase64:base64,filename:`${p.payslip_number}.pdf`}});
+    const blob=pdf.output('blob');
+    const {error}=window.SAAS?.invokeAuthenticatedDocumentFunction?await window.SAAS.invokeAuthenticatedDocumentFunction('send-payslip',{payslipId:p.id,to},blob):(window.SAAS?.invokeAuthenticatedFunction?await window.SAAS.invokeAuthenticatedFunction('send-payslip',{payslipId:p.id,to}):await client().functions.invoke('send-payslip',{body:{payslipId:p.id,to}}));
     if(error)throw error;
     const update=await client().from('payroll_payslips').update({emailed_at:new Date().toISOString(),emailed_to:to}).eq('id',p.id);
     if(update.error)throw update.error;

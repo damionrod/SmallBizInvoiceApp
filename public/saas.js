@@ -33,6 +33,45 @@
     const el=q('authMessage'); if(!el)return; el.textContent=text||''; el.className='auth-message '+kind;
   }
   function businessSettingsKey(businessId=state.business?.id){return businessId?`invoice_app_settings:${businessId}`:'invoice_app_settings'}
+  async function persistEmailDocument(kind,recordId,blob,businessId=state.business?.id){
+    const bid=String(businessId||'').trim(),rid=String(recordId||'').trim();
+    if(!state.client||!bid||!rid||!(blob instanceof Blob))throw new Error('Could not prepare the document for email.');
+    if(state.business?.id!==bid)throw new Error('Business context changed while preparing the document. Please try again.');
+    if(!['invoice','quote','payslip'].includes(kind))throw new Error('Unsupported email document type.');
+    const path=`${bid}/${kind}/${rid}.pdf`;
+    const {error}=await state.client.storage.from('frindly-documents').upload(path,blob,{contentType:'application/pdf',upsert:true,cacheControl:'3600'});
+    if(error){
+      console.error('[Frindly email document storage upload failed]',{kind,recordId:rid,businessId:bid,path,blobSize:blob.size,blobType:blob.type,error});
+      const status=error.statusCode??error.status??'';
+      const code=error.error??error.code??error.name??'';
+      const message=error.message||'Could not securely store the document for email.';
+      const detail=[status?`HTTP ${status}`:'',code&&code!==message?String(code):'',message].filter(Boolean).join(' · ');
+      // v61.103G diagnostic only: if the real PDF upload fails, test the same authenticated
+      // Storage path/policy with a tiny known-good PDF. This does not alter email logic.
+      let probe='Tiny PDF probe not run';
+      const probePath=`${bid}/diagnostic/storage-probe-${Date.now()}.pdf`;
+      try{
+        const tinyPdf=new Blob(['%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'],{type:'application/pdf'});
+        const {error:probeError}=await state.client.storage.from('frindly-documents').upload(probePath,tinyPdf,{contentType:'application/pdf',upsert:false,cacheControl:'60'});
+        if(probeError){
+          const ps=probeError.statusCode??probeError.status??'';
+          const pc=probeError.error??probeError.code??probeError.name??'';
+          const pm=probeError.message||'Unknown probe error';
+          probe=`Tiny PDF probe FAILED${ps?` HTTP ${ps}`:''}${pc?` · ${pc}`:''} · ${pm}`;
+          console.error('[Frindly storage tiny PDF probe failed]',{businessId:bid,probePath,error:probeError});
+        }else{
+          probe='Tiny PDF probe SUCCEEDED';
+          const {error:cleanupError}=await state.client.storage.from('frindly-documents').remove([probePath]);
+          if(cleanupError){probe+=' (cleanup failed; diagnostic file may remain)';console.warn('[Frindly storage probe cleanup failed]',{probePath,error:cleanupError});}
+        }
+      }catch(probeError){
+        probe=`Tiny PDF probe ERROR · ${probeError?.message||String(probeError)}`;
+        console.error('[Frindly storage tiny PDF probe exception]',probeError);
+      }
+      throw new Error(`${detail} · ${probe}`);
+    }
+    return path;
+  }
   function readJsonStorage(key){try{return JSON.parse(localStorage.getItem(key)||'{}')||{}}catch{return{}}}
   function appSettings(){const bid=state.business?.id;return bid?readJsonStorage(businessSettingsKey(bid)):readJsonStorage('invoice_app_settings')}
   function writeBusinessSettingsCache(s,businessId=state.business?.id){const value=JSON.stringify(injectInfra(s||{}));if(businessId)localStorage.setItem(businessSettingsKey(businessId),value);localStorage.setItem('invoice_app_settings',value)}
@@ -279,7 +318,7 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.102L-login-reliability','schedule.js?v=61.102L-login-reliability','dashboard.js?v=61.102L-login-reliability','job-costing.js?v=61.102L-login-reliability','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.102L-login-reliability','purchase-review.js?v=61.102L-login-reliability','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.102L-login-reliability','financials.js?v=61.102L-login-reliability','accountant-centre.js?v=61.102L-login-reliability','bank-reconciliation.js?v=61.102L-login-reliability']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.104A-email-transport-cache-fix','schedule.js?v=61.102L-login-reliability','dashboard.js?v=61.102N-dashboard-loading-optimization','job-costing.js?v=61.104A-email-transport-cache-fix','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.102L-login-reliability','purchase-review.js?v=61.102L-login-reliability','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.104A-email-transport-cache-fix','financials.js?v=61.102N-dashboard-loading-optimization','accountant-centre.js?v=61.102L-login-reliability','bank-reconciliation.js?v=61.102L-login-reliability']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
@@ -501,13 +540,26 @@
     setupCentralSettingsIA();
     const initials=(state.profile.full_name||state.business.name||'A').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
     if(q('accountInitials'))q('accountInitials').textContent=initials||'A';
-    const avatar=state.user?.user_metadata?.frindly_avatar||'';
+    const avatarPath=state.user?.user_metadata?.frindly_avatar_path||'';
+    const legacyAvatar=state.user?.user_metadata?.frindly_avatar||'';
+    const hasAvatar=!!(avatarPath||legacyAvatar);
     const avatarImg=q('accountAvatarImg'),avatarFallback=q('accountAvatarFallback');
-    if(avatarImg){avatarImg.src=avatar||'';avatarImg.hidden=!avatar}
-    if(avatarFallback)avatarFallback.hidden=!!avatar;
-    if(q('accountPhotoPreviewInitials')){q('accountPhotoPreviewInitials').textContent=initials||'A';q('accountPhotoPreviewInitials').hidden=!!avatar}
-    if(q('accountPhotoPreviewImg')){q('accountPhotoPreviewImg').src=avatar||'';q('accountPhotoPreviewImg').hidden=!avatar}
-    if(q('removeAccountPhoto'))q('removeAccountPhoto').hidden=!avatar;
+    const applyAvatar=src=>{
+      if(avatarImg){avatarImg.src=src||'';avatarImg.hidden=!src}
+      if(avatarFallback)avatarFallback.hidden=!!src;
+      if(q('accountPhotoPreviewInitials'))q('accountPhotoPreviewInitials').hidden=!!src;
+      if(q('accountPhotoPreviewImg')){q('accountPhotoPreviewImg').src=src||'';q('accountPhotoPreviewImg').hidden=!src}
+    };
+    if(q('accountPhotoPreviewInitials'))q('accountPhotoPreviewInitials').textContent=initials||'A';
+    if(q('removeAccountPhoto'))q('removeAccountPhoto').hidden=!hasAvatar;
+    if(avatarPath){
+      applyAvatar('');
+      state.client.storage.from('frindly-avatars').download(avatarPath).then(({data,error})=>{
+        if(error||!data)return;
+        if(state.accountAvatarObjectUrl)URL.revokeObjectURL(state.accountAvatarObjectUrl);
+        state.accountAvatarObjectUrl=URL.createObjectURL(data);applyAvatar(state.accountAvatarObjectUrl);
+      }).catch(()=>{});
+    }else applyAvatar(legacyAvatar);
     if(q('accountAvatarLarge'))q('accountAvatarLarge').textContent=initials||'A';
     if(q('accountDisplayName'))q('accountDisplayName').textContent=state.profile.full_name||state.business.name||'Account';
     if(q('activeBusinessIndicator'))q('activeBusinessIndicator').textContent=state.business?.name||'Business';
@@ -814,10 +866,14 @@
       const size=256,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;const ctx=canvas.getContext('2d');
       const side=Math.min(img.naturalWidth,img.naturalHeight),sx=(img.naturalWidth-side)/2,sy=(img.naturalHeight-side)/2;
       ctx.drawImage(img,sx,sy,side,side,0,0,size,size);
-      const avatar=canvas.toDataURL('image/jpeg',.82);
-      const {data,error}=await state.client.auth.updateUser({data:{...(state.user?.user_metadata||{}),frindly_avatar:avatar}});
+      const avatarBlob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not prepare the profile photo.')),'image/jpeg',.82));
+      const avatarPath=`${state.user.id}/avatar.jpg`;
+      const {error:uploadError}=await state.client.storage.from('frindly-avatars').upload(avatarPath,avatarBlob,{contentType:'image/jpeg',upsert:true,cacheControl:'3600'});
+      if(uploadError)throw uploadError;
+      const meta={...(state.user?.user_metadata||{}),frindly_avatar_path:avatarPath};delete meta.frindly_avatar;
+      const {data,error}=await state.client.auth.updateUser({data:meta});
       if(error)throw error;
-      if(data?.user)state.user=data.user; else state.user={...state.user,user_metadata:{...(state.user?.user_metadata||{}),frindly_avatar:avatar}};
+      if(data?.user)state.user=data.user; else state.user={...state.user,user_metadata:meta};
       setupAccountUI();
     }catch(err){alert(err?.message||'Could not save the profile photo. Please try again.')}
     finally{if(q('accountPhotoInput'))q('accountPhotoInput').value=''}
@@ -825,7 +881,8 @@
 
   async function removeAccountPhoto(){
     if(!confirm('Remove your profile photo?'))return;
-    const meta={...(state.user?.user_metadata||{})};delete meta.frindly_avatar;
+    const meta={...(state.user?.user_metadata||{})};const avatarPath=meta.frindly_avatar_path||'';delete meta.frindly_avatar;delete meta.frindly_avatar_path;
+    if(avatarPath){const {error:removeError}=await state.client.storage.from('frindly-avatars').remove([avatarPath]);if(removeError)return alert(removeError.message||'Could not remove the profile photo.')}
     const {data,error}=await state.client.auth.updateUser({data:meta});
     if(error)return alert(error.message||'Could not remove the profile photo.');
     if(data?.user)state.user=data.user; else state.user={...state.user,user_metadata:meta};
@@ -855,7 +912,7 @@
   async function saveAccountPreferences(){
     const senderEmail=q('accountSenderEmail')?.value.trim()||'';
     const currency=String(q('accountCurrency')?.value||'NZD').trim().toUpperCase();
-    if(senderEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail))return alert('Please enter a valid sender email address.');
+    if(senderEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail))return alert('Please enter a valid reply-to email address.');
     const helperName=String(q('accountHelperName')?.value||'').trim().replace(/\s+/g,' ').slice(0,30);
     const nextSettings={...(state.business.settings||{}),outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id};
     if(helperName)nextSettings.helperNameOverride=helperName;else delete nextSettings.helperNameOverride;
@@ -1874,6 +1931,25 @@ ${businessName}`,'');
   }
 
 
+
+  async function invokeAuthenticatedDocumentFunction(functionName,fields,blob,signal){
+    if(!state.client)throw new Error('Email requires Supabase setup.');
+    if(!(blob instanceof Blob)||!blob.size)throw new Error('Could not prepare the document for email.');
+    let session=null;
+    try{const {data}=await state.client.auth.getSession();session=data?.session||null}catch{}
+    let accessToken=session?.access_token||state.session?.access_token||'';
+    if(accessToken){try{const {data,error}=await state.client.auth.getUser(accessToken);if(error||!data?.user)accessToken=''}catch{accessToken=''}}
+    if(!accessToken){try{const {data,error}=await state.client.auth.refreshSession();if(!error&&data?.session){session=data.session;state.session=session;state.user=session.user;accessToken=session.access_token||''}}catch{}}
+    if(!accessToken)throw new Error('Not authenticated. Please sign out and sign in again.');
+    const form=new FormData();
+    Object.entries(fields||{}).forEach(([key,value])=>{if(value!==undefined&&value!==null)form.append(key,String(value))});
+    form.append('pdf',blob,'document.pdf');
+    const url=`${String(C.supabaseUrl||'').replace(/\/$/,'')}/functions/v1/${encodeURIComponent(functionName)}`;
+    const response=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${accessToken}`,apikey:C.supabaseKey},body:form,signal});
+    let data=null;try{data=await response.clone().json()}catch{try{data={error:await response.clone().text()}}catch{data=null}}
+    if(!response.ok){const err=new Error(data?.error||data?.message||`Edge Function returned ${response.status}`);err.context=response;return {data:null,error:err}}
+    return {data,error:null};
+  }
   async function invokeAuthenticatedFunction(functionName,body,signal){
     if(!state.client)throw new Error('Email requires Supabase setup.');
     let session=null;
@@ -1896,6 +1972,6 @@ ${businessName}`,'');
   function human(s){return String(s||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
   function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 
-  window.SAAS={state,config:C,client:()=>state.client,currentBusinessId:()=>state.business?.id||null,invokeAuthenticatedFunction,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule,getScheduleAccess,canWriteArea:roleCanWrite};
+  window.SAAS={state,config:C,client:()=>state.client,currentBusinessId:()=>state.business?.id||null,invokeAuthenticatedFunction,invokeAuthenticatedDocumentFunction,persistEmailDocument,canCreateInvoice,refreshUsage,saveBusinessSettings,renderAdmin,showPlans,hasModule,getScheduleAccess,canWriteArea:roleCanWrite};
   init().catch(err=>{console.error(err);q('authShell')?.classList.add('open');message(err.message||'Unable to start application.','error')});
 })();

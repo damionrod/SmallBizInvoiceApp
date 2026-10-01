@@ -1,5 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { appOrigin, createOpaqueToken, hashOpaqueToken } from '../_shared/invoice-payments.ts';
+import { platformFrom, validReplyTo } from '../_shared/email-sender.ts';
+import { storePdfAndAttachment, storedPdfAttachment } from '../_shared/document-attachment.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -28,8 +30,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const resendKey = Deno.env.get('RESEND_API_KEY');
     if (!supabaseUrl || !anonKey || !serviceKey) throw new Error('Supabase configuration is missing.');
-    const configuredFrom = (Deno.env.get('RESEND_FROM_EMAIL') || Deno.env.get('EMAIL_FROM_ADDRESS') || '').trim();
-    const fromEmail = configuredFrom && configuredFrom.toLowerCase() !== 'info@careclean.co.nz' ? configuredFrom : 'notifications@frindly.co.nz';
     if (!resendKey) throw new Error('RESEND_API_KEY is not configured.');
 
     const auth = req.headers.get('Authorization') || '';
@@ -38,12 +38,20 @@ Deno.serve(async (req) => {
     const { data: { user } } = await client.auth.getUser();
     if (!user) return json({ error: 'Not authenticated' }, 401);
 
-    const { to, invoice, pdfBase64, filename } = await req.json();
-    if (!to || !invoice?.id) return json({ error: 'Invoice and recipient are required.' }, 400);
+    const isMultipart = (req.headers.get('content-type') || '').toLowerCase().includes('multipart/form-data');
+    let to = '', invoiceId = '', pdf: File | null = null;
+    if (isMultipart) {
+      const form = await req.formData();
+      to = String(form.get('to') || '').trim(); invoiceId = String(form.get('invoiceId') || '').trim();
+      const incoming = form.get('pdf'); pdf = incoming instanceof File ? incoming : null;
+    } else {
+      const body = await req.json(); to = String(body?.to || '').trim(); invoiceId = String(body?.invoice?.id || body?.invoiceId || '').trim();
+    }
+    if (!to || !invoiceId || (isMultipart && !pdf)) return json({ error: 'Invoice and recipient are required.' }, 400);
     const { data: owned, error: ownedError } = await client
       .from('invoices')
       .select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot')
-      .eq('id', invoice.id)
+      .eq('id', invoiceId)
       .single();
     if (ownedError || !owned) return json({ error: 'Invoice not found for this account.' }, 403);
 
@@ -57,7 +65,6 @@ Deno.serve(async (req) => {
     const emailSettings = currentSettings.emailSettings || snapshot.emailSettings || {};
     const currency = currentSettings.currency || snapshot.currency || 'NZD';
     const currentInvoice = (await admin.from('invoices').select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot').eq('id', owned.id).single()).data || owned;
-    const from = String(currentSettings.outboundEmail || snapshot.outboundEmail || fromEmail).trim();
     const trading = currentSettings.trading || currentSettings.company || businessRow?.name || snapshot.trading || snapshot.company || 'Your Business';
     const companyName = currentSettings.company || businessRow?.name || snapshot.company || trading;
     const phone = currentSettings.phone || snapshot.phone || '';
@@ -103,9 +110,10 @@ Deno.serve(async (req) => {
       ? `<div style="margin:28px 0;padding:20px;border:1px solid #d9e4ec;border-radius:12px;background:#f6fafc"><p style="margin:0 0 12px;color:#24313a">Pay this invoice securely online, including a partial payment if enabled by the business.</p><a href="${esc(paymentUrl)}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#1769aa;color:#ffffff;text-decoration:none;font-weight:700">Pay Now</a></div>`
       : '';
     const html = `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a">${body.split(/\r?\n/).map((line: string) => line ? esc(line) : '&nbsp;').join('<br>')}${paymentBlock}</div>`;
-    const payload: any = { from: `${senderName.replace(/[<>]/g, '')} <${from}>`, to: [to], subject, html };
-    if (subscriberEmail) payload.reply_to = subscriberEmail;
-    if (pdfBase64) payload.attachments = [{ filename: filename || `${currentInvoice.invoice_number}.pdf`, content: pdfBase64 }];
+    const payload: any = { from: platformFrom(senderName, trading), to: [to], subject, html };
+    const replyTo = validReplyTo(currentSettings.outboundEmail || subscriberEmail);
+    if (replyTo) payload.reply_to = replyTo;
+    payload.attachments = [isMultipart && pdf ? await storePdfAndAttachment(admin, owned.business_id, "invoice", owned.id, pdf, `${currentInvoice.invoice_number}.pdf`) : await storedPdfAttachment(admin, owned.business_id, "invoice", owned.id, `${currentInvoice.invoice_number}.pdf`)];
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },

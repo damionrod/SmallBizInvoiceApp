@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-core.css?v=61.102L-login-reliability" />
-  <link rel="stylesheet" href="styles.css?v=61.102L-login-reliability" />
+  <link rel="stylesheet" href="styles.css?v=61.103B-invoice-subtitle-typography" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
   <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
   <script src="app-config.js?v=61.102L-login-reliability"></script>
@@ -49,7 +49,7 @@
     </div>
   </section>
   <main>
-    <div class="module-tabs invoice-module-tabs" id="invoiceModuleNav" hidden><button class="module-tab active" data-invoice-view="create">Create Invoice</button><button class="module-tab" data-invoice-view="invoices">Invoices</button><button class="module-tab" data-invoice-view="customers">Customers</button><button class="module-tab" data-invoice-view="settings">Settings</button></div>
+    <div class="module-tabs invoice-module-tabs" id="invoiceModuleNav" hidden><button class="module-tab active" data-invoice-view="create">Create Invoice</button><button class="module-tab" data-invoice-view="invoices">Invoices</button><button class="module-tab" data-invoice-view="customers">Customers</button><button class="module-tab" data-invoice-section="credits">Credit Notes</button><button class="module-tab" data-invoice-section="refunds">Refunds</button><button class="module-tab" data-invoice-view="settings">Settings</button></div>
     <div class="card getting-started-card" id="gettingStartedCard" hidden><div class="card-title"><div><h2>Getting started</h2><p class="hint">A few useful first steps.</p></div><button class="secondary compact-btn" id="dismissGettingStarted" type="button">Dismiss</button></div><div id="gettingStartedItems" class="getting-started-items"></div></div>
 
     <section id="view-dashboard" class="view">
@@ -66,62 +66,59 @@
         <section class="invoice-meta-panel">
           <div class="compact-section-title">
             <div>
-              <h2>Invoice details</h2>
+              <div class="invoice-heading-with-help"><h2>Invoice details</h2><span class="invoice-info" tabindex="0" role="button" aria-label="Invoice details help">i<span class="invoice-tooltip" role="tooltip">Invoice number is generated automatically. Invoice and due dates use your invoice settings.</span></span></div>
               <p>Number and dates</p>
             </div>
           </div>
           <div class="invoice-meta-fields">
             <label>Invoice number<input id="invoiceNumber" readonly></label>
             <label>Invoice date<input id="invoiceDate" type="date"></label>
-            <label>Due date<input id="dueDate" type="date"></label><label id="invoiceAuTaxClassLabel" hidden style="display:none">Australian GST treatment<select id="invoiceAuTaxClass"><option value="">Review required</option><option value="gst_taxable">GST taxable</option><option value="gst_free">GST-free</option><option value="input_taxed">Input-taxed</option><option value="out_of_scope">No GST / out of scope</option></select><small id="invoiceAuTaxHint" class="hint">Checking Australian GST settings…</small></label>
+            <label>Due date<input id="dueDate" type="date"></label><label id="invoiceAuTaxClassLabel" hidden style="display:none">Australian GST treatment <span class="invoice-required" aria-hidden="true">*</span><select id="invoiceAuTaxClass"><option value="">Review required</option><option value="gst_taxable">GST taxable</option><option value="gst_free">GST-free</option><option value="input_taxed">Input-taxed</option><option value="out_of_scope">No GST / out of scope</option></select><small id="invoiceAuTaxHint" class="hint">Checking Australian GST settings…</small></label>
           </div>
         </section>
 
         <section class="invoice-customer-panel">
           <div class="compact-section-title">
             <div>
-              <h2>Customer details</h2>
+              <div class="invoice-heading-with-help"><h2>Customer details</h2><span class="invoice-info" tabindex="0" role="button" aria-label="Customer details help">i<span class="invoice-tooltip" role="tooltip">Select an existing customer or enter a new customer. New customer details are saved with the invoice.</span></span></div>
               <p>Billing and contact information</p>
             </div>
           </div>
           <div class="invoice-customer-fields">
-            <label class="invoice-customer-name">Customer / business name<div class="customer-pick"><input id="customerName" list="customerNameOptions" autocomplete="off" placeholder="Start typing a customer name"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameOptions"></datalist><small id="selectedCustomerHint">Select an existing customer or type a new one.</small></label>
-            <label class="invoice-category">Customer category<input id="invoiceCustomerCategory" list="customerCategoryOptions" placeholder="Residential / Commercial"><datalist id="customerCategoryOptions"></datalist></label>
-            <label class="invoice-address">Billing address<textarea id="customerAddress" rows="2" placeholder="Street, suburb, city"></textarea></label>
-            <label class="invoice-billing-contact">Billing contact<input id="invoiceBillingContact" placeholder="Contact person"></label>
+            <label class="invoice-customer-name"><span class="invoice-field-label">Customer / business name <span class="invoice-required" aria-hidden="true">*</span></span><div class="customer-pick"><input id="customerName" list="customerNameOptions" autocomplete="off" placeholder="Search customers..." aria-required="true"><button type="button" class="secondary mini-btn" id="quickAddCustomer">+ New</button></div><datalist id="customerNameOptions"></datalist><small id="selectedCustomerHint"></small></label>
+            <label class="invoice-category">Customer category<input id="invoiceCustomerCategory" list="customerCategoryOptions" placeholder="e.g. Residential / Commercial"><datalist id="customerCategoryOptions"></datalist></label>
+            <label class="invoice-address">Billing address<textarea id="customerAddress" rows="2" placeholder="e.g. 12 Lambton Quay, Wellington"></textarea></label>
+            <label class="invoice-billing-contact">Billing contact<input id="invoiceBillingContact" placeholder="e.g. Jane Smith"></label>
             <label class="invoice-email">Customer email<input id="customerEmail" type="email" placeholder="name@example.com"></label>
-            <label class="invoice-phone">Phone<input id="invoiceCustomerPhone" type="tel" placeholder="Phone"></label>
-            <label class="invoice-mobile">Mobile<input id="invoiceCustomerMobile" type="tel" placeholder="Mobile"></label>
-            <label class="invoice-reference">Reference / notes<input id="reference" placeholder="Optional internal note"></label>
+            <label class="invoice-phone">Phone<input id="invoiceCustomerPhone" type="tel" placeholder="e.g. 04 123 4567"></label>
+            <label class="invoice-mobile">Mobile<input id="invoiceCustomerMobile" type="tel" placeholder="e.g. 021 123 4567"></label>
+            <label class="invoice-reference">Reference / notes<input id="reference" placeholder="Optional"></label>
           </div>
         </section>
       </div>
 
       <div class="card">
-        <div class="card-title"><h2>Invoice items</h2><button class="secondary" id="addItem">+ Add item</button></div>
+        <div class="card-title"><h2>Invoice items <span class="invoice-required" aria-hidden="true">*</span></h2><button class="secondary" id="addItem">+ Add item</button></div>
         <div class="items" id="items"></div>
       </div>
 
       <details class="invoice-more-options" id="invoiceMoreOptions"><summary>More invoice options <small>Discount, payment and recurring</small></summary>
       <div class="card invoice-options-grid">
         <div>
-          <h2>Discount</h2>
+          <div class="invoice-heading-with-help"><h2>Discount</h2><span class="invoice-info" tabindex="0" role="button" aria-label="Discount help">i<span class="invoice-tooltip" role="tooltip">Discount is deducted before the service fee and GST are calculated.</span></span></div>
           <div class="option-fields">
             <label>Discount type<select id="discountType"><option value="percent">Percentage (%)</option><option value="fixed">Fixed amount ($)</option></select></label>
             <label>Discount value<input id="discountValue" type="number" min="0" step="0.01" placeholder="Optional"></label>
           </div>
-          <p class="hint">Discount is deducted before the service fee and GST are calculated.</p>
         </div>
         <div>
-          <h2>Payment</h2>
+          <div class="invoice-heading-with-help"><h2>Payment</h2><span class="invoice-info" tabindex="0" role="button" aria-label="Payment help">i<span class="invoice-tooltip" role="tooltip">Enter any amount already paid. The remaining balance due is calculated automatically.</span></span></div>
           <label>Amount paid (optional)<input id="amountPaid" type="number" min="0" step="0.01" placeholder="0.00"></label>
-          <p class="hint">The invoice will calculate the remaining balance due automatically.</p>
         </div>
         <div>
-          <h2>Recurring invoice</h2>
+          <div class="invoice-heading-with-help"><h2>Recurring invoice</h2><span class="invoice-info" tabindex="0" role="button" aria-label="Recurring invoice help">i<span class="invoice-tooltip" role="tooltip">Recurring invoices are generated when the app is opened and a scheduled invoice is due.</span></span></div>
           <label class="tick-option"><input id="recurringEnabled" type="checkbox"> <span>✓ Create this as a recurring invoice</span></label>
           <div id="recurringOptions" style="display:none;margin-top:10px"><label>Repeat every<select id="recurringFrequency"><option value="weekly">Week</option><option value="fortnightly" selected>Fortnight</option><option value="monthly">Month</option></select></label></div>
-          <p class="hint">Recurring invoices are generated when the app is opened and a scheduled invoice is due.</p>
         </div>
       </div>
       </details>
@@ -143,7 +140,7 @@
 
     <section id="view-invoices" class="view">
       <div class="page-head"><div><h1>Invoices</h1><p>Search, filter, export, download, email, edit and review invoice history.</p></div><button class="secondary" id="exportCsv">Export CSV</button></div>
-      <div class="module-tabs invoice-module-tabs" id="invoiceListTabs"><button class="module-tab active" data-invoice-list-tab="invoices">Invoices</button><button class="module-tab" data-invoice-list-tab="credits">Credit Notes</button><button class="module-tab" data-invoice-list-tab="refunds">Refunds</button></div>
+      
       <div id="invoice-panel-invoices">
       <div class="summary-grid"><div class="metric"><span>Excl. GST</span><strong id="sumNet">$0.00</strong></div><div class="metric"><span>GST</span><strong id="sumGst">$0.00</strong></div><div class="metric"><span>Total invoiced</span><strong id="sumTotal">$0.00</strong></div><div class="metric"><span>Invoices</span><strong id="sumCount">0</strong></div></div>
       <div class="card filters"><label>Month<input id="filterMonth" type="month"></label><label>Search<input id="filterSearch" placeholder="Customer, invoice #"></label><button class="secondary" id="resetFilters">Reset</button></div>
@@ -161,7 +158,7 @@
     <section id="view-stock-equipment" class="view" aria-label="Stock and equipment" hidden>
       <div class="page-head"><div><h1>Stock &amp; Equipment</h1><p>Things your business buys, uses and sells.</p></div></div>
       <div id="seAccessMessage" class="notice" role="status" hidden></div>
-      <nav class="se-tabs" aria-label="Stock and equipment sections"><button type="button" data-se-tab="overview" aria-current="page">Overview</button><button type="button" data-se-tab="stock_sale">Stock to Sell</button><button type="button" data-se-tab="supplies">Consumables / Used on Jobs</button><button type="button" data-se-tab="equipment">CapEx Equipment</button><button type="button" data-se-tab="small_tools">Small Tools</button><button type="button" data-se-tab="stocktakes">Stocktakes &amp; Adjustments</button><button type="button" data-se-tab="activity">Activity</button></nav>
+      <nav class="se-tabs module-tabs frindly-module-tabs" aria-label="Stock and equipment sections"><button type="button" class="module-tab" data-se-tab="overview" aria-current="page">Overview</button><button type="button" class="module-tab" data-se-tab="stock_sale">Stock to Sell</button><button type="button" class="module-tab" data-se-tab="supplies">Consumables / Used on Jobs</button><button type="button" class="module-tab" data-se-tab="equipment">CapEx Equipment</button><button type="button" class="module-tab" data-se-tab="small_tools">Small Tools</button><button type="button" class="module-tab" data-se-tab="stocktakes">Stocktakes &amp; Adjustments</button><button type="button" class="module-tab" data-se-tab="activity">Activity</button></nav>
       <div id="seRoot" class="se-root" aria-live="polite"></div>
     </section>
 
@@ -266,7 +263,7 @@
 
 
     <section id="view-financials" class="view">
-      <div class="page-head financials-main-head"><div><h1>Financials</h1><p>Understand your profit, cash, GST and overall financial position.</p></div><button class="secondary" id="finAccountantBtn" type="button">For My Accountant</button></div>
+      <div class="page-head financials-main-head"><div><h1>Financials</h1><p>Understand your profit, cash, GST and overall financial position.</p></div><button class="primary" id="finAccountantBtn" type="button">For My Accountant</button></div>
       <div class="financial-nav-shell">
         <div class="module-tabs financial-module-tabs"><button class="module-tab active" data-fin-tab="overview">Summary</button><button class="module-tab" data-fin-tab="pnl">Profit &amp; Loss</button><button class="module-tab" data-fin-tab="cashflow">Money In &amp; Out</button><button class="module-tab" data-fin-tab="gst">GST</button><button class="module-tab" data-fin-tab="budget">Budget</button></div>
         <details class="financial-more-reports" id="finMoreReports"><summary class="secondary" id="finMoreReportsSummary" aria-expanded="false">More financial reports</summary><div class="financial-more-menu"><button type="button" data-fin-tab="balance">Balance Sheet</button><button type="button" data-fin-tab="cashbook">Cash Book</button><button type="button" data-fin-tab="ledger">General Ledger</button><button type="button" data-fin-tab="trial">Trial Balance</button></div></details>
@@ -313,28 +310,28 @@
     </section>
 
     <section id="view-jobcosting" class="view">
-      <div class="page-head"><div><h1>Job Costing</h1><p>Create jobs, estimate costs, track actual costs and revenue, and review job profitability.</p></div><button class="secondary" id="jcNewCostingTop">+ New Job</button></div>
+      <div class="page-head"><div><h1>Job Costing</h1><p>Create jobs, estimate costs, track actual costs and revenue, and review job profitability.</p></div><button class="primary" id="jcNewCostingTop">+ New Job</button></div>
       <div class="module-tabs" id="jcTabs"><button class="module-tab active" data-jc-tab="costing">New Job</button><button class="module-tab" data-jc-tab="saved">Jobs</button><button class="module-tab" data-jc-tab="quotes">Quotes</button><button class="module-tab" data-jc-tab="settings">Cost Settings</button></div>
 
       <div class="jc-panel active" id="jc-panel-costing">
         <div class="jc-workspace">
           <div class="jc-main-column">
-            <div class="card jc-compact-card"><div class="card-title"><div><h2>Customer & job details</h2><p class="hint no-margin">Linked to My Customers. All internal costing is excluding GST.</p></div></div><div class="form-grid jc-job-grid">
+            <div class="card jc-compact-card"><div class="card-title"><div class="jc-heading-with-help"><h2>Customer & job details</h2><span class="jc-info" tabindex="0" role="button" aria-label="Customer and job details help">i<span class="jc-tooltip" role="tooltip">Customers are linked to My Customers. Internal job costing is calculated excluding GST.</span></span></div></div><div class="form-grid jc-job-grid">
               <label>Job number<input id="jcNumber" readonly></label><label>Job date<input id="jcDate" type="date"></label>
-              <label class="jc-customer-field">Customer / business<div class="jc-customer-picker"><span class="jc-customer-input-wrap"><input id="jcCustomerName" list="jcCustomerOptions" autocomplete="off" placeholder="Start typing an existing customer"><span class="jc-required jc-required-inside" aria-hidden="true">*</span></span><button type="button" class="secondary jc-create-customer" id="jcCreateCustomer">+ Create Customer</button></div><datalist id="jcCustomerOptions"></datalist><small id="jcCustomerHint">Linked to My Customers.</small></label>
-              <label class="jc-job-name">Job name / description<input id="jcDescription" placeholder="Describe the job or service"></label><label class="jc-job-duration">Job Duration (hours)<input id="jcDuration" type="number" min="0" step="0.25" inputmode="decimal" placeholder="e.g. 10"><small>Job duration used for fixed overhead allocation, regardless of worker count.</small></label><label class="jc-job-address">Job address<input id="jcAddress" placeholder="Job/site address"></label>
-              <label class="jc-notes">Internal job notes<textarea id="jcNotes" rows="2"></textarea></label>
+              <label class="jc-customer-field"><span class="jc-field-label jc-label-with-help">Customer / business <span class="jc-required" aria-hidden="true">*</span> <span class="jc-info" tabindex="0" role="button" aria-label="Customer lookup help">i<span class="jc-tooltip" role="tooltip">If the customer is not found, click Create Customer to add them.</span></span></span><div class="jc-customer-picker"><span class="jc-customer-input-wrap"><input id="jcCustomerName" list="jcCustomerOptions" autocomplete="off" placeholder="Search customers..." aria-required="true"></span><button type="button" class="secondary jc-create-customer" id="jcCreateCustomer">+ Create Customer</button></div><datalist id="jcCustomerOptions"></datalist><small id="jcCustomerHint"></small></label>
+              <label class="jc-job-name">Job name / description<input id="jcDescription" placeholder="e.g. Office cleaning"></label><label class="jc-job-duration"><span class="jc-field-label jc-label-with-help">Job Duration (hours) <span class="jc-info" tabindex="0" role="button" aria-label="Job duration help">i<span class="jc-tooltip" role="tooltip">Used to allocate fixed overhead based on total job duration, regardless of the number of workers.</span></span></span><input id="jcDuration" type="number" min="0" step="0.25" inputmode="decimal" placeholder="e.g. 10"></label><label class="jc-job-address">Job address<input id="jcAddress" placeholder="e.g. 12 Lambton Quay, Wellington"></label>
+              <label class="jc-notes">Internal job notes<textarea id="jcNotes" rows="2" placeholder="Optional"></textarea></label>
             </div></div>
 
-            <div class="card jc-compact-card"><div class="card-title"><div><h2>Labour</h2><p class="hint no-margin">Rates come from Labour Settings but can be changed for this costing.</p></div><button class="secondary" id="jcAddLabour">+ Add Labour</button></div><div id="jcLabourRows"></div></div>
-            <div class="card jc-compact-card"><div class="card-title"><div><h2>Travel / variable costs</h2><p class="hint no-margin">Use configured variable rates, including automatic vehicle/fuel cost per kilometre.</p></div><button class="secondary" id="jcAddVariable">+ Add Variable Cost</button></div><div id="jcVariableRows"></div></div>
-            <div class="card jc-compact-card"><div class="card-title"><div><h2>Direct job costs</h2><p class="hint no-margin">Materials, disposal, parking, subcontractors, equipment hire and other costs directly caused by this job.</p></div><button class="secondary" id="jcAddCost">+ Add Cost</button></div><div id="jcCostRows"></div></div>
-            <div class="card jc-compact-card"><div class="card-title"><div><h2>Additional information</h2><p class="hint no-margin">Optional job-specific fields.</p></div><button class="secondary" id="jcAddField">+ Add Field</button></div><div id="jcCustomFields"></div></div>
+            <div class="card jc-compact-card"><div class="card-title"><div class="jc-heading-with-help"><h2>Labour</h2><span class="jc-info" tabindex="0" role="button" aria-label="Labour help">i<span class="jc-tooltip" role="tooltip">Rates come from Labour Settings but can be changed for this costing.</span></span></div><button class="secondary" id="jcAddLabour">+ Add Labour</button></div><div id="jcLabourRows"></div></div>
+            <div class="card jc-compact-card"><div class="card-title"><div class="jc-heading-with-help"><h2>Travel / variable costs</h2><span class="jc-info" tabindex="0" role="button" aria-label="Travel and variable costs help">i<span class="jc-tooltip" role="tooltip">Use configured variable rates, including automatic vehicle/fuel cost per kilometre.</span></span></div><button class="secondary" id="jcAddVariable">+ Add Variable Cost</button></div><div id="jcVariableRows"></div></div>
+            <div class="card jc-compact-card"><div class="card-title"><div class="jc-heading-with-help"><h2>Direct job costs</h2><span class="jc-info" tabindex="0" role="button" aria-label="Direct job costs help">i<span class="jc-tooltip" role="tooltip">Materials, disposal, parking, subcontractors, equipment hire and other costs directly caused by this job.</span></span></div><button class="secondary" id="jcAddCost">+ Add Cost</button></div><div id="jcCostRows"></div></div>
+            <div class="card jc-compact-card"><div class="card-title"><div class="jc-heading-with-help"><h2>Additional information</h2><span class="jc-info" tabindex="0" role="button" aria-label="Additional information help">i<span class="jc-tooltip" role="tooltip">Optional job-specific fields.</span></span></div><button class="secondary" id="jcAddField">+ Add Field</button></div><div id="jcCustomFields"></div></div>
           </div>
 
           <aside class="jc-side-column">
             <div class="jc-sticky-summary">
-              <div class="card jc-pricing-card"><h2>Pricing decision</h2><div class="form-grid compact"><label>Target Gross Margin %<input id="jcMargin" type="number" min="0" max="99.99" step="0.1"></label><label>Contingency %<input id="jcContingency" type="number" min="0" step="0.1"></label><label class="wide quote-price-field">YOUR QUOTE PRICE EX GST<input id="jcQuotePrice" type="number" min="0" step="0.01"></label><label class="tick-option"><input id="jcAdvanceEnabled" type="checkbox"> <span>Require advance payment</span></label><label>Advance %<input id="jcAdvancePercent" type="number" min="0" max="100" step="1"></label></div><p class="hint">The recommended price is guidance only. Enter the actual price you want to quote.</p></div>
+              <div class="card jc-pricing-card"><div class="jc-heading-with-help"><h2>Pricing decision</h2><span class="jc-info" tabindex="0" role="button" aria-label="Pricing decision help">i<span class="jc-tooltip" role="tooltip">The recommended price is guidance only. Enter the actual price you want to quote.</span></span></div><div class="form-grid compact"><label>Target Gross Margin %<input id="jcMargin" type="number" min="0" max="99.99" step="0.1"></label><label>Contingency %<input id="jcContingency" type="number" min="0" step="0.1"></label><label class="wide quote-price-field">YOUR QUOTE PRICE EX GST<input id="jcQuotePrice" type="number" min="0" step="0.01"></label><label class="tick-option"><input id="jcAdvanceEnabled" type="checkbox"> <span>Require advance payment</span></label><label>Advance %<input id="jcAdvancePercent" type="number" min="0" max="100" step="1"></label></div></div>
               <div class="card totals jc-totals"><h2>Cost breakdown</h2>
                 <div><span>Labour cost</span><strong id="jcLabourTotal">$0.00</strong></div><div><span>Travel / variable costs</span><strong id="jcVariableTotal">$0.00</strong></div><div><span>Direct job costs</span><strong id="jcDirectTotal">$0.00</strong></div><div><span>Allocated fixed overhead</span><strong id="jcOverheadTotal">$0.00</strong></div><small id="jcOverheadMethod" class="hint"></small><details class="jc-overhead-details"><summary>Active overheads included</summary><div id="jcActiveOverheads"></div></details>
                 <div class="jc-divider"><span>Subtotal job cost</span><strong id="jcSubtotal">$0.00</strong></div><div><span id="jcContingencyLabel">Contingency</span><strong id="jcContingencyTotal">$0.00</strong></div><div class="true-cost"><span>TRUE JOB COST</span><strong id="jcTrueCost">$0.00</strong></div>
@@ -785,7 +782,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
     <div class="page-head compact-head"><div><h2>Account settings</h2><p>Your login, profile and subscription settings.</p></div></div>
     <div class="card account-profile-card"><h3>Profile</h3><div class="form-grid compact"><label>Your name<input id="accountProfileName"></label><label>Login email<input id="accountProfileEmail" type="email" readonly></label><label>Business account<input id="accountBusinessName"></label><label>Business phone<input id="accountBusinessPhone" type="tel"></label><div class="account-address-photo-row wide"><label class="account-address-field">Business address<input id="accountBusinessAddress"></label><div class="account-photo-compact"><div class="account-photo-preview" id="accountPhotoPreview"><span id="accountPhotoPreviewInitials">A</span><img id="accountPhotoPreviewImg" alt="Profile photo" hidden></div><div class="account-photo-actions"><strong>Profile photo</strong><div><button class="secondary" id="chooseAccountPhoto" type="button">Upload photo</button><button class="secondary" id="removeAccountPhoto" type="button" hidden>Remove</button><input id="accountPhotoInput" type="file" accept="image/jpeg,image/png,image/webp" hidden></div></div></div></div></div><div class="actions"><button class="primary" id="saveAccountProfile" type="button">Save account details</button></div></div>
     <div class="card account-team-card" id="teamAccessCard"><div class="card-title"><div><h3>Team &amp; Access</h3><p class="hint">View and manage authorised users for this business. Owner access is protected.</p></div><div class="head-actions"><button class="secondary" id="rolePermissionsBtn" type="button">Role Permissions</button><button class="primary" id="inviteTeamUser" type="button">+ Invite User</button><button class="secondary" id="refreshTeamAccess" type="button">Refresh</button></div></div><div id="teamAccessMessage" class="hint"></div><div class="table-scroll"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="teamAccessRows"></tbody></table></div><div class="team-pending-wrap" id="teamPendingWrap"><h4>Pending invitations</h4><div class="table-scroll"><table><thead><tr><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Expires</th><th scope="col">Actions</th></tr></thead><tbody id="teamInviteRows"></tbody></table></div></div></div>
-    <div class="card account-email-card"><h3>Email sending</h3><p class="hint">Set the sender address this business uses for invoices and quotations.</p><div class="form-grid compact"><label class="wide">Invoice &amp; quotation sender email<input id="accountSenderEmail" type="email" placeholder="accounts@yourbusiness.co.nz"><small>Used as the From address for invoices and quotations. The email domain must be verified with the configured email provider. Leave blank to use the platform sender.</small></label></div><div class="actions"><button class="primary" id="saveAccountEmail" type="button">Save email settings</button></div></div>
+    <div class="card account-email-card"><h3>Email sending</h3><p class="hint">Choose where replies to business emails should be sent.</p><div class="form-grid compact"><label class="wide">Reply-to email<input id="accountSenderEmail" type="email" placeholder="accounts@yourbusiness.co.nz"><small>Replies to invoices, quotations and other supported business emails will be sent to this address. Frindly always sends from its verified platform email address.</small></label></div><div class="actions"><button class="primary" id="saveAccountEmail" type="button">Save email settings</button></div></div>
     <div class="card account-preferences-card"><h3>Business preferences</h3><div class="form-grid compact"><label class="wide">Currency<select id="accountCurrency"></select><small>Applies across invoices, quotations, reports and job costing. Amounts display with the selected ISO currency code, for example NZD, AUD or LKR.</small></label><label class="wide">Helper name<input id="accountHelperName" maxlength="30" placeholder="Use platform default"><small id="accountHelperNameHint">Leave blank to use the Frindly default set by the platform.</small></label></div><div class="actions"><button class="primary" id="saveAccountPreferences" type="button">Save business preferences</button></div></div>
     <div class="card account-export-card"><div class="card-title"><div><h3>Business data</h3><p class="hint">Download a comprehensive ZIP copy of this business data, including authorised uploaded documents. Passwords, authentication tokens, provider secrets and platform-only diagnostics are never included.</p></div><button class="secondary" id="exportMyData" type="button">Export My Data</button></div></div>
     <div class="card" id="subscriptionCard">
@@ -927,7 +924,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="app-version">© 2026 Finlo · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="referrals.js?v=61.102L-login-reliability"></script>
-  <script src="saas.js?v=61.102L-login-reliability"></script>
+  <script src="saas.js?v=61.104B-avatar-storage-hardening"></script>
   <script src="stock-equipment.js?v=61.102L-login-reliability"></script>
   <link rel="stylesheet" href="stock-equipment.css?v=61.102L-login-reliability" />
   <link rel="stylesheet" href="purchase-review.css?v=61.102L-login-reliability" />

@@ -209,8 +209,41 @@ function bind(){document.querySelectorAll('[data-fin-tab]').forEach(b=>b.onclick
 async function init(){if(!window.SAAS?.state?.business?.id||!client())return;const bid=window.SAAS.state.business.id;if(state.businessId===bid&&state.settings)return;if(state.businessId!==bid)state.activeTab='overview';state.businessId=bid;await loadFinancialData();if(q('finPeriod'))q('finPeriod').value=state.settings?.default_report_period||'fytd';setPeriodControls();renderSettings();renderAll()}
 async function onShow(){await init();await loadFinancialData();setPeriodControls();renderAll()}
 async function refresh(){await init();await loadFinancialData();renderSettings();renderAll()}
+async function loadDashboardFinancialData(){
+  const businessId=biz()?.id||null,c=client();if(!businessId||!c)return;
+  if(state.businessId!==businessId)state.activeTab='overview';state.businessId=businessId;
+  // Dashboard-only loader: fetch only the records calcPeriod() needs. Full Financials
+  // still uses loadFinancialData() when that module is opened/refreshed.
+  const base=[
+    c.from('financial_settings').select('*').eq('business_id',businessId).maybeSingle(),
+    c.from('financial_category_mappings').select('*').eq('business_id',businessId).eq('archived',false),
+    c.from('expense_categories').select('*').eq('business_id',businessId),
+    c.from('invoices').select('id,invoice_number,invoice_date,customer_name,subtotal,discount_amount,extra_fee,total,gst,amount_paid,balance_due').eq('business_id',businessId),
+    c.from('expenses').select('id,expense_number,supplier_name,invoice_date,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount,business_use_percent,business_ex_gst,business_gst_amount,business_use_amount,outstanding_balance,payment_status,lifecycle_state,archived,is_split').eq('business_id',businessId),
+    c.from('expense_lines').select('id,expense_id,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount').eq('business_id',businessId),
+    c.from('country_business_tax_rules').select('*').eq('country_code',String(biz()?.settings?.country||'NZ').toUpperCase()).eq('active',true)
+  ];
+  const payrollAccess=(async()=>{try{const {data,error}=await c.from('business_modules').select('status,modules!inner(slug)').eq('business_id',businessId).eq('modules.slug','payroll').maybeSingle();if(!error&&data)return ['active','trialing'].includes(data.status)}catch(_){}return window.SAAS.hasModule('payroll').catch(()=>false)})();
+  const reviews=(async()=>{const rows=[];for(let offset=0;;offset+=500){const page=await c.from('purchase_invoice_reviews').select('expense_id,revision,rows').eq('business_id',businessId).order('revision',{ascending:false}).range(offset,offset+499);if(biz()?.id!==businessId)return {data:[],error:new Error('Business changed')};if(page.error)return {data:[],error:page.error};rows.push(...page.data||[]);if((page.data||[]).length<500)break}return {data:rows,error:null}})();
+  const [baseRows,payrollAllowed,reviewResult]=await Promise.all([Promise.all(base),payrollAccess,reviews]);
+  if(biz()?.id!==businessId||state.businessId!==businessId)return;
+  for(const x of baseRows)if(x.error&&x.error.code!=='42P01')console.warn('Financials dashboard load:',x.error.message);
+  state.settings=baseRows[0].data||{financial_year_start_month:4,financial_year_start_day:1,default_report_period:'fytd',estimated_tax_rate:28,gst_registered:true,gst_filing_frequency:'two_monthly',gst_accounting_basis:'invoice'};
+  state.mappings=baseRows[1].data||[];state.categories=baseRows[2].data||[];state.invoices=baseRows[3].data||[];state.expenses=baseRows[4].data||[];state.expenseLines=baseRows[5].data||[];state.statutoryRules=baseRows[6].data||[];
+  state.expensePayments=[];state.customerPayments=[];state.creditNotes=[];state.supplierCredits=[];state.budgets=[];state.budgetLines=[];state.budgetMonths=[];state.gstReturns=[];state.basReturns=[];state.payrollTx=[];
+  if(reviewResult.error){console.warn('Financials dashboard purchase reviews unavailable:',reviewResult.error.message);state.purchaseReviewError=reviewResult.error.message;state.purchaseReviews=[]}else{const seen=new Set();state.purchaseReviewError=null;state.purchaseReviews=(reviewResult.data||[]).filter(x=>{if(seen.has(x.expense_id))return false;seen.add(x.expense_id);return true})}
+  if(payrollAllowed){const pr=await Promise.all([
+    c.from('payroll_pay_runs').select('*').eq('business_id',businessId),
+    c.from('payroll_pay_run_employees').select('id,pay_run_id,employee_id,gross_pay,reimbursements,kiwisaver_employer_gross,employer_contributions,total_employment_cost').eq('business_id',businessId),
+    c.from('payroll_pay_run_lines').select('id,pay_run_employee_id,line_type,description,amount,job_costing_id,taxable').eq('business_id',businessId),
+    c.from('payroll_employees').select('id,labour_classification').eq('business_id',businessId),
+    c.from('payroll_settings').select('default_labour_classification').eq('business_id',businessId).maybeSingle()
+  ]);if(biz()?.id!==businessId||state.businessId!==businessId)return;for(const x of pr)if(x.error&&x.error.code!=='42P01')console.warn('Financials dashboard payroll load:',x.error.message);state.payRuns=pr[0].data||[];state.payRunEmployees=pr[1].data||[];state.payRunLines=pr[2].data||[];state.payrollEmployees=pr[3].data||[];state.payrollSettings=pr[4].data||{default_labour_classification:'indirect'}}else{state.payRuns=[];state.payRunEmployees=[];state.payRunLines=[];state.payrollEmployees=[];state.payrollSettings=null}
+  // Preserve the existing invoice reconciliation source so dashboard figures do not change.
+  if(window.invoiceAppHelpers?.allInvoices){try{state.invoices=await window.invoiceAppHelpers.allInvoices()}catch(e){console.warn('Financials dashboard invoice reconciliation fallback:',e)}}
+}
 async function dashboardSnapshot(){
-  if(state.businessId!==biz()?.id||!state.settings)await init();else await loadFinancialData();
+  await loadDashboardFinancialData();
   const now=new Date(), month=rangeFor('this_month'), last=rangeFor('last_month'), fy=rangeFor('fytd'), prevFy=rangeFor('previous_fy');
   const current=calcPeriod(month.from,month.to), previous=calcPeriod(last.from,last.to), ytd=calcPeriod(fy.from,fy.to), priorFy=calcPeriod(prevFy.from,prevFy.to);
   const trend=[];

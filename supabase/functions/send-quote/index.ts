@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { platformFrom, validReplyTo } from "../_shared/email-sender.ts";
+import { storePdfAndAttachment, storedPdfAttachment } from "../_shared/document-attachment.ts";
 
 const cors = {
   "Access-Control-Allow-Origin":"*",
@@ -78,20 +80,16 @@ Deno.serve(async(req)=>{
     const RESEND_API_KEY =
       Deno.env.get("RESEND_API_KEY");
 
-    const configuredFrom =
-      (Deno.env.get("RESEND_FROM_EMAIL") ||
-        Deno.env.get("EMAIL_FROM_ADDRESS") || "").trim();
-
-    const FROM_EMAIL =
-      configuredFrom &&
-      configuredFrom.toLowerCase() !== "info@careclean.co.nz"
-        ? configuredFrom
-        : "notifications@frindly.co.nz";
+    const SUPABASE_SERVICE_ROLE_KEY =
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if(!RESEND_API_KEY){
       throw new Error(
         "RESEND_API_KEY is not configured."
       );
+    }
+    if(!SUPABASE_SERVICE_ROLE_KEY){
+      throw new Error("Supabase server configuration is missing.");
     }
 
     const auth =
@@ -110,6 +108,12 @@ Deno.serve(async(req)=>{
         }
       );
 
+    const admin =
+      createClient(
+        SUPABASE_URL,
+        SUPABASE_SERVICE_ROLE_KEY
+      );
+
     const {
       data:{user}
     } =
@@ -122,15 +126,12 @@ Deno.serve(async(req)=>{
       );
     }
 
-    const {
-      quoteId,
-      to,
-      pdfBase64,
-      filename
-    } =
-      await req.json();
+    const isMultipart = (req.headers.get("content-type") || "").toLowerCase().includes("multipart/form-data");
+    let quoteId="", to="", pdf:File|null=null;
+    if(isMultipart){const form=await req.formData();quoteId=String(form.get("quoteId")||"").trim();to=String(form.get("to")||"").trim();const incoming=form.get("pdf");pdf=incoming instanceof File?incoming:null;}
+    else{const body=await req.json();quoteId=String(body?.quoteId||"").trim();to=String(body?.to||"").trim();}
 
-    if(!quoteId || !to){
+    if(!quoteId || !to || (isMultipart && !pdf)){
       return json(
         {
           error:
@@ -191,12 +192,6 @@ Deno.serve(async(req)=>{
 
     const currency =
       s.currency || "NZD";
-
-    const fromEmail =
-      String(
-        s.outboundEmail ||
-        FROM_EMAIL
-      ).trim();
 
     const subscriberEmail =
       String(
@@ -292,7 +287,7 @@ Kind regards,
     const payload:any = {
 
       from:
-        `${senderName} <${fromEmail}>`,
+        platformFrom(senderName, trading),
 
       to:[to],
 
@@ -310,21 +305,18 @@ Kind regards,
         `</div>`
     };
 
-    if(subscriberEmail){
-      payload.reply_to =
-        subscriberEmail;
+    const replyTo = validReplyTo(s.outboundEmail || subscriberEmail);
+    if(replyTo){
+      payload.reply_to = replyTo;
     }
 
-    if(pdfBase64){
-      payload.attachments = [
-        {
-          filename:
-            filename ||
-            `${q.quote_number}.pdf`,
-          content:pdfBase64
-        }
-      ];
-    }
+    payload.attachments = [
+      isMultipart && pdf ? await storePdfAndAttachment(
+        admin, q.business_id, "quote", q.id, pdf, `${q.quote_number}.pdf`
+      ) : await storedPdfAttachment(
+        admin, q.business_id, "quote", q.id, `${q.quote_number}.pdf`
+      )
+    ];
 
     const r =
       await fetch(
