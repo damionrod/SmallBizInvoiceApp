@@ -694,7 +694,7 @@
     setHidden(q('bankReconciliationNav'),!roleCanRead('bank')||q('bankReconciliationNav')?.dataset.entitlementBlocked==='1');
     setHidden(q('financialsNav'),!roleCanRead('financials')||q('financialsNav')?.dataset.entitlementBlocked==='1');
     setHidden(q('payrollNav'),!roleCanRead('payroll')||q('payrollNav')?.dataset.entitlementBlocked==='1');
-    setHidden(q('communityNav'),!roleCanRead('core')||q('communityNav')?.dataset.entitlementBlocked==='1');
+    setHidden(q('communityNav'),!roleCanRead('core')||q('communityNav')?.dataset.entitlementBlocked!=='0');
     setHidden(document.querySelector('[data-view="reports"]'),!roleCanRead('reports'));
     if(q('teamAccessCard'))q('teamAccessCard').hidden=!['owner','admin'].includes(role);
     const businessWrite=['owner','admin'].includes(role);
