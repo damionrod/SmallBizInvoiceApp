@@ -694,6 +694,7 @@
     setHidden(q('bankReconciliationNav'),!roleCanRead('bank')||q('bankReconciliationNav')?.dataset.entitlementBlocked==='1');
     setHidden(q('financialsNav'),!roleCanRead('financials')||q('financialsNav')?.dataset.entitlementBlocked==='1');
     setHidden(q('payrollNav'),!roleCanRead('payroll')||q('payrollNav')?.dataset.entitlementBlocked==='1');
+    setHidden(q('communityNav'),!roleCanRead('core')||q('communityNav')?.dataset.entitlementBlocked==='1');
     setHidden(document.querySelector('[data-view="reports"]'),!roleCanRead('reports'));
     if(q('teamAccessCard'))q('teamAccessCard').hidden=!['owner','admin'].includes(role);
     const businessWrite=['owner','admin'].includes(role);
@@ -1894,6 +1895,13 @@ ${businessName}`,'');
       q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';q('bankReconciliationNav').hidden=!allowed;
       const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;
       if(!allowed && view?.classList.contains('active') && window.switchView)window.switchView('create');
+    }
+    if(q('communityNav')){
+      const entitled=state.profile?.is_super_admin||await hasModule('community'),allowed=entitled&&roleCanRead('core');
+      q('communityNav').dataset.entitlementBlocked=entitled?'0':'1';q('communityNav').hidden=!allowed;
+      const view=q('view-community');if(view)view.hidden=!allowed;
+      if(!allowed&&view?.classList.contains('active'))window.switchView?.('dashboard');
+      if(allowed)window.Community?.init?.();
     }
     if(q('onlinePaymentsSettingsNav')){
       const entitled=await hasModule('invoice_payments'),allowed=entitled&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||''));

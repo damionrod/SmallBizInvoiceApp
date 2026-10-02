@@ -366,9 +366,12 @@ do $$
 begin
   if to_regclass('public.modules') is not null then
     insert into public.modules (name, slug, description, monthly_price, stripe_price_id, is_active)
-    values ('Frindly Community','community','Text-only Frindly small business community with public replies, private messages and Community-only sponsored banners.',0,null,false)
+    values ('Frindly Community','community','Text-only Frindly small business community with public replies, private messages and Community-only sponsored banners.',0,null,true)
     on conflict (slug) do update set
       name = excluded.name,
-      description = excluded.description;
+      description = excluded.description,
+      monthly_price = excluded.monthly_price,
+      stripe_price_id = excluded.stripe_price_id,
+      is_active = true;
   end if;
 end $$;
