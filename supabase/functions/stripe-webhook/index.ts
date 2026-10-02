@@ -221,6 +221,22 @@ Deno.serve(async(req)=>{
       return true;
     };
 
+    const settleCommunityAdCheckout=async(session:any,success:boolean)=>{
+      const campaignId=String(session?.metadata?.community_ad_campaign_id||'');
+      if(!campaignId)return false;
+      const paymentIntentId=session?.payment_intent?String(session.payment_intent):'';
+      const patch:any={
+        stripe_checkout_session_id:session?.id||null,
+        stripe_payment_intent_id:paymentIntentId||null,
+        payment_status:success?'paid':'failed',
+        status:success?'pending_review':'pending_payment',
+        updated_at:new Date().toISOString()
+      };
+      const {error}=await db.from('community_ad_campaigns').update(patch).eq('id',campaignId);
+      if(error)throw error;
+      return true;
+    };
+
     const settleOnlinePaymentIntent=async(intent:any,success:boolean)=>{
       const accountId=String((event as any).account||'');
       const transactionId=String(intent?.metadata?.payment_transaction_id||'');
@@ -245,6 +261,7 @@ Deno.serve(async(req)=>{
     // Existing V61.51 subscription + referral behavior below remains unchanged.
     if(event.type==='checkout.session.completed'){
       const cs=event.data.object as Stripe.Checkout.Session;
+      if(await settleCommunityAdCheckout(cs,cs.payment_status==='paid')) return new Response('ok');
       if(cs.metadata?.payment_transaction_id&&cs.payment_status!=='paid'){
         const {error}=await db.from('invoice_payment_transactions').update({status:'processing',stripe_checkout_session_id:cs.id,stripe_payment_intent_id:cs.payment_intent?String(cs.payment_intent):null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',String(cs.metadata.payment_transaction_id)).neq('status','succeeded');
         if(error)throw error;
@@ -276,11 +293,13 @@ Deno.serve(async(req)=>{
 
     if(event.type==='checkout.session.async_payment_succeeded'){
       const cs=event.data.object as Stripe.Checkout.Session;
+      if(await settleCommunityAdCheckout(cs,true)) return new Response('ok');
       if(await settleOnlineCheckout(cs,true)) return new Response('ok');
     }
 
     if(event.type==='checkout.session.async_payment_failed'){
       const cs=event.data.object as Stripe.Checkout.Session;
+      if(await settleCommunityAdCheckout(cs,false)) return new Response('ok');
       if(await settleOnlineCheckout(cs,false)) return new Response('ok');
     }
 

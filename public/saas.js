@@ -318,7 +318,7 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.104A-email-transport-cache-fix','schedule.js?v=61.102L-login-reliability','dashboard.js?v=61.102N-dashboard-loading-optimization','job-costing.js?v=61.104A-email-transport-cache-fix','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.102L-login-reliability','purchase-review.js?v=61.102L-login-reliability','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.104A-email-transport-cache-fix','financials.js?v=61.102N-dashboard-loading-optimization','accountant-centre.js?v=61.102L-login-reliability','bank-reconciliation.js?v=61.102L-login-reliability']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.105-phase7-nz-recurring-tax','schedule.js?v=61.105-phase13n-schedule-timesheets','dashboard.js?v=61.102N-dashboard-loading-optimization','job-costing.js?v=61.105-phase6-nz-job-quotes','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.105-phase4-nz-expenses','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.105-phase9-gst-boundary','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.105-phase5-nz-bank-expenses','community.js?v=61.106-community-module']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
@@ -484,7 +484,7 @@
     else renderAdmin();
     setAdminView(adminViewFromHash(),false);
   }
-  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','referrals','finlo-helper','import-migration','support-health','support-inbox']);
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','community','referrals','finlo-helper','import-migration','support-health','support-inbox']);
   function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
   function setAdminView(view='dashboard',push=true){
     if(!state.profile?.is_super_admin)return;
@@ -492,7 +492,7 @@
     document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
     document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
     const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
-    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();if(next==='support-health')window.SupportHealth?.render?.();if(next==='support-inbox')window.SupportInbox?.render?.();
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='community')window.Community?.renderAdmin?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();if(next==='support-health')window.SupportHealth?.render?.();if(next==='support-inbox')window.SupportInbox?.render?.();
   }
   function setupAdminNavigation(){
     document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
@@ -1916,6 +1916,7 @@ ${businessName}`,'');
     if(q('payrollNav')){const entitled=state.profile?.is_super_admin||await hasModule('payroll');q('payrollNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('payroll');q('payrollNav').hidden=!allowed;if(allowed)window.Payroll?.init?.()}
     if(q('financialsNav')){const entitled=state.profile?.is_super_admin||await hasModule('financials');q('financialsNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('financials');q('financialsNav').hidden=!allowed;if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed||!roleCanWrite('financials');if(allowed)window.Financials?.init?.()}
     if(q('bankReconciliationNav')){const entitled=state.profile?.is_super_admin||await hasModule('bank_reconciliation');q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('bank');q('bankReconciliationNav').hidden=!allowed;const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;if(allowed)window.BankReconciliation?.init?.()}
+    if(q('communityNav')){const entitled=state.profile?.is_super_admin||await hasModule('community');q('communityNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('core');q('communityNav').hidden=!allowed;const view=q('view-community');if(view)view.hidden=!allowed;if(allowed)window.Community?.init?.()}
     if(q('onlinePaymentsSettingsNav')){const entitled=state.profile?.is_super_admin||await hasModule('invoice_payments');const allowed=entitled&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||''));q('onlinePaymentsSettingsNav').dataset.entitlementBlocked=entitled?'0':'1';q('onlinePaymentsSettingsNav').hidden=!allowed}
     await refreshEntitlements();
     applyRoleAccessUI();

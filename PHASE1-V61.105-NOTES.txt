@@ -1,0 +1,29 @@
+Frindly v61.105 — Phase 1 Effective Tax Status Foundation
+Baseline: v61.104B 63-file GitHub package
+
+Scope implemented:
+- Added read-only Supabase RPC public.v61105_effective_tax_status(p_on date).
+- Effective-dated NZ/AU GST registration lookup using existing gst_settings_history.
+- Statutory GST rate comes from existing country_business_tax_rules.
+- Separates statutory_rate_percent from effective_rate_percent.
+- Unregistered businesses resolve effective_rate_percent = 0 without changing the statutory rate.
+- Returns registration effective date, jurisdiction, tax identifier, accounting basis, filing frequency and decision sources.
+- Restricted RPC execution to authenticated users; current_business_id + core access check preserves tenant isolation.
+- Added focused Phase 1 regression tests.
+
+Deliberately NOT changed in Phase 1:
+- Invoice calculations or PDFs
+- Quote calculations
+- Job Costing
+- Expenses/OCR/Review Items
+- Bank reconciliation
+- Recurring invoices
+- Credit notes/supplier credits
+- GST Return or BAS calculations
+- Financials/P&L/reports
+- Accountant/Xero exports
+- Onboarding/default GST-registration behaviour
+- Any existing customer transaction or setting
+
+Deployment note:
+The Supabase CLI is not installed in the working environment, so the additive SQL is retained under supabase/sql/ rather than inventing a CLI migration filename. The RPC was applied and verified against the live Supabase project. The SQL file is retained for source control/reproducibility.

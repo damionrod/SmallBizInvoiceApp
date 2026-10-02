@@ -1,0 +1,11 @@
+-- v61.105 Phase 13J - Reconciliation Exception Resolution
+-- Live migration: classifies ledger-backed refunds that cannot post because payment_clearing is absent
+-- as refund_clearing_account_required, exposes configuration_required_count, and prevents Accountant
+-- Handoff from becoming ready while such configuration exceptions remain.
+-- Existing posting engines remain the only posting path; no historical records are backfilled here.
+
+-- The canonical function definitions are applied in the live Supabase migration history:
+--   v61105_phase13j_exception_classification_v2
+--   v61105_phase13j_handoff_configuration_gate
+-- This repository artifact intentionally records the Phase 13J contract without replaying fragile
+-- CREATE OR REPLACE text transformations against installations with different prior function text.

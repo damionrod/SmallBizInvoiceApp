@@ -1,0 +1,16 @@
+-- v61.105 Phase 13H – Credits, refunds and reversal accounting integrity.
+-- Applied to the live project through controlled Supabase migrations.
+-- Live database objects:
+--   public.v61105_phase13h_post_credit_refund_ledger(date,date)
+--   public.v61105_ledger_reconciliation(date,date) [extended to credits/refunds]
+--
+-- Safety contract:
+-- * credit catch-up is limited to credits whose original invoice/expense already has a formal journal;
+-- * refund catch-up is limited to fully accounting-backed credits and valid AR/AP + payment-clearing accounts;
+-- * missing clearing mappings are review conditions, never guessed or auto-created;
+-- * no historical operational transaction is rewritten;
+-- * PUBLIC/anon execute is revoked; authenticated execute is explicitly granted;
+-- * locked accounting periods remain protected.
+--
+-- This repository snapshot intentionally records the live migration contract rather than replaying
+-- privileged production function definitions from a browser-upload deployment bundle.

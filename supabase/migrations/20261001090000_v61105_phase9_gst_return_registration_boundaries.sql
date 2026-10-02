@@ -1,0 +1,3 @@
+-- Phase 9 migration applied live: additive public.v61105_gst_calculate_boundary(date,date).
+-- Existing public.v6170e_gst_calculate(date,date) is intentionally unchanged.
+-- See deployed database migration v61105_phase9_gst_return_registration_boundaries.

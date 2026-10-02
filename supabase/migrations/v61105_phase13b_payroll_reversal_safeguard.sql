@@ -1,0 +1,9 @@
+-- Phase 13B: accounting-safe reversal for finalised payroll.
+-- Applied live on 2026-10-02. Finalised/reversed pay runs are retained; only non-finalised runs remain deletable.
+-- The live migration:
+-- 1) adds 'reversed' to payroll_pay_runs.status,
+-- 2) blocks DELETE/ordinary mutation of finalised and reversed pay runs and their child detail,
+-- 3) adds v61105_phase13b_reverse_pay_run(uuid,text), which requires active-business payroll write access,
+--    reverses the Phase 13A posted journal through v6170a_reverse_journal, then marks the pay run reversed,
+-- 4) refuses to fabricate a reversal for legacy finalised payroll with no posted accounting journal,
+-- 5) revokes RPC execution from PUBLIC/anon and grants it only to authenticated.

@@ -1,0 +1,3 @@
+-- Phase 13G is deployed live. This migration documents the additive reconciliation RPC.
+-- It is read-only and does not post, reverse, backfill, or mutate accounting history.
+-- Canonical live function: public.v61105_ledger_reconciliation(date,date).

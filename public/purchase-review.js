@@ -24,6 +24,7 @@ function allocations(items,bill){
  const amounts=items.map(x=>x.amount==null?NaN:(isDiscount(x)?-Math.abs(cents(x.amount)):cents(x.amount))),valid=amounts.length>0&&amounts.every(Number.isFinite);
  const sum=valid?amounts.reduce((n,x)=>n+x,0):NaN,ex=cents(bill.ex_gst),gst=cents(bill.gst_amount),gross=cents(bill.total_amount);
  const fullEx=sum===ex,fullGross=sum===gross;
+ const nzUnregistered=String(window.SAAS?.state?.business?.settings?.country||'NZ').toUpperCase()==='NZ'&&String(bill.gst_treatment||'')==='no_gst'&&gst===0;
  const rate=Number(bill.gst_rate??(String(window.SAAS?.state?.business?.settings?.country||'NZ').toUpperCase()==='NZ'?15:NaN))/100;
  const basis=items.map(x=>['ex_gst','incl_gst'].includes(x.amount_basis)?x.amount_basis:fullEx?'ex_gst':fullGross?'incl_gst':'unknown');
  const homogeneous=(fullEx||fullGross)&&gst>0&&Number.isFinite(rate)&&rate>0&&
@@ -31,6 +32,7 @@ function allocations(items,bill){
    Math.abs(amounts.reduce((n,a)=>n+Math.sign(a)*Math.round(Math.abs(fullEx?a*rate:a*rate/(1+rate))),0)-gst)<=1;
  const rows=items.map((item,i)=>{
   const amount=amounts[i],mode=basis[i],known=item.printed_gst==null?null:cents(item.printed_gst);
+  if(nzUnregistered&&Number.isFinite(amount)&&mode!=='unknown'){const grossAmount=mode==='incl_gst'?amount:(known!=null?amount+(amount<0?-Math.abs(known):known):amount);const discount=grossAmount<0||isDiscount(item),prior=items.slice(0,i).filter(x=>!isDiscount(x)&&Number(x.amount)>0),usesBefore=new Set(prior.map(x=>x.suggested_use||'regular')),target=discount&&usesBefore.size===1?items.slice(0,i).findLastIndex(x=>!isDiscount(x)&&Number(x.amount)>0):-1;return{description:item.description||'',kind:discount?'discount':uses.some(([k])=>k===item.suggested_use)?item.suggested_use:item.suggested_use==='depreciable_equipment'?'equipment':'regular',discount_target_index:target>=0?target:'',category_id:categoryFor(bill,item.description),quantity:discount?1:item.quantity||1,ex_gst:cash(grossAmount),gst:'0.00',page_number:item.page_number,reason:item.classification_reason||'',confidence:item.classification_confidence||'low',printed_gst:item.printed_gst,original_ex_gst:cash(grossAmount),original_gst:'0.00',allocation:null};}
   const treatment=known!=null?'printed':gst===0?'no_gst':item.gst_treatment==='no_gst'?'no_gst':item.gst_treatment==='taxable'||homogeneous?'taxable':'unknown';
   let tax=null,net=null;
   if(Number.isFinite(amount)&&mode!=='unknown'){
