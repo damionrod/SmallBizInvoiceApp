@@ -13,12 +13,13 @@ const allocationType=x=>/\b(discount|rebate|credit)\b/i.test(String(x.descriptio
 const state={tenant:null,bills:[],categories:[],reviews:new Map(),scans:new Map(),drafts:new Map(),expanded:new Set(),search:'',page:0,nonce:0,busy:null};
 const panel=()=>document.getElementById('expense-panel-review'),list=()=>document.getElementById('purchaseReviewBills');
 const text=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
-function categoryFor(bill,description){
- if(bill.category_id)return bill.category_id;
- const lines=bill.expense_lines||[],matches=lines.filter(l=>String(l.description||'').trim().toLowerCase()===String(description||'').trim().toLowerCase());
- if(matches.length===1)return matches[0].category_id||'';
- const unique=[...new Set(lines.map(x=>x.category_id).filter(Boolean))];return unique.length===1?unique[0]:'';
-}
+	function categoryFor(bill,itemOrDescription){
+	 const item=typeof itemOrDescription==='object'&&itemOrDescription?itemOrDescription:null,description=item?item.description:itemOrDescription;
+	 if(item?.suggested_category_id)return item.suggested_category_id;
+	 const lines=bill.expense_lines||[],matches=lines.filter(l=>String(l.description||'').trim().toLowerCase()===String(description||'').trim().toLowerCase());
+	 if(matches.length===1)return matches[0].category_id||'';
+	 const unique=[...new Set(lines.map(x=>x.category_id).filter(Boolean))];return unique.length===1?unique[0]:(bill.category_id||'');
+	}
 // Suggest only figures supported by item prices AND the recorded bill totals. No mixed-tax guess.
 function allocations(items,bill){
  const amounts=items.map(x=>x.amount==null?NaN:(isDiscount(x)?-Math.abs(cents(x.amount)):cents(x.amount))),valid=amounts.length>0&&amounts.every(Number.isFinite);
@@ -32,7 +33,7 @@ function allocations(items,bill){
    Math.abs(amounts.reduce((n,a)=>n+Math.sign(a)*Math.round(Math.abs(fullEx?a*rate:a*rate/(1+rate))),0)-gst)<=1;
  const rows=items.map((item,i)=>{
   const amount=amounts[i],mode=basis[i],known=item.printed_gst==null?null:cents(item.printed_gst);
-  if(nzUnregistered&&Number.isFinite(amount)&&mode!=='unknown'){const grossAmount=mode==='incl_gst'?amount:(known!=null?amount+(amount<0?-Math.abs(known):known):amount);const discount=grossAmount<0||isDiscount(item),prior=items.slice(0,i).filter(x=>!isDiscount(x)&&Number(x.amount)>0),usesBefore=new Set(prior.map(x=>x.suggested_use||'regular')),target=discount&&usesBefore.size===1?items.slice(0,i).findLastIndex(x=>!isDiscount(x)&&Number(x.amount)>0):-1;return{description:item.description||'',kind:discount?'discount':uses.some(([k])=>k===item.suggested_use)?item.suggested_use:item.suggested_use==='depreciable_equipment'?'equipment':'regular',discount_target_index:target>=0?target:'',category_id:categoryFor(bill,item.description),quantity:discount?1:item.quantity||1,ex_gst:cash(grossAmount),gst:'0.00',page_number:item.page_number,reason:item.classification_reason||'',confidence:item.classification_confidence||'low',printed_gst:item.printed_gst,original_ex_gst:cash(grossAmount),original_gst:'0.00',allocation:null};}
+	  if(nzUnregistered&&Number.isFinite(amount)&&mode!=='unknown'){const grossAmount=mode==='incl_gst'?amount:(known!=null?amount+(amount<0?-Math.abs(known):known):amount);const discount=grossAmount<0||isDiscount(item),prior=items.slice(0,i).filter(x=>!isDiscount(x)&&Number(x.amount)>0),usesBefore=new Set(prior.map(x=>x.suggested_use||'regular')),target=discount&&usesBefore.size===1?items.slice(0,i).findLastIndex(x=>!isDiscount(x)&&Number(x.amount)>0):-1;return{description:item.description||'',kind:discount?'discount':uses.some(([k])=>k===item.suggested_use)?item.suggested_use:item.suggested_use==='depreciable_equipment'?'equipment':'regular',discount_target_index:target>=0?target:'',category_id:categoryFor(bill,item),quantity:discount?1:item.quantity||1,ex_gst:cash(grossAmount),gst:'0.00',page_number:item.page_number,reason:item.classification_reason||'',confidence:item.classification_confidence||'low',printed_gst:item.printed_gst,original_ex_gst:cash(grossAmount),original_gst:'0.00',allocation:null};}
   const treatment=known!=null?'printed':gst===0?'no_gst':item.gst_treatment==='no_gst'?'no_gst':item.gst_treatment==='taxable'||homogeneous?'taxable':'unknown';
   let tax=null,net=null;
   if(Number.isFinite(amount)&&mode!=='unknown'){
@@ -43,7 +44,7 @@ function allocations(items,bill){
    if(tax!=null&&mode==='ex_gst')net=amount;
   }
   const discount=amount<0||isDiscount(item),prior=items.slice(0,i).filter(x=>!isDiscount(x)&&Number(x.amount)>0),usesBefore=new Set(prior.map(x=>x.suggested_use||'regular')),target=discount&&usesBefore.size===1?items.slice(0,i).findLastIndex(x=>!isDiscount(x)&&Number(x.amount)>0):-1;
-  return{description:item.description||'',kind:discount?'discount':uses.some(([k])=>k===item.suggested_use)?item.suggested_use:item.suggested_use==='depreciable_equipment'?'equipment':'regular',discount_target_index:target>=0?target:'',category_id:categoryFor(bill,item.description),quantity:discount?1:item.quantity||1,ex_gst:net==null?'':cash(net),gst:tax==null||net==null?'':cash(tax),page_number:item.page_number,reason:item.classification_reason||'',confidence:item.classification_confidence||'low',printed_gst:item.printed_gst,original_ex_gst:net==null?'':cash(net),original_gst:tax==null||net==null?'':cash(tax),allocation:null};
+	  return{description:item.description||'',kind:discount?'discount':uses.some(([k])=>k===item.suggested_use)?item.suggested_use:item.suggested_use==='depreciable_equipment'?'equipment':'regular',discount_target_index:target>=0?target:'',category_id:categoryFor(bill,item),quantity:discount?1:item.quantity||1,ex_gst:net==null?'':cash(net),gst:tax==null||net==null?'':cash(tax),page_number:item.page_number,reason:item.classification_reason||'',confidence:item.classification_confidence||'low',printed_gst:item.printed_gst,original_ex_gst:net==null?'':cash(net),original_gst:tax==null||net==null?'':cash(tax),allocation:null};
  });
  if(rows.length&&rows.every(x=>x.ex_gst!==''&&x.gst!=='')){
   const totalEx=rows.reduce((n,x)=>n+cents(x.ex_gst),0),totalGst=rows.reduce((n,x)=>n+cents(x.gst),0);

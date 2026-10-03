@@ -8,8 +8,45 @@
   const ACCOUNT_STARTUP_TIMEOUT_MS=30000;
   const STARTUP_RECOVERY_KEY='frindly_login_startup_recovery_v61102l';
   let startupStage='idle';
+  let startupRequestedView=null;
+  let startupNavigationTouched=false;
+  const STARTUP_VIEW_ALLOWLIST=new Set(['dashboard','schedule','jobcosting','create','invoices','customers','expenses','stock-equipment','payroll','bankreconciliation','financials','reports','community','settings','accountant']);
 
-  function setStartupStage(stage){startupStage=stage;console.info('[Frindly startup]',stage)}
+  function startupStatusText(stage){
+    const value=String(stage||'').toLowerCase();
+    if(value.includes('business access')||value.includes('business settings'))return 'Loading your business…';
+    if(value.includes('application modules'))return 'Preparing your workspace…';
+    if(value.includes('initialising'))return 'Almost ready…';
+    if(value==='ready')return 'Ready';
+    return 'Getting things ready…';
+  }
+  function showStartup(){
+    const el=q('frindlyStartup');if(!el)return;
+    el.hidden=false;document.body.classList.add('startup-loading');
+  }
+  function hideStartup(){
+    const el=q('frindlyStartup');if(el)el.hidden=true;
+    document.body.classList.remove('startup-loading');
+  }
+  function setStartupStage(stage){
+    startupStage=stage;
+    const status=q('frindlyStartupStatus');if(status)status.textContent=startupStatusText(stage);
+    console.info('[Frindly startup]',stage);
+  }
+  function requestStartupView(view){
+    const v=String(view||'').trim();
+    if(!STARTUP_VIEW_ALLOWLIST.has(v))return;
+    if(!state.loadedApp){startupRequestedView=v;startupNavigationTouched=true;}
+  }
+  function validStartupHashView(){
+    const raw=String(location.hash||'').replace(/^#/,'').split('/')[0];
+    return STARTUP_VIEW_ALLOWLIST.has(raw)?raw:null;
+  }
+  window.FrindlyStartupNavigation={
+    request:requestStartupView,
+    requested:()=>startupRequestedView,
+    isInitialising:()=>!state.loadedApp&&!!accountEntry
+  };
   function withStartupTimeout(promise,ms=ACCOUNT_STARTUP_TIMEOUT_MS){
     let timer;
     return Promise.race([Promise.resolve(promise),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`Account startup timed out while ${startupStage||'loading your account'}.`)),ms)})]).finally(()=>clearTimeout(timer));
@@ -17,6 +54,7 @@
   function recoverStartupFailure(err){
     console.error('Frindly account startup failed',{stage:startupStage,error:err});
     state.loadedApp=false;
+    hideStartup();
     q('authShell')?.classList.add('open');
     document.body.classList.add('auth-locked');
     const alreadyRecovered=sessionStorage.getItem(STARTUP_RECOVERY_KEY)==='1';
@@ -299,7 +337,8 @@
 
   async function enter(session){
     state.session=session; state.user=session.user; state.loadedApp=false;
-    setStartupStage('checking your account');
+    startupRequestedView=validStartupHashView();startupNavigationTouched=!!startupRequestedView;
+    showStartup();setStartupStage('checking your account');
     if(state.inviteToken){const accepted=await acceptInvitationIfPresent();if(!accepted){q('authShell').classList.add('open');return}}
     setStartupStage('loading business access');
     const ok=await loadAccount(); if(!ok){q('authShell').classList.add('open');return}
@@ -307,7 +346,7 @@
     await loadBusinessSettings();
     setStartupStage('checking legacy data');
     await migrateLegacyLocalData();
-    q('authShell').classList.remove('open'); document.body.classList.remove('auth-locked');
+    q('authShell').classList.remove('open');
     setupAccountUI();
     setStartupStage('loading referrals');
     await window.Referrals?.init?.();
@@ -318,10 +357,11 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.105-phase7-nz-recurring-tax','schedule.js?v=61.105-phase13n-schedule-timesheets','dashboard.js?v=61.102N-dashboard-loading-optimization','job-costing.js?v=61.105-phase6-nz-job-quotes','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.105-phase4-nz-expenses','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.105-phase9-gst-boundary','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.105-phase5-nz-bank-expenses','community.js?v=61.106-community-module']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.107B-invoice-reminders','schedule.js?v=61.105-phase13n-schedule-timesheets','dashboard.js?v=61.107A-compact-dashboard-period','job-costing.js?v=61.105-phase6-nz-job-quotes','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.105-phase4-nz-expenses','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.106W-dashboard-period-filter','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.106N-payroll-employee-match','community.js?v=61.106-community-module']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
+      document.body.classList.remove('auth-locked');hideStartup();
       refreshUsage();const mw=Number(localStorage.getItem('v22_migration_warning')||0);if(mw)console.warn(`${mw} legacy browser record(s) remain safely stored locally; cloud migration can be reviewed from account support if needed.`);
     }
   }
@@ -749,7 +789,7 @@
     if(btn){btn.disabled=false;btn.textContent='Save Role Defaults'};await loadRolePermissions();
   }
   async function resetRolePermissions(){
-    const role=q('rolePermissionsRole')?.value||'';if(!role||!confirm(`Reset ${teamRoleLabel(role)} to Finlo system defaults? Individual user overrides will not be changed.`))return;
+    const role=q('rolePermissionsRole')?.value||'';if(!role||!confirm(`Reset ${teamRoleLabel(role)} to Frindly system defaults? Individual user overrides will not be changed.`))return;
     const {error}=await state.client.rpc('v6149_reset_role_permissions',{p_business_id:state.business.id,p_role:role});if(error){if(q('rolePermissionsMessage'))q('rolePermissionsMessage').textContent=error.message;return}await loadRolePermissions();
   }
 
@@ -779,12 +819,12 @@
     const data=await inviteApi({action:'inspect',token:state.inviteToken});
     if(data?.error){message(data.error,'error');state.inviteToken='';return}
     state.inviteInfo=data;
-    const note=`${data.businessName} has invited you to join as ${teamRoleLabel(data.role)}. Log in if you already have Finlo, or create an account below.`;
+    const note=`${data.businessName} has invited you to join as ${teamRoleLabel(data.role)}. Log in if you already have Frindly, or create an account below.`;
     message(note,'success');
     if(q('loginEmail'))q('loginEmail').value=data.email||'';
     if(q('signupEmail')){q('signupEmail').value=data.email||'';q('signupEmail').readOnly=true}
     ['signupBusiness','signupAddress','signupPhone','signupPlan'].forEach(id=>{const el=q(id);if(el){const lab=el.closest('label');if(lab)lab.hidden=true;el.required=false}});
-    const h=q('signupForm')?.querySelector('h1'),p=q('signupForm')?.querySelector('p');if(h)h.textContent='Join '+data.businessName;if(p)p.textContent=`Create your Finlo login to join ${data.businessName} as ${teamRoleLabel(data.role)}.`;
+    const h=q('signupForm')?.querySelector('h1'),p=q('signupForm')?.querySelector('p');if(h)h.textContent='Join '+data.businessName;if(p)p.textContent=`Create your Frindly login to join ${data.businessName} as ${teamRoleLabel(data.role)}.`;
   }
   async function acceptInvitationIfPresent(){
     if(!state.inviteToken)return true;
@@ -799,7 +839,7 @@
   async function sendTeamInvitation(){
     const email=q('inviteUserEmail')?.value.trim()||'',role=q('inviteUserRole')?.value||'staff',btn=q('sendInviteUser'),msg=q('inviteUserMessage');
     if(!email)return msg&&(msg.textContent='Enter an email address.');
-    if(!publicAppUrl())return msg&&(msg.textContent='Open Finlo from its deployed Netlify URL before sending invitations. Local file mode cannot create a usable email link.');
+    if(!publicAppUrl())return msg&&(msg.textContent='Open Frindly from its deployed Netlify URL before sending invitations. Local file mode cannot create a usable email link.');
     if(btn){btn.disabled=true;btn.textContent='Sending…'};if(msg)msg.textContent='';
     const data=await inviteApi({action:'create',businessId:state.business.id,email,role,redirectUrl:publicAppUrl()});
     if(btn){btn.disabled=false;btn.textContent='Send Invitation'};
@@ -816,7 +856,7 @@
     rows.querySelectorAll('[data-invite-resend]').forEach(b=>b.onclick=()=>manageInvite('resend',b.dataset.inviteResend,b));rows.querySelectorAll('[data-invite-revoke]').forEach(b=>b.onclick=()=>manageInvite('revoke',b.dataset.inviteRevoke,b));
   }
   async function manageInvite(action,id,btn){
-    if(action==='revoke'&&!confirm('Revoke this pending invitation?'))return;if(action==='resend'&&!publicAppUrl())return alert('Open Finlo from its deployed Netlify URL before resending invitations.');
+    if(action==='revoke'&&!confirm('Revoke this pending invitation?'))return;if(action==='resend'&&!publicAppUrl())return alert('Open Frindly from its deployed Netlify URL before resending invitations.');
     btn.disabled=true;const old=btn.textContent;btn.textContent=action==='resend'?'Sending…':'Revoking…';const data=await inviteApi({action,businessId:state.business.id,inviteId:id,redirectUrl:publicAppUrl()});btn.disabled=false;btn.textContent=old;if(data?.error)return alert(data.error);await renderPendingInvites();
   }
   function openAddBusinessModal(){
@@ -1482,7 +1522,7 @@
       const subscriptionAmount=annualBilling?plan.annual_price:plan.monthly_price;
       const billingDetail=sub.status==='active'?`${formatAdminMoney(subscriptionAmount)} / ${annualBilling?'annual':'monthly'}`:(sub.status==='trialing'?'Trial':'—');
       const periodDetail=sub.current_period_start||sub.current_period_end?`<small>Start: ${formatAdminDate(sub.current_period_start)}</small><small>End: ${formatAdminDate(sub.current_period_end)}</small>`:'—';
-      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${formatAdminDate(b.created_at)}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select><small>${escapeHtml(billingDetail)}</small></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${escapeHtml(billingDetail)}</td><td>${periodDetail}</td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?formatAdminDate(sub.trial_ends_at):'—'}</td><td>${mods.join(', ')||'Finlo'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-support="${b.id}" data-business-name="${escapeHtml(b.name)}">Support</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
+      tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${formatAdminDate(b.created_at)}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select><small>${escapeHtml(billingDetail)}</small></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${escapeHtml(billingDetail)}</td><td>${periodDetail}</td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?formatAdminDate(sub.trial_ends_at):'—'}</td><td>${mods.join(', ')||'Frindly'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-support="${b.id}" data-business-name="${escapeHtml(b.name)}">Support</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
       body.appendChild(tr);
     }
     body.querySelectorAll('[data-admin-save]').forEach(btn=>btn.onclick=async()=>{
@@ -1928,7 +1968,11 @@ ${businessName}`,'');
     if(q('onlinePaymentsSettingsNav')){const entitled=state.profile?.is_super_admin||await hasModule('invoice_payments');const allowed=entitled&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||''));q('onlinePaymentsSettingsNav').dataset.entitlementBlocked=entitled?'0':'1';q('onlinePaymentsSettingsNav').hidden=!allowed}
     await refreshEntitlements();
     applyRoleAccessUI();
-    if(typeof window.switchView==='function')window.switchView('dashboard');
+    if(typeof window.switchView==='function'){
+      const requested=startupRequestedView;
+      const target=requested&&STARTUP_VIEW_ALLOWLIST.has(requested)?requested:'dashboard';
+      window.switchView(target);
+    }
     window.FinloHelper?.init?.();
     await window.FinloOnboarding?.init?.();
     let entitlementTimer=0;

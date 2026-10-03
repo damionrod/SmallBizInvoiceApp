@@ -39,32 +39,39 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: 'Not authenticated' }, 401);
 
     const isMultipart = (req.headers.get('content-type') || '').toLowerCase().includes('multipart/form-data');
-    let to = '', invoiceId = '', pdf: File | null = null;
+    let to = '', invoiceId = '', action = 'invoice', subjectOverride = '', bodyOverride = '', pdf: File | null = null;
     if (isMultipart) {
       const form = await req.formData();
-      to = String(form.get('to') || '').trim(); invoiceId = String(form.get('invoiceId') || '').trim();
+      to = String(form.get('to') || '').trim(); invoiceId = String(form.get('invoiceId') || '').trim(); action = String(form.get('action') || 'invoice').trim(); subjectOverride = String(form.get('subject') || '').trim(); bodyOverride = String(form.get('body') || '').trim();
       const incoming = form.get('pdf'); pdf = incoming instanceof File ? incoming : null;
     } else {
-      const body = await req.json(); to = String(body?.to || '').trim(); invoiceId = String(body?.invoice?.id || body?.invoiceId || '').trim();
+      const body = await req.json(); to = String(body?.to || '').trim(); invoiceId = String(body?.invoice?.id || body?.invoiceId || '').trim(); action = String(body?.action || 'invoice').trim(); subjectOverride = String(body?.subject || '').trim(); bodyOverride = String(body?.body || '').trim();
     }
     if (!to || !invoiceId || (isMultipart && !pdf)) return json({ error: 'Invoice and recipient are required.' }, 400);
     const { data: owned, error: ownedError } = await client
       .from('invoices')
-      .select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot')
+      .select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot,lifecycle_state')
       .eq('id', invoiceId)
       .single();
     if (ownedError || !owned) return json({ error: 'Invoice not found for this account.' }, 403);
 
-    const { error: issueError } = await client.rpc('v6170c1_issue_invoice', { p_invoice_id: owned.id });
-    if (issueError) return json({ error: issueError.message || 'This invoice could not be issued safely.' }, 400);
+    const isReminder = action === 'reminder';
+    if (isReminder) {
+      if (String(owned.lifecycle_state || '').toLowerCase() !== 'issued') return json({ error: 'Only issued invoices can receive payment reminders.' }, 400);
+      if (Number(owned.balance_due ?? owned.total ?? 0) <= 0.005) return json({ error: 'This invoice is already fully paid.' }, 400);
+      if (!subjectOverride || !bodyOverride) return json({ error: 'Reminder subject and message are required.' }, 400);
+    } else {
+      const { error: issueError } = await client.rpc('v6170c1_issue_invoice', { p_invoice_id: owned.id });
+      if (issueError) return json({ error: issueError.message || 'This invoice could not be issued safely.' }, 400);
+    }
 
     const snapshot = owned.company_snapshot || {};
     const { data: businessRow } = await client.from('businesses').select('name,settings').eq('id', owned.business_id).single();
     const { data: subscriberProfile } = await client.from('profiles').select('email').eq('business_id', owned.business_id).eq('role', 'owner').limit(1).maybeSingle();
     const currentSettings = businessRow?.settings || {};
-    const emailSettings = currentSettings.emailSettings || snapshot.emailSettings || {};
+    const emailSettings = isReminder ? (currentSettings.reminderEmailSettings || snapshot.reminderEmailSettings || {}) : (currentSettings.emailSettings || snapshot.emailSettings || {});
     const currency = currentSettings.currency || snapshot.currency || 'NZD';
-    const currentInvoice = (await admin.from('invoices').select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot').eq('id', owned.id).single()).data || owned;
+    const currentInvoice = (await admin.from('invoices').select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot,lifecycle_state').eq('id', owned.id).single()).data || owned;
     const trading = currentSettings.trading || currentSettings.company || businessRow?.name || snapshot.trading || snapshot.company || 'Your Business';
     const companyName = currentSettings.company || businessRow?.name || snapshot.company || trading;
     const phone = currentSettings.phone || snapshot.phone || '';
@@ -77,13 +84,20 @@ Deno.serve(async (req) => {
       companyName,
       total: money(currentInvoice.total, currency),
       balanceDue: money(currentInvoice.balance_due ?? currentInvoice.total, currency),
-      dueDate: currentInvoice.due_date || '',
+      dueDate: currentInvoice.due_date ? new Date(`${currentInvoice.due_date}T00:00:00`).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' }) : '',
       phone,
       email: contactEmail,
+      amountPaid: money(Math.max(0, Number(currentInvoice.total || 0) - Number(currentInvoice.balance_due ?? currentInvoice.total ?? 0)), currency),
+      amountOutstanding: money(currentInvoice.balance_due ?? currentInvoice.total, currency),
+      overdueAmount: money((currentInvoice.due_date && new Date(`${currentInvoice.due_date}T00:00:00`).getTime() < new Date(new Date().toISOString().slice(0,10)+'T00:00:00').getTime()) ? (currentInvoice.balance_due ?? currentInvoice.total) : 0, currency),
+      daysOverdue: String(currentInvoice.due_date ? Math.max(0, Math.floor((new Date(new Date().toISOString().slice(0,10)+'T00:00:00').getTime() - new Date(`${currentInvoice.due_date}T00:00:00`).getTime()) / 86400000)) : 0),
+      statusLine: '',
     };
+    const daysOverdue = Number(values.daysOverdue || 0);
+    values.statusLine = daysOverdue > 0 ? `The invoice is ${daysOverdue} day${daysOverdue === 1 ? '' : 's'} overdue.` : `The invoice is due on ${values.dueDate}.`;
     const senderName = fill(emailSettings.senderName || '{tradingName} Accounts', values).trim() || trading;
-    const subject = fill(emailSettings.subject || 'Invoice {invoiceNumber} from {tradingName}', values);
-    const body = fill(emailSettings.body || 'Hi {customerName},\n\nPlease find attached invoice {invoiceNumber}.\n\nTotal: {total}\nBalance due: {balanceDue}\nDue date: {dueDate}\n\nKind regards,\n{tradingName}\n{phone}\n{email}', values);
+    const subject = isReminder ? fill(subjectOverride, values) : fill(emailSettings.subject || 'Invoice {invoiceNumber} from {tradingName}', values);
+    const body = isReminder ? fill(bodyOverride, values) : fill(emailSettings.body || 'Hi {customerName},\n\nPlease find attached invoice {invoiceNumber}.\n\nTotal: {total}\nBalance due: {balanceDue}\nDue date: {dueDate}\n\nKind regards,\n{tradingName}\n{phone}\n{email}', values);
 
     let paymentUrl: string | null = null;
     // If the online-payments migration is not installed yet, preserve the
@@ -121,7 +135,18 @@ Deno.serve(async (req) => {
     });
     const data = await response.json();
     if (!response.ok) return json({ error: data?.message || 'Email provider rejected the message.', details: data }, response.status);
-    return json({ success: true, id: data.id, payment_enabled: Boolean(paymentUrl) });
+    if (isReminder) {
+      const { error: historyError } = await admin.from('invoice_reminder_history').insert({
+        business_id: owned.business_id,
+        invoice_id: owned.id,
+        recipient: to,
+        subject,
+        provider_message_id: data.id,
+        sent_by: user.id
+      });
+      if (historyError) console.warn('Reminder sent but history could not be recorded.', historyError);
+    }
+    return json({ success: true, id: data.id, payment_enabled: Boolean(paymentUrl), action: isReminder ? 'reminder' : 'invoice' });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : 'Unknown email error' }, 400);
   }

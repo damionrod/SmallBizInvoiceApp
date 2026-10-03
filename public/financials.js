@@ -126,8 +126,47 @@ function renderGstFriendly(c,{saved=null,overdue=false,warnings=[]}={}){
   const basis=c.basis||gstConfig().gst_accounting_basis||gstConfig().accounting_basis||'invoice',freq=gstConfig().gst_filing_frequency||gstConfig().filing_frequency||'two_monthly',adjustments=num(c.debitAdjustments)-num(c.creditAdjustments);
   const myir=[['GST period',period],['Filing basis',human(basis)],['Total sales and income',money(num(c.sales??c.g1))],['GST collected from customers',money(num(c.gstCollected??c.oneA))],['Total purchases and expenses',money(num(c.purchaseEx??0))],['GST paid on expenses',money(num(c.gstPaid??c.oneB))],['Adjustments',money(adjustments)],[(payable?'GST to pay':'GST refund'),money(net)]];
   const myirRoot=q('finGstMyIrRows');if(myirRoot)myirRoot.innerHTML=myir.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('');
+  renderIrdGstWorksheet(c);
   const review=(c.reviewItems||[]),blocking=review.filter(x=>x.severity==='blocking'),savedStatus=saved?human(saved.status):(overdue?'Open - overdue':'Draft');
   renderGstChecklist([gstChecklistRow('Expenses reviewed',blocking.length?'Needs checking':'Good',blocking.length?`${blocking.length} item${blocking.length===1?'':'s'} need attention before filing.`:'No blocking expense review issues found.','Review expenses','expenses'),gstChecklistRow('Sales checked',(c.invoices||c.sales||[]).length?'Good':'Not applicable',(c.invoices||c.sales||[]).length?`${(c.invoices||c.sales||[]).length} sale${(c.invoices||c.sales||[]).length===1?'':'s'} included.`:'No sales included in this period.','View invoices','invoices'),gstChecklistRow('GST treatment checked',warnings.length?'Needs checking':'Good',warnings.length?'Review the warnings shown above.':'No GST setup warnings found.'),gstChecklistRow('Adjustments checked',(c.adjustments||[]).length?'Needs checking':'Good',(c.adjustments||[]).length?`${(c.adjustments||[]).length} adjustment${(c.adjustments||[]).length===1?'':'s'} included.`:'No manual GST adjustments.','View transactions','adjustments'),gstChecklistRow('Return status',statusTone(savedStatus),savedStatus)]);
+}
+
+function renderIrdGstWorksheet(c){
+  if(isAu())return;
+  const salesItems=c.invoices||c.sales||[],purchaseItems=c.expenses||c.purchases||[];
+  const box5=salesItems.reduce((a,x)=>a+num(x.total),0);
+  const zeroGstSales=salesItems.filter(x=>num(x.total)>0.005&&Math.abs(num(x.gst))<0.005);
+  const zeroRatedKnown=zeroGstSales.length===0;
+  const box6=0,box7=box5-box6;
+  const box8=num(c.gstCollected??c.oneA),box9=num(c.debitAdjustments),box10=box8+box9;
+  const expenseById=new Map((state.expenses||[]).map(e=>[String(e.id),e]));
+  const noGstPurchases=purchaseItems.filter(x=>{
+    if(String(x.source_type||'expense')!=='expense')return false;
+    const src=expenseById.get(String(x.id));
+    return String(src?.gst_treatment||'').toLowerCase()==='no_gst';
+  });
+  const noGstIds=new Set(noGstPurchases.map(x=>String(x.id)));
+  const gstBearingPurchases=purchaseItems.filter(x=>!noGstIds.has(String(x.id)));
+  const box11=gstBearingPurchases.reduce((a,x)=>a+num(x.total_amount??x.total),0);
+  const noGstTotal=noGstPurchases.reduce((a,x)=>a+num(x.total_amount??x.total),0);
+  const box12=num(c.gstPaid??c.oneB),box13=num(c.creditAdjustments),box14=box12+box13;
+  const result=box10-box14,payable=result>=-0.004;
+  const copyButton=(value,label)=>`<button type="button" class="gst-copy" data-copy-gst="${String(Number(value).toFixed(2))}" aria-label="Copy ${esc(label)}"><span class="gst-copy-icon" aria-hidden="true"></span><span class="gst-copy-text">Copy</span></button>`;
+  const row=(box,label,value,{total=false,review=false}={})=>`<div class="gst-ird-row${total?' total':''}${review?' review':''}"><span class="gst-box-no">${esc(box)}</span><span class="gst-ird-label">${esc(label)}${review?'<small>Zero-GST sales need classification before this box can be confirmed.</small>':''}</span><strong>${review?'Review':money(value)}</strong>${review?'<span></span>':copyButton(value,label)}</div>`;
+  const sales=q('finGstIrdSales'),purchases=q('finGstIrdPurchases');
+  if(sales)sales.innerHTML=row('5','Total sales and income',box5)+row('6','Zero-rated supplies',box6,{review:!zeroRatedKnown})+row('7','Net GST sales and income',box7,{review:!zeroRatedKnown})+row('8','GST on sales and income',box8)+row('9','Total debit adjustments',box9)+row('10','Total GST on sales and income',box10,{total:true});
+  if(purchases)purchases.innerHTML=row('11','Total purchases and expenses subject to GST',box11)+row('12','GST paid',box12)+row('13','Total credit adjustments',box13)+row('14','Total GST paid for purchases and expenses',box14,{total:true});
+  const noGst=q('finGstNoGstPurchases');
+  if(noGst){
+    noGst.hidden=!noGstPurchases.length;
+    noGst.innerHTML=noGstPurchases.length?`<div class="gst-no-gst-head"><div><strong>No GST purchases / expenses</strong><small>Shown separately and not included in Box 11.</small></div><strong>${money(noGstTotal)}</strong></div><div class="gst-no-gst-items">${noGstPurchases.map(x=>`<div><span>${esc(x.supplier_name||'Expense')} <small>${esc(x.expense_number||'')}</small></span><strong>${money(num(x.total_amount??x.total))}</strong></div>`).join('')}</div>`:'';
+  }
+  setText('finGstIrdResultLabel',payable?'GST to pay':'GST refund');setText('finGstIrdResultAmount',money(Math.abs(result)));
+  const note=q('finGstIrdNote');if(note){note.hidden=zeroRatedKnown;note.textContent=zeroRatedKnown?'':'Box 6 needs review because Frindly currently has one or more sales with $0 GST but does not yet store a separate NZ zero-rated / exempt / out-of-scope classification. No amount has been guessed.'}
+  q('finGstIrdTitle')?.closest('.gst-ird-card')?.querySelectorAll('[data-copy-gst]').forEach(b=>b.onclick=async()=>{
+    try{await navigator.clipboard.writeText(b.dataset.copyGst);const t=b.querySelector('.gst-copy-text');b.classList.add('copied');if(t)t.textContent='Copied';setTimeout(()=>{b.classList.remove('copied');if(t)t.textContent='Copy'},1200)}
+    catch(_){toastMsg('Copy unavailable on this browser.')}
+  });
 }
 function activateGstTxTab(tab){document.querySelectorAll('[data-gst-tx-tab]').forEach(b=>b.classList.toggle('active',b.dataset.gstTxTab===tab));document.querySelectorAll('[data-gst-tx-panel]').forEach(p=>p.hidden=p.dataset.gstTxPanel!==tab)}
 function wireGstTabs(){document.querySelectorAll('[data-gst-tx-tab]').forEach(b=>b.onclick=()=>activateGstTxTab(b.dataset.gstTxTab))}
@@ -200,7 +239,7 @@ async function activateBudget(b){if(b.status==='active')return;await client().fr
 async function saveBudget(b){const rows=[...q('finBudgetEditor').querySelectorAll('tbody tr')];for(const tr of rows){const sourceId=tr.dataset.sourceId||null,sourceKey=tr.dataset.budgetSource,classification=tr.dataset.classification,sourceType=tr.dataset.sourceType,label=tr.querySelector('strong').textContent,annual=num(tr.querySelector('.fin-budget-annual').value);let line=state.budgetLines.find(x=>x.budget_id===b.id&&((sourceId&&String(x.source_id)===String(sourceId))||(!sourceId&&x.source_key===sourceKey)));if(line){const {data,error}=await client().from('financial_budget_lines').update({classification,source_type:sourceType,source_id:sourceId,source_key:sourceId?null:sourceKey,label,annual_amount:annual,updated_at:new Date().toISOString()}).eq('id',line.id).select().single();if(error)return toastMsg(error.message);line=data}else{const {data,error}=await client().from('financial_budget_lines').insert({business_id:state.businessId,budget_id:b.id,classification,source_type:sourceType,source_id:sourceId,source_key:sourceId?null:sourceKey,label,annual_amount:annual}).select().single();if(error)return toastMsg(error.message);line=data}for(const inp of tr.querySelectorAll('.fin-budget-month')){const {error}=await client().from('financial_budget_month_values').upsert({business_id:state.businessId,budget_line_id:line.id,month_start:inp.dataset.month,amount:num(inp.value),updated_at:new Date().toISOString()},{onConflict:'budget_line_id,month_start'});if(error)return toastMsg(error.message)}}await loadFinancialData();renderBudget();renderOverview();toastMsg('Budget saved')}
 function switchTab(tab){state.activeTab=tab;document.querySelectorAll('[data-fin-tab]').forEach(b=>b.classList.toggle('active',b.dataset.finTab===tab));document.querySelectorAll('.financial-panel').forEach(p=>p.hidden=p.id!==`financial-panel-${tab}`);syncFinancialPeriodCard();const more=q('finMoreReports'),advanced=['balance','cashbook','ledger','trial'].includes(tab);if(more){more.classList.toggle('has-active-report',advanced);more.open=false;q('finMoreReportsSummary')?.setAttribute('aria-expanded','false')}renderAll()}
 function renderAll(){syncFinancialPeriodCard();if(!state.businessId)return;if(state.activeTab==='overview')renderOverview();else if(state.activeTab==='pnl')renderPnL();else if(state.activeTab==='cashflow')renderCashFlow();else if(state.activeTab==='balance')renderBalanceSheet();else if(state.activeTab==='ledger')renderLedger();else if(state.activeTab==='trial')renderTrialBalance();else if(state.activeTab==='cashbook')renderCashBook();else if(state.activeTab==='gst')renderGst();else if(state.activeTab==='budget')renderBudget()}
-async function loadFinancialData(){if(!state.businessId)return;const c=client(),bid=state.businessId;state.invoices=[];state.expenses=[];state.expenseLines=[];state.purchaseReviews=[];state.purchaseReviewError=null;state.expensePayments=[];state.customerPayments=[];state.creditNotes=[];state.supplierCredits=[];state.gstReturns=[];state.basReturns=[];state.payrollTx=[];state.payRuns=[];state.payRunEmployees=[];state.payRunLines=[];const qs=[c.from('financial_settings').select('*').eq('business_id',bid).maybeSingle(),c.from('financial_category_mappings').select('*').eq('business_id',bid).eq('archived',false),c.from('expense_categories').select('*').eq('business_id',bid),c.from('invoices').select('id,invoice_number,invoice_date,customer_name,subtotal,discount_amount,extra_fee,total,gst,amount_paid,balance_due').eq('business_id',bid),c.from('expenses').select('id,expense_number,supplier_name,invoice_date,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount,business_use_percent,business_ex_gst,business_gst_amount,business_use_amount,outstanding_balance,payment_status,lifecycle_state,archived,is_split').eq('business_id',bid),c.from('expense_lines').select('id,expense_id,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount').eq('business_id',bid),c.from('expense_payments').select('*').eq('business_id',bid),c.from('customer_payments').select('*').eq('business_id',bid),c.from('customer_credit_notes').select('*').eq('business_id',bid),c.from('supplier_credits').select('*').eq('business_id',bid),c.from('financial_budgets').select('*').eq('business_id',bid).order('financial_year_start',{ascending:false}),c.from('financial_budget_lines').select('*').eq('business_id',bid),c.from('financial_budget_month_values').select('*').eq('business_id',bid),c.from('gst_returns').select('*').eq('business_id',bid).order('period_start',{ascending:false}),c.from('country_business_tax_rules').select('*').eq('country_code',String(biz()?.settings?.country||'NZ').toUpperCase()).eq('active',true)];
+async function loadFinancialData(){if(!state.businessId)return;const c=client(),bid=state.businessId;state.invoices=[];state.expenses=[];state.expenseLines=[];state.purchaseReviews=[];state.purchaseReviewError=null;state.expensePayments=[];state.customerPayments=[];state.creditNotes=[];state.supplierCredits=[];state.gstReturns=[];state.basReturns=[];state.payrollTx=[];state.payRuns=[];state.payRunEmployees=[];state.payRunLines=[];const qs=[c.from('financial_settings').select('*').eq('business_id',bid).maybeSingle(),c.from('financial_category_mappings').select('*').eq('business_id',bid).eq('archived',false),c.from('expense_categories').select('*').eq('business_id',bid),c.from('invoices').select('id,invoice_number,invoice_date,customer_name,subtotal,discount_amount,extra_fee,total,gst,amount_paid,balance_due').eq('business_id',bid),c.from('expenses').select('id,expense_number,supplier_name,invoice_date,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount,business_use_percent,business_ex_gst,business_gst_amount,business_use_amount,outstanding_balance,payment_status,lifecycle_state,archived,is_split,gst_treatment,gst_rate').eq('business_id',bid),c.from('expense_lines').select('id,expense_id,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount').eq('business_id',bid),c.from('expense_payments').select('*').eq('business_id',bid),c.from('customer_payments').select('*').eq('business_id',bid),c.from('customer_credit_notes').select('*').eq('business_id',bid),c.from('supplier_credits').select('*').eq('business_id',bid),c.from('financial_budgets').select('*').eq('business_id',bid).order('financial_year_start',{ascending:false}),c.from('financial_budget_lines').select('*').eq('business_id',bid),c.from('financial_budget_month_values').select('*').eq('business_id',bid),c.from('gst_returns').select('*').eq('business_id',bid).order('period_start',{ascending:false}),c.from('country_business_tax_rules').select('*').eq('country_code',String(biz()?.settings?.country||'NZ').toUpperCase()).eq('active',true)];
   let payrollAllowed=false;
   try{
     const {data:payrollEntitlement,error:payrollEntitlementError}=await c.from('business_modules').select('status,modules!inner(slug)').eq('business_id',bid).eq('modules.slug','payroll').maybeSingle();
@@ -223,7 +262,7 @@ async function loadDashboardFinancialData(){
     c.from('financial_category_mappings').select('*').eq('business_id',businessId).eq('archived',false),
     c.from('expense_categories').select('*').eq('business_id',businessId),
     c.from('invoices').select('id,invoice_number,invoice_date,customer_name,subtotal,discount_amount,extra_fee,total,gst,amount_paid,balance_due').eq('business_id',businessId),
-    c.from('expenses').select('id,expense_number,supplier_name,invoice_date,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount,business_use_percent,business_ex_gst,business_gst_amount,business_use_amount,outstanding_balance,payment_status,lifecycle_state,archived,is_split').eq('business_id',businessId),
+    c.from('expenses').select('id,expense_number,supplier_name,invoice_date,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount,business_use_percent,business_ex_gst,business_gst_amount,business_use_amount,outstanding_balance,payment_status,lifecycle_state,archived,is_split,gst_treatment,gst_rate').eq('business_id',businessId),
     c.from('expense_lines').select('id,expense_id,description,category_id,job_costing_id,ex_gst,gst_amount,total_amount').eq('business_id',businessId),
     c.from('country_business_tax_rules').select('*').eq('country_code',String(biz()?.settings?.country||'NZ').toUpperCase()).eq('active',true)
   ];
@@ -252,13 +291,23 @@ async function dashboardSnapshot(){
   const current=calcPeriod(month.from,month.to), previous=calcPeriod(last.from,last.to), ytd=calcPeriod(fy.from,fy.to), priorFy=calcPeriod(prevFy.from,prevFy.to);
   const trend=[];
   for(let i=11;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1),from=iso(d),to=iso(new Date(d.getFullYear(),d.getMonth()+1,0)),v=calcPeriod(from,to);trend.push({from,to,label:d.toLocaleDateString('en-NZ',{month:'short'}),sales:v.sales})}
-  const groups=new Map();
-  for(const row of current.costs||[]){const k=row.label||'Uncategorised';groups.set(k,(groups.get(k)||0)+num(row.amount))}
-  const categories=[...groups.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  const categoryRows=period=>{
+    const groups=new Map();
+    for(const row of period.costs||[]){const k=row.label||'Uncategorised';groups.set(k,(groups.get(k)||0)+num(row.amount))}
+    return [...groups.entries()].map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  };
+  const categories=categoryRows(current);
+  const sixRange=rangeFor('6'),twelveRange=rangeFor('12');
+  const categoryPeriods={
+    this_month:categories,
+    '6':categoryRows(calcPeriod(sixRange.from,sixRange.to)),
+    '12':categoryRows(calcPeriod(twelveRange.from,twelveRange.to)),
+    fy:categoryRows(ytd)
+  };
   const fyStart=fyBounds(now).start, elapsed=Math.max(1,(now.getFullYear()-fyStart.getFullYear())*12+now.getMonth()-fyStart.getMonth()+1);
   const fyMonths=[];for(let d=new Date(fyStart.getFullYear(),fyStart.getMonth(),1);d<=now;d=new Date(d.getFullYear(),d.getMonth()+1,1)){const v=calcPeriod(iso(d),iso(new Date(d.getFullYear(),d.getMonth()+1,0)));fyMonths.push({label:d.toLocaleDateString('en-NZ',{month:'long'}),sales:v.sales})}
   const best=fyMonths.reduce((a,x)=>!a||x.sales>a.sales?x:a,null);
-  return {businessId:state.businessId,month:{from:month.from,to:month.to,...current},previousMonth:previous,fy:{from:fy.from,to:fy.to,...ytd},previousFy:priorFy,trend,categories,averageMonthlySales:ytd.sales/elapsed,bestSalesMonth:best,monthsCompleted:elapsed,gstPosition:ytd.gstNet};
+  return {businessId:state.businessId,month:{from:month.from,to:month.to,...current},previousMonth:previous,fy:{from:fy.from,to:fy.to,...ytd},previousFy:priorFy,trend,categories,categoryPeriods,averageMonthlySales:ytd.sales/elapsed,bestSalesMonth:best,monthsCompleted:elapsed,gstPosition:ytd.gstNet};
 }
 window.Financials={init,onShow,refresh,renderSettings,dashboardSnapshot};
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',bind):bind();

@@ -6273,3 +6273,311 @@ body > main{
 .community-shell{max-width:1320px;margin:0 auto}.community-head p{margin:.2rem 0 0;color:var(--muted,#64748b)}.community-filterbar{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:14px}.community-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}.community-layout main{display:grid;gap:12px}.community-layout aside{display:grid;gap:12px}.community-composer{display:grid;gap:12px}.community-compose-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.community-compose-top span,.community-badge,.community-ad>span{display:inline-flex;align-items:center;border-radius:999px;background:#efeaff;color:#4b2cc5;padding:5px 9px;font-size:11px;font-weight:800}.community-post{background:#fff;border:1px solid var(--border,#dfe6ee);border-radius:8px;padding:14px;box-shadow:0 1px 5px rgba(15,37,58,.04)}.community-post-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start}.community-avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#8ca0b2;color:#fff;font-weight:800}.community-post-head strong,.community-comment strong,.community-message strong{display:block;color:var(--navy,#17324d)}.community-post-head small,.community-post-head em{display:block;color:var(--muted,#64748b);font-size:12px;font-style:normal;margin-top:2px}.community-post h3{margin:10px 0 5px;color:var(--navy,#17324d);font-size:16px}.community-post p{margin:0 0 10px;color:#334155;line-height:1.45;white-space:pre-wrap}.community-post-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.community-post-actions span{margin-right:auto;color:var(--muted,#64748b);font-size:12px}.community-comments{border-top:1px solid #eef2f6;margin-top:12px;padding-top:12px}.community-comment-list{display:grid;gap:8px}.community-comment,.community-message{border:1px solid #e5ebf0;border-radius:8px;padding:10px;background:#f9fbfd}.community-comment p,.community-message p{margin:4px 0 8px}.community-comment-compose{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}.community-ad{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:14px;align-items:center;border:1px solid #d8caff;background:linear-gradient(90deg,#f7f3ff,#fff);border-radius:8px;padding:12px;margin-bottom:12px}.community-ad p{margin:3px 0 0;color:#475569;font-size:13px}.community-ad b{color:#3b278b}.community-ad.feed-ad{margin:0}.community-ad.side-ad{grid-template-columns:1fr;gap:8px}.community-sidebar h3,.community-profile-card h3{margin-top:0}.community-profile-card{display:grid;gap:10px}.community-profile-card button{justify-self:start}.community-inbox{display:grid;gap:8px}.community-message-thread{display:grid;gap:8px;max-height:52vh;overflow:auto}.community-message.mine{background:#eef7ff;margin-left:8%}.community-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}.blocked-word-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.blocked-word-list span{display:inline-flex;align-items:center;gap:5px;background:#eef2f6;border-radius:999px;padding:5px 8px;font-size:12px}.blocked-word-list button{border:0;background:transparent;color:#7f1d1d;cursor:pointer;font-weight:900}
 @media(max-width:980px){.community-filterbar,.community-layout,.community-admin-grid{grid-template-columns:1fr}.community-layout aside{order:-1}.community-sidebar{display:none}.community-ad{grid-template-columns:1fr;align-items:start}.community-comment-compose{grid-template-columns:1fr}.community-comment-compose button{width:100%}}
 @media(max-width:640px){.community-post-head{grid-template-columns:auto minmax(0,1fr)}.community-badge{grid-column:1/-1;justify-self:start}.community-post-actions button{flex:1}.community-post-actions span{order:3;width:100%;margin:0}.community-filterbar button{width:100%}}
+
+/* v61.106O — IRD-aligned GST filing worksheet; presentation only. */
+#financial-panel-gst .gst-ird-card{padding:18px;display:grid;gap:18px}
+.gst-ird-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.gst-ird-head h3{margin:3px 0 4px;color:var(--navy,#173f5c)}.gst-ird-head p{margin:0;color:var(--muted,#64748b);font-size:13px}.gst-ird-badge{border:1px solid #d9e3ec;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800;color:var(--navy,#173f5c);background:#f8fbfd}.gst-ird-group{border:1px solid #e4ebf2;border-radius:12px;overflow:hidden}.gst-ird-group h4{margin:0;padding:11px 14px;background:#f7f9fc;color:var(--navy,#173f5c);border-bottom:1px solid #e4ebf2}.gst-ird-row{display:grid;grid-template-columns:42px minmax(0,1fr) minmax(110px,auto) 58px;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid #edf2f6}.gst-ird-row:last-child{border-bottom:0}.gst-box-no{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#eef3f8;color:var(--navy,#173f5c);font-weight:800;font-size:12px}.gst-ird-label{min-width:0}.gst-ird-label small{display:block;color:#8a5a00;font-size:11px;margin-top:2px}.gst-ird-row>strong{text-align:right;font-variant-numeric:tabular-nums;color:var(--navy,#173f5c)}.gst-ird-row.total{background:#f8fbfd;font-weight:800}.gst-ird-row.review{background:#fffaf0}.gst-copy{min-height:32px!important;padding:5px 9px!important;border-radius:8px!important;font-size:12px!important}.gst-ird-result{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:16px 18px;border-radius:12px;background:#eef6f2;border:1px solid #d5e8df}.gst-ird-result>div{display:grid;gap:2px}.gst-ird-result span{font-size:12px;color:var(--muted,#64748b);font-weight:800}.gst-ird-result>strong{font-size:26px;color:var(--navy,#173f5c)}.gst-ird-note{margin:0;padding:11px 13px;border-radius:10px;background:#fff8e8;border:1px solid #f1ddb0;color:#765315;font-size:12px;line-height:1.45}
+@media(max-width:720px){.gst-ird-head{display:block}.gst-ird-badge{display:inline-block;margin-top:10px}.gst-ird-row{grid-template-columns:38px minmax(0,1fr) auto}.gst-copy{grid-column:2/4;width:100%}.gst-ird-result{align-items:flex-start}.gst-ird-result>strong{font-size:22px;text-align:right}}
+
+/* v61.106R scoped GST worksheet presentation only */
+.gst-ird-card .gst-copy{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-height:32px!important;padding:6px 10px!important;border:1px solid #d9d5ee!important;border-radius:999px!important;background:#fff!important;color:#5c4fb0!important;font-size:11px!important;font-weight:800!important;line-height:1!important;box-shadow:0 1px 2px rgba(15,23,42,.05)!important}
+.gst-ird-card .gst-copy:hover{background:#f7f5ff!important;border-color:#bdb4eb!important}.gst-ird-card .gst-copy.copied{background:#eef8f2!important;border-color:#b9dfc8!important;color:#267247!important}
+.gst-ird-card .gst-copy-icon{position:relative;width:14px;height:14px;display:inline-block}.gst-ird-card .gst-copy-icon:before,.gst-ird-card .gst-copy-icon:after{content:"";position:absolute;width:8px;height:9px;border:1.5px solid currentColor;border-radius:2px;background:#fff}.gst-ird-card .gst-copy-icon:before{left:1px;top:1px;opacity:.7}.gst-ird-card .gst-copy-icon:after{left:4px;top:4px}.gst-ird-card .gst-copy.copied .gst-copy-icon:before{display:none}.gst-ird-card .gst-copy.copied .gst-copy-icon:after{content:"✓";left:0;top:-1px;width:14px;height:14px;border:0;background:transparent;font-size:14px;font-weight:900}
+.gst-no-gst-card{margin-top:10px;border:1px solid #e4e8ee;border-radius:10px;background:#fafbfc;overflow:hidden}.gst-no-gst-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 12px}.gst-no-gst-head>div{display:grid;gap:2px}.gst-no-gst-head small{font-size:11px;color:var(--muted,#64748b)}.gst-no-gst-items{border-top:1px solid #eceff2}.gst-no-gst-items>div{display:flex;justify-content:space-between;gap:16px;padding:7px 12px;border-bottom:1px solid #eceff2;font-size:12px}.gst-no-gst-items>div:last-child{border-bottom:0}
+
+/* v61.106S — GST Copy button alignment only */
+.gst-ird-card .gst-copy{
+  min-width:76px!important;
+  width:auto!important;
+  white-space:nowrap!important;
+  flex-wrap:nowrap!important;
+  padding-left:12px!important;
+  padding-right:12px!important;
+}
+.gst-ird-card .gst-copy-text{
+  display:inline-block!important;
+  white-space:nowrap!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+}
+
+/* v61.106T — isolated Frindly startup/loading experience */
+.frindly-startup[hidden]{display:none!important}
+.frindly-startup{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 42%,#162b50 0,#0d203e 42%,#08182f 100%);color:#fff}
+.frindly-startup-card{width:min(390px,88vw);display:flex;flex-direction:column;align-items:center;text-align:center}
+.frindly-startup-logo-wrap{position:relative;width:min(250px,62vw);aspect-ratio:1/1}
+.frindly-startup-logo-wrap img{display:block;width:100%;height:100%;object-fit:contain;border-radius:22%;filter:drop-shadow(0 16px 34px rgba(0,0,0,.24))}
+.frindly-startup-ray{position:absolute;right:7.8%;width:5.2%;height:5.2%;border-radius:999px;background:#b34cff;opacity:0;filter:blur(4px);pointer-events:none;animation:frindlyStartupRay 1.35s ease-in-out infinite}
+.frindly-startup-ray.ray-one{top:37.7%;transform:rotate(29deg);animation-delay:0s}
+.frindly-startup-ray.ray-two{top:44.6%;right:3.6%;transform:rotate(64deg);animation-delay:.16s}
+.frindly-startup-ray.ray-three{top:51.5%;right:2.9%;transform:rotate(87deg);animation-delay:.32s}
+@keyframes frindlyStartupRay{0%,55%,100%{opacity:0;box-shadow:0 0 0 rgba(174,69,255,0)}25%{opacity:.82;box-shadow:0 0 20px rgba(174,69,255,.85)}}
+.frindly-startup-progress{position:relative;width:min(260px,68vw);height:3px;margin-top:5px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.12)}
+.frindly-startup-progress span{position:absolute;inset:0 auto 0 -42%;width:42%;border-radius:inherit;background:linear-gradient(90deg,rgba(142,73,255,0),#9251ff,#cf55ff,rgba(207,85,255,0));animation:frindlyStartupProgress 1.25s ease-in-out infinite}
+@keyframes frindlyStartupProgress{0%{left:-42%}100%{left:100%}}
+.frindly-startup-card>strong{margin-top:20px;font-size:17px;letter-spacing:.01em}
+.frindly-startup-card>span{margin-top:7px;color:rgba(255,255,255,.72);font-size:13px}
+body.startup-loading{overflow:hidden}
+@media(max-width:600px){.frindly-startup{padding:18px}.frindly-startup-logo-wrap{width:min(220px,66vw)}.frindly-startup-card>strong{font-size:16px}}
+@media(max-height:520px) and (orientation:landscape){.frindly-startup-logo-wrap{width:min(170px,34vh)}.frindly-startup-card>strong{margin-top:12px}.frindly-startup-progress{width:min(230px,48vw)}}
+@media(prefers-reduced-motion:reduce){.frindly-startup-ray,.frindly-startup-progress span{animation-duration:2.8s}}
+
+/* v61.106W — dashboard period selectors only */
+#view-dashboard .dash-period-select{
+  min-width:0!important;
+  width:auto!important;
+  max-width:132px!important;
+  min-height:30px!important;
+  height:30px!important;
+  padding:4px 27px 4px 9px!important;
+  font-size:.69rem!important;
+  line-height:1.1!important;
+  border-radius:8px!important;
+}
+@media(max-width:700px){
+  #view-dashboard .dash-period-select{max-width:128px!important;height:30px!important}
+}
+@media(max-width:420px){
+  #view-dashboard .dash-period-select{min-width:0!important;max-width:122px!important;font-size:.66rem!important}
+}
+
+/* v61.106X — dashboard period selector alignment only */
+#view-dashboard .dash-panel>header{
+  align-items:flex-start!important;
+  gap:10px!important;
+}
+#view-dashboard .dash-panel>header .dash-heading{
+  min-width:0!important;
+  flex:1 1 auto!important;
+}
+#view-dashboard .dash-period-select{
+  flex:0 0 auto!important;
+  width:116px!important;
+  max-width:116px!important;
+  min-width:116px!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:3px 25px 3px 8px!important;
+  font-size:.66rem!important;
+  line-height:1!important;
+  border-radius:7px!important;
+  margin-left:4px!important;
+}
+@media(max-width:700px){
+  #view-dashboard .dash-panel>header{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    align-items:flex-start!important;
+  }
+  #view-dashboard .dash-panel>header .dash-heading{
+    flex:1 1 180px!important;
+  }
+  #view-dashboard .dash-period-select{
+    width:112px!important;
+    min-width:112px!important;
+    max-width:112px!important;
+    margin-left:auto!important;
+  }
+}
+@media(max-width:480px){
+  #view-dashboard .dash-panel>header .dash-heading{
+    flex:1 1 100%!important;
+  }
+  #view-dashboard .dash-period-select{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    margin:4px 0 0!important;
+  }
+}
+
+/* v61.106Y — forensic dashboard selector layout fix */
+#view-dashboard .dash-grid.top > .dash-panel > header{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 132px!important;
+  column-gap:12px!important;
+  row-gap:6px!important;
+  align-items:start!important;
+  width:100%!important;
+}
+#view-dashboard .dash-grid.top > .dash-panel > header .dash-heading{
+  min-width:0!important;
+  width:auto!important;
+  max-width:100%!important;
+}
+#view-dashboard .dash-grid.top > .dash-panel > header .dash-heading>div{
+  min-width:0!important;
+}
+#view-dashboard .dash-grid.top > .dash-panel > header .dash-heading h2{
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+#view-dashboard .dash-grid.top .dash-period-select{
+  grid-column:2!important;
+  justify-self:end!important;
+  box-sizing:border-box!important;
+  width:132px!important;
+  min-width:132px!important;
+  max-width:132px!important;
+  height:30px!important;
+  min-height:30px!important;
+  margin:0!important;
+  padding:4px 26px 4px 9px!important;
+  font-size:.68rem!important;
+  line-height:1.1!important;
+  border-radius:7px!important;
+  white-space:nowrap!important;
+}
+@media(max-width:700px){
+  #view-dashboard .dash-grid.top > .dash-panel > header{
+    grid-template-columns:minmax(0,1fr) 128px!important;
+    column-gap:10px!important;
+  }
+  #view-dashboard .dash-grid.top .dash-period-select{
+    width:128px!important;
+    min-width:128px!important;
+    max-width:128px!important;
+  }
+}
+@media(max-width:520px){
+  #view-dashboard .dash-grid.top > .dash-panel > header{
+    grid-template-columns:1fr!important;
+  }
+  #view-dashboard .dash-grid.top .dash-period-select{
+    grid-column:1!important;
+    justify-self:stretch!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    margin-top:2px!important;
+  }
+}
+
+/* v61.106Z — final dashboard header alignment correction only */
+#view-dashboard .dash-grid.top > .dash-panel > header{
+  flex:0 0 auto!important;
+  min-height:46px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 108px!important;
+  column-gap:10px!important;
+  row-gap:4px!important;
+  align-items:start!important;
+  margin-bottom:12px!important;
+}
+#view-dashboard .dash-grid.top > .dash-panel > header .dash-heading{
+  min-width:0!important;
+  width:100%!important;
+  max-width:none!important;
+}
+#view-dashboard .dash-grid.top > .dash-panel > header .dash-heading>div{
+  min-width:0!important;
+}
+#view-dashboard .dash-grid.top > .dash-panel > header .dash-heading h2{
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-height:1.12!important;
+}
+#view-dashboard .dash-grid.top > .dash-panel > header .dash-heading p{
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-height:1.2!important;
+}
+#view-dashboard .dash-grid.top .dash-period-select{
+  grid-column:2!important;
+  justify-self:end!important;
+  align-self:start!important;
+  box-sizing:border-box!important;
+  width:108px!important;
+  min-width:108px!important;
+  max-width:108px!important;
+  height:28px!important;
+  min-height:28px!important;
+  margin:0!important;
+  padding:3px 22px 3px 7px!important;
+  font-size:.60rem!important;
+  line-height:1!important;
+  border-radius:7px!important;
+  white-space:nowrap!important;
+}
+
+/* Once the card is genuinely narrow, stack the selector instead of compressing/covering text. */
+@media(max-width:700px){
+  #view-dashboard .dash-grid.top > .dash-panel > header{
+    grid-template-columns:1fr!important;
+    min-height:0!important;
+    row-gap:8px!important;
+  }
+  #view-dashboard .dash-grid.top .dash-period-select{
+    grid-column:1!important;
+    justify-self:start!important;
+    width:118px!important;
+    min-width:118px!important;
+    max-width:118px!important;
+  }
+  #view-dashboard .dash-grid.top > .dash-panel > header .dash-heading h2{
+    white-space:nowrap!important;
+  }
+  #view-dashboard .dash-grid.top > .dash-panel > header .dash-heading p{
+    white-space:normal!important;
+  }
+}
+@media(max-width:420px){
+  #view-dashboard .dash-grid.top .dash-period-select{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+}
+
+/* v61.107A — compact dashboard period selector only */
+#view-dashboard .dash-grid.top > .dash-panel > header{
+  grid-template-columns:minmax(0,1fr) 82px!important;
+}
+#view-dashboard .dash-grid.top .dash-period-select{
+  width:82px!important;
+  min-width:82px!important;
+  max-width:82px!important;
+  padding:3px 18px 3px 6px!important;
+  font-size:.58rem!important;
+}
+@media(max-width:700px){
+  #view-dashboard .dash-grid.top > .dash-panel > header{
+    grid-template-columns:1fr!important;
+  }
+  #view-dashboard .dash-grid.top .dash-period-select{
+    width:96px!important;
+    min-width:96px!important;
+    max-width:96px!important;
+  }
+}
+@media(max-width:420px){
+  #view-dashboard .dash-grid.top .dash-period-select{
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+  }
+}
+
+/* v61.107B — invoice payment reminders + outstanding status colour only */
+#view-invoices .c1-status-badge.finlo-status.status-payment-due{
+  background:#fdeaea!important;color:#b42318!important;
+}
+#view-invoices .invoice-reminder-action{color:#6552b8;border-color:#ddd7f4;background:#faf9ff}
+#view-invoices .invoice-reminder-action:hover{background:#f2efff;border-color:#c7bdf0}
+.invoice-reminder-modal{display:grid;gap:16px}
+.invoice-reminder-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.invoice-reminder-summary>div{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fafbfc;display:grid;gap:3px}
+.invoice-reminder-summary span{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:800}
+.invoice-reminder-summary strong{font-size:13px;color:var(--navy)}
+.invoice-reminder-form textarea{resize:vertical;min-height:170px}
+.invoice-reminder-history{border-top:1px solid var(--border);padding-top:12px;display:grid;gap:7px}
+.invoice-reminder-history>div{display:flex;justify-content:space-between;gap:12px;font-size:12px}
+.invoice-reminder-history small{color:var(--muted)}
+@media(max-width:760px){
+  .invoice-reminder-summary{grid-template-columns:1fr 1fr}
+  .invoice-reminder-summary>div:nth-child(5){grid-column:1/-1}
+  .invoice-reminder-history>div{display:grid;gap:2px}
+}
