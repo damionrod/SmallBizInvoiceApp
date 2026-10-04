@@ -3982,7 +3982,7 @@ button[aria-busy="true"]::after{content:"";width:14px;height:14px;margin-left:8p
   #primaryNav{
     position:fixed!important;z-index:9050!important;
     top:calc(64px + env(safe-area-inset-top))!important;right:max(10px,env(safe-area-inset-right))!important;left:auto!important;bottom:auto!important;
-    width:min(300px,74vw)!important;max-width:calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right))!important;
+    width:40vw!important;min-width:144px!important;max-width:180px!important;
     height:auto!important;max-height:calc(100dvh - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
     margin:0!important;padding:8px!important;display:grid!important;grid-template-columns:1fr!important;gap:2px!important;
     overflow-x:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;
