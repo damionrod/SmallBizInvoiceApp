@@ -20,12 +20,4 @@ drop policy if exists invoice_reminder_history_select_member on public.invoice_r
 create policy invoice_reminder_history_select_member
 on public.invoice_reminder_history
 for select to authenticated
-using (
-  exists (
-    select 1
-    from public.business_users bu
-    where bu.business_id = invoice_reminder_history.business_id
-      and bu.user_id = auth.uid()
-      and coalesce(bu.status,'active') = 'active'
-  )
-);
+using (business_id = public.current_business_id());

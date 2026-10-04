@@ -371,3 +371,147 @@ tbody tr:last-child td{border-bottom:0}
 #primaryNav .account-chip{color:#fff}
 #primaryNav .account-chip .nav-icon{width:15px;height:15px}
 #primaryNav .account-chip #accountInitials{display:none}
+
+/* v61.107X — Owner / shareholder modal UI polish only.
+   Scoped deliberately so no other Frindly modal or module is affected. */
+#finOwnerEditModal,#finOwnerHistoryModal{padding:28px 18px;align-items:center;justify-content:center;background:rgba(8,27,47,.62);overflow:auto}
+#finOwnerEditModal.open,#finOwnerHistoryModal.open{display:flex}
+#finOwnerEditModal .modal-card,#finOwnerHistoryModal .modal-card{width:min(100%,920px);max-height:min(88vh,820px);margin:auto;background:#fff;border:1px solid #dce4eb;border-radius:16px;box-shadow:0 24px 70px rgba(8,27,47,.28);overflow:auto;color:var(--text)}
+#finOwnerHistoryModal .modal-card{width:min(100%,760px);max-height:min(82vh,680px)}
+#finOwnerEditModal .modal-head,#finOwnerHistoryModal .modal-head{position:sticky;top:0;z-index:2;margin:0;padding:18px 20px 16px;background:#fff;border-bottom:1px solid #e6ebef;align-items:flex-start}
+#finOwnerEditModal .modal-head h3,#finOwnerHistoryModal .modal-head h3{margin:0 0 4px;color:var(--navy);font-size:19px;line-height:1.25}
+#finOwnerEditModal .modal-head p,#finOwnerHistoryModal .modal-head p{margin:0;color:var(--muted);font-size:12.5px;font-weight:400;line-height:1.45}
+#finOwnerEditModal .icon-btn,#finOwnerHistoryModal .icon-btn{flex:0 0 34px;width:34px;height:34px;display:grid;place-items:center;padding:0;border:1px solid #dce3e8;border-radius:8px;background:#fff;color:#526775;font-size:21px;line-height:1;cursor:pointer}
+#finOwnerEditModal .icon-btn:hover,#finOwnerHistoryModal .icon-btn:hover{background:#f3f6f8;color:var(--navy)}
+#finOwnerEditModal .form-grid{padding:18px 20px 4px;gap:13px 16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+#finOwnerEditModal .form-grid label{min-width:0;gap:5px;font-size:12.5px}
+#finOwnerEditModal .form-grid input,#finOwnerEditModal .form-grid select{min-height:42px;padding:9px 11px}
+#finOwnerEditModal .form-grid .span-2{grid-column:1/-1}
+#finOwnerEditModal .actions{position:sticky;bottom:0;z-index:2;margin:14px 0 0;padding:14px 20px 16px;background:#fff;border-top:1px solid #e6ebef;box-shadow:0 -6px 18px rgba(8,27,47,.035)}
+#finOwnerEditModal .actions button{min-width:108px}
+#finOwnerHistoryRows{padding:16px 20px 20px}
+#finOwnerHistoryRows .list-row{padding:12px 14px;margin:0 0 9px;border:1px solid #e3e9ee;border-radius:10px;background:#fbfcfd}
+#finOwnerHistoryRows .list-row:last-child{margin-bottom:0}
+#finOwnerHistoryRows .list-row strong{color:#263f50;font-size:13px}
+#finOwnerHistoryRows .list-row .hint{margin-top:4px;font-size:12px;color:var(--muted)}
+#finOwnerHistoryRows .empty-state{display:grid;place-items:center;min-height:150px;padding:26px;text-align:center;border:1px dashed #d9e2e8;border-radius:12px;background:#fafcfd;color:var(--muted)}
+#finOwnerHistoryRows .empty-state p{max-width:420px;margin:0;font-size:13px;line-height:1.55}
+@media(max-width:760px){
+ #finOwnerEditModal,#finOwnerHistoryModal{padding:12px;align-items:center}
+ #finOwnerEditModal .modal-card,#finOwnerHistoryModal .modal-card{width:100%;max-width:none;max-height:92dvh;margin:auto;border-radius:14px}
+ #finOwnerEditModal .form-grid{grid-template-columns:1fr;padding:14px 14px 2px;gap:11px}
+ #finOwnerEditModal .form-grid .span-2{grid-column:auto}
+ #finOwnerEditModal .modal-head,#finOwnerHistoryModal .modal-head{padding:15px 14px 13px}
+ #finOwnerEditModal .modal-head>div,#finOwnerHistoryModal .modal-head>div{padding-right:6px}
+ #finOwnerEditModal .actions{padding:12px 14px 14px}
+ #finOwnerEditModal .actions button{flex:1;min-width:0}
+ #finOwnerHistoryRows{padding:14px}
+}
+
+/* v61.107Y: Owners & Shareholders add form — desktop single-row layout only */
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{grid-template-columns:minmax(0,1.8fr) minmax(0,1.2fr) minmax(150px,1fr);align-items:end;gap:14px 16px}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid label{min-width:0}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid input,.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid select{min-width:0}
+@media(max-width:760px){.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{grid-template-columns:1fr;align-items:stretch}}
+/* v61.107ZA — read-only Shareholder Summary report */
+.shareholder-report-card{margin-top:14px}.shareholder-report-note{margin:10px 16px 14px}.shareholder-report-notice{margin-top:14px}.shareholder-summary-grid .metric small{display:block;margin-top:4px;font-weight:400}@media(max-width:760px){.shareholder-summary-grid{grid-template-columns:1fr 1fr}.shareholder-report-card table{min-width:680px}}@media(max-width:520px){.shareholder-summary-grid{grid-template-columns:1fr}}
+
+/* v61.107ZC: shareholding effective-date field; scoped to owner setup only */
+@media(min-width:900px){.fin-owner-add-grid{grid-template-columns:minmax(240px,1.5fr) minmax(180px,1fr) minmax(150px,.75fr) minmax(190px,1fr)!important}}
+
+
+/* v61.107ZE — unified Frindly Reports visual system. Presentation only. */
+#view-reports{
+  --report-blue:#1E96FF;
+  --report-pink:#FF275D;
+  --report-orange:#FF911B;
+  --report-yellow:#FFBF25;
+  --report-teal:#00A68F;
+  --report-ink:#17233C;
+  --report-muted:#68758A;
+  --report-border:#E3E9F0;
+  --report-surface:#FFFFFF;
+  --report-soft:#F8FAFC;
+}
+#view-reports .report-module-tabs{gap:4px;border-bottom:1px solid var(--report-border);margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+#view-reports .report-module-tabs::-webkit-scrollbar{display:none}
+#view-reports .report-module-tabs .module-tab{white-space:nowrap;border-radius:8px 8px 0 0;padding:10px 14px;font-weight:600;color:#33445d}
+#view-reports .report-module-tabs .module-tab.active{background:#1d2d50;color:#fff;border-color:#1d2d50}
+#view-reports .report-panel>.page-head{margin-bottom:12px;align-items:flex-start}
+#view-reports .report-panel>.page-head h2{color:var(--report-ink);margin-bottom:3px}
+#view-reports .report-panel>.page-head p{color:var(--report-muted);margin:0}
+#view-reports .report-widget-grid{gap:14px}
+#view-reports .report-widget,
+#view-reports .shareholder-report-card,
+#view-reports .payroll-report-controls,
+#view-reports .payroll-report-details,
+#view-reports .expense-report-card{background:var(--report-surface);border:1px solid var(--report-border);border-radius:12px;box-shadow:0 3px 12px rgba(24,39,75,.045)}
+#view-reports .report-widget{position:relative;overflow:hidden}
+#view-reports .report-widget .card-title h2,
+#view-reports .report-widget h3,
+#view-reports .shareholder-report-card h3,
+#view-reports .payroll-report-details h2{color:var(--report-ink)}
+#view-reports .report-widget .hint,#view-reports .shareholder-report-card .hint{color:var(--report-muted)}
+#view-reports .report-widget-handle{color:#9aa7b6}
+#view-reports .summary-grid .metric,
+#view-reports .performance-kpi{background:#fff;border:1px solid var(--report-border);border-radius:10px;box-shadow:none}
+#view-reports .summary-grid .metric span,
+#view-reports .performance-kpi span{color:var(--report-muted)}
+#view-reports .summary-grid .metric strong,
+#view-reports .performance-kpi strong{color:var(--report-ink)}
+#view-reports table thead th{background:var(--report-soft);color:#4b5b70;border-bottom:1px solid var(--report-border)}
+#view-reports table tbody td{border-bottom-color:#edf1f5}
+#view-reports .chart-wrap{min-width:0}
+#view-reports .payroll-report-tabs{border-bottom:1px solid var(--report-border);gap:4px;overflow-x:auto;scrollbar-width:none}
+#view-reports .payroll-report-tabs::-webkit-scrollbar{display:none}
+#view-reports .payroll-report-tabs button{white-space:nowrap;border-radius:8px 8px 0 0}
+#view-reports .payroll-report-tabs button.active{background:#1d2d50;color:#fff}
+#view-reports .report-panel .primary,#view-reports #runReport{border-radius:8px}
+#view-reports .report-panel .secondary{border-radius:8px}
+@media(max-width:720px){
+ #view-reports{padding-left:12px;padding-right:12px}
+ #view-reports .report-module-tabs{margin-left:-2px;margin-right:-2px;padding-bottom:1px}
+ #view-reports .report-module-tabs .module-tab{padding:9px 11px;font-size:12px}
+ #view-reports .report-panel>.page-head{gap:8px;flex-direction:column}
+ #view-reports .report-panel>.page-head>button{width:100%}
+ #view-reports .report-widget-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px}
+ #view-reports .report-widget,#view-reports .report-widget-wide{grid-column:1/-1!important;width:100%;min-width:0}
+ #view-reports .summary-grid,#view-reports .performance-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ #view-reports .summary-grid .metric,#view-reports .performance-kpi{min-width:0;padding:10px}
+ #view-reports .chart-wrap{height:260px!important;max-width:100%;overflow:hidden}
+ #view-reports .table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ #view-reports .expense-report-controls,#view-reports .payroll-report-controls{gap:10px}
+}
+@media(max-width:430px){
+ #view-reports .summary-grid,#view-reports .performance-kpis{grid-template-columns:1fr 1fr}
+ #view-reports .chart-wrap{height:235px!important}
+}
+
+
+/* v61.107ZF — three targeted alignment fixes only. */
+/* Owner edit: keep paired fields on a clean common baseline. */
+#finOwnerEditModal .form-grid{align-items:start}
+#finOwnerEditModal .form-grid>label{display:grid;grid-template-rows:18px 42px auto;align-content:start}
+#finOwnerEditModal .form-grid>label>input,#finOwnerEditModal .form-grid>label>select{height:42px}
+#finOwnerEditModal .form-grid>label>small{margin-top:4px;line-height:1.25}
+#finOwnerEditModal .form-grid>label.span-2{grid-template-rows:18px 42px}
+
+/* Add owner/shareholder: all four fields and the action share one desktop row. */
+@media(min-width:1100px){
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{
+   grid-template-columns:minmax(250px,1.55fr) minmax(170px,.95fr) minmax(145px,.7fr) minmax(245px,1.2fr) auto!important;
+   gap:12px 14px;align-items:end
+ }
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label{min-width:0}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label:nth-child(4){white-space:nowrap}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action{display:flex;align-items:end}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button{white-space:nowrap;min-height:42px}
+}
+@media(max-width:1099px) and (min-width:761px){
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{grid-template-columns:1fr 1fr!important}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action{grid-column:1/-1;display:flex;justify-content:flex-end}
+}
+@media(max-width:760px){
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action{display:block}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button{width:100%}
+}

@@ -357,7 +357,7 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.107B-invoice-reminders','schedule.js?v=61.105-phase13n-schedule-timesheets','dashboard.js?v=61.107A-compact-dashboard-period','job-costing.js?v=61.105-phase6-nz-job-quotes','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.105-phase4-nz-expenses','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.106W-dashboard-period-filter','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.106N-payroll-employee-match','community.js?v=61.106-community-module']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.107ZG-chart-sharpness','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.105-phase6-nz-job-quotes','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZG-chart-sharpness','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.106W-dashboard-period-filter','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.107K-cross-account-duplicate-import','community.js?v=61.106-community-module']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
@@ -563,11 +563,11 @@
     document.querySelectorAll('[data-settings-nav]').forEach(btn=>btn.onclick=()=>window.openCentralSettings?.(btn.dataset.settingsNav));
   }
   window.openCentralSettings=async function(section='account'){
-    const allowed=['account','tax','invoicing','payments','job','users','subscription','import'];if(!allowed.includes(section))section='account';
+    const allowed=['account','tax','invoicing','payments','job','owners','users','subscription','import'];if(!allowed.includes(section))section='account';
     if(section==='payments'&&!state.profile?.is_super_admin&&!(await hasModule('invoice_payments'))){section='account'}
     document.querySelectorAll('[data-settings-nav]').forEach(b=>b.classList.toggle('active',b.dataset.settingsNav===section));
     document.querySelectorAll('[data-settings-panel]').forEach(p=>p.hidden=p.dataset.settingsPanel!==section);
-    if(section==='tax')window.Financials?.refresh?.();
+    if(section==='tax'||section==='owners')window.Financials?.refresh?.();
     if(section==='job'){q('jc-panel-settings')?.classList.add('active');window.JobCosting?.onShow?.();}
     if(section==='users'&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))renderTeamAccess();
     if(section==='payments')renderInvoicePaymentSettings?.();
