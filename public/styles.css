@@ -6788,46 +6788,6 @@ body.startup-loading{overflow:hidden}
 }
 
 
-/* v61.107ZP — compact tappable Invoice / Expense summaries on mobile only. */
-@media(max-width:760px){
-  #view-invoices .table-card .table-scroll,
-  #view-expenses #expense-panel-bills .expense-list-card .table-scroll{overflow:visible!important}
-  #view-invoices .table-card table:has(#invoiceRows),
-  #view-expenses #expense-panel-bills .expense-list-card table{min-width:0!important;width:100%!important;display:block!important}
-  #view-invoices .table-card table:has(#invoiceRows) thead,
-  #view-expenses #expense-panel-bills .expense-list-card thead{display:none!important}
-  #invoiceRows,#expenseRows{display:block!important;width:100%!important}
-  #invoiceRows .invoice-list-row,#expenseRows .expense-list-row{
-    position:relative!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
-    gap:3px 12px!important;width:100%!important;padding:11px 32px 11px 12px!important;
-    box-sizing:border-box!important;border-bottom:1px solid #e6edf5!important;background:#fff!important;cursor:pointer!important
-  }
-  #invoiceRows .invoice-list-row::after,#expenseRows .expense-list-row::after{
-    content:'›';position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:22px;line-height:1;color:#718096
-  }
-  #invoiceRows .invoice-list-row>td,#expenseRows .expense-list-row>td{
-    display:none!important;width:auto!important;max-width:none!important;padding:0!important;border:0!important;
-    white-space:normal!important;overflow:visible!important;text-overflow:clip!important;text-align:left!important
-  }
-  /* Invoice summary: customer + total, then invoice/date + status. */
-  #invoiceRows .invoice-list-row>.inv-col-customer{display:block!important;grid-column:1;grid-row:1;font-weight:700;color:#17213b}
-  #invoiceRows .invoice-list-row>.inv-col-total{display:block!important;grid-column:2;grid-row:1;text-align:right!important;font-weight:800;color:#17213b}
-  #invoiceRows .invoice-list-row>.inv-col-invoice{display:block!important;grid-column:1;grid-row:2;font-size:11px;color:#60718a}
-  #invoiceRows .invoice-list-row>.inv-col-date{display:block!important;grid-column:1;grid-row:3;font-size:11px;color:#75859a}
-  #invoiceRows .invoice-list-row>.inv-col-status{display:block!important;grid-column:2;grid-row:2/4;align-self:center;text-align:right!important}
-  #invoiceRows .invoice-list-row>.inv-col-invoice .invoice-number-link{color:inherit;text-decoration:none}
-  /* Expense summary: supplier + total, then ref/date + status. */
-  #expenseRows .expense-list-row>.exp-col-supplier{display:block!important;grid-column:1;grid-row:1;font-weight:700;color:#17213b}
-  #expenseRows .expense-list-row>.exp-col-total{display:block!important;grid-column:2;grid-row:1;text-align:right!important;font-weight:800;color:#17213b}
-  #expenseRows .expense-list-row>.exp-col-ref{display:block!important;grid-column:1;grid-row:2;font-size:11px;color:#60718a}
-  #expenseRows .expense-list-row>.exp-col-date{display:block!important;grid-column:1;grid-row:3;font-size:11px;color:#75859a}
-  #expenseRows .expense-list-row>.exp-col-status{display:block!important;grid-column:2;grid-row:2/4;align-self:center;text-align:right!important}
-  #expenseRows .expense-list-row>.exp-col-ref small{display:inline!important;margin-left:5px!important}
-  #invoiceRows .invoice-empty-row,#expenseRows tr:not(.expense-list-row){display:block!important;padding:14px!important}
-  #invoiceRows .invoice-empty-row td,#expenseRows tr:not(.expense-list-row) td{display:block!important}
-}
-
-
 /* v61.107ZQ — MOBILE UI CLEANUP ONLY. Desktop remains unchanged. */
 @media(max-width:760px){
   /* Customers: compact name / email / contact summary. Whole row opens existing profile. */
@@ -6849,33 +6809,6 @@ body.startup-loading{overflow:hidden}
   #customerRows tr[data-customer-row]>td:nth-child(6) small{display:inline!important;margin-left:6px!important}
   #customerRows tr:not([data-customer-row]){display:block!important;padding:14px!important}
   #customerRows tr:not([data-customer-row]) td{display:block!important}
-
-  /* Bills & Expenses: Supplier + amount, Date + paid status only. */
-  #view-expenses #expense-panel-bills .expense-list-card{padding:0!important}
-  #expenseRows .expense-list-row{
-    display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;
-    gap:3px 12px!important;margin:0!important;padding:11px 32px 11px 12px!important;border:0!important;
-    border-bottom:1px solid #e6edf5!important;border-radius:0!important;min-height:58px!important
-  }
-  #expenseRows .expense-list-row>td{display:none!important}
-  #expenseRows .expense-list-row>.exp-col-supplier{display:block!important;grid-column:1!important;grid-row:1!important;font-size:14px!important;font-weight:800!important}
-  #expenseRows .expense-list-row>.exp-col-total{display:block!important;grid-column:2!important;grid-row:1!important;text-align:right!important;font-size:14px!important;font-weight:800!important}
-  #expenseRows .expense-list-row>.exp-col-date{display:block!important;grid-column:1!important;grid-row:2!important;color:#75859a!important;font-size:12px!important}
-  #expenseRows .expense-list-row>.exp-col-status{display:block!important;grid-column:2!important;grid-row:2!important;align-self:center!important;text-align:right!important}
-  #expenseRows .expense-list-row>td::before{display:none!important;content:none!important}
-
-  /* Invoices: invoice number + amount, customer + status only. */
-  #invoiceRows .invoice-list-row{
-    display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;
-    gap:3px 12px!important;margin:0!important;padding:11px 32px 11px 12px!important;border:0!important;
-    border-bottom:1px solid #e6edf5!important;border-radius:0!important;min-height:58px!important
-  }
-  #invoiceRows .invoice-list-row>td{display:none!important}
-  #invoiceRows .invoice-list-row>.inv-col-invoice{display:block!important;grid-column:1!important;grid-row:1!important;font-size:14px!important;font-weight:800!important;color:#17213b!important}
-  #invoiceRows .invoice-list-row>.inv-col-total{display:block!important;grid-column:2!important;grid-row:1!important;text-align:right!important;font-size:14px!important;font-weight:800!important}
-  #invoiceRows .invoice-list-row>.inv-col-customer{display:block!important;grid-column:1!important;grid-row:2!important;color:#60718a!important;font-size:12px!important;font-weight:600!important}
-  #invoiceRows .invoice-list-row>.inv-col-status{display:block!important;grid-column:2!important;grid-row:2!important;align-self:center!important;text-align:right!important}
-  #invoiceRows .invoice-list-row>td::before{display:none!important;content:none!important}
 
   /* Stocktake/adjustment and Activity audit lists: stack rather than clip horizontally. */
   #view-stock-equipment .se-mobile-audit-table,
@@ -6912,230 +6845,245 @@ body.startup-loading{overflow:hidden}
   #expense-panel-add .expense-capture-btn strong{font-size:13px!important}
   #expense-panel-add .expense-capture-btn small{font-size:10px!important}
 
-  /* Create Invoice: force a genuine phone layout; data/logic unchanged. */
-  #view-create .invoice-details-card.invoice-details-compact{display:block!important;width:100%!important;padding:12px!important;box-sizing:border-box!important}
-  #view-create .invoice-meta-panel,#view-create .invoice-customer-panel{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important}
-  #view-create .invoice-meta-fields{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;width:100%!important}
-  #view-create .invoice-meta-fields>*{grid-column:auto!important;grid-row:auto!important;min-width:0!important;width:100%!important;max-width:100%!important}
-  #view-create .invoice-meta-fields>*:first-child{grid-column:1/-1!important}
-  #view-create .invoice-customer-fields{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;width:100%!important}
-  #view-create .invoice-customer-fields>*{grid-column:1/-1!important;grid-row:auto!important;min-width:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important}
-  #view-create .invoice-customer-fields>.invoice-phone{grid-column:1!important}
-  #view-create .invoice-customer-fields>.invoice-mobile{grid-column:2!important}
-  #view-create .invoice-customer-fields label,#view-create .invoice-meta-fields label{min-width:0!important;white-space:normal!important;word-break:normal!important}
-  #view-create .invoice-customer-fields input,#view-create .invoice-customer-fields textarea,#view-create .invoice-meta-fields input,#view-create .invoice-meta-fields select{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
-  #view-create .customer-pick{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:7px!important;width:100%!important}
-  #view-create .customer-pick .mini-btn{width:auto!important;min-width:72px!important}
-  #view-create .item-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;width:100%!important;box-sizing:border-box!important}
-  #view-create .item-row .desc-wrap{grid-column:1/-1!important;min-width:0!important}
-  #view-create .item-row input,#view-create .product-picker{min-width:0!important;max-width:100%!important}
-  #view-create .item-row .line-total{grid-column:1!important}
-  #view-create .item-row .remove{grid-column:2!important}
-  #view-create{padding-bottom:88px!important}
-
   /* Keep fixed footer text clear of mobile records/forms. */
   body{padding-bottom:max(30px,env(safe-area-inset-bottom))!important}
 }
-@media(max-width:390px){
-  #view-create .invoice-meta-fields{grid-template-columns:1fr!important}
-  #view-create .invoice-meta-fields>*{grid-column:1!important}
-  #view-create .invoice-customer-fields>.invoice-phone,
-  #view-create .invoice-customer-fields>.invoice-mobile{grid-column:1/-1!important}
-}
 
 
-/* v61.107ZR — MOBILE ONLY: authoritative Create Invoice + Invoice List layout.
-   This block intentionally sits last so older responsive generations cannot win. */
+/* v61.107ZS — MOBILE ONLY: consolidated invoice/expense presentation.
+   One source of truth for Create Invoice, Invoice List and Bills & Expenses List. */
 @media screen and (max-width:760px){
-  /* ---------- CREATE INVOICE ---------- */
-  body #view-create,
-  body #view-create *{box-sizing:border-box}
 
-  body #view-create{width:100%!important;max-width:100%!important;overflow-x:hidden!important}
+  /* ===== CREATE INVOICE ===== */
+  html body #view-create,
+  html body #view-create *{box-sizing:border-box}
 
-  body #view-create .invoice-details-card.invoice-details-compact{
-    display:block!important;
+  html body #view-create{
     width:100%!important;max-width:100%!important;min-width:0!important;
-    grid-template-columns:none!important;
+    overflow-x:hidden!important;padding-bottom:88px!important;
+  }
+
+  html body #view-create .invoice-details-card.invoice-details-compact{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
     padding:14px!important;
   }
-  body #view-create .invoice-meta-panel,
-  body #view-create .invoice-customer-panel{
-    display:block!important;
-    width:100%!important;max-width:100%!important;min-width:0!important;
-    grid-column:auto!important;grid-row:auto!important;
-  }
-  body #view-create .invoice-customer-panel{margin-top:18px!important;padding-top:16px!important;border-top:1px solid #e5eaf0!important}
-
-  /* Completely reset inherited desktop field placement. */
-  body #view-create .invoice-meta-fields,
-  body #view-create .invoice-customer-fields{
-    display:grid!important;
-    width:100%!important;max-width:100%!important;min-width:0!important;
-    margin:0!important;
-    align-items:start!important;
-  }
-  body #view-create .invoice-meta-fields{
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-    gap:10px!important;
-  }
-  body #view-create .invoice-customer-fields{
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-    gap:11px 10px!important;
-  }
-  body #view-create .invoice-meta-fields > *,
-  body #view-create .invoice-customer-fields > *{
-    float:none!important;position:relative!important;
-    width:100%!important;max-width:100%!important;min-width:0!important;
-    margin:0!important;
-    grid-row:auto!important;
-    white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;
-  }
-  body #view-create .invoice-meta-fields > label:first-child{grid-column:1/-1!important}
-  body #view-create .invoice-meta-fields > label:nth-child(2){grid-column:1!important}
-  body #view-create .invoice-meta-fields > label:nth-child(3){grid-column:2!important}
-  body #view-create #invoiceAuTaxClassLabel{grid-column:1/-1!important}
-
-  body #view-create .invoice-customer-fields > .invoice-customer-name,
-  body #view-create .invoice-customer-fields > .invoice-category,
-  body #view-create .invoice-customer-fields > .invoice-address,
-  body #view-create .invoice-customer-fields > .invoice-billing-contact,
-  body #view-create .invoice-customer-fields > .invoice-email,
-  body #view-create .invoice-customer-fields > .invoice-reference{
-    grid-column:1/-1!important;
-  }
-  body #view-create .invoice-customer-fields > .invoice-phone{grid-column:1!important}
-  body #view-create .invoice-customer-fields > .invoice-mobile{grid-column:2!important}
-
-  body #view-create .invoice-field-label,
-  body #view-create .invoice-customer-fields label,
-  body #view-create .invoice-meta-fields label{
-    display:block!important;
-    width:100%!important;max-width:100%!important;min-width:0!important;
-    font-size:13px!important;line-height:1.3!important;
-    white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;
-  }
-  body #view-create .invoice-meta-fields input,
-  body #view-create .invoice-meta-fields select,
-  body #view-create .invoice-customer-fields input,
-  body #view-create .invoice-customer-fields select,
-  body #view-create .invoice-customer-fields textarea{
+  html body #view-create .invoice-meta-panel,
+  html body #view-create .invoice-customer-panel{
     display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
-    margin-top:5px!important;padding:10px 11px!important;
-    font-size:16px!important;line-height:1.25!important;
+    margin:0!important;padding:0!important;
   }
-  body #view-create .invoice-customer-fields textarea{resize:vertical!important}
+  html body #view-create .invoice-customer-panel{
+    margin-top:18px!important;padding-top:16px!important;border-top:1px solid #e5eaf0!important;
+  }
 
-  /* Customer search gets the full phone width; New sits below it. */
-  body #view-create .customer-pick{
-    display:grid!important;grid-template-columns:1fr!important;gap:7px!important;
+  /* Flex intentionally neutralises every historic desktop grid-column instruction. */
+  html body #view-create .invoice-meta-fields{
+    display:flex!important;flex-flow:row wrap!important;gap:10px!important;
     width:100%!important;max-width:100%!important;min-width:0!important;
   }
-  body #view-create .customer-pick #customerName{grid-column:1!important;width:100%!important}
-  body #view-create .customer-pick #quickAddCustomer{
-    grid-column:1!important;justify-self:start!important;
-    width:auto!important;min-width:0!important;max-width:100%!important;
-    min-height:38px!important;padding:8px 13px!important;margin:0!important;
+  html body #view-create .invoice-meta-fields > label{
+    display:block!important;flex:1 1 calc(50% - 5px)!important;
+    width:auto!important;max-width:100%!important;min-width:0!important;
+    margin:0!important;position:static!important;
+  }
+  html body #view-create .invoice-meta-fields > label:first-child,
+  html body #view-create .invoice-meta-fields > #invoiceAuTaxClassLabel{
+    flex:1 0 100%!important;width:100%!important;
   }
 
-  /* Invoice items: explicit phone card, never desktop row geometry. */
-  body #view-create #items{width:100%!important;max-width:100%!important;min-width:0!important}
-  body #view-create #items .items-header{display:none!important}
-  body #view-create #items .item-row{
-    display:grid!important;
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-    grid-template-rows:auto!important;
-    gap:9px!important;
+  html body #view-create .invoice-customer-fields{
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:11px!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  html body #view-create .invoice-customer-fields > label{
+    display:block!important;flex:none!important;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    margin:0!important;padding:0!important;position:static!important;
+    white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;
+  }
+
+  html body #view-create .invoice-field-label,
+  html body #view-create .invoice-customer-fields > label,
+  html body #view-create .invoice-meta-fields > label{
+    font-size:13px!important;line-height:1.35!important;
+    white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;
+  }
+
+  html body #view-create .invoice-meta-fields input,
+  html body #view-create .invoice-meta-fields select,
+  html body #view-create .invoice-customer-fields input,
+  html body #view-create .invoice-customer-fields select,
+  html body #view-create .invoice-customer-fields textarea{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    height:auto!important;margin:5px 0 0!important;padding:10px 11px!important;
+    font-size:16px!important;line-height:1.3!important;
+  }
+
+  html body #view-create .customer-pick{
+    display:flex!important;flex-direction:column!important;align-items:flex-start!important;
+    gap:7px!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    margin-top:5px!important;
+  }
+  html body #view-create .customer-pick #customerName{
+    display:block!important;flex:none!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    margin:0!important;
+  }
+  html body #view-create .customer-pick #quickAddCustomer{
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;
+    flex:none!important;width:auto!important;min-width:0!important;max-width:100%!important;
+    min-height:38px!important;margin:0!important;padding:8px 13px!important;
+  }
+  html body #view-create #selectedCustomerHint{display:block!important;width:100%!important;margin-top:4px!important}
+
+  /* Invoice items use a phone card, without touching item data or calculations. */
+  html body #view-create #items{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  html body #view-create #items .items-header{display:none!important}
+  html body #view-create #items .item-row{
+    display:flex!important;flex-flow:row wrap!important;gap:9px!important;
     width:100%!important;max-width:100%!important;min-width:0!important;
     margin:0 0 10px!important;padding:11px!important;
     border:1px solid #e2e8f0!important;border-radius:12px!important;background:#fff!important;
   }
-  body #view-create #items .item-row > *{
-    width:100%!important;max-width:100%!important;min-width:0!important;
-    grid-row:auto!important;
+  html body #view-create #items .item-row > *{
+    min-width:0!important;max-width:100%!important;
   }
-  body #view-create #items .item-row .desc-wrap{grid-column:1/-1!important}
-  body #view-create #items .item-row .product-picker{width:100%!important;max-width:100%!important;min-width:0!important}
-  body #view-create #items .item-row input{width:100%!important;max-width:100%!important;min-width:0!important}
-  body #view-create #items .item-row .line-total{
-    grid-column:1!important;display:flex!important;align-items:center!important;
+  html body #view-create #items .item-row .desc-wrap{
+    flex:1 0 100%!important;width:100%!important;
+  }
+  html body #view-create #items .item-row .product-picker,
+  html body #view-create #items .item-row input{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  html body #view-create #items .item-row > input{
+    flex:1 1 calc(50% - 5px)!important;width:auto!important;
+  }
+  html body #view-create #items .item-row .line-total{
+    flex:1 1 auto!important;display:flex!important;align-items:center!important;
     min-height:40px!important;font-weight:800!important;
   }
-  body #view-create #items .item-row .remove{
-    grid-column:2!important;justify-self:end!important;width:44px!important;min-width:44px!important;
+  html body #view-create #items .item-row .remove{
+    flex:0 0 44px!important;width:44px!important;min-width:44px!important;margin-left:auto!important;
   }
 
-  /* ---------- INVOICE LIST ---------- */
-  body #view-invoices .table-card,
-  body #view-invoices .table-card .table-scroll{
+  /* ===== INVOICE LIST ===== */
+  html body #view-invoices .invoice-list-card,
+  html body #view-invoices .invoice-list-card .table-scroll{
     width:100%!important;max-width:100%!important;min-width:0!important;
-    overflow:visible!important;
+    overflow:visible!important;padding-left:0!important;padding-right:0!important;
   }
-  body #view-invoices .table-card table:has(#invoiceRows){
+  html body #view-invoices .invoice-list-card table{
     display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
     table-layout:auto!important;border-collapse:separate!important;
   }
-  body #view-invoices .table-card table:has(#invoiceRows) > thead{display:none!important}
-  body #invoiceRows{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important}
-  body #invoiceRows .invoice-list-row{
-    position:relative!important;
-    display:grid!important;
-    grid-template-columns:minmax(0,1fr) auto!important;
-    grid-template-rows:auto auto!important;
-    gap:4px 12px!important;
-    width:100%!important;max-width:100%!important;min-width:0!important;
-    min-height:62px!important;
-    margin:0!important;padding:11px 31px 11px 12px!important;
+  html body #view-invoices .invoice-list-card thead{display:none!important}
+  html body #view-invoices #invoiceRows{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  html body #view-invoices #invoiceRows tr.invoice-list-row{
+    position:relative!important;display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;
+    gap:4px 12px!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    min-height:62px!important;margin:0!important;padding:11px 31px 11px 12px!important;
     border:0!important;border-bottom:1px solid #e5eaf0!important;border-radius:0!important;
     background:#fff!important;box-shadow:none!important;cursor:pointer!important;
   }
-  body #invoiceRows .invoice-list-row::after{
+  html body #view-invoices #invoiceRows tr.invoice-list-row::after{
     content:'›'!important;display:block!important;position:absolute!important;
     right:10px!important;top:50%!important;transform:translateY(-50%)!important;
     color:#718096!important;font-size:21px!important;line-height:1!important;
   }
-  body #invoiceRows .invoice-list-row > td{
-    display:none!important;position:static!important;
-    width:auto!important;max-width:none!important;min-width:0!important;
-    height:auto!important;margin:0!important;padding:0!important;
-    border:0!important;background:transparent!important;box-shadow:none!important;
-    white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  html body #view-invoices #invoiceRows tr.invoice-list-row > td{
+    display:none!important;position:static!important;float:none!important;
+    width:auto!important;max-width:none!important;min-width:0!important;height:auto!important;
+    margin:0!important;padding:0!important;border:0!important;background:transparent!important;
+    box-shadow:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
   }
-  body #invoiceRows .invoice-list-row > td::before{display:none!important;content:none!important}
-  body #invoiceRows .invoice-list-row > .inv-col-invoice{
+  html body #view-invoices #invoiceRows tr.invoice-list-row > td::before{
+    display:none!important;content:none!important;
+  }
+  html body #view-invoices #invoiceRows tr.invoice-list-row > td.inv-col-invoice{
     display:block!important;grid-column:1!important;grid-row:1!important;
     color:#17213b!important;font-size:14px!important;font-weight:800!important;
   }
-  body #invoiceRows .invoice-list-row > .inv-col-total{
+  html body #view-invoices #invoiceRows tr.invoice-list-row > td.inv-col-total{
     display:block!important;grid-column:2!important;grid-row:1!important;
     color:#17213b!important;font-size:14px!important;font-weight:800!important;text-align:right!important;
   }
-  body #invoiceRows .invoice-list-row > .inv-col-customer{
+  html body #view-invoices #invoiceRows tr.invoice-list-row > td.inv-col-customer{
     display:block!important;grid-column:1!important;grid-row:2!important;
     color:#60718a!important;font-size:12px!important;font-weight:600!important;
   }
-  body #invoiceRows .invoice-list-row > .inv-col-status{
+  html body #view-invoices #invoiceRows tr.invoice-list-row > td.inv-col-status{
     display:block!important;grid-column:2!important;grid-row:2!important;
     align-self:center!important;text-align:right!important;
   }
-  body #invoiceRows .invoice-list-row .invoice-number-link{
-    display:inline!important;padding:0!important;margin:0!important;color:inherit!important;text-decoration:none!important;
+  html body #view-invoices #invoiceRows .invoice-number-link{
+    display:inline!important;margin:0!important;padding:0!important;color:inherit!important;text-decoration:none!important;
   }
-  body #invoiceRows .invoice-list-row .invoice-customer-name{
+  html body #view-invoices #invoiceRows .invoice-customer-name{
     display:block!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   }
-  body #invoiceRows .invoice-list-row .badge{display:none!important}
-  body #invoiceRows .invoice-list-row .c1-status-badge{font-size:10px!important;padding:4px 7px!important}
-  body #invoiceRows .invoice-empty-row{display:block!important;padding:14px!important}
-  body #invoiceRows .invoice-empty-row td{display:block!important}
+  html body #view-invoices #invoiceRows .inv-col-invoice .badge{display:none!important}
+
+  /* ===== BILLS & EXPENSES LIST ===== */
+  html body #view-expenses #expense-panel-bills .expense-list-card,
+  html body #view-expenses #expense-panel-bills .expense-list-card .table-scroll{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    overflow:visible!important;padding-left:0!important;padding-right:0!important;
+  }
+  html body #view-expenses #expense-panel-bills .expense-list-card table{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    table-layout:auto!important;border-collapse:separate!important;
+  }
+  html body #view-expenses #expense-panel-bills .expense-list-card thead{display:none!important}
+  html body #view-expenses #expenseRows{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row{
+    position:relative!important;display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;grid-template-rows:auto auto!important;
+    gap:4px 12px!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    min-height:62px!important;margin:0!important;padding:11px 31px 11px 12px!important;
+    border:0!important;border-bottom:1px solid #e5eaf0!important;border-radius:0!important;
+    background:#fff!important;box-shadow:none!important;cursor:pointer!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row::after{
+    content:'›'!important;display:block!important;position:absolute!important;
+    right:10px!important;top:50%!important;transform:translateY(-50%)!important;
+    color:#718096!important;font-size:21px!important;line-height:1!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row > td{
+    display:none!important;position:static!important;float:none!important;
+    width:auto!important;max-width:none!important;min-width:0!important;height:auto!important;
+    margin:0!important;padding:0!important;border:0!important;background:transparent!important;
+    box-shadow:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row > td::before{
+    display:none!important;content:none!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row > td.exp-col-supplier{
+    display:block!important;grid-column:1!important;grid-row:1!important;
+    color:#17213b!important;font-size:14px!important;font-weight:800!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row > td.exp-col-total{
+    display:block!important;grid-column:2!important;grid-row:1!important;
+    color:#17213b!important;font-size:14px!important;font-weight:800!important;text-align:right!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row > td.exp-col-date{
+    display:block!important;grid-column:1!important;grid-row:2!important;
+    color:#75859a!important;font-size:12px!important;
+  }
+  html body #view-expenses #expenseRows tr.expense-list-row > td.exp-col-status{
+    display:block!important;grid-column:2!important;grid-row:2!important;
+    align-self:center!important;text-align:right!important;
+  }
 }
 
 @media screen and (max-width:390px){
-  body #view-create .invoice-meta-fields{grid-template-columns:1fr!important}
-  body #view-create .invoice-meta-fields > label:first-child,
-  body #view-create .invoice-meta-fields > label:nth-child(2),
-  body #view-create .invoice-meta-fields > label:nth-child(3),
-  body #view-create #invoiceAuTaxClassLabel{grid-column:1!important}
-  body #view-create .invoice-customer-fields > .invoice-phone,
-  body #view-create .invoice-customer-fields > .invoice-mobile{grid-column:1/-1!important}
+  html body #view-create .invoice-meta-fields{flex-direction:column!important}
+  html body #view-create .invoice-meta-fields > label{
+    flex:none!important;width:100%!important;
+  }
 }
