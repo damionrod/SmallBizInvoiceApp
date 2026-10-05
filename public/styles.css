@@ -6786,3 +6786,43 @@ body.startup-loading{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   .frindly-startup-logo-wrap::before{animation:none;opacity:.72}
 }
+
+
+/* v61.107ZP — compact tappable Invoice / Expense summaries on mobile only. */
+@media(max-width:760px){
+  #view-invoices .table-card .table-scroll,
+  #view-expenses #expense-panel-bills .expense-list-card .table-scroll{overflow:visible!important}
+  #view-invoices .table-card table:has(#invoiceRows),
+  #view-expenses #expense-panel-bills .expense-list-card table{min-width:0!important;width:100%!important;display:block!important}
+  #view-invoices .table-card table:has(#invoiceRows) thead,
+  #view-expenses #expense-panel-bills .expense-list-card thead{display:none!important}
+  #invoiceRows,#expenseRows{display:block!important;width:100%!important}
+  #invoiceRows .invoice-list-row,#expenseRows .expense-list-row{
+    position:relative!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+    gap:3px 12px!important;width:100%!important;padding:11px 32px 11px 12px!important;
+    box-sizing:border-box!important;border-bottom:1px solid #e6edf5!important;background:#fff!important;cursor:pointer!important
+  }
+  #invoiceRows .invoice-list-row::after,#expenseRows .expense-list-row::after{
+    content:'›';position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:22px;line-height:1;color:#718096
+  }
+  #invoiceRows .invoice-list-row>td,#expenseRows .expense-list-row>td{
+    display:none!important;width:auto!important;max-width:none!important;padding:0!important;border:0!important;
+    white-space:normal!important;overflow:visible!important;text-overflow:clip!important;text-align:left!important
+  }
+  /* Invoice summary: customer + total, then invoice/date + status. */
+  #invoiceRows .invoice-list-row>.inv-col-customer{display:block!important;grid-column:1;grid-row:1;font-weight:700;color:#17213b}
+  #invoiceRows .invoice-list-row>.inv-col-total{display:block!important;grid-column:2;grid-row:1;text-align:right!important;font-weight:800;color:#17213b}
+  #invoiceRows .invoice-list-row>.inv-col-invoice{display:block!important;grid-column:1;grid-row:2;font-size:11px;color:#60718a}
+  #invoiceRows .invoice-list-row>.inv-col-date{display:block!important;grid-column:1;grid-row:3;font-size:11px;color:#75859a}
+  #invoiceRows .invoice-list-row>.inv-col-status{display:block!important;grid-column:2;grid-row:2/4;align-self:center;text-align:right!important}
+  #invoiceRows .invoice-list-row>.inv-col-invoice .invoice-number-link{color:inherit;text-decoration:none}
+  /* Expense summary: supplier + total, then ref/date + status. */
+  #expenseRows .expense-list-row>.exp-col-supplier{display:block!important;grid-column:1;grid-row:1;font-weight:700;color:#17213b}
+  #expenseRows .expense-list-row>.exp-col-total{display:block!important;grid-column:2;grid-row:1;text-align:right!important;font-weight:800;color:#17213b}
+  #expenseRows .expense-list-row>.exp-col-ref{display:block!important;grid-column:1;grid-row:2;font-size:11px;color:#60718a}
+  #expenseRows .expense-list-row>.exp-col-date{display:block!important;grid-column:1;grid-row:3;font-size:11px;color:#75859a}
+  #expenseRows .expense-list-row>.exp-col-status{display:block!important;grid-column:2;grid-row:2/4;align-self:center;text-align:right!important}
+  #expenseRows .expense-list-row>.exp-col-ref small{display:inline!important;margin-left:5px!important}
+  #invoiceRows .invoice-empty-row,#expenseRows tr:not(.expense-list-row){display:block!important;padding:14px!important}
+  #invoiceRows .invoice-empty-row td,#expenseRows tr:not(.expense-list-row) td{display:block!important}
+}
