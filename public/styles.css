@@ -6754,3 +6754,35 @@ body.startup-loading{overflow:hidden}
   #report-panel-sales .chart-wrap,
   #report-panel-expenses .report-widget-grid .chart-wrap{height:235px}
 }
+
+
+/* v61.107ZO — approved UX polish: startup white halo + mobile-only larger Frindly brand. */
+.frindly-startup-logo-wrap::before{
+  content:"";
+  position:absolute;
+  inset:5.5%;
+  z-index:-1;
+  border-radius:22%;
+  background:rgba(255,255,255,.18);
+  box-shadow:
+    0 0 16px rgba(255,255,255,.46),
+    0 0 34px rgba(255,255,255,.24),
+    0 0 58px rgba(255,255,255,.12);
+  filter:blur(8px);
+  pointer-events:none;
+  animation:frindlyStartupWhiteHalo 2.8s ease-in-out infinite;
+}
+@keyframes frindlyStartupWhiteHalo{
+  0%,100%{opacity:.58;transform:scale(.985)}
+  50%{opacity:.9;transform:scale(1.018)}
+}
+@media(max-width:760px){
+  .topbar .brand-shell .product-brand img{
+    width:134px!important;
+    height:45px!important;
+    object-fit:contain!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .frindly-startup-logo-wrap::before{animation:none;opacity:.72}
+}
