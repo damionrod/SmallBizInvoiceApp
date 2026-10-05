@@ -7461,3 +7461,23 @@ body.startup-loading{overflow:hidden}
     width:16px!important;height:16px!important;min-height:16px!important;padding:0!important;
   }
 }
+
+/* v61.107AAA — Expenses: desktop list action cleanup + strict country-only AU GST classification visibility. */
+/* Respect the existing expenses.js country logic: expAuTaxClassLabel is hidden for non-AU businesses. */
+html body #expense-panel-add #expAuTaxClassLabel[hidden],
+html body #expense-panel-add #expAuTaxStatus[hidden]{
+  display:none!important;
+}
+
+/* DESKTOP ONLY: the page-level Add Expense action remains; remove the redundant list-card action. */
+@media screen and (min-width:760px){
+  html body #view-expenses #expense-panel-bills .expense-list-card > .card-title [data-exp-add]{
+    display:none!important;
+  }
+  html body #view-expenses #expense-panel-bills .expense-list-card > .card-title .head-actions{
+    margin-left:auto!important;
+  }
+  html body #view-expenses #expenseBillsExportCsv{
+    margin-left:auto!important;
+  }
+}
