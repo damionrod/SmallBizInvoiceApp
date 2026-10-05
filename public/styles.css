@@ -7145,3 +7145,100 @@ body.startup-loading{overflow:hidden}
     gap:5px!important;padding:8px 7px!important;
   }
 }
+
+/* v61.107ZX — MOBILE ONLY: restore compact KPI rows and CSV placement on Invoices + Bills & Expenses. */
+@media screen and (max-width:760px){
+  /* Invoices: compact heading with small CSV action at the right. */
+  html body #view-invoices > .page-head{
+    display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:start!important;gap:6px 10px!important;margin-bottom:10px!important;
+  }
+  html body #view-invoices > .page-head > div{min-width:0!important}
+  html body #view-invoices > .page-head h1{margin:0!important;font-size:24px!important;line-height:1.1!important}
+  html body #view-invoices > .page-head p{margin:4px 0 0!important;font-size:11px!important;line-height:1.35!important;max-width:44ch!important}
+  html body #view-invoices #exportCsv{
+    grid-column:2!important;grid-row:1 / span 2!important;align-self:start!important;justify-self:end!important;
+    width:auto!important;min-width:0!important;min-height:36px!important;padding:7px 11px!important;
+    font-size:11px!important;border-radius:9px!important;white-space:nowrap!important;
+  }
+
+  /* Invoices: always four compact KPI cards in one mobile row. */
+  html body #view-invoices .summary-grid{
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:6px!important;margin:8px 0 10px!important;
+  }
+  html body #view-invoices .summary-grid .metric{
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+    min-width:0!important;min-height:70px!important;padding:7px 3px 6px!important;
+    text-align:center!important;border-radius:11px!important;overflow:hidden!important;
+  }
+  html body #view-invoices .summary-grid .metric::before{
+    position:static!important;left:auto!important;top:auto!important;width:24px!important;height:24px!important;
+    margin:0 0 3px!important;font-size:12px!important;line-height:1!important;flex:0 0 24px!important;
+  }
+  html body #view-invoices .summary-grid .metric span{
+    display:block!important;width:100%!important;font-size:0!important;line-height:1!important;
+    white-space:nowrap!important;overflow:hidden!important;
+  }
+  html body #view-invoices .summary-grid .metric span::after{
+    display:block!important;font-size:8px!important;line-height:1.1!important;font-weight:700!important;
+    color:#60749a!important;text-transform:uppercase!important;letter-spacing:.01em!important;
+  }
+  html body #view-invoices .summary-grid .metric:nth-child(1) span::after{content:"Ex GST"}
+  html body #view-invoices .summary-grid .metric:nth-child(2) span::after{content:"GST"}
+  html body #view-invoices .summary-grid .metric:nth-child(3) span::after{content:"Total"}
+  html body #view-invoices .summary-grid .metric:nth-child(4) span::after{content:"Invoices"}
+  html body #view-invoices .summary-grid .metric strong{
+    display:block!important;width:100%!important;margin:3px 0 0!important;padding:0!important;
+    font-size:clamp(10px,3vw,13px)!important;line-height:1.08!important;white-space:nowrap!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;
+  }
+
+  /* Bills & Expenses: preserve the existing three KPIs, compact in one row. */
+  html body #view-expenses .expense-bills-summary{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;margin:8px 0 10px!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric{
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+    min-width:0!important;min-height:70px!important;padding:7px 3px 6px!important;
+    text-align:center!important;border-radius:11px!important;overflow:hidden!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric::before{
+    position:static!important;left:auto!important;top:auto!important;width:24px!important;height:24px!important;
+    margin:0 0 3px!important;font-size:12px!important;line-height:1!important;flex:0 0 24px!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric span{
+    display:block!important;width:100%!important;font-size:8px!important;line-height:1.1!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric strong{
+    display:block!important;width:100%!important;margin:3px 0 0!important;padding:0!important;
+    font-size:clamp(10px,3vw,13px)!important;line-height:1.08!important;white-space:nowrap!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric small{
+    display:block!important;width:100%!important;margin-top:2px!important;font-size:7px!important;line-height:1!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+
+  /* Bills & Expenses list heading: keep CSV small and beside the heading; keep Add Expense usable. */
+  html body #view-expenses #expense-panel-bills .expense-list-card > .card-title{
+    display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;
+    gap:7px 10px!important;
+  }
+  html body #view-expenses #expense-panel-bills .expense-list-card > .card-title h2{
+    min-width:0!important;margin:0!important;font-size:17px!important;line-height:1.2!important;
+  }
+  html body #view-expenses #expense-panel-bills .expense-list-card > .card-title .head-actions{
+    display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;flex-wrap:nowrap!important;
+  }
+  html body #view-expenses #expenseBillsExportCsv{
+    width:auto!important;min-width:0!important;min-height:34px!important;padding:6px 9px!important;
+    font-size:10px!important;border-radius:8px!important;white-space:nowrap!important;
+  }
+  html body #view-expenses #expense-panel-bills .expense-list-card > .card-title [data-exp-add]{
+    width:auto!important;min-width:0!important;min-height:34px!important;padding:6px 9px!important;
+    font-size:10px!important;border-radius:8px!important;white-space:nowrap!important;
+  }
+}
