@@ -4756,13 +4756,13 @@ tbody tr:last-child td{border-bottom:0!important}
   #payroll-panel-employees .summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(max-width:760px){
-  #expense-panel-bills .summary-grid,#jc-panel-quotes .summary-grid,#payroll-panel-employees .summary-grid,#payroll-panel-runs .summary-grid,#report-panel-sales .summary-grid,#report-panel-expenses .expense-report-summary,#report-panel-payroll .summary-grid,#view-stock-equipment .se-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  #expense-panel-bills .summary-grid .metric,#jc-panel-quotes .summary-grid .metric,#payroll-panel-employees .summary-grid .metric,#payroll-panel-runs .summary-grid .metric,#report-panel-sales .summary-grid .metric,#report-panel-expenses .expense-report-summary .metric,#report-panel-payroll .summary-grid .metric,#view-stock-equipment .se-summary>div{min-height:82px;padding:12px 10px 10px 52px}
-  #expense-panel-bills .summary-grid .metric::before,#jc-panel-quotes .summary-grid .metric::before,#payroll-panel-employees .summary-grid .metric::before,#payroll-panel-runs .summary-grid .metric::before,#report-panel-sales .summary-grid .metric::before,#report-panel-expenses .expense-report-summary .metric::before,#report-panel-payroll .summary-grid .metric::before,#view-stock-equipment .se-summary>div::before{left:10px;top:12px;width:32px;height:32px;font-size:15px}
-  #expense-panel-bills .summary-grid .metric strong,#jc-panel-quotes .summary-grid .metric strong,#payroll-panel-employees .summary-grid .metric strong,#payroll-panel-runs .summary-grid .metric strong,#report-panel-sales .summary-grid .metric strong,#report-panel-expenses .expense-report-summary .metric strong,#report-panel-payroll .summary-grid .metric strong,#view-stock-equipment .se-summary strong{font-size:18px!important}
+  #view-invoices .summary-grid,#expense-panel-bills .summary-grid,#jc-panel-quotes .summary-grid,#payroll-panel-employees .summary-grid,#payroll-panel-runs .summary-grid,#report-panel-sales .summary-grid,#report-panel-expenses .expense-report-summary,#report-panel-payroll .summary-grid,#view-stock-equipment .se-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #view-invoices .summary-grid .metric,#expense-panel-bills .summary-grid .metric,#jc-panel-quotes .summary-grid .metric,#payroll-panel-employees .summary-grid .metric,#payroll-panel-runs .summary-grid .metric,#report-panel-sales .summary-grid .metric,#report-panel-expenses .expense-report-summary .metric,#report-panel-payroll .summary-grid .metric,#view-stock-equipment .se-summary>div{min-height:82px;padding:12px 10px 10px 52px}
+  #view-invoices .summary-grid .metric::before,#expense-panel-bills .summary-grid .metric::before,#jc-panel-quotes .summary-grid .metric::before,#payroll-panel-employees .summary-grid .metric::before,#payroll-panel-runs .summary-grid .metric::before,#report-panel-sales .summary-grid .metric::before,#report-panel-expenses .expense-report-summary .metric::before,#report-panel-payroll .summary-grid .metric::before,#view-stock-equipment .se-summary>div::before{left:10px;top:12px;width:32px;height:32px;font-size:15px}
+  #view-invoices .summary-grid .metric strong,#expense-panel-bills .summary-grid .metric strong,#jc-panel-quotes .summary-grid .metric strong,#payroll-panel-employees .summary-grid .metric strong,#payroll-panel-runs .summary-grid .metric strong,#report-panel-sales .summary-grid .metric strong,#report-panel-expenses .expense-report-summary .metric strong,#report-panel-payroll .summary-grid .metric strong,#view-stock-equipment .se-summary strong{font-size:18px!important}
 }
 @media(max-width:430px){
-  #expense-panel-bills .summary-grid,#jc-panel-quotes .summary-grid,#payroll-panel-employees .summary-grid,#payroll-panel-runs .summary-grid,#report-panel-sales .summary-grid,#report-panel-expenses .expense-report-summary,#report-panel-payroll .summary-grid,#view-stock-equipment .se-summary{grid-template-columns:1fr}
+  #view-invoices .summary-grid,#expense-panel-bills .summary-grid,#jc-panel-quotes .summary-grid,#payroll-panel-employees .summary-grid,#payroll-panel-runs .summary-grid,#report-panel-sales .summary-grid,#report-panel-expenses .expense-report-summary,#report-panel-payroll .summary-grid,#view-stock-equipment .se-summary{grid-template-columns:1fr}
 }
 
 
@@ -7069,129 +7069,79 @@ body.startup-loading{overflow:hidden}
   html body #invoiceModal .mobile-invoice-detail-actions .mobile-invoice-detail-action:first-child{grid-column:1}
 }
 
-
-/* v61.107ZU — MOBILE ONLY: compact Invoices page controls/KPIs.
-   Presentation only. Invoice data, filters, export and row/detail behaviour are unchanged. */
-@media screen and (max-width:760px){
-  /* Compact page heading + secondary export action. */
-  html body #view-invoices > .page-head{
+/* v61.107ZW — invoice desktop advanced filters + shared compact mobile list controls. */
+@media (min-width:761px){
+  #view-invoices .invoice-list-filters{
     display:grid!important;
-    grid-template-columns:minmax(0,1fr) auto!important;
-    align-items:start!important;
-    gap:6px 10px!important;
-    margin-bottom:10px!important;
+    grid-template-columns:minmax(130px,.8fr) minmax(145px,.85fr) minmax(145px,.85fr) minmax(145px,.8fr) minmax(260px,1.7fr) auto!important;
+    gap:12px!important;align-items:end!important;
   }
-  html body #view-invoices > .page-head > div{min-width:0!important}
-  html body #view-invoices > .page-head h1{
-    margin:0!important;font-size:24px!important;line-height:1.1!important;
-  }
-  html body #view-invoices > .page-head p{
-    margin:4px 0 0!important;font-size:11px!important;line-height:1.35!important;
-    max-width:44ch!important;
-  }
-  html body #view-invoices #exportCsv{
-    grid-column:2!important;grid-row:1 / span 2!important;
-    align-self:start!important;justify-self:end!important;
-    width:auto!important;min-width:0!important;min-height:36px!important;
-    padding:7px 11px!important;font-size:11px!important;border-radius:9px!important;
-    white-space:nowrap!important;
-  }
-
-  /* Keep all four useful KPIs in one compact row. */
-  html body #view-invoices .summary-grid{
+  #view-invoices .invoice-list-filters>label{min-width:0!important}
+  #view-invoices .invoice-list-filters>button{width:auto!important;min-width:96px!important;white-space:nowrap!important}
+}
+@media (max-width:760px){
+  /* Mobile list filters deliberately stay simple: Period | Search | Reset. */
+  #view-invoices .invoice-list-filters,
+  #view-expenses .expense-simple-filters{
     display:grid!important;
-    grid-template-columns:repeat(4,minmax(0,1fr))!important;
-    gap:6px!important;margin:8px 0 10px!important;
-  }
-  html body #view-invoices .summary-grid .metric{
-    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
-    min-width:0!important;min-height:70px!important;
-    padding:7px 3px 6px!important;
-    text-align:center!important;border-radius:11px!important;
-    overflow:hidden!important;
-  }
-  html body #view-invoices .summary-grid .metric::before{
-    position:static!important;
-    width:24px!important;height:24px!important;
-    margin:0 0 3px!important;
-    font-size:12px!important;line-height:1!important;
-    flex:0 0 24px!important;
-  }
-  html body #view-invoices .summary-grid .metric span{
-    display:block!important;width:100%!important;
-    font-size:0!important;line-height:1!important;
-    white-space:nowrap!important;overflow:hidden!important;
-  }
-  html body #view-invoices .summary-grid .metric span::after{
-    display:block!important;
-    font-size:8px!important;line-height:1.1!important;
-    font-weight:700!important;color:#60749a!important;
-    text-transform:uppercase!important;letter-spacing:.01em!important;
-  }
-  html body #view-invoices .summary-grid .metric:nth-child(1) span::after{content:"Ex GST"}
-  html body #view-invoices .summary-grid .metric:nth-child(2) span::after{content:"GST"}
-  html body #view-invoices .summary-grid .metric:nth-child(3) span::after{content:"Total"}
-  html body #view-invoices .summary-grid .metric:nth-child(4) span::after{content:"Invoices"}
-  html body #view-invoices .summary-grid .metric strong{
-    display:block!important;width:100%!important;
-    margin:3px 0 0!important;padding:0!important;
-    font-size:clamp(10px,3vw,13px)!important;line-height:1.08!important;
-    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-    overflow-wrap:normal!important;
-  }
-
-  /* Month + Search + compact Reset share one row. */
-  html body #view-invoices #invoice-panel-invoices > .filters{
-    display:grid!important;
-    grid-template-columns:minmax(92px,.72fr) minmax(0,1.55fr) auto!important;
-    align-items:end!important;
-    gap:7px!important;
+    grid-template-columns:minmax(94px,.82fr) minmax(0,1.55fr) auto!important;
+    gap:7px!important;align-items:end!important;
     width:100%!important;max-width:100%!important;
-    margin:0 0 10px!important;padding:9px!important;
+    padding:9px!important;margin-bottom:10px!important;
   }
-  html body #view-invoices #invoice-panel-invoices > .filters > label{
-    display:grid!important;gap:4px!important;min-width:0!important;
-    margin:0!important;font-size:10px!important;line-height:1.1!important;
-  }
-  html body #view-invoices #invoice-panel-invoices > .filters input{
+  #view-invoices .invoice-date-filter,
+  #view-invoices .invoice-status-filter,
+  #view-expenses .expense-date-filter,
+  #view-expenses .expense-status-filter{display:none!important}
+  #view-invoices .invoice-list-filters>label,
+  #view-expenses .expense-simple-filters>label{min-width:0!important;margin:0!important;grid-column:auto!important}
+  #view-invoices .invoice-list-filters select,
+  #view-invoices .invoice-list-filters input,
+  #view-expenses .expense-simple-filters select,
+  #view-expenses .expense-simple-filters input{
     width:100%!important;max-width:100%!important;min-width:0!important;
-    min-height:38px!important;height:38px!important;
-    margin:0!important;padding:7px 8px!important;
+    min-height:38px!important;height:38px!important;padding:7px 8px!important;
     font-size:12px!important;border-radius:8px!important;
   }
-  html body #view-invoices #resetFilters{
+  #view-invoices .invoice-list-filters>button,
+  #view-expenses .expense-simple-filters>button{
     width:auto!important;min-width:0!important;height:38px!important;min-height:38px!important;
-    margin:0!important;padding:6px 9px!important;
-    font-size:10px!important;border-radius:8px!important;white-space:nowrap!important;
+    padding:6px 9px!important;font-size:10px!important;border-radius:8px!important;white-space:nowrap!important;
   }
+  #view-invoices option[data-desktop-filter-option],
+  #view-expenses option[data-desktop-filter-option]{display:none!important}
 
-  /* Slightly tighten tabs without changing navigation behaviour. */
-  html body #view-invoices .module-tabs,
-  html body #view-invoices .invoice-tabs{
-    margin-bottom:10px!important;
+  /* Bills & Expenses mobile summary: compact three-card single row. */
+  #view-expenses .expense-bills-summary{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;margin:8px 0 10px!important;
   }
-  html body #view-invoices .module-tab,
-  html body #view-invoices [data-invoice-tab]{
-    min-height:42px!important;padding-top:8px!important;padding-bottom:8px!important;
+  #view-expenses .expense-bills-summary .metric{
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+    min-width:0!important;min-height:70px!important;padding:7px 3px 6px!important;
+    text-align:center!important;border-radius:11px!important;overflow:hidden!important;
   }
-
-  /* Smaller default helper footprint; dragging/floating behaviour remains unchanged. */
-  html body .finlo-helper-button:not(.helper-button-floating){
-    right:10px!important;
-    bottom:calc(16px + env(safe-area-inset-bottom))!important;
-    min-height:40px!important;
-    padding:9px 13px!important;
-    font-size:12px!important;
+  #view-expenses .expense-bills-summary .metric::before{
+    position:static!important;width:24px!important;height:24px!important;flex:0 0 24px!important;
+    margin:0 0 3px!important;font-size:12px!important;line-height:1!important;
+  }
+  #view-expenses .expense-bills-summary .metric span{
+    width:100%!important;font-size:8px!important;line-height:1.1!important;white-space:nowrap!important;
+    overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  #view-expenses .expense-bills-summary .metric strong{
+    width:100%!important;margin:3px 0 0!important;font-size:clamp(10px,3vw,13px)!important;
+    line-height:1.08!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  #view-expenses .expense-bills-summary .metric small{
+    width:100%!important;margin-top:2px!important;font-size:7px!important;line-height:1!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
   }
 }
-
-@media screen and (max-width:390px){
-  html body #view-invoices #invoice-panel-invoices > .filters{
+@media (max-width:390px){
+  #view-invoices .invoice-list-filters,
+  #view-expenses .expense-simple-filters{
     grid-template-columns:minmax(84px,.68fr) minmax(0,1.45fr) auto!important;
     gap:5px!important;padding:8px 7px!important;
   }
-  html body #view-invoices #invoice-panel-invoices > .filters input{
-    padding-left:6px!important;padding-right:6px!important;font-size:11px!important;
-  }
-  html body #view-invoices #resetFilters{padding-left:7px!important;padding-right:7px!important}
 }

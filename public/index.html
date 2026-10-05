@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-core.css?v=61.102L-login-reliability" />
-  <link rel="stylesheet" href="styles.css?v=61.107ZU-mobile-invoices-compact" />
+  <link rel="stylesheet" href="styles.css?v=61.107ZW-desktop-advanced-mobile-compact-filters" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
   <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
   <script src="app-config.js?v=61.102L-login-reliability"></script>
@@ -160,7 +160,7 @@
       
       <div id="invoice-panel-invoices">
       <div class="summary-grid"><div class="metric"><span>Excl. GST</span><strong id="sumNet">$0.00</strong></div><div class="metric"><span>GST</span><strong id="sumGst">$0.00</strong></div><div class="metric"><span>Total invoiced</span><strong id="sumTotal">$0.00</strong></div><div class="metric"><span>Invoices</span><strong id="sumCount">0</strong></div></div>
-      <div class="card filters"><label>Month<input id="filterMonth" type="month"></label><label>Search<input id="filterSearch" placeholder="Customer, invoice #"></label><button class="secondary" id="resetFilters">Reset</button></div>
+      <div class="card filters invoice-list-filters"><label>Period<select id="filterPeriod"><option value="this_month">This Month</option><option value="last_month">Last Month</option><option value="3">Last 3 Months</option><option value="6">Last 6 Months</option><option value="12">Last 12 Months</option><option value="current_fy">Current FY</option><option value="custom" data-desktop-filter-option>Custom Date Range</option></select></label><label class="invoice-date-filter">From<input id="invoiceFilterFrom" type="date"></label><label class="invoice-date-filter">To<input id="invoiceFilterTo" type="date"></label><label class="invoice-status-filter">Status<select id="invoiceStatusFilter"><option value="active" selected>Active</option><option value="voided">Voided</option><option value="all">All</option></select></label><label class="invoice-search-field">Search<input id="filterSearch" placeholder="Customer, invoice #"></label><button class="secondary" id="resetFilters">Reset</button></div>
       <div class="card table-card invoice-list-card"><div class="table-scroll"><table><thead><tr><th scope="col">Invoice</th><th scope="col">Status</th><th scope="col">Customer</th><th scope="col">Date</th><th scope="col">Due Date</th><th scope="col">Excl. GST</th><th scope="col">GST</th><th scope="col">Total</th><th scope="col">Paid</th><th scope="col">Balance Due</th><th scope="col">Payment Date</th><th scope="col">Actions</th></tr></thead><tbody id="invoiceRows"></tbody></table></div></div>
       </div>
       <div id="invoice-panel-credits" hidden>
@@ -190,10 +190,10 @@
           <div class="metric"><span>Unpaid</span><strong id="expBillsUnpaid">NZD 0.00</strong><small id="expBillsUnpaidCount">0 bills</small></div>
         </div>
         <div class="card filters expense-simple-filters">
-          <label>Period<select id="expenseListRange"><option value="this_month">This Month</option><option value="last_month">Last Month</option><option value="3">Last 3 Months</option><option value="6">Last 6 Months</option><option value="12">Last 12 Months</option><option value="custom">Custom</option></select></label>
-          <label>From<input id="expenseFrom" type="date"></label>
-          <label>To<input id="expenseTo" type="date"></label>
-          <label>Status<select id="expenseStatusFilter"><option value="active" selected>Active</option><option value="voided">Voided</option><option value="all">All</option></select></label>
+          <label>Period<select id="expenseListRange"><option value="this_month">This Month</option><option value="last_month">Last Month</option><option value="3">Last 3 Months</option><option value="6">Last 6 Months</option><option value="12">Last 12 Months</option><option value="current_fy">Current FY</option><option value="custom" data-desktop-filter-option>Custom</option></select></label>
+          <label class="expense-date-filter">From<input id="expenseFrom" type="date"></label>
+          <label class="expense-date-filter">To<input id="expenseTo" type="date"></label>
+          <label class="expense-status-filter">Status<select id="expenseStatusFilter"><option value="active" selected>Active</option><option value="voided">Voided</option><option value="all">All</option></select></label>
           <label class="expense-search-field">Search<input id="expenseSearch" placeholder="Supplier, bill #, reference, description or category"></label>
           <button class="secondary" id="expenseResetFilters">Reset</button>
         </div>
