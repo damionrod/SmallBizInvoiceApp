@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
     const message = escText(body.message, 500);
     const sponsorName = escText(body.sponsorName, 120);
     const destinationUrl = validUrl(body.destinationUrl);
+    const imageUrl = validUrl(body.imageUrl);
     if (!packageId || !title || !sponsorName || !destinationUrl) {
       return out({ error: "Choose a package and enter sponsor name, title and website link." }, 400);
     }
@@ -77,6 +78,13 @@ Deno.serve(async (req) => {
     const startsAt = new Date().toISOString();
     const endsAt = new Date(Date.now() + Number(pkg.duration_days || 30) * 86400000).toISOString();
 
+    stage = "checking advertising inventory";
+    const { count: booked, error: inventoryError } = await admin.from("community_ad_campaigns")
+      .select("id", { count: "exact", head: true }).eq("placement", pkg.placement)
+      .in("status", ["paid","pending_review","active"]).lt("starts_at", endsAt).gt("ends_at", startsAt);
+    if (inventoryError) throw inventoryError;
+    if (Number(booked || 0) >= Number(pkg.slot_limit || 1)) return out({ error: "That advertising placement is fully booked for this period. Please choose another option." }, 409);
+
     stage = "creating banner booking";
     const { data: campaign, error: campaignError } = await admin.from("community_ad_campaigns").insert({
       package_id: pkg.id,
@@ -86,6 +94,7 @@ Deno.serve(async (req) => {
       title,
       body: message,
       destination_url: destinationUrl,
+      image_url: imageUrl,
       placement: pkg.placement,
       target_region: escText(body.targetRegion, 80) || null,
       target_industry: escText(body.targetIndustry, 80) || null,

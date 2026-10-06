@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-core.css?v=61.102L-login-reliability" />
-  <link rel="stylesheet" href="styles.css?v=61.107AAN-invoice-grid-alignment" />
+  <link rel="stylesheet" href="styles.css?v=61.107ABC-helper-fab-navy-outline" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
   <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
   <script src="app-config.js?v=61.102L-login-reliability"></script>
@@ -949,7 +949,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <div><span>Status</span><strong id="accountStatus">—</strong></div>
         <div><span>Plan price</span><strong id="billingPrice">—</strong></div>
         <div><span id="billingDateLabel">Next billing date</span><strong id="billingDate">—</strong></div>
-        <div><span>Auto renewal</span><strong id="billingAutoRenew">—</strong></div>
+        <div class="billing-auto-renew-summary"><span>Auto renewal</span><button id="billingAutoRenewSwitch" class="billing-renew-switch" type="button" role="switch" aria-checked="false" aria-label="Auto renewal"><span class="billing-renew-switch-track"><span class="billing-renew-switch-knob"></span></span><strong id="billingAutoRenew">—</strong></button></div>
         <div><span>Invoices this period</span><strong id="accountUsage">—</strong></div>
         <div><span>Signed in as</span><strong id="accountEmail">—</strong></div>
       </div>
@@ -971,8 +971,8 @@ Please find attached quote {quoteNumber}."></textarea></label>
       </section>
       <h4>Available modules</h4><div class="plan-modules" id="billingModules">Loading…</div>
       <div class="billing-cancellation"><p class="hint" id="billingCancellationHint"></p><div class="head-actions">
-        <button class="danger" id="cancelSubscriptionBtn" type="button" hidden>Turn off auto renewal</button>
-        <button class="primary" id="keepSubscriptionBtn" type="button" hidden>Keep auto renewal on</button>
+        <button class="danger" id="cancelSubscriptionBtn" type="button" hidden>Cancel subscription</button>
+        <button class="primary" id="keepSubscriptionBtn" type="button" hidden>Keep subscription</button>
       </div></div>
       <div class="head-actions"><button class="secondary admin-only" id="adminNav" type="button" hidden>Super Admin</button><button class="danger" id="signOutBtn" type="button">Sign out</button></div>
     </div>
@@ -1087,16 +1087,16 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="app-version">© 2026 Frindly · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="referrals.js?v=61.102L-login-reliability"></script>
-  <script src="saas.js?v=61.107AAW-admin-billing"></script>
+  <script src="saas.js?v=61.107AAY-auto-renew-switch"></script>
   <script src="stock-equipment.js?v=61.107ZQ-mobile-audit-layout"></script>
   <link rel="stylesheet" href="stock-equipment.css?v=61.107ZP-layout-mobile" />
   <link rel="stylesheet" href="purchase-review.css?v=61.102L-login-reliability" />
   <script src="onboarding.js?v=61.107AAK-phase3-entitlements"></script>
-  <script src="finlo-helper.js?v=61.107AAX-subscription-gate"></script>
+  <script src="finlo-helper.js?v=61.107ABA-helper-fab-safe"></script>
   <script src="import-migration.js?v=61.102L-login-reliability"></script>
   <script src="support-console.js?v=61.102L-login-reliability"></script>
   <script src="support-inbox.js?v=61.102L-login-reliability"></script>
   <script src="support-center.js?v=61.102L-login-reliability"></script>
-  <script src="community.js?v=61.106-community-module"></script>
+  <script src="community.js?v=61.107AAZ-community-v2"></script>
 </body>
 </html>

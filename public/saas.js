@@ -683,6 +683,7 @@
     if(q('billingPortalBtn'))q('billingPortalBtn').onclick=()=>{q('subscriptionBillingHistory')?.scrollIntoView({behavior:'smooth',block:'nearest'});refreshBillingHistory();};
     if(q('billingResolveBtn'))q('billingResolveBtn').onclick=()=>openBillingPortal('portal',q('billingResolveBtn'));
     if(q('billingPaymentMethodBtn'))q('billingPaymentMethodBtn').onclick=()=>openBillingPortal('payment_method',q('billingPaymentMethodBtn'));
+    if(q('billingAutoRenewSwitch'))q('billingAutoRenewSwitch').onclick=()=>toggleAutoRenew(q('billingAutoRenewSwitch'));
     if(q('cancelSubscriptionBtn'))q('cancelSubscriptionBtn').onclick=()=>openBillingPortal('cancel',q('cancelSubscriptionBtn'));
     if(q('keepSubscriptionBtn'))q('keepSubscriptionBtn').onclick=()=>openBillingPortal('keep',q('keepSubscriptionBtn'));
     if(q('undoPlanChangeBtn'))q('undoPlanChangeBtn').onclick=undoScheduledPlanChange;
@@ -1166,21 +1167,26 @@
     const owner=state.accessRole==='owner',canCancel=['owner','bookkeeper'].includes(state.accessRole);
     const duplicates=billingDuplicateSubscriptions.length>1;
     const scheduled=!!(sub.cancel_at_period_end||sub.cancel_at),readOnly=subscriptionReadOnly(sub);
+    const renewalPreference=sub.renewal_preference||(scheduled?'manual':'automatic');
+    const manualRenewal=scheduled&&renewalPreference==='manual',cancellationScheduled=scheduled&&renewalPreference==='cancelled';
     const active=['active','trialing','past_due'].includes(sub.status)&&!readOnly;
     const end=sub.cancel_at||sub.current_period_end,freeTrial=sub.status==='trialing'&&!sub.stripe_subscription_id;
     const set=(id,text)=>{if(q(id))q(id).textContent=text};
     set('billingBusinessName',state.business?.name||'Subscription');
-    set('accountStatus',readOnly?'Read-only':scheduled?'Cancellation scheduled':sub.status==='trialing'?'Trial':human(sub.status||'Unknown'));
+    set('accountStatus',readOnly?'Read-only':cancellationScheduled?'Cancellation scheduled':sub.status==='trialing'?'Trial':human(sub.status||'Unknown'));
     const amount=billingPrice?.businessId===state.business?.id?billingPrice:null;
     const interval=amount?.interval==='year'||sub.billing_interval==='annual'?'year':'month';
     const rate=amount?amount.amount/100:(interval==='year'?sub.plans?.annual_price:sub.plans?.monthly_price);
     set('billingPrice',freeTrial?'Free trial':rate==null?'—':`${invoicePaymentMoney(rate,amount?.currency||'NZD')} / ${interval}`);
-    set('billingDateLabel',freeTrial?'Trial ends':scheduled||readOnly?'Access ends':'Next billing date');
+    set('billingDateLabel',freeTrial?'Trial ends':cancellationScheduled||readOnly?'Access ends':manualRenewal?'Subscription expires':'Next billing date');
     set('billingDate',billingDateText(freeTrial?sub.trial_ends_at:end));
-    set('billingAutoRenew',freeTrial?'Not applicable':readOnly?'Off':scheduled?'Off':'On');
+    set('billingAutoRenew',freeTrial?'Not applicable':readOnly?'Off':renewalPreference==='automatic'&&!scheduled?'On':'Off');
+    const renewSwitch=q('billingAutoRenewSwitch');
+    if(renewSwitch){const on=!freeTrial&&!readOnly&&renewalPreference==='automatic'&&!scheduled;renewSwitch.setAttribute('aria-checked',String(on));renewSwitch.disabled=freeTrial||readOnly||!canCancel||!sub.stripe_subscription_id||duplicates||!!billingScheduledChange||billingLoading||billingReadyBusiness!==state.business?.id;renewSwitch.hidden=freeTrial||readOnly}
     set('accountPlanHint',freeTrial?'No subscription payment is scheduled. Choose a paid plan to continue after the trial.':
       readOnly?'Your existing records are retained. You can view and export them using your existing permissions. Choose a plan to use paid features again.':
-      scheduled?`Cancellation scheduled — access until ${billingDateText(end)}. Your subscription will not renew.`:
+      cancellationScheduled?`Cancellation scheduled — access until ${billingDateText(end)}. Your subscription will end then.`:
+      manualRenewal?`Auto renewal is off — your subscription remains active until ${billingDateText(end)}. Frindly will remind you before it expires so you can renew or cancel.`:
       'Your subscription renews automatically. Plan changes show the amount and effective date before confirmation.');
     if(q('billingScheduledChange')){
       const change=billingScheduledChange;
@@ -1188,8 +1194,9 @@
       q('billingScheduledChange').hidden=!change;
     }
     set('billingCancellationHint',freeTrial?'Your free trial ends automatically; there is no paid subscription renewal to manage.':
-      scheduled&&!readOnly?'Auto renewal is off. Changed your mind? Turn it back on before access ends.':
-      active&&sub.stripe_subscription_id?'Auto renewal is on. The owner or bookkeeper can turn it off; access continues until the end of the current paid period.':
+      cancellationScheduled&&!readOnly?'Cancellation is scheduled. Changed your mind? Keep the subscription before access ends.':
+      manualRenewal&&!readOnly?'Auto renewal is off. You will not be charged automatically. Turn it back on before expiry to renew automatically, or cancel the subscription if you do not want to continue.':
+      active&&sub.stripe_subscription_id?'Auto renewal is on. Use the switch to turn automatic charging off; your paid access continues until the current period ends.':
       readOnly?'Cancellation does not delete your records or close your connected Stripe account.':'');
     if(q('billingDuplicateWarning')){
       const charges=billingDuplicateSubscriptions.map(p=>p.amount==null?'an active subscription':`${invoicePaymentMoney(p.amount/100,p.currency)} / ${p.interval==='year'?'year':'month'}`).join(' and ');
@@ -1201,8 +1208,8 @@
     show('billingPortalBtn',owner&&!!sub.stripe_customer_id);
     show('billingPaymentMethodBtn',owner&&!!sub.stripe_customer_id&&!duplicates);
     show('billingResolveBtn',owner&&duplicates);
-    show('cancelSubscriptionBtn',canCancel&&active&&!!sub.stripe_subscription_id&&!scheduled&&!duplicates);
-    show('keepSubscriptionBtn',canCancel&&active&&!!sub.stripe_subscription_id&&scheduled&&!duplicates);
+    show('cancelSubscriptionBtn',canCancel&&active&&!!sub.stripe_subscription_id&&!cancellationScheduled&&!duplicates);
+    show('keepSubscriptionBtn',canCancel&&active&&!!sub.stripe_subscription_id&&cancellationScheduled&&!duplicates);
     ['cancelSubscriptionBtn','keepSubscriptionBtn','undoPlanChangeBtn'].forEach(id=>{if(q(id))q(id).disabled=billingLoading||billingReadyBusiness!==state.business?.id});
   }
   async function billingApi(action){
@@ -1272,24 +1279,39 @@
     finally{if(button)button.disabled=false}
   }
 
+  async function toggleAutoRenew(button){
+    if(billingLoading||!['owner','bookkeeper'].includes(state.accessRole))return;
+    await refreshSubscriptionBilling();if(billingReadyBusiness!==state.business?.id)return;
+    const sub=state.subscription;if(!sub?.stripe_subscription_id||subscriptionReadOnly(sub))return;
+    const scheduled=!!(sub.cancel_at_period_end||sub.cancel_at),pref=sub.renewal_preference||(scheduled?'manual':'automatic');
+    if(pref==='cancelled'){if(q('billingMessage'))q('billingMessage').textContent='Keep the subscription first before changing auto renewal.';return}
+    const turningOn=scheduled||pref==='manual';
+    const end=billingDateText(sub.cancel_at||sub.current_period_end);
+    const prompt=turningOn?`Turn auto renewal on for ${state.business.name}? Frindly will automatically charge the saved payment method at the next renewal.`:`Turn auto renewal off for ${state.business.name}? You will not be charged automatically. Your subscription stays active until ${end}, and Frindly will remind you before it expires.`;
+    if(!confirm(prompt))return;
+    const original=button?.disabled;if(button)button.disabled=true;
+    try{await billingApi(turningOn?'auto_renew_on':'auto_renew_off');await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent=turningOn?'Auto renewal is on.':'Auto renewal is off. You will not be charged automatically; Frindly will remind you before expiry.';}
+    catch(error){if(q('billingMessage'))q('billingMessage').textContent=error?.message||'Billing is unavailable. Please try again.';}
+    finally{if(button)button.disabled=!!original;renderSubscriptionSummary()}
+  }
+
   async function openBillingPortal(action='portal',button){
     if(billingLoading)return;
     const canCancel=['owner','bookkeeper'].includes(state.accessRole);
     if(['cancel','keep'].includes(action)?!canCancel:state.accessRole!=='owner')return;
     if(['cancel','keep'].includes(action)){
       await refreshSubscriptionBilling();if(billingReadyBusiness!==state.business?.id)return;
-      const sub=state.subscription,scheduled=!!(sub?.cancel_at_period_end||sub?.cancel_at);
+      const sub=state.subscription,scheduled=!!(sub?.cancel_at_period_end||sub?.cancel_at),pref=sub?.renewal_preference||(scheduled?'manual':'automatic'),cancellationScheduled=scheduled&&pref==='cancelled';
       if(subscriptionReadOnly(sub)||!sub?.stripe_subscription_id)return;
-      if((action==='cancel'&&scheduled)||(action==='keep'&&!scheduled))return;
-      const text=action==='cancel'?`Turn off automatic renewal for ${state.business.name}? Access continues until ${billingDateText(sub.cancel_at||sub.current_period_end)}. ${billingScheduledChange?'This will replace your scheduled plan change with a period-end cancellation.':'You will confirm the change securely in Stripe.'}`:
-        `Turn automatic renewal back on for ${state.business.name}? Your subscription will continue at the existing plan price.`;
+      if((action==='cancel'&&cancellationScheduled)||(action==='keep'&&!cancellationScheduled))return;
+      const text=action==='cancel'?`Cancel the ${state.business.name} subscription? Access continues until ${billingDateText(sub.cancel_at||sub.current_period_end)} and then the subscription will end. You will not be charged again.`:`Keep the ${state.business.name} subscription? Cancellation will be removed and auto renewal will be turned back on.`;
       if(!confirm(text))return;
     }
     const original=button?.textContent;if(button){button.disabled=true;button.textContent=action==='keep'?'Keeping subscription…':'Opening Stripe…'}
     try{
       const data=await billingApi(action);
-      if(action==='keep'){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Auto renewal is on. Your subscription will continue to renew.';return}
-      if(action==='cancel'&&data?.canceledAtPeriodEnd){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Auto renewal is off. Access continues until the end of your paid period.';return}
+      if(action==='keep'){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Cancellation removed. Auto renewal is on.';return}
+      if(action==='cancel'&&data?.canceledAtPeriodEnd){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Cancellation scheduled. Access continues until the end of your paid period.';return}
       if(!data?.url||!/^https:\/\/billing\.stripe\.com\//.test(data.url))throw new Error('Stripe did not return a billing portal link.');
       location.href=data.url;
     }catch(error){if(q('billingMessage'))q('billingMessage').textContent=error?.message||'Billing is unavailable. Please try again.';}

@@ -23,9 +23,9 @@ Deno.serve(async (request) => {
     const { data: businessId, error: businessError } = await client.rpc('current_business_id');
     if (businessError || !businessId) return out({ error: 'No active business context found' }, 403);
     const { action = 'portal', returnUrl } = await request.json();
-    if (!['portal', 'payment_method', 'history', 'cancel', 'keep', 'status'].includes(action)) return out({ error: 'Unknown billing action' }, 400);
+    if (!['portal', 'payment_method', 'history', 'cancel', 'keep', 'auto_renew_off', 'auto_renew_on', 'status'].includes(action)) return out({ error: 'Unknown billing action' }, 400);
     const { data: role, error: roleError } = await client.rpc('v6147_current_business_role', { p_business_id: businessId });
-    const permitted = ['cancel', 'keep', 'status'].includes(action) ? ['owner', 'bookkeeper'].includes(role) : role === 'owner';
+    const permitted = ['cancel', 'keep', 'auto_renew_off', 'auto_renew_on', 'status'].includes(action) ? ['owner', 'bookkeeper'].includes(role) : role === 'owner';
     if (roleError || !permitted) return out({ error: 'Your role cannot perform this billing action.' }, 403);
     const { data: row, error } = await client.from('subscriptions').select('*').eq('business_id', businessId).maybeSingle();
     if (error) throw error;
@@ -38,14 +38,15 @@ Deno.serve(async (request) => {
       currency: s.currency || s.items?.data?.[0]?.price?.currency || 'nzd',
       interval: s.items?.data?.[0]?.price?.recurring?.interval || 'month',
     })) : [];
-    if (duplicateSubscriptions.length && ['cancel', 'keep', 'payment_method'].includes(action)) {
+    if (duplicateSubscriptions.length && ['cancel', 'keep', 'auto_renew_off', 'auto_renew_on', 'payment_method'].includes(action)) {
       return out({ error: 'More than one active Stripe subscription exists for this business. Review both in Stripe before changing billing.' }, 409);
     }
-    if (['cancel', 'keep'].includes(action)) {
+    const billingEnd = sub ? (sub.cancel_at || sub.current_period_end || sub.items?.data?.[0]?.current_period_end) : null;
+    if (['cancel', 'keep', 'auto_renew_off', 'auto_renew_on'].includes(action)) {
       if (!sub || !['active', 'trialing', 'past_due'].includes(sub.status)) return out({ error: 'This subscription is no longer active.' }, 409);
-      const end = sub.cancel_at || sub.current_period_end || sub.items?.data?.[0]?.current_period_end;
+      const end = billingEnd;
       if (!end || end * 1000 <= Date.now()) return out({ error: 'The subscription period has ended. Refresh Subscription & Billing.' }, 409);
-      if (action === 'keep') {
+      if (action === 'keep' || action === 'auto_renew_on') {
         if (sub.schedule) {
           const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule.id;
           const schedule = await billingRequest(secretKey, 'subscription_schedules/' + encodeURIComponent(scheduleId));
@@ -59,9 +60,17 @@ Deno.serve(async (request) => {
           sub = await billingRequest(secretKey, 'subscriptions/' + encodeURIComponent(sub.id), form);
         }
         const patch = await syncBillingSubscription(admin, businessId, sub, row);
-        return out({ subscription: { ...row, ...patch } });
+        const renewalPreference = 'automatic';
+        const { error: preferenceError } = await admin.from('subscriptions').update({ renewal_preference: renewalPreference, updated_at: new Date().toISOString() }).eq('business_id', businessId);
+        if (preferenceError) throw preferenceError;
+        return out({ subscription: { ...row, ...patch, renewal_preference: renewalPreference } });
       }
-      if (sub.cancel_at_period_end || sub.cancel_at) return out({ error: 'Cancellation is already scheduled. Refresh Subscription & Billing.' }, 409);
+      if (sub.cancel_at_period_end || sub.cancel_at) {
+        const renewalPreference = action === 'cancel' ? 'cancelled' : 'manual';
+        const { error: preferenceError } = await admin.from('subscriptions').update({ renewal_preference: renewalPreference, updated_at: new Date().toISOString() }).eq('business_id', businessId);
+        if (preferenceError) throw preferenceError;
+        return out({ subscription: { ...row, renewal_preference: renewalPreference }, canceledAtPeriodEnd: true });
+      }
       const pending = await pendingPlanChange(secretKey, sub, businessId);
       if (pending) {
         // Stripe's portal cannot cancel a subscription with a scheduled price change.
@@ -81,8 +90,21 @@ Deno.serve(async (request) => {
         if (sub.cancel_at !== end && !sub.cancel_at_period_end)
           throw new Error('Stripe has not confirmed the period-end cancellation. Refresh billing before retrying.');
         const patch = await syncBillingSubscription(admin, businessId, sub, row);
-        return out({ subscription: { ...row, ...patch }, canceledAtPeriodEnd: true });
+        const renewalPreference = action === 'cancel' ? 'cancelled' : 'manual';
+        const { error: preferenceError } = await admin.from('subscriptions').update({ renewal_preference: renewalPreference, updated_at: new Date().toISOString() }).eq('business_id', businessId);
+        if (preferenceError) throw preferenceError;
+        return out({ subscription: { ...row, ...patch, renewal_preference: renewalPreference }, canceledAtPeriodEnd: true });
       }
+    }
+    if (action === 'cancel' || action === 'auto_renew_off') {
+      const form = new URLSearchParams({ cancel_at_period_end: 'true' });
+      sub = await billingRequest(secretKey, 'subscriptions/' + encodeURIComponent(sub.id), form, `frindly-${action}-${sub.id}-${billingEnd}`);
+      if (!sub.cancel_at_period_end && !sub.cancel_at) throw new Error('Stripe has not confirmed the period-end change. Refresh billing before retrying.');
+      const patch = await syncBillingSubscription(admin, businessId, sub, row);
+      const renewalPreference = action === 'cancel' ? 'cancelled' : 'manual';
+      const { error: preferenceError } = await admin.from('subscriptions').update({ renewal_preference: renewalPreference, updated_at: new Date().toISOString() }).eq('business_id', businessId);
+      if (preferenceError) throw preferenceError;
+      return out({ subscription: { ...row, ...patch, renewal_preference: renewalPreference }, canceledAtPeriodEnd: true });
     }
     if (action === 'status') {
       const patch = sub ? await syncBillingSubscription(admin, businessId, sub, row) : {};
