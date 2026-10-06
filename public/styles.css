@@ -8165,15 +8165,15 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 @media(max-width:640px){#view-community .community-actions{justify-content:flex-start}.community-actions .primary{order:-1}.community-search-panel .community-filterbar{grid-template-columns:1fr}.community-ad img,.community-ad-art{width:72px;height:54px}}
 
 
-/* v61.107ABB — Frindly Helper glossy luminous pill; visual-only launcher update */
+/* v61.107ABD — Frindly Helper FAB 20% smaller; visual-only size adjustment */
 .finlo-helper-button{
-  min-width:164px;min-height:54px;padding:0 26px!important;
+  min-width:131px;min-height:43px;padding:0 21px!important;
   border:1.5px solid #12263f!important;border-radius:999px!important;
   background:
     radial-gradient(ellipse at 84% 8%,rgba(255,20,214,.92) 0%,rgba(255,20,214,.48) 19%,transparent 42%),
     radial-gradient(ellipse at 11% 83%,rgba(47,61,255,.96) 0%,rgba(47,61,255,.52) 31%,transparent 56%),
     linear-gradient(112deg,#253bff 0%,#3426bd 32%,#241568 67%,#8e087f 100%)!important;
-  color:#fff!important;font-weight:800;letter-spacing:.01em;text-align:center;
+  color:#fff!important;font-weight:800;font-size:80%;letter-spacing:.01em;text-align:center;
   box-shadow:
     inset 0 1px 1px rgba(255,255,255,.46),
     inset 0 -10px 24px rgba(16,9,77,.2),
@@ -8194,5 +8194,5 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 .finlo-helper-button:hover{filter:brightness(1.055) saturate(1.06);box-shadow:inset 0 1px 1px rgba(255,255,255,.5),inset 0 -10px 24px rgba(16,9,77,.18),0 0 0 2px rgba(84,57,255,.34),-10px 2px 29px rgba(57,73,255,.48),11px 0 31px rgba(246,39,221,.46),0 13px 31px rgba(43,27,123,.27)!important}
 .finlo-helper-button:focus-visible{outline:3px solid rgba(111,82,232,.3);outline-offset:5px}
 .finlo-helper-button.is-dragging{filter:brightness(1.03);transform:scale(.985)!important}
-@media(max-width:760px){.finlo-helper-button{min-width:150px;min-height:50px;padding:0 22px!important}}
+@media(max-width:760px){.finlo-helper-button{min-width:120px;min-height:40px;padding:0 18px!important}}
 @media(prefers-reduced-motion:reduce){.finlo-helper-button{transition:none}}
