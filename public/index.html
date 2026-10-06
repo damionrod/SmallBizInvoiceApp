@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-core.css?v=61.102L-login-reliability" />
-  <link rel="stylesheet" href="styles.css?v=61.107AAA-expense-au-visibility-desktop-actions" />
+  <link rel="stylesheet" href="styles.css?v=61.107AAN-invoice-grid-alignment" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
   <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
   <script src="app-config.js?v=61.102L-login-reliability"></script>
@@ -139,6 +139,21 @@
         </div>
       </div>
       </details>
+
+      <div class="direct-stage-billing" id="directStageBilling" hidden>
+        <button type="button" class="direct-stage-toggle" id="directStageToggle" title="Available while this invoice is a draft">Invoice part of this amount instead</button>
+        <div class="card direct-stage-panel" id="directStagePanel" hidden>
+          <div class="compact-section-title"><div><h2>Part / advance invoice</h2><p>Optional. Full invoicing remains the default.</p></div></div>
+          <div class="direct-stage-grid">
+            <label>Total agreed amount (ex GST)<input id="directAgreedAmount" type="number" min="0.01" step="0.01" inputmode="decimal"></label>
+            <label>Invoice now (%)<input id="directStagePercent" type="number" min="0.01" max="100" step="0.01" inputmode="decimal" value="30"></label>
+          </div>
+          <div class="direct-stage-summary" id="directStageSummary"></div>
+          <div class="row-actions direct-stage-actions"><button type="button" class="secondary" id="directStageCancel">Keep full invoice</button><button type="button" class="primary" id="directStageApply">Apply part invoice</button></div>
+        </div>
+      </div>
+
+      <div class="invoice-stage-banner" id="invoiceStageBanner" hidden aria-live="polite"></div>
 
       <div class="totals-wrap">
         <div class="card notes-card"><label>Message to customer<textarea id="customerNote" rows="3"></textarea></label></div>
@@ -376,7 +391,7 @@
       </div>
 
       <div class="jc-panel" id="jc-panel-saved"><div class="card filters"><label>Search<input id="jcSavedSearch" placeholder="Customer, job # or description"></label><button class="secondary" id="jcSavedRefresh">Refresh</button></div><div class="card table-card jc-jobs-table"><div class="table-scroll"><table><thead><tr><th scope="col">Job #</th><th scope="col">Customer</th><th scope="col">Job</th><th scope="col">Status</th><th scope="col">Estimated Cost</th><th scope="col">Actual Cost</th><th scope="col">Variance</th><th scope="col">Quoted Revenue</th><th scope="col">Actual Revenue</th><th scope="col">Actual Profit</th><th scope="col">Actual Margin</th><th scope="col">Actions</th></tr></thead><tbody id="jcSavedRows"></tbody></table></div></div><div id="jcJobCards" class="jc-job-cards"></div></div>
-      <div class="jc-panel" id="jc-panel-quotes"><div class="summary-grid jc-quote-summary"><div class="metric"><span>Draft</span><strong id="jcQuoteDraftCount">0</strong></div><div class="metric"><span>Sent</span><strong id="jcQuoteSentCount">0</strong></div><div class="metric"><span>Approved</span><strong id="jcQuoteApprovedCount">0</strong></div><div class="metric"><span>Deal won</span><strong id="jcQuoteWonCount">0</strong></div></div><div class="card filters quote-list-controls"><label>Search<input id="jcQuoteSearch" placeholder="Customer, quote # or description"></label><label>Status<select id="jcQuoteStatusFilter"><option value="">All statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="approved">Approved</option><option value="won">Deal won</option><option value="rejected">Rejected</option></select></label><button class="secondary" id="jcQuoteRefresh">Refresh</button><button class="primary" id="jcQuickQuote">+ Create Quote</button></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th scope="col">Date</th><th scope="col">Quote</th><th scope="col">Customer</th><th scope="col">Description</th><th scope="col">Ex GST</th><th scope="col">GST</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="jcQuoteRows"></tbody></table></div></div></div>
+      <div class="jc-panel" id="jc-panel-quotes"><div class="summary-grid jc-quote-summary"><div class="metric"><span>Draft</span><strong id="jcQuoteDraftCount">0</strong></div><div class="metric"><span>Sent</span><strong id="jcQuoteSentCount">0</strong></div><div class="metric"><span>Approved</span><strong id="jcQuoteApprovedCount">0</strong></div><div class="metric"><span>Deal won</span><strong id="jcQuoteWonCount">0</strong></div></div><div class="card filters quote-list-controls"><label>Search<input id="jcQuoteSearch" placeholder="Customer, quote # or description"></label><label>Status<select id="jcQuoteStatusFilter"><option value="">All statuses</option><option value="draft">Draft</option><option value="sent">Sent</option><option value="approved">Approved</option><option value="won">Deal won</option><option value="rejected">Rejected</option></select></label><button class="secondary" id="jcQuoteRefresh">Refresh</button></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th scope="col">Date</th><th scope="col">Quote</th><th scope="col">Customer</th><th scope="col">Description</th><th scope="col">Ex GST</th><th scope="col">GST</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="jcQuoteRows"></tbody></table></div></div></div>
 
       <div class="jc-panel" id="jc-panel-settings">
         <div class="module-tabs jc-settings-tabs"><button class="module-tab active" data-jcs-tab="costs">Cost Settings</button><button class="module-tab" data-jcs-tab="quote-design">Quote Design</button></div>
@@ -747,13 +762,13 @@ Please find attached quote {quoteNumber}."></textarea></label>
     <section id="view-admin" class="view">
       <div class="page-head"><div><h1>Super Admin</h1><p>Platform administration and controls.</p></div><div class="head-actions"><button class="secondary" id="adminRefresh">Refresh</button></div></div>
       <nav class="admin-section-nav" id="adminSectionNav" aria-label="Super Admin sections">
-        <button type="button" data-admin-view="dashboard">Dashboard</button><button type="button" data-admin-view="businesses">Businesses</button><button type="button" data-admin-view="plans">Subscription Plans</button><button type="button" data-admin-view="modules">Modules</button><button type="button" data-admin-view="payroll-rules">Payroll Rules</button><button type="button" data-admin-view="tax-rules">Tax Rules</button><button type="button" data-admin-view="payments">Payment Settings</button><button type="button" data-admin-view="invoice-payments">Invoice Payments</button><button type="button" data-admin-view="community">Community</button><button type="button" data-admin-view="referrals">Referrals & Credits</button><button type="button" data-admin-view="finlo-helper">Frindly Helper</button><button type="button" data-admin-view="import-migration">Import &amp; Migration</button><button type="button" data-admin-view="support-inbox">Support Inbox</button><button type="button" data-admin-view="support-health">Support &amp; Health</button>
+        <button type="button" data-admin-view="dashboard">Dashboard</button><button type="button" data-admin-view="businesses">Businesses</button><button type="button" data-admin-view="billing">Billing</button><button type="button" data-admin-view="plans">Subscription Plans</button><button type="button" data-admin-view="public-plans-features">Plans &amp; Features Page</button><button type="button" data-admin-view="modules">Modules</button><button type="button" data-admin-view="payroll-rules">Payroll Rules</button><button type="button" data-admin-view="tax-rules">Tax Rules</button><button type="button" data-admin-view="payments">Payment Settings</button><button type="button" data-admin-view="invoice-payments">Invoice Payments</button><button type="button" data-admin-view="community">Community</button><button type="button" data-admin-view="referrals">Referrals & Credits</button><button type="button" data-admin-view="finlo-helper">Frindly Helper</button><button type="button" data-admin-view="import-migration">Import &amp; Migration</button><button type="button" data-admin-view="support-inbox">Support Inbox</button><button type="button" data-admin-view="support-health">Support &amp; Health</button>
       </nav>
       <div class="admin-view-panel" data-admin-panel="dashboard">
         <div class="summary-grid"><div class="metric"><span>Businesses</span><strong id="adminBusinessCount">0</strong></div><div class="metric"><span>Active subscriptions</span><strong id="adminActiveCount">0</strong></div><div class="metric"><span>Trials</span><strong id="adminTrialCount">0</strong></div><div class="metric"><span>Users</span><strong id="adminUserCount">0</strong></div></div>
         <div class="admin-dashboard-grid">
           <div class="card admin-summary-card"><h2>Businesses</h2><p class="hint">Manage tenants, subscriptions and business-specific module access.</p><button class="secondary" type="button" data-admin-view-link="businesses">Manage Businesses</button></div>
-          <div class="card admin-summary-card"><h2>Subscription Plans</h2><p class="hint" id="adminPlanSummary">Manage platform subscription plans and included modules.</p><button class="secondary" type="button" data-admin-view-link="plans">Manage Plans</button></div>
+          <div class="card admin-summary-card"><h2>Subscription Billing</h2><p class="hint">Monitor Stripe-backed subscriptions, recurring revenue, renewals and billing history.</p><button class="secondary" type="button" data-admin-view-link="billing">View Billing</button></div><div class="card admin-summary-card"><h2>Subscription Plans</h2><p class="hint" id="adminPlanSummary">Manage platform subscription plans and included modules.</p><button class="secondary" type="button" data-admin-view-link="plans">Manage Plans</button></div>
           <div class="card admin-summary-card"><h2>Modules</h2><p class="hint" id="adminModuleSummary">Loading module catalogue…</p><button class="secondary" type="button" data-admin-view-link="modules">Manage Modules</button></div>
           <div class="card admin-summary-card"><h2>Payroll Rules</h2><p class="hint" id="adminPayrollDashboardStatus">Loading payroll compliance status…</p><button class="secondary" type="button" data-admin-view-link="payroll-rules">Manage Payroll Rules</button></div>
           <div class="card admin-summary-card"><h2>Payment Settings</h2><p class="hint">Manage existing platform payment-provider configuration.</p><button class="secondary" type="button" data-admin-view-link="payments">Manage Payment Settings</button></div>
@@ -773,6 +788,13 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <nav class="support-tabs" id="supportTabs"><button class="active" data-support-tab="customers">Customers</button><button data-support-tab="login">Login &amp; Access</button><button data-support-tab="health">System Health</button><button data-support-tab="activity">Errors &amp; Activity</button></nav>
         <div id="supportHealthRoot"></div>
       </div>
+      <div class="admin-view-panel" data-admin-panel="billing" hidden>
+        <div class="admin-section-head"><div><h2>Subscription &amp; Billing</h2><p class="hint">Stripe-backed subscription oversight. Figures are read from Stripe; this screen does not directly edit billing state.</p></div><button class="secondary" id="adminBillingRefresh" type="button">Refresh</button></div>
+        <div class="summary-grid admin-billing-kpis"><div class="metric"><span>Active</span><strong id="adminSubActive">0</strong></div><div class="metric"><span>Trials</span><strong id="adminSubTrials">0</strong></div><div class="metric"><span>MRR</span><strong id="adminSubMrr">$0.00</strong></div><div class="metric"><span>ARR</span><strong id="adminSubArr">$0.00</strong></div><div class="metric"><span>Past due</span><strong id="adminSubPastDue">0</strong></div><div class="metric"><span>Ending</span><strong id="adminSubEnding">0</strong></div></div>
+        <div class="card filters admin-billing-filters"><label>Search<input id="adminSubSearch" placeholder="Business, owner or email"></label><label>Status<select id="adminSubStatus"><option value="">All statuses</option><option value="active">Active</option><option value="trialing">Trial</option><option value="past_due">Past due</option><option value="canceled">Canceled</option></select></label><label>Billing<select id="adminSubInterval"><option value="">Monthly &amp; annual</option><option value="month">Monthly</option><option value="year">Annual</option></select></label></div>
+        <div class="card table-card"><div class="table-scroll"><table class="admin-subscription-table"><thead><tr><th>Business</th><th>Plan</th><th>Status</th><th>Billing</th><th>Amount</th><th>Next event</th><th>Auto renewal</th><th>Action</th></tr></thead><tbody id="adminSubRows"></tbody></table></div></div>
+        <div class="card admin-sub-detail" id="adminSubDetail" hidden><div class="card-title"><div><h3 id="adminSubDetailTitle">Subscription detail</h3><p class="hint" id="adminSubDetailMeta"></p></div><button class="secondary" id="adminSubDetailClose" type="button">Close</button></div><div id="adminSubDetailBody"></div></div>
+      </div>
       <div class="admin-view-panel" data-admin-panel="businesses" hidden>
         <div class="admin-section-head"><div><h2>Businesses</h2><p class="hint">Existing tenant administration, subscriptions and business-specific module controls.</p></div><button class="primary" id="adminAddBusiness">+ Add business</button></div>
       <div class="summary-grid admin-billing-summary" id="adminBillingSummary" aria-live="polite"><div class="metric"><span>Active subscribers</span><strong id="adminBillingActive">0</strong><small id="adminBillingActiveDetail">Paid subscriptions</small></div><div class="metric"><span>Monthly recurring total</span><strong id="adminBillingMonthlyTotal">$0.00</strong><small id="adminBillingMonthlyDetail">0 monthly subscribers</small></div><div class="metric"><span>Annual recurring total</span><strong id="adminBillingAnnualTotal">$0.00</strong><small id="adminBillingAnnualDetail">0 annual subscribers</small></div><div class="metric"><span>Subscriber mix</span><strong id="adminBillingMix">0 / 0</strong><small id="adminBillingMixDetail">Monthly / annual</small></div></div>
@@ -781,6 +803,9 @@ Please find attached quote {quoteNumber}."></textarea></label>
       </div>
       <div class="admin-view-panel" data-admin-panel="plans" hidden><div class="admin-section-head"><div><h2>Subscription Plans</h2><p class="hint">Existing plan management. Plan/module relationships and subscription behaviour are unchanged.</p></div></div>
       <div class="card"><div class="card-title"><h2>Subscription plans</h2><button class="secondary" id="adminReloadPlans">Reload plans</button></div><p class="hint">Create and edit the plans customers can choose. Stripe plans use a Stripe Price ID. Other gateway plan IDs can be added when their checkout adapters are enabled.</p><div id="adminPlanMessage" class="admin-inline-message"></div><div id="adminPlanGrid" class="plan-grid"></div></div>
+      </div>
+      <div class="admin-view-panel" data-admin-panel="public-plans-features" hidden><div class="admin-section-head"><div><h2>Plans &amp; Features Page</h2><p class="hint">Control the customer-facing feature catalogue. Plan prices, limits and module entitlements continue to come from Subscription Plans.</p></div><button class="secondary" id="adminReloadPublicFeatures" type="button">Reload</button></div>
+      <div class="card"><div class="card-title"><div><h2>Public feature catalogue</h2><p class="hint">Module-backed rows automatically use each plan's existing included modules. Core rows appear on every public plan. Limit rows use the existing invoice and employee limits.</p></div></div><div id="adminPublicFeatureMessage" class="admin-inline-message"></div><div id="adminPublicFeatureGrid" class="plan-grid"></div></div>
       </div>
       <div class="admin-view-panel" data-admin-panel="modules" hidden><div class="admin-section-head"><div><h2>Modules</h2><p class="hint">Existing Frindly platform module catalogue. Business entitlement logic is unchanged.</p></div></div>
       <div class="card"><div class="card-title"><h2>Module catalog</h2><button class="secondary" id="adminReloadModules">Reload modules</button></div><p class="hint">Enable a module globally first, then include it in subscription plans or grant it to an individual business. Online Invoice Payments starts disabled and does not grant access to existing businesses until you choose its rollout.</p><div id="adminModuleGrid" class="plan-grid"></div><div class="form-grid compact module-add-form"><label>Module name<input id="adminModuleName" placeholder="Job Costing"></label><label>Module slug<input id="adminModuleSlug" placeholder="job_costing"></label><label>Monthly price<input id="adminModulePrice" type="number" min="0" step="0.01" value="0"></label><label>Stripe Price ID<input id="adminModuleStripe" placeholder="price_..."></label><label class="wide">Description<input id="adminModuleDescription" placeholder="Optional description"></label></div><button class="primary" id="adminAddModule" type="button">+ Add module</button></div>
@@ -833,7 +858,58 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="modal" id="financialDrillModal" role="dialog" aria-modal="true"><div class="modal-box"><button type="button" class="close" aria-label="Close dialog" id="financialDrillClose">×</button><div class="page-head compact-head"><div><h2 id="financialDrillTitle">Transactions</h2><p>Underlying source transactions. Financials does not duplicate these records.</p></div></div><div class="table-scroll"><table><thead><tr><th scope="col">Date</th><th scope="col">Source / Supplier</th><th scope="col">Reference</th><th scope="col">Description</th><th scope="col">Ex GST</th><th scope="col">GST</th><th scope="col">Total</th></tr></thead><tbody id="financialDrillRows"></tbody></table></div></div></div>
 
   <div class="auth-shell" id="authShell">
-    <div class="auth-card">
+    <div class="public-site" id="publicSite">
+      <header class="public-site-nav" aria-label="Frindly public navigation">
+        <button class="public-brand" type="button" data-public-page="home" aria-label="Frindly home"><picture><source srcset="frindly-nav-logo.webp?v=61.99M-nav-logo" type="image/webp"><img src="frindly-nav-logo.png?v=61.99M-nav-logo" alt="Frindly"></picture></button>
+        <nav><button class="active" type="button" data-public-page="home">Home</button><button type="button" data-public-page="features">Plans &amp; Features</button><button type="button" data-public-page="contact">Contact Us</button></nav>
+      </header>
+      <main class="public-site-content">
+        <section class="public-page public-home active" data-public-view="home">
+          <div class="public-hero">
+            <span class="public-kicker">SMALL BUSINESS, SIMPLIFIED</span>
+            <h1>Business, <span>Made Easy.</span></h1>
+            <p class="public-lead">Run the everyday side of your business in one friendly place — from getting paid and tracking expenses to payroll, GST, banking and business performance.</p>
+            <div class="public-benefits"><div><strong>Get paid</strong><span>Invoices, quotes and payment reminders.</span></div><div><strong>Stay organised</strong><span>Expenses, banking, schedules and job costing.</span></div><div><strong>Understand your business</strong><span>Clear dashboards and reports without the accounting jargon.</span></div></div>
+            <div class="public-proof"><span>✓ Built for small business</span><span>✓ NZ-ready foundations</span><span>✓ Simple by design</span></div>
+          </div>
+          <aside class="public-auth-slot" id="publicAuthSlot"></aside>
+        </section>
+        <section class="public-page public-features" data-public-view="features" hidden>
+          <div class="public-page-intro"><span class="public-kicker">PLANS &amp; FEATURES</span><h1>Everything you need to keep business moving.</h1><p>Frindly brings the everyday tools of a small business together, with a clean interface designed for people who don't want accounting software to feel complicated.</p></div>
+          <div id="publicFeatureGrid" class="public-feature-grid"><article><h2>Loading features…</h2><p>Frindly is preparing the current feature catalogue.</p></article></div>
+          <section class="public-plan-comparison" aria-labelledby="publicPlanComparisonTitle"><div class="public-comparison-head"><span class="public-kicker">COMPARE PLANS</span><h2 id="publicPlanComparisonTitle">Choose the plan that fits your business.</h2><p>Plan features and limits below are kept in sync with the current Frindly plan configuration.</p></div><div id="publicPlanComparison" class="public-plan-comparison-wrap"><p class="public-comparison-loading">Loading current plans…</p></div></section>
+          <div class="public-cta"><div><strong>Ready to make business easier?</strong><span>Create an account and choose the Frindly plan that fits your business.</span></div><button type="button" data-public-action="signup">Create account</button></div>
+        </section>
+        <section class="public-page public-contact" data-public-view="contact" hidden>
+          <div class="public-contact-copy"><span class="public-kicker">CONTACT US</span><h1>We'd love to hear from you.</h1><p>Have a question about Frindly, plans or getting started? Send us a message and the Frindly team will get back to you.</p><div class="public-contact-note"><strong>Frindly</strong><span>Business, Made Easy.</span></div></div>
+          <form class="public-contact-form" id="publicContactForm"><label>Name<input id="publicContactName" maxlength="100" required autocomplete="name"></label><label>Email<input id="publicContactEmail" type="email" maxlength="200" required autocomplete="email"></label><label>Business name <small>Optional</small><input id="publicContactBusiness" maxlength="150" autocomplete="organization"></label><label>What can we help with?<select id="publicContactTopic"><option>General enquiry</option><option>Plans &amp; pricing</option><option>Getting started</option><option>Product question</option><option>Other</option></select></label><label class="wide">Message<textarea id="publicContactMessage" maxlength="3000" rows="5" required></textarea></label><label class="public-honeypot" aria-hidden="true">Website<input id="publicContactWebsite" tabindex="-1" autocomplete="off"></label><button class="primary" id="publicContactSubmit" type="submit">Send message</button><div class="public-contact-status" id="publicContactStatus" role="status" aria-live="polite"></div></form>
+        </section>
+      </main>
+      <footer class="public-footer" aria-label="Frindly website footer">
+        <div class="public-footer-inner">
+          <div class="public-footer-brand">
+            <button class="public-footer-logo" type="button" data-public-page="home" aria-label="Frindly home"><picture><source srcset="frindly-nav-logo.webp?v=61.99M-nav-logo" type="image/webp"><img src="frindly-nav-logo.png?v=61.99M-nav-logo" alt="Frindly"></picture></button>
+            <div class="public-footer-brand-copy"><strong>Business, Made Easy.</strong><p>© 2026 Frindly Limited. All rights reserved.<br>Frindly is a trademark of Frindly Limited.</p></div>
+          </div>
+          <nav class="public-footer-links" aria-label="Footer links">
+            <a href="#" data-public-placeholder="Terms of Service">Terms of Service</a>
+            <a href="#" data-public-placeholder="Accessibility">Accessibility</a>
+            <a href="#" data-public-placeholder="Privacy Policy">Privacy Policy</a>
+            <a href="#" data-public-placeholder="Manage Cookies">Manage Cookies</a>
+            <button type="button" data-public-page="contact">Contact Us</button>
+          </nav>
+          <div class="public-footer-meta">
+            <strong>New Zealand</strong>
+            <div class="public-footer-social" aria-label="Social channels">
+              <button type="button" data-public-placeholder="LinkedIn" aria-label="LinkedIn" title="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 8.25H3.25V20H6.5V8.25ZM4.88 3A1.88 1.88 0 1 0 4.88 6.75 1.88 1.88 0 0 0 4.88 3ZM20.75 13.26c0-3.54-1.89-5.19-4.42-5.19-2.04 0-2.95 1.12-3.46 1.91V8.25H9.62V20h3.25v-5.82c0-1.53.29-3.01 2.18-3.01 1.86 0 1.88 1.74 1.88 3.11V20h3.25l.57-6.74Z"/></svg></button>
+              <button type="button" data-public-placeholder="Facebook" aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.8 21v-8h2.69l.4-3.12H13.8V7.89c0-.9.25-1.52 1.55-1.52H17V3.58c-.29-.04-1.27-.12-2.42-.12-2.39 0-4.03 1.46-4.03 4.14v2.28H7.84V13h2.71v8h3.25Z"/></svg></button>
+              <button type="button" data-public-placeholder="Instagram" aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7.3 3h9.4A4.3 4.3 0 0 1 21 7.3v9.4a4.3 4.3 0 0 1-4.3 4.3H7.3A4.3 4.3 0 0 1 3 16.7V7.3A4.3 4.3 0 0 1 7.3 3Zm-.15 2A2.15 2.15 0 0 0 5 7.15v9.7A2.15 2.15 0 0 0 7.15 19h9.7A2.15 2.15 0 0 0 19 16.85v-9.7A2.15 2.15 0 0 0 16.85 5h-9.7ZM12 7.38A4.62 4.62 0 1 1 12 16.62 4.62 4.62 0 0 1 12 7.38Zm0 2A2.62 2.62 0 1 0 12 14.62 2.62 2.62 0 0 0 12 9.38Zm5.78-2.25a1.08 1.08 0 1 1-2.16 0 1.08 1.08 0 0 1 2.16 0Z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+    <div class="auth-card" id="publicAuthCard">
       <div class="auth-brand auth-brand-login"><picture><source srcset="frindly-login-logo.webp?v=61.100O-login-brand" type="image/webp"><img class="finlo-auth-logo" src="frindly-login-logo.png?v=61.100O-login-brand" alt="Frindly"></picture><div class="auth-brand-copy"><span>Business, Made Easy</span></div></div>
       <div class="auth-tabs"><button class="active" data-auth-tab="login">Log in</button><button data-auth-tab="signup">Create account</button></div>
       <form id="loginForm" class="auth-form">
@@ -843,13 +919,15 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <button class="primary" type="submit">Log in</button><button class="auth-link" id="forgotPasswordBtn" type="button">Forgot password?</button>
       </form>
       <form id="signupForm" class="auth-form" hidden>
-        <h1>Create your account</h1><p>Choose a subscription, then set up your business. Trial accounts start immediately; paid plans continue to secure online checkout.</p><div class="billing-toggle" aria-label="Billing frequency"><button type="button" class="active" id="signupBillingMonthly">Monthly</button><button type="button" id="signupBillingAnnual">Annual</button></div>
-        <div class="form-grid compact"><label>Your name<input id="signupName" required></label><label>Business name<input id="signupBusiness" required></label><label>Email<input id="signupEmail" type="email" required autocomplete="email"></label><label>Password<input id="signupPassword" type="password" minlength="8" required autocomplete="new-password"></label><label class="wide">Subscription plan<select id="signupPlan" required><option value="">Loading plans…</option></select><small id="signupPlanSummary">Choose the plan that suits your business.</small></label></div>
+        <h1>Create your account</h1><p>Choose the Frindly plan that suits your business, then set up your account. Paid plans continue to secure online checkout.</p>
+        <div class="form-grid compact"><label>Your name<input id="signupName" required></label><label>Business name<input id="signupBusiness" required></label><label>Email<input id="signupEmail" type="email" required autocomplete="email"></label><label>Password<input id="signupPassword" type="password" minlength="8" required autocomplete="new-password"></label></div>
+        <section class="signup-plan-picker" id="signupPlanPicker" aria-labelledby="signupPlanHeading"><div class="signup-plan-heading"><strong id="signupPlanHeading">Choose your plan</strong><span>Monthly or annual — choose inside each plan.</span></div><input id="signupPlan" type="hidden" value=""><input id="signupBillingInterval" type="hidden" value="monthly"><div class="signup-plan-grid" id="signupPlanGrid"><p class="signup-plan-loading">Loading plans…</p></div><small id="signupPlanSummary">Choose the plan that suits your business.</small></section>
         <button class="oauth-btn google-btn" id="googleSignupBtn" type="button"><span aria-hidden="true">G</span> Sign up with Google</button><div class="auth-divider"><span>or use email</span></div>
         <button class="primary" id="signupSubmitBtn" type="submit">Create account</button><button class="auth-link" id="alreadyAccountBtn" type="button">Already have an account? Log in</button><small>By creating an account you agree to the service terms and privacy policy.</small>
       </form>
       <div class="auth-message" id="authMessage"></div>
     </div>
+  </div>
   </div>
 
 
@@ -871,6 +949,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <div><span>Status</span><strong id="accountStatus">—</strong></div>
         <div><span>Plan price</span><strong id="billingPrice">—</strong></div>
         <div><span id="billingDateLabel">Next billing date</span><strong id="billingDate">—</strong></div>
+        <div><span>Auto renewal</span><strong id="billingAutoRenew">—</strong></div>
         <div><span>Invoices this period</span><strong id="accountUsage">—</strong></div>
         <div><span>Signed in as</span><strong id="accountEmail">—</strong></div>
       </div>
@@ -884,10 +963,16 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <button class="secondary" id="billingPortalBtn" type="button" hidden>Billing history</button>
         <button class="secondary" id="billingResolveBtn" type="button" hidden>Review subscriptions in Stripe</button>
       </div>
+      <section class="subscription-billing-history" id="subscriptionBillingHistory" hidden>
+        <div class="billing-history-head"><div><h4>Billing history</h4><p class="hint">Subscription invoices and receipts from Stripe.</p></div><button class="secondary" id="billingHistoryRefreshBtn" type="button">Refresh</button></div>
+        <div class="billing-upcoming" id="billingUpcoming" hidden></div>
+        <p class="hint" id="billingHistoryMessage" role="status" aria-live="polite"></p>
+        <div class="table-scroll"><table class="billing-history-table"><thead><tr><th scope="col">Invoice</th><th scope="col">Date</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody id="billingHistoryRows"></tbody></table></div>
+      </section>
       <h4>Available modules</h4><div class="plan-modules" id="billingModules">Loading…</div>
       <div class="billing-cancellation"><p class="hint" id="billingCancellationHint"></p><div class="head-actions">
-        <button class="danger" id="cancelSubscriptionBtn" type="button" hidden>Cancel subscription</button>
-        <button class="primary" id="keepSubscriptionBtn" type="button" hidden>Keep subscription</button>
+        <button class="danger" id="cancelSubscriptionBtn" type="button" hidden>Turn off auto renewal</button>
+        <button class="primary" id="keepSubscriptionBtn" type="button" hidden>Keep auto renewal on</button>
       </div></div>
       <div class="head-actions"><button class="secondary admin-only" id="adminNav" type="button" hidden>Super Admin</button><button class="danger" id="signOutBtn" type="button">Sign out</button></div>
     </div>
@@ -1002,12 +1087,12 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="app-version">© 2026 Frindly · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="referrals.js?v=61.102L-login-reliability"></script>
-  <script src="saas.js?v=61.106T-startup-navigation"></script>
+  <script src="saas.js?v=61.107AAW-admin-billing"></script>
   <script src="stock-equipment.js?v=61.107ZQ-mobile-audit-layout"></script>
   <link rel="stylesheet" href="stock-equipment.css?v=61.107ZP-layout-mobile" />
   <link rel="stylesheet" href="purchase-review.css?v=61.102L-login-reliability" />
-  <script src="onboarding.js?v=61.102L-login-reliability"></script>
-  <script src="finlo-helper.js?v=61.107ZP-mobile-drag"></script>
+  <script src="onboarding.js?v=61.107AAK-phase3-entitlements"></script>
+  <script src="finlo-helper.js?v=61.107AAX-subscription-gate"></script>
   <script src="import-migration.js?v=61.102L-login-reliability"></script>
   <script src="support-console.js?v=61.102L-login-reliability"></script>
   <script src="support-inbox.js?v=61.102L-login-reliability"></script>

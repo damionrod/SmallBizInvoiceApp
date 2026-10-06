@@ -49,6 +49,8 @@ begin
   -- Add only missing system accounts. Existing customer chart rows are never renamed or reclassified.
   insert into public.accounting_accounts(business_id,account_code,account_name,account_type,normal_balance,report_section,system_key,xero_account_code,xero_account_type,description,is_system,is_control,created_by,updated_by)
   values
+    (v_bid,'090','Business Bank','bank','debit','asset','bank_main','090','BANK','Primary bank or transaction account.',true,false,auth.uid(),auth.uid()),
+    (v_bid,'265','PAYE / Payroll Liabilities','current_liability','credit','liability','payroll_liability','265','CURRLIAB','Payroll deductions and employer obligations.',true,true,auth.uid(),auth.uid()),
     (v_bid,'301','Direct Labour - Payroll','cost_of_sales','debit','cost_of_sales','payroll_direct_wages','301','DIRECTCOSTS','Direct employee wages allocated to service/job delivery.',true,false,auth.uid(),auth.uid()),
     (v_bid,'470','Wages and Salaries','expense','debit','expense','payroll_indirect_wages','470','EXPENSE','Indirect employee wages and salaries.',true,false,auth.uid(),auth.uid()),
     (v_bid,'302','Direct Employer Payroll Costs','cost_of_sales','debit','cost_of_sales','payroll_direct_employer_cost','302','DIRECTCOSTS','Employer payroll costs for direct labour.',true,false,auth.uid(),auth.uid()),
@@ -57,8 +59,16 @@ begin
     (v_bid,'472','Payroll Reimbursements','expense','debit','expense','payroll_indirect_reimbursements','472','EXPENSE','Employee reimbursements and non-taxable allowances for indirect labour.',true,false,auth.uid(),auth.uid())
   on conflict (business_id,account_code) do nothing;
 
-  select id into v_bank from public.accounting_accounts where business_id=v_bid and system_key='bank_main' and not archived order by account_code limit 1;
-  select id into v_liability from public.accounting_accounts where business_id=v_bid and system_key='payroll_liability' and not archived order by account_code limit 1;
+  select a.id into v_bank
+  from public.accounting_accounts a
+  where a.business_id=v_bid and not coalesce(a.archived,false)
+    and (coalesce(a.system_account_key,'')='bank' or coalesce(a.system_key,'') in ('bank_main','bank') or a.account_code in ('090','1000'))
+  order by case when coalesce(a.system_account_key,'')='bank' then 0 when a.system_key='bank_main' then 1 when a.system_key='bank' then 2 when a.account_code='090' then 3 else 4 end,a.account_code limit 1;
+  select a.id into v_liability
+  from public.accounting_accounts a
+  where a.business_id=v_bid and not coalesce(a.archived,false)
+    and (coalesce(a.system_account_key,'')='payroll_liability' or coalesce(a.system_key,'')='payroll_liability' or a.account_code='265')
+  order by case when coalesce(a.system_account_key,'')='payroll_liability' then 0 when a.system_key='payroll_liability' then 1 else 2 end,a.account_code limit 1;
   select id into v_direct_wages from public.accounting_accounts where business_id=v_bid and system_key='payroll_direct_wages' and not archived limit 1;
   select id into v_indirect_wages from public.accounting_accounts where business_id=v_bid and system_key='payroll_indirect_wages' and not archived limit 1;
   select id into v_direct_employer from public.accounting_accounts where business_id=v_bid and system_key='payroll_direct_employer_cost' and not archived limit 1;

@@ -126,6 +126,7 @@
     state.client=window.supabase.createClient(C.supabaseUrl,C.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     bindAuthUI();
     await loadSignupPlans();
+    await renderPublicPlansFeatures();
     await prepareInviteMode();
     if(state.referralCode&&!state.inviteToken){switchAuthTab('signup');message('You were referred to Frindly. Create your business account to continue.');}
     const {data:{session}}=await state.client.auth.getSession();
@@ -177,7 +178,7 @@
   }
 
   function selectedSignupBillingInterval(){
-    return q('signupBillingAnnual')?.classList.contains('active')?'annual':'monthly';
+    return q('signupBillingInterval')?.value==='annual'?'annual':'monthly';
   }
 
   function googleOAuthConfigured(){
@@ -225,6 +226,27 @@
     }
   }
 
+  function publicFeatureValue(plan,feature){
+    if(feature.value_source==='core')return {kind:'bool',value:true};
+    if(feature.value_source==='module')return {kind:'bool',value:Array.isArray(plan.included_modules)&&plan.included_modules.includes(feature.module_slug)};
+    if(feature.value_source==='invoice_limit')return {kind:'text',value:plan.invoice_limit==null?'Unlimited':String(plan.invoice_limit)};
+    if(feature.value_source==='employee_limit')return {kind:'text',value:plan.employee_limit==null?'Unlimited':String(plan.employee_limit)};
+    return {kind:'bool',value:false};
+  }
+  async function renderPublicPlansFeatures(){
+    const grid=q('publicFeatureGrid'),comparison=q('publicPlanComparison');if(!grid||!comparison||!state.client)return;
+    const {data,error}=await state.client.rpc('v61107aad_public_plans_features');
+    if(error){console.warn('Could not load public plans/features',error);grid.innerHTML='<article><h2>Frindly features</h2><p>Current feature information is temporarily unavailable.</p></article>';comparison.innerHTML='<p class="public-comparison-loading">Current plan comparison is temporarily unavailable.</p>';return}
+    const plans=Array.isArray(data?.plans)?data.plans:[],features=Array.isArray(data?.features)?data.features:[];
+    grid.innerHTML=features.filter(f=>!['invoice_limit','employee_limit'].includes(f.value_source)).map((f,i)=>`<article><span>${String(i+1).padStart(2,'0')}</span><h2>${escapeHtml(f.title)}</h2><p>${escapeHtml(f.description||'')}</p></article>`).join('')||'<article><h2>Frindly features</h2><p>Feature information is being updated.</p></article>';
+    if(!plans.length){comparison.innerHTML='<p class="public-comparison-loading">No public plans are currently available.</p>';return}
+    const money=v=>Number(v||0).toLocaleString('en-NZ',{style:'currency',currency:'NZD',minimumFractionDigits:0,maximumFractionDigits:2});
+    const head=plans.map(p=>{const annual=p.annual_price==null?'Annual not set':`${money(p.annual_price)}/year`;const saving=p.annual_price==null?0:Number(p.monthly_price||0)*12-Number(p.annual_price);return `<th><strong>${escapeHtml(p.name)}</strong><span>${money(p.monthly_price)}/month</span><span>${annual}</span>${saving>0?`<small>Save ${money(saving)}/year</small>`:''}</th>`}).join('');
+    const groups=[];for(const f of features){const g=f.feature_group||'Features';let row=groups.find(x=>x.name===g);if(!row){row={name:g,features:[]};groups.push(row)}row.features.push(f)}
+    const rows=groups.map(g=>`<tr class="public-comparison-group"><th colspan="${plans.length+1}">${escapeHtml(g.name)}</th></tr>`+g.features.map(f=>`<tr><th><strong>${escapeHtml(f.title)}</strong>${f.description?`<small>${escapeHtml(f.description)}</small>`:''}</th>${plans.map(p=>{const v=publicFeatureValue(p,f);return v.kind==='bool'?`<td class="${v.value?'has-feature':'no-feature'}" aria-label="${v.value?'Included':'Not included'}"></td>`:`<td>${escapeHtml(v.value)}</td>`}).join('')}</tr>`).join('')).join('');
+    comparison.innerHTML=`<div class="table-scroll"><table class="public-comparison-table"><thead><tr><th>Feature</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
   async function getCheckoutAvailability(force=false){
     if(!state.client)return false;
     if(!force&&typeof state.checkoutAvailable==='boolean')return state.checkoutAvailable;
@@ -233,7 +255,39 @@
     return state.checkoutAvailable;
   }
 
+  function bindPublicSite(){
+    const card=q('publicAuthCard'),slot=q('publicAuthSlot');
+    if(card&&slot&&card.parentElement!==slot)slot.appendChild(card);
+    const showPage=(page)=>{
+      const target=['home','features','contact'].includes(page)?page:'home';
+      document.querySelectorAll('[data-public-view]').forEach(el=>{const on=el.dataset.publicView===target;el.hidden=!on;el.classList.toggle('active',on)});
+      document.querySelectorAll('[data-public-page]').forEach(btn=>btn.classList.toggle('active',btn.dataset.publicPage===target));
+      q('publicSite')?.scrollTo?.({top:0,behavior:'smooth'});
+    };
+    document.querySelectorAll('[data-public-page]').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.publicPage)));
+    document.querySelectorAll('[data-public-placeholder]').forEach(link=>link.addEventListener('click',e=>{e.preventDefault();const label=link.dataset.publicPlaceholder||'This page';alert(`${label} is being prepared and will be available here soon.`)}));
+    document.querySelectorAll('[data-public-action="signup"]').forEach(btn=>btn.addEventListener('click',()=>{showPage('home');switchAuthTab('signup');message('');setTimeout(()=>q('signupName')?.focus(),0)}));
+    const form=q('publicContactForm');
+    if(form)form.onsubmit=async e=>{
+      e.preventDefault();
+      const status=q('publicContactStatus'),btn=q('publicContactSubmit');
+      const setStatus=(text,kind='')=>{if(status){status.textContent=text;status.className=`public-contact-status ${kind}`.trim()}};
+      const name=q('publicContactName')?.value.trim(),email=q('publicContactEmail')?.value.trim(),messageText=q('publicContactMessage')?.value.trim();
+      if(!name||!email||!messageText){setStatus('Please complete your name, email and message.','error');return}
+      if(btn){btn.disabled=true;btn.textContent='Sending…'};setStatus('Sending your message…');
+      try{
+        const response=await fetch(`${C.supabaseUrl}/functions/v1/public-contact`,{method:'POST',headers:{'Content-Type':'application/json','apikey':C.supabaseKey},body:JSON.stringify({name,email,business:q('publicContactBusiness')?.value.trim()||'',topic:q('publicContactTopic')?.value||'General enquiry',message:messageText,website:q('publicContactWebsite')?.value||'',page:location.origin})});
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok||data?.error)throw new Error(data?.error||'Could not send your message.');
+        form.reset();setStatus('Thanks — your message has been sent to the Frindly team.','success');
+      }catch(err){console.error('Public contact form failed',err);setStatus(err?.message||'Could not send your message. Please try again.','error')}
+      finally{if(btn){btn.disabled=false;btn.textContent='Send message'}}
+    };
+    showPage('home');
+  }
+
   function bindAuthUI(){
+    bindPublicSite();
     syncGoogleAuthButtons();
     document.querySelectorAll('[data-auth-tab]').forEach(btn=>btn.onclick=()=>{switchAuthTab(btn.dataset.authTab);message('');});
     if(q('alreadyAccountBtn'))q('alreadyAccountBtn').onclick=()=>{const email=q('signupEmail')?.value.trim()||'';switchAuthTab('login',email);message('Log in with your existing account.');};
@@ -295,44 +349,58 @@
     const pct=normal>0&&saving>0?(saving/normal)*100:0;
     return {monthly,annual,normal,saving,pct,equivalent:annual==null?null:annual/12,message:(p?.annual_saving_message||'').trim()||(pct>0?`Save ${Math.round(pct)}%`:'')};
   }
-  function signupBillingInterval(){return q('signupBillingAnnual')?.classList.contains('active')?'annual':'monthly'}
-  function bindBillingToggle(monthlyId,annualId,onchange){
-    const m=q(monthlyId),a=q(annualId);if(!m||!a)return;
-    m.onclick=()=>{m.classList.add('active');a.classList.remove('active');onchange?.('monthly')};
-    a.onclick=()=>{a.classList.add('active');m.classList.remove('active');onchange?.('annual')};
-  }
+  function signupBillingInterval(){return q('signupBillingInterval')?.value==='annual'?'annual':'monthly'}
 
   async function loadSignupPlans(){
-    const select=q('signupPlan'); if(!select||!state.client)return;
+    const input=q('signupPlan'),grid=q('signupPlanGrid'); if(!input||!grid||!state.client)return;
     const [{data:plans,error},checkoutReady]=await Promise.all([
-      state.client.from('plans').select('id,slug,name,description,monthly_price,annual_price,annual_saving_message,invoice_limit,is_public,sort_order,stripe_price_id,stripe_annual_price_id').order('sort_order'),
+      state.client.from('plans').select('id,slug,name,description,monthly_price,annual_price,annual_saving_message,invoice_limit,employee_limit,is_public,sort_order,stripe_price_id,stripe_annual_price_id').order('sort_order'),
       getCheckoutAvailability(true)
     ]);
-    if(error){select.innerHTML='<option value="trial">Trial</option>'; if(q('signupPlanSummary'))q('signupPlanSummary').textContent='Plan list could not be loaded. Trial is available.'; return}
-    const available=(plans||[]).filter(p=>p.slug==='trial'||p.is_public);
+    if(error){grid.innerHTML='<p class="signup-plan-loading">Plan list could not be loaded. Please try again.</p>';if(q('signupPlanSummary'))q('signupPlanSummary').textContent='Plan list could not be loaded.';return}
+    // Public signup must follow the Super Admin customer-visibility flag for every plan,
+    // including Trial. Trial has its own no-payment signup path below and must not be
+    // filtered out merely because it has no Stripe Price ID.
+    const shown=(plans||[]).filter(p=>p.is_public);
+    // Layout only: expose the number of currently visible public plans so CSS can
+    // size the signup panel and grid to the actual card count instead of reserving
+    // space for four cards when Super Admin hides a plan.
+    grid.dataset.planCount=String(Math.max(1,Math.min(shown.length,4)));
+    const current=shown.some(p=>p.slug===input.value)?input.value:(shown[0]?.slug||'');
+    input.value=current;
+    const intervalInput=q('signupBillingInterval');if(intervalInput&&!['monthly','annual'].includes(intervalInput.value))intervalInput.value='monthly';
+    const card=(p)=>{
+      const ap=annualPricing(p),isTrial=p.slug==='trial';
+      const monthlyReady=isTrial||(checkoutReady&&!!p.stripe_price_id);
+      const annualReady=!isTrial&&checkoutReady&&ap.annual!=null&&!!p.stripe_annual_price_id;
+      const selected=input.value===p.slug, interval=selected?signupBillingInterval():'monthly';
+      const limit=p.invoice_limit==null?'Unlimited invoices':`${p.invoice_limit} invoices per period`;
+      const employee=p.employee_limit==null?'':` · Up to ${p.employee_limit} employees`;
+      const saving=ap.saving>0?(p.annual_saving_message||`Save $${ap.saving.toFixed(0)} / year`):'';
+      return `<article class="signup-plan-card ${selected?'selected':''}" data-signup-plan-card="${escapeHtml(p.slug)}">
+        <div class="signup-plan-card-head"><div><span class="signup-plan-name">${escapeHtml(p.name)}</span>${p.description?`<small>${escapeHtml(p.description)}</small>`:''}</div>${selected?'<span class="signup-plan-selected">Selected</span>':''}</div>
+        <div class="signup-plan-price"><strong>$${ap.monthly.toFixed(0)}</strong><span>/ month</span></div>
+        ${isTrial?'<div class="signup-plan-choice single"><span>No payment required</span></div>':`<div class="signup-plan-choices" role="group" aria-label="${escapeHtml(p.name)} billing frequency">
+          <button type="button" class="signup-plan-choice ${selected&&interval==='monthly'?'active':''}" data-signup-plan="${escapeHtml(p.slug)}" data-signup-interval="monthly" ${monthlyReady?'':'disabled'}><span>Monthly</span><strong>$${ap.monthly.toFixed(0)}/mo</strong></button>
+          <button type="button" class="signup-plan-choice ${selected&&interval==='annual'?'active':''}" data-signup-plan="${escapeHtml(p.slug)}" data-signup-interval="annual" ${annualReady?'':'disabled'}><span>Annual${saving?` · ${escapeHtml(saving)}`:''}</span><strong>${ap.annual==null?'Not available':`$${ap.annual.toFixed(0)}/yr`}</strong></button>
+        </div>`}
+        <div class="signup-plan-meta">${escapeHtml(limit+employee)}</div>
+      </article>`;
+    };
     const render=()=>{
-      const interval=signupBillingInterval();
-      select.innerHTML=available.map(p=>{
-        const paid=p.slug!=='trial', ap=annualPricing(p);
-        const configured=interval==='annual'?ap.annual!=null&&!!p.stripe_annual_price_id:!!p.stripe_price_id;
-        const purchasable=!paid||(checkoutReady&&configured);
-        const suffix=p.slug==='trial'?'Free trial':interval==='annual'?(ap.annual==null?'Annual unavailable':`$${ap.annual.toFixed(2)}/year${ap.message?' · '+ap.message:''}`):`$${ap.monthly.toFixed(2)}/month`;
-        return `<option value="${escapeHtml(p.slug)}" ${purchasable?'':'disabled'}>${escapeHtml(p.name)} — ${suffix}${purchasable?'':' — unavailable'}</option>`;
-      }).join('');
-      if(!available.some(p=>p.slug===select.value&&!select.selectedOptions[0]?.disabled)) select.value=available.some(p=>p.slug==='trial')?'trial':'';
-      update();
+      grid.innerHTML=shown.map(card).join('');
+      grid.querySelectorAll('[data-signup-plan]:not([disabled])').forEach(btn=>btn.onclick=()=>{input.value=btn.dataset.signupPlan;if(intervalInput)intervalInput.value=btn.dataset.signupInterval;render();update()});
+      grid.querySelectorAll('[data-signup-plan-card]').forEach(el=>el.onclick=e=>{if(e.target.closest('[data-signup-plan]'))return;const p=shown.find(x=>x.slug===el.dataset.signupPlanCard);if(!p)return;const ap=annualPricing(p);const preferred=(p.slug!=='trial'&&checkoutReady&&!!p.stripe_price_id)?'monthly':(p.slug!=='trial'&&checkoutReady&&ap.annual!=null&&!!p.stripe_annual_price_id?'annual':'monthly');input.value=p.slug;if(intervalInput)intervalInput.value=preferred;render();update()});
     };
     const update=()=>{
-      const plan=available.find(p=>p.slug===select.value); if(!q('signupPlanSummary')||!plan)return;
-      const limit=plan.invoice_limit==null?'Unlimited invoices':`${plan.invoice_limit} invoices per period`, interval=signupBillingInterval(), ap=annualPricing(plan);
-      let pay='No payment required.';
-      if(plan.slug!=='trial'){
-        const configured=interval==='annual'?ap.annual!=null&&!!plan.stripe_annual_price_id:!!plan.stripe_price_id;
-        pay=checkoutReady&&configured?(interval==='annual'?`$${ap.equivalent.toFixed(2)}/month equivalent · Billed $${ap.annual.toFixed(2)} annually${ap.message?' · '+ap.message:''}`:'Secure monthly online payment follows account creation.'):`${interval==='annual'?'Annual':'Monthly'} online subscription is not configured for this plan.`;
-      }
+      const plan=shown.find(p=>p.slug===input.value);if(!q('signupPlanSummary')||!plan)return;
+      const ap=annualPricing(plan),interval=signupBillingInterval(),limit=plan.invoice_limit==null?'Unlimited invoices':`${plan.invoice_limit} invoices per period`;
+      if(plan.slug==='trial'){q('signupPlanSummary').textContent=`${plan.description||''}${plan.description?' · ':''}${limit} · No payment required.`;return}
+      const configured=interval==='annual'?ap.annual!=null&&!!plan.stripe_annual_price_id:!!plan.stripe_price_id;
+      const pay=checkoutReady&&configured?(interval==='annual'?`Billed $${ap.annual.toFixed(2)} annually${ap.message?' · '+ap.message:''}`:`$${ap.monthly.toFixed(2)} per month · Secure Stripe checkout follows account creation.`):`${interval==='annual'?'Annual':'Monthly'} online subscription is not configured for this plan.`;
       q('signupPlanSummary').textContent=`${plan.description||''}${plan.description?' · ':''}${limit} · ${pay}`;
     };
-    select.onchange=update; bindBillingToggle('signupBillingMonthly','signupBillingAnnual',render); render();
+    render();update();
   }
 
   async function enter(session){
@@ -357,7 +425,7 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.107ZW-advanced-filters','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.105-phase6-nz-job-quotes','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZW-advanced-filters','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.106W-dashboard-period-filter','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.107K-cross-account-duplicate-import','community.js?v=61.106-community-module']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.107AAH-invoice-layout-menu','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.107AAY-progress-invoicing','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZW-advanced-filters','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.106W-dashboard-period-filter','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.107K-cross-account-duplicate-import','community.js?v=61.106-community-module']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
@@ -524,7 +592,7 @@
     else renderAdmin();
     setAdminView(adminViewFromHash(),false);
   }
-  const ADMIN_VIEWS=new Set(['dashboard','businesses','plans','modules','payroll-rules','tax-rules','payments','invoice-payments','community','referrals','finlo-helper','import-migration','support-health','support-inbox']);
+  const ADMIN_VIEWS=new Set(['dashboard','businesses','billing','plans','public-plans-features','modules','payroll-rules','tax-rules','payments','invoice-payments','community','referrals','finlo-helper','import-migration','support-health','support-inbox']);
   function adminViewFromHash(){const m=String(location.hash||'').match(/^#super-admin(?:\/([a-z-]+))?$/);return m&&ADMIN_VIEWS.has(m[1])?m[1]:'dashboard'}
   function setAdminView(view='dashboard',push=true){
     if(!state.profile?.is_super_admin)return;
@@ -532,7 +600,7 @@
     document.querySelectorAll('[data-admin-panel]').forEach(el=>el.hidden=el.dataset.adminPanel!==next);
     document.querySelectorAll('[data-admin-view]').forEach(el=>{const active=el.dataset.adminView===next;el.classList.toggle('active',active);el.setAttribute('aria-current',active?'page':'false')});
     const hash=next==='dashboard'?'#super-admin':`#super-admin/${next}`;
-    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='community')window.Community?.renderAdmin?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();if(next==='support-health')window.SupportHealth?.render?.();if(next==='support-inbox')window.SupportInbox?.render?.();
+    if(push&&location.hash!==hash)history.pushState(null,'',hash);else if(!push&&location.hash!==hash)history.replaceState(null,'',hash);if(next==='billing')renderAdminSubscriptionBilling?.();if(next==='public-plans-features')renderAdminPublicFeatures?.();if(next==='finlo-helper')window.FinloHelper?.renderAdmin?.();if(next==='import-migration')window.ImportMigration?.renderAdmin?.();if(next==='invoice-payments')renderAdminInvoicePayments?.();if(next==='community')window.Community?.renderAdmin?.();if(next==='tax-rules')window.StockEquipment?.renderTaxRules?.();if(next==='support-health')window.SupportHealth?.render?.();if(next==='support-inbox')window.SupportInbox?.render?.();
   }
   function setupAdminNavigation(){
     document.querySelectorAll('[data-admin-view],[data-admin-view-link]').forEach(el=>el.onclick=()=>setAdminView(el.dataset.adminView||el.dataset.adminViewLink));
@@ -612,13 +680,14 @@
     if(q('accountSignOut'))q('accountSignOut').onclick=()=>state.client.auth.signOut();
     if(q('signOutBtn'))q('signOutBtn').onclick=()=>state.client.auth.signOut();
     if(q('manageSubscription'))q('manageSubscription').onclick=showPlans;
-    if(q('billingPortalBtn'))q('billingPortalBtn').onclick=()=>openBillingPortal('history',q('billingPortalBtn'));
+    if(q('billingPortalBtn'))q('billingPortalBtn').onclick=()=>{q('subscriptionBillingHistory')?.scrollIntoView({behavior:'smooth',block:'nearest'});refreshBillingHistory();};
     if(q('billingResolveBtn'))q('billingResolveBtn').onclick=()=>openBillingPortal('portal',q('billingResolveBtn'));
     if(q('billingPaymentMethodBtn'))q('billingPaymentMethodBtn').onclick=()=>openBillingPortal('payment_method',q('billingPaymentMethodBtn'));
     if(q('cancelSubscriptionBtn'))q('cancelSubscriptionBtn').onclick=()=>openBillingPortal('cancel',q('cancelSubscriptionBtn'));
     if(q('keepSubscriptionBtn'))q('keepSubscriptionBtn').onclick=()=>openBillingPortal('keep',q('keepSubscriptionBtn'));
     if(q('undoPlanChangeBtn'))q('undoPlanChangeBtn').onclick=undoScheduledPlanChange;
     if(q('refreshBillingBtn'))q('refreshBillingBtn').onclick=refreshSubscriptionBilling;
+    if(q('billingHistoryRefreshBtn'))q('billingHistoryRefreshBtn').onclick=refreshBillingHistory;
     if(q('closeAccountModal'))q('closeAccountModal').onclick=()=>q('accountModal').classList.remove('open');
     if(q('accountModal'))q('accountModal').onclick=e=>{if(e.target===q('accountModal'))q('accountModal').classList.remove('open')};
     if(q('saveAccountProfile'))q('saveAccountProfile').onclick=saveAccountProfile;
@@ -658,12 +727,17 @@
     if(q('adminReloadPlans'))q('adminReloadPlans').onclick=renderAdminPlans;
     if(q('adminReloadPayments'))q('adminReloadPayments').onclick=renderPaymentSettings;
     if(q('adminReloadInvoicePayments'))q('adminReloadInvoicePayments').onclick=renderAdminInvoicePayments;
-    if(q('adminReloadModules'))q('adminReloadModules').onclick=renderAdminModules;
+    if(q('adminReloadModules'))q('adminReloadModules').onclick=renderAdminModules;if(q('adminReloadPublicFeatures'))q('adminReloadPublicFeatures').onclick=renderAdminPublicFeatures;
     if(q('adminAddModule'))q('adminAddModule').onclick=addAdminModule;
     if(q('adminCheckPayrollUpdates'))q('adminCheckPayrollUpdates').onclick=checkAdminPayrollCompliance;
     if(q('adminReloadCountryPayrollRules'))q('adminReloadCountryPayrollRules').onclick=renderAdminCountryPayrollRules;
     if(q('adminAddCountryPayrollRule'))q('adminAddCountryPayrollRule').onclick=addAdminCountryPayrollRule;
     if(q('adminPayrollRuleCountry'))q('adminPayrollRuleCountry').onchange=renderAdminCountryPayrollRules;
+    if(q('adminBillingRefresh'))q('adminBillingRefresh').onclick=renderAdminSubscriptionBilling;
+    if(q('adminSubSearch'))q('adminSubSearch').oninput=renderAdminSubscriptionBillingRows;
+    if(q('adminSubStatus'))q('adminSubStatus').onchange=renderAdminSubscriptionBillingRows;
+    if(q('adminSubInterval'))q('adminSubInterval').onchange=renderAdminSubscriptionBillingRows;
+    if(q('adminSubDetailClose'))q('adminSubDetailClose').onclick=()=>{q('adminSubDetail').hidden=true};
     if(q('adminSearch'))q('adminSearch').oninput=renderAdmin;
     if(q('adminStatusFilter'))q('adminStatusFilter').onchange=renderAdmin;
     if(q('adminInvoicePaymentSearch'))q('adminInvoicePaymentSearch').oninput=renderAdminInvoicePayments;
@@ -823,7 +897,7 @@
     message(note,'success');
     if(q('loginEmail'))q('loginEmail').value=data.email||'';
     if(q('signupEmail')){q('signupEmail').value=data.email||'';q('signupEmail').readOnly=true}
-    ['signupBusiness','signupAddress','signupPhone','signupPlan'].forEach(id=>{const el=q(id);if(el){const lab=el.closest('label');if(lab)lab.hidden=true;el.required=false}});
+    ['signupBusiness','signupAddress','signupPhone'].forEach(id=>{const el=q(id);if(el){const lab=el.closest('label');if(lab)lab.hidden=true;el.required=false}});if(q('signupPlanPicker'))q('signupPlanPicker').hidden=true;
     const h=q('signupForm')?.querySelector('h1'),p=q('signupForm')?.querySelector('p');if(h)h.textContent='Join '+data.businessName;if(p)p.textContent=`Create your Frindly login to join ${data.businessName} as ${teamRoleLabel(data.role)}.`;
   }
   async function acceptInvitationIfPresent(){
@@ -1103,6 +1177,7 @@
     set('billingPrice',freeTrial?'Free trial':rate==null?'—':`${invoicePaymentMoney(rate,amount?.currency||'NZD')} / ${interval}`);
     set('billingDateLabel',freeTrial?'Trial ends':scheduled||readOnly?'Access ends':'Next billing date');
     set('billingDate',billingDateText(freeTrial?sub.trial_ends_at:end));
+    set('billingAutoRenew',freeTrial?'Not applicable':readOnly?'Off':scheduled?'Off':'On');
     set('accountPlanHint',freeTrial?'No subscription payment is scheduled. Choose a paid plan to continue after the trial.':
       readOnly?'Your existing records are retained. You can view and export them using your existing permissions. Choose a plan to use paid features again.':
       scheduled?`Cancellation scheduled — access until ${billingDateText(end)}. Your subscription will not renew.`:
@@ -1112,9 +1187,9 @@
       q('billingScheduledChange').textContent=change?`Your ${change.planName} plan is scheduled for ${billingDateText(change.effectiveAt*1000)} at ${change.amount==null?'the configured price':invoicePaymentMoney(change.amount/100,amount?.currency||'NZD')} / ${change.interval}. Your current plan remains available until then.`:'';
       q('billingScheduledChange').hidden=!change;
     }
-    set('billingCancellationHint',freeTrial?'Your free trial ends automatically; there is no paid subscription to cancel.':
-      scheduled&&!readOnly?'Changed your mind? Keep your subscription before access ends.':
-      active&&sub.stripe_subscription_id?'The owner or bookkeeper can cancel. Access continues until the end of the current paid period.':
+    set('billingCancellationHint',freeTrial?'Your free trial ends automatically; there is no paid subscription renewal to manage.':
+      scheduled&&!readOnly?'Auto renewal is off. Changed your mind? Turn it back on before access ends.':
+      active&&sub.stripe_subscription_id?'Auto renewal is on. The owner or bookkeeper can turn it off; access continues until the end of the current paid period.':
       readOnly?'Cancellation does not delete your records or close your connected Stripe account.':'');
     if(q('billingDuplicateWarning')){
       const charges=billingDuplicateSubscriptions.map(p=>p.amount==null?'an active subscription':`${invoicePaymentMoney(p.amount/100,p.currency)} / ${p.interval==='year'?'year':'month'}`).join(' and ');
@@ -1166,9 +1241,37 @@
       if(q('billingModules'))q('billingModules').innerHTML=available.filter(Boolean).map(m=>`<span>${escapeHtml(m.name||human(m.slug))}</span>`).join('')||'<span>No additional modules enabled</span>';
       billingReadyBusiness=businessId;
       if(messageEl)messageEl.textContent='';
+      if(['owner','bookkeeper'].includes(state.accessRole)&&state.subscription?.stripe_customer_id)refreshBillingHistory().catch(console.warn);
     }catch(error){if(messageEl)messageEl.textContent=`Could not refresh billing: ${error?.name==='AbortError'?'The request timed out. Please try again.':error?.message||'Please try again.'}`;}
     finally{billingLoading=false;if(button)button.disabled=false;renderSubscriptionSummary()}
   }
+  function billingHistoryMoney(cents,currency='NZD'){
+    return invoicePaymentMoney((Number(cents)||0)/100,String(currency||'NZD').toUpperCase());
+  }
+  function billingHistoryStatus(status){
+    const v=String(status||'').toLowerCase();return v==='paid'?'Paid':v==='open'?'Open':v==='void'?'Void':v==='uncollectible'?'Uncollectible':human(v||'Unknown');
+  }
+  async function refreshBillingHistory(){
+    const section=q('subscriptionBillingHistory'),rows=q('billingHistoryRows'),msg=q('billingHistoryMessage'),upcoming=q('billingUpcoming'),button=q('billingHistoryRefreshBtn');
+    if(!section||!rows||!state.business?.id)return;
+    const allowed=['owner','bookkeeper'].includes(state.accessRole)&&!!state.subscription?.stripe_customer_id;
+    section.hidden=!allowed;if(!allowed)return;
+    if(button)button.disabled=true;if(msg)msg.textContent='Loading billing history…';rows.innerHTML='';if(upcoming){upcoming.hidden=true;upcoming.innerHTML=''}
+    try{
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let result;
+      try{result=await invokeAuthenticatedFunction('billing-history',{},controller.signal)}finally{clearTimeout(timer)}
+      if(result.error||result.data?.error)throw result.error||new Error(result.data.error);
+      const data=result.data||{},invoices=Array.isArray(data.invoices)?data.invoices:[];
+      if(data.upcoming&&upcoming){
+        const u=data.upcoming,date=u.renewalAt?billingDateText(Number(u.renewalAt)*1000):'—';
+        upcoming.innerHTML=`<div><span>${u.autoRenew?'Next payment':'Access until'}</span><strong>${escapeHtml(date)}</strong></div><div><span>${u.autoRenew?'Expected amount':'Auto renewal'}</span><strong>${u.autoRenew?escapeHtml(billingHistoryMoney(u.amount,u.currency)):'Off'}</strong></div><div><span>Billing</span><strong>${u.interval==='year'?'Annual':'Monthly'}</strong></div>`;upcoming.hidden=false;
+      }
+      rows.innerHTML=invoices.length?invoices.map(i=>{const date=i.created?billingDateText(Number(i.created)*1000):'—',amount=billingHistoryMoney(i.total??i.amountPaid??i.amountDue,i.currency);const view=i.hostedInvoiceUrl?`<a class="secondary billing-history-link" href="${escapeHtml(i.hostedInvoiceUrl)}" target="_blank" rel="noopener noreferrer">View</a>`:'';const pdf=i.invoicePdf?`<a class="secondary billing-history-link" href="${escapeHtml(i.invoicePdf)}" target="_blank" rel="noopener noreferrer">PDF</a>`:'';return `<tr><td><strong>${escapeHtml(i.number||'Stripe invoice')}</strong></td><td>${escapeHtml(date)}</td><td>${escapeHtml(amount)}</td><td><span class="billing-status billing-status-${escapeHtml(String(i.status||'unknown').toLowerCase())}">${escapeHtml(billingHistoryStatus(i.status))}</span></td><td><div class="billing-history-actions">${view}${pdf}</div></td></tr>`}).join(''):'<tr><td colspan="5" class="hint">No subscription invoices are available yet.</td></tr>';
+      if(msg)msg.textContent='';
+    }catch(error){if(msg)msg.textContent=`Could not load billing history: ${error?.name==='AbortError'?'The request timed out. Please try again.':error?.message||'Please try again.'}`;rows.innerHTML='<tr><td colspan="5" class="hint">Billing history is temporarily unavailable.</td></tr>'}
+    finally{if(button)button.disabled=false}
+  }
+
   async function openBillingPortal(action='portal',button){
     if(billingLoading)return;
     const canCancel=['owner','bookkeeper'].includes(state.accessRole);
@@ -1178,15 +1281,15 @@
       const sub=state.subscription,scheduled=!!(sub?.cancel_at_period_end||sub?.cancel_at);
       if(subscriptionReadOnly(sub)||!sub?.stripe_subscription_id)return;
       if((action==='cancel'&&scheduled)||(action==='keep'&&!scheduled))return;
-      const text=action==='cancel'?`Cancel the Frindly subscription for ${state.business.name}? Access continues until ${billingDateText(sub.cancel_at||sub.current_period_end)}. ${billingScheduledChange?'This will replace your scheduled plan change with a period-end cancellation.':'You will confirm cancellation securely in Stripe.'}`:
-        `Keep the Frindly subscription for ${state.business.name}? Automatic renewal will continue at your existing plan price.`;
+      const text=action==='cancel'?`Turn off automatic renewal for ${state.business.name}? Access continues until ${billingDateText(sub.cancel_at||sub.current_period_end)}. ${billingScheduledChange?'This will replace your scheduled plan change with a period-end cancellation.':'You will confirm the change securely in Stripe.'}`:
+        `Turn automatic renewal back on for ${state.business.name}? Your subscription will continue at the existing plan price.`;
       if(!confirm(text))return;
     }
     const original=button?.textContent;if(button){button.disabled=true;button.textContent=action==='keep'?'Keeping subscription…':'Opening Stripe…'}
     try{
       const data=await billingApi(action);
-      if(action==='keep'){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Your subscription will continue to renew.';return}
-      if(action==='cancel'&&data?.canceledAtPeriodEnd){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Cancellation scheduled for the end of your paid period.';return}
+      if(action==='keep'){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Auto renewal is on. Your subscription will continue to renew.';return}
+      if(action==='cancel'&&data?.canceledAtPeriodEnd){await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent='Auto renewal is off. Access continues until the end of your paid period.';return}
       if(!data?.url||!/^https:\/\/billing\.stripe\.com\//.test(data.url))throw new Error('Stripe did not return a billing portal link.');
       location.href=data.url;
     }catch(error){if(q('billingMessage'))q('billingMessage').textContent=error?.message||'Billing is unavailable. Please try again.';}
@@ -1471,6 +1574,36 @@
     alert(`Stripe connection successful${data?.account_name?' — '+data.account_name:''}.`);
   }
 
+  let adminSubscriptionBillingRows=[];
+  const adminBillingMoney=(cents,currency='nzd')=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:String(currency||'nzd').toUpperCase()}).format(Number(cents||0)/100);
+  const adminBillingDate=seconds=>seconds?new Date(Number(seconds)*1000).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'}):'—';
+  async function renderAdminSubscriptionBilling(){
+    if(!state.profile?.is_super_admin)return;
+    const root=q('adminSubRows');if(root)root.innerHTML='<tr><td colspan="8">Loading Stripe subscription data…</td></tr>';
+    const {data,error}=await state.client.functions.invoke('admin-subscription-billing',{body:{action:'overview'}});
+    if(error||data?.error){if(root)root.innerHTML=`<tr><td colspan="8">${escapeHtml(data?.error||error?.message||'Billing data is unavailable.')}</td></tr>`;return}
+    adminSubscriptionBillingRows=Array.isArray(data?.subscriptions)?data.subscriptions:[];
+    const active=adminSubscriptionBillingRows.filter(x=>x.status==='active'), trials=adminSubscriptionBillingRows.filter(x=>x.status==='trialing'), past=adminSubscriptionBillingRows.filter(x=>x.status==='past_due'), ending=adminSubscriptionBillingRows.filter(x=>x.status==='active'&&!x.autoRenew);
+    const mrr=active.reduce((n,x)=>n+(x.interval==='year'?Number(x.amount||0)/12:Number(x.amount||0)),0),arr=mrr*12;
+    if(q('adminSubActive'))q('adminSubActive').textContent=active.length;if(q('adminSubTrials'))q('adminSubTrials').textContent=trials.length;if(q('adminSubPastDue'))q('adminSubPastDue').textContent=past.length;if(q('adminSubEnding'))q('adminSubEnding').textContent=ending.length;
+    if(q('adminSubMrr'))q('adminSubMrr').textContent=adminBillingMoney(mrr);if(q('adminSubArr'))q('adminSubArr').textContent=adminBillingMoney(arr);
+    renderAdminSubscriptionBillingRows();
+  }
+  function renderAdminSubscriptionBillingRows(){
+    const body=q('adminSubRows');if(!body)return;const search=(q('adminSubSearch')?.value||'').trim().toLowerCase(),status=q('adminSubStatus')?.value||'',interval=q('adminSubInterval')?.value||'';
+    const rows=adminSubscriptionBillingRows.filter(x=>(!search||[x.businessName,x.ownerName,x.ownerEmail,x.planName].join(' ').toLowerCase().includes(search))&&(!status||x.status===status)&&(!interval||x.interval===interval));
+    body.innerHTML=rows.length?rows.map(x=>`<tr><td><strong>${escapeHtml(x.businessName||'—')}</strong><small>${escapeHtml(x.ownerName||'')}${x.ownerEmail?' · '+escapeHtml(x.ownerEmail):''}</small></td><td>${escapeHtml(x.planName||'—')}</td><td><span class="status ${escapeHtml(x.status||'')}">${escapeHtml(String(x.status||'—').replace('_',' '))}</span></td><td>${x.interval==='year'?'Annual':'Monthly'}</td><td>${adminBillingMoney(x.amount,x.currency)}<small>/${x.interval==='year'?'year':'month'}</small></td><td>${adminBillingDate(x.currentPeriodEnd)}</td><td>${x.autoRenew?'On':'Off'}</td><td><button class="secondary compact-btn" data-admin-sub-detail="${x.businessId}">View</button></td></tr>`).join(''):'<tr><td colspan="8">No subscriptions match these filters.</td></tr>';
+    body.querySelectorAll('[data-admin-sub-detail]').forEach(btn=>btn.onclick=()=>openAdminSubscriptionDetail(btn.dataset.adminSubDetail));
+  }
+  async function openAdminSubscriptionDetail(businessId){
+    const box=q('adminSubDetail'),content=q('adminSubDetailBody');if(!box||!content)return;box.hidden=false;content.innerHTML='<p class="hint">Loading Stripe billing detail…</p>';box.scrollIntoView({behavior:'smooth',block:'nearest'});
+    const {data,error}=await state.client.functions.invoke('admin-subscription-billing',{body:{action:'detail',businessId}});if(error||data?.error){content.innerHTML=`<p class="hint">${escapeHtml(data?.error||error?.message||'Could not load billing detail.')}</p>`;return}
+    const s=data.subscription||{},invoices=data.invoices||[],notes=data.notifications||[];q('adminSubDetailTitle').textContent=s.businessName||'Subscription detail';q('adminSubDetailMeta').textContent=`${s.planName||'Plan'} · ${s.interval==='year'?'Annual':'Monthly'} · ${s.status||'—'}`;
+    const invoiceRows=invoices.length?invoices.map(i=>`<tr><td>${escapeHtml(i.number||i.id)}</td><td>${adminBillingDate(i.created)}</td><td>${adminBillingMoney(i.total,i.currency)}</td><td>${escapeHtml(i.status||'—')}</td><td>${i.hostedInvoiceUrl?`<a class="secondary compact-btn" href="${escapeHtml(i.hostedInvoiceUrl)}" target="_blank" rel="noopener">View</a>`:''}${i.invoicePdf?` <a class="secondary compact-btn" href="${escapeHtml(i.invoicePdf)}" target="_blank" rel="noopener">PDF</a>`:''}</td></tr>`).join(''):'<tr><td colspan="5">No Stripe invoices found.</td></tr>';
+    const noteRows=notes.length?notes.map(n=>`<tr><td>${escapeHtml(String(n.event_type||'').replaceAll('_',' '))}</td><td>${n.event_at?new Date(n.event_at).toLocaleDateString('en-NZ'):'—'}</td><td>${n.sent_at?'Sent '+new Date(n.sent_at).toLocaleDateString('en-NZ'):(n.error_message?'Failed':'Scheduled')}</td></tr>`).join(''):'<tr><td colspan="3">No lifecycle notifications recorded.</td></tr>';
+    content.innerHTML=`<div class="summary-grid"><div class="metric"><span>Amount</span><strong>${adminBillingMoney(s.amount,s.currency)}</strong></div><div class="metric"><span>Next event</span><strong>${adminBillingDate(s.currentPeriodEnd)}</strong></div><div class="metric"><span>Auto renewal</span><strong>${s.autoRenew?'On':'Off'}</strong></div></div><h4>Stripe invoices</h4><div class="table-scroll"><table><thead><tr><th>Invoice</th><th>Date</th><th>Total</th><th>Status</th><th>Document</th></tr></thead><tbody>${invoiceRows}</tbody></table></div><h4>Lifecycle notifications</h4><div class="table-scroll"><table><thead><tr><th>Event</th><th>Event date</th><th>Status</th></tr></thead><tbody>${noteRows}</tbody></table></div><p class="hint">Subscription state is read from Stripe. Billing changes are not made directly from this console.</p>`;
+  }
+
   async function renderAdmin(){
     if(!state.profile?.is_super_admin)return;
     const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles!profiles_business_id_fkey(id,full_name,email,role),subscriptions(id,status,billing_interval,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,monthly_price,annual_price,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
@@ -1596,6 +1729,7 @@ ${businessName}`,'');
     if(q('adminPlanSummary'))q('adminPlanSummary').textContent=`${(dashboardPlans||[]).length} subscription plan${(dashboardPlans||[]).length===1?'':'s'} configured.`;
     const attention=(dashboardUpdates||[]).length;if(q('adminPayrollDashboardStatus'))q('adminPayrollDashboardStatus').textContent=attention?`${attention} official payroll update${attention===1?'':'s'} require${attention===1?'s':''} review.`:'NZ Payroll Rules — Up to date';
     renderAdminPlans();
+    renderAdminPublicFeatures();
     renderPaymentSettings();
     renderAdminModules();
     renderAdminPayrollCompliance();
@@ -1708,6 +1842,25 @@ ${businessName}`,'');
         if(highlight){highlight.textContent=annual==null?'Annual rate not set':customer;highlight.classList.toggle('has-saving',pct>0)}
       };
       [mp,ap,msg].forEach(x=>x?.addEventListener('input',update));update();
+    });
+  }
+
+  function publicFeatureAdminCard(f,modules,isNew=false){
+    const id=isNew?'new':f.id,source=f.value_source||'module';
+    const opts=(modules||[]).map(m=>`<option value="${escapeHtml(m.slug)}" ${m.slug===f.module_slug?'selected':''}>${escapeHtml(m.name)} (${escapeHtml(m.slug)})</option>`).join('');
+    return `<div class="plan-card" data-public-feature-card="${id}"><div class="row-between"><span class="plan-name">${isNew?'Add public feature':escapeHtml(f.title||'Feature')}</span>${!isNew?`<span class="badge">${f.is_public?'Public':'Hidden'}</span>`:''}</div><label>Public title<input data-pf-title value="${escapeHtml(f.title||'')}" placeholder="Banking & Reconciliation"></label><label>Feature key<input data-pf-key value="${escapeHtml(f.feature_key||'')}" placeholder="banking"></label><label class="wide">Description<input data-pf-description value="${escapeHtml(f.description||'')}" placeholder="Short customer-facing description"></label><label>Group<input data-pf-group value="${escapeHtml(f.feature_group||'Features')}" placeholder="Money & tax"></label><label>Comparison source<select data-pf-source><option value="module" ${source==='module'?'selected':''}>Existing module entitlement</option><option value="core" ${source==='core'?'selected':''}>Included in every public plan</option><option value="invoice_limit" ${source==='invoice_limit'?'selected':''}>Invoice limit</option><option value="employee_limit" ${source==='employee_limit'?'selected':''}>Employee limit</option></select></label><label class="wide">Linked module<select data-pf-module><option value="">Choose module…</option>${opts}</select><small>Only used when Comparison source is Existing module entitlement.</small></label><label>Sort order<input type="number" step="1" data-pf-sort value="${Number(f.sort_order||100)}"></label><label class="tick-option"><input type="checkbox" data-pf-public ${f.is_public!==false?'checked':''}> <span>Show publicly</span></label><div class="row-actions wide"><button class="${isNew?'primary':'secondary'}" type="button" data-pf-save>${isNew?'+ Add feature':'Save feature'}</button>${!isNew?'<button class="danger" type="button" data-pf-delete>Delete</button>':''}</div></div>`;
+  }
+  async function renderAdminPublicFeatures(){
+    if(!state.profile?.is_super_admin||!q('adminPublicFeatureGrid'))return;
+    const root=q('adminPublicFeatureGrid');root.innerHTML='<p class="hint">Loading public feature catalogue…</p>';
+    const {data,error}=await state.client.rpc('v61107aad_admin_public_features');
+    if(error){root.innerHTML=`<p class="hint">Could not load public feature catalogue: ${escapeHtml(error.message)}</p>`;return}
+    const features=Array.isArray(data?.features)?data.features:[],modules=Array.isArray(data?.modules)?data.modules:[];
+    root.innerHTML=publicFeatureAdminCard({feature_key:'',title:'',description:'',feature_group:'Features',module_slug:'',value_source:'module',is_public:true,sort_order:160},modules,true)+features.map(f=>publicFeatureAdminCard(f,modules,false)).join('');
+    root.querySelectorAll('[data-public-feature-card]').forEach(card=>{
+      const source=card.querySelector('[data-pf-source]'),module=card.querySelector('[data-pf-module]');const sync=()=>{module.disabled=source.value!=='module'};source.onchange=sync;sync();
+      card.querySelector('[data-pf-save]').onclick=async()=>{const id=card.dataset.publicFeatureCard;const btn=card.querySelector('[data-pf-save]');btn.disabled=true;const {error}=await state.client.rpc('v61107aad_admin_save_public_feature',{p_id:id==='new'?null:id,p_feature_key:card.querySelector('[data-pf-key]').value.trim(),p_title:card.querySelector('[data-pf-title]').value.trim(),p_description:card.querySelector('[data-pf-description]').value.trim(),p_feature_group:card.querySelector('[data-pf-group]').value.trim(),p_module_slug:card.querySelector('[data-pf-module]').value||null,p_value_source:source.value,p_is_public:card.querySelector('[data-pf-public]').checked,p_sort_order:Number(card.querySelector('[data-pf-sort]').value||100)});btn.disabled=false;if(error)return alert('Could not save public feature: '+error.message);if(q('adminPublicFeatureMessage')){q('adminPublicFeatureMessage').textContent='Public feature saved.';q('adminPublicFeatureMessage').className='admin-inline-message success'}await renderAdminPublicFeatures();await renderPublicPlansFeatures()};
+      const del=card.querySelector('[data-pf-delete]');if(del)del.onclick=async()=>{if(!confirm(`Delete the public feature “${card.querySelector('[data-pf-title]').value.trim()}”? This only removes it from the marketing catalogue; it does not change subscriber module access.`))return;const {error}=await state.client.rpc('v61107aad_admin_delete_public_feature',{p_id:card.dataset.publicFeatureCard});if(error)return alert('Could not delete public feature: '+error.message);await renderAdminPublicFeatures();await renderPublicPlansFeatures()};
     });
   }
 

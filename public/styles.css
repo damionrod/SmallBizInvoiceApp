@@ -2476,19 +2476,8 @@ body > main{padding:22px 22px 64px}
 }
 
 /* V61.33 My Invoices row layout only */
-#view-invoices .invoice-list-card table{min-width:1540px;table-layout:auto}
-#view-invoices .invoice-list-card th,
-#view-invoices .invoice-list-card td{white-space:nowrap;vertical-align:middle;padding:9px 8px}
-#view-invoices .invoice-list-card th:nth-child(1){width:92px}
-#view-invoices .invoice-list-card th:nth-child(2){width:105px}
-#view-invoices .invoice-list-card th:nth-child(3){width:150px}
-#view-invoices .invoice-list-card th:nth-child(4){width:100px}
-#view-invoices .invoice-list-card th:nth-child(5),
-#view-invoices .invoice-list-card th:nth-child(6),
-#view-invoices .invoice-list-card th:nth-child(7),
-#view-invoices .invoice-list-card th:nth-child(8){width:105px}
-#view-invoices .invoice-list-card th:nth-child(9){width:135px}
-#view-invoices .invoice-list-card th:nth-child(10){width:500px}
+/* Legacy V61.33 desktop invoice column sizing removed in v61.107AAF.
+   Current 12-column sizing is defined once in the authoritative desktop block below. */
 #view-invoices .invoice-number-link{color:var(--ds-primary,#1e6fa8);text-decoration:none;font-weight:700}
 #view-invoices .invoice-number-link:hover{text-decoration:underline}
 #view-invoices .invoice-payment-status{display:inline-flex;align-items:center;justify-content:center;min-width:62px;padding:3px 7px;border-radius:3px;font-size:10px;font-weight:800;margin-right:7px}
@@ -2528,21 +2517,11 @@ body > main{padding:22px 22px 64px}
 #view-invoices{min-width:0}
 #view-invoices .invoice-list-card{overflow:visible}
 #view-invoices .invoice-list-card .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-#view-invoices .invoice-list-card table{width:100%;min-width:0!important;table-layout:fixed}
+#view-invoices .invoice-list-card table{width:100%}
 #view-invoices .invoice-list-card th,
 #view-invoices .invoice-list-card td{padding:7px 4px;white-space:nowrap;vertical-align:middle;font-size:10.5px}
 #view-invoices .invoice-list-card th{font-size:9.5px;line-height:1.15}
-#view-invoices .invoice-list-card th:nth-child(1){width:7.3%}
-#view-invoices .invoice-list-card th:nth-child(2){width:12.2%}
-#view-invoices .invoice-list-card th:nth-child(3){width:6.4%}
-#view-invoices .invoice-list-card th:nth-child(4){width:6.4%}
-#view-invoices .invoice-list-card th:nth-child(5){width:8.2%}
-#view-invoices .invoice-list-card th:nth-child(6){width:6.5%}
-#view-invoices .invoice-list-card th:nth-child(7){width:7.7%}
-#view-invoices .invoice-list-card th:nth-child(8){width:7.3%}
-#view-invoices .invoice-list-card th:nth-child(9){width:9.1%}
-#view-invoices .invoice-list-card th:nth-child(10){width:7.2%}
-#view-invoices .invoice-list-card th:nth-child(n+11){width:5.4%;text-align:center}
+/* Legacy V61.34 10-column percentage widths removed in v61.107AAF. */
 #view-invoices .inv-col-money{text-align:right;font-variant-numeric:tabular-nums}
 #view-invoices .inv-col-date{font-variant-numeric:tabular-nums}
 #view-invoices .invoice-customer-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
@@ -5005,19 +4984,7 @@ tbody tr:last-child td{border-bottom:0!important}
     letter-spacing:.015em!important;
   }
 
-  /* Invoice: 12 columns. Give customer/status/actions the room they need. */
-  #view-invoices #invoiceRows tr>*:nth-child(1),#view-invoices table:has(#invoiceRows) thead th:nth-child(1){width:10%}
-  #view-invoices #invoiceRows tr>*:nth-child(2),#view-invoices table:has(#invoiceRows) thead th:nth-child(2){width:9%}
-  #view-invoices #invoiceRows tr>*:nth-child(3),#view-invoices table:has(#invoiceRows) thead th:nth-child(3){width:12%}
-  #view-invoices #invoiceRows tr>*:nth-child(4),#view-invoices table:has(#invoiceRows) thead th:nth-child(4){width:6%}
-  #view-invoices #invoiceRows tr>*:nth-child(5),#view-invoices table:has(#invoiceRows) thead th:nth-child(5){width:6%}
-  #view-invoices #invoiceRows tr>*:nth-child(6),#view-invoices table:has(#invoiceRows) thead th:nth-child(6){width:7.5%}
-  #view-invoices #invoiceRows tr>*:nth-child(7),#view-invoices table:has(#invoiceRows) thead th:nth-child(7){width:6%}
-  #view-invoices #invoiceRows tr>*:nth-child(8),#view-invoices table:has(#invoiceRows) thead th:nth-child(8){width:7.5%}
-  #view-invoices #invoiceRows tr>*:nth-child(9),#view-invoices table:has(#invoiceRows) thead th:nth-child(9){width:7.5%}
-  #view-invoices #invoiceRows tr>*:nth-child(10),#view-invoices table:has(#invoiceRows) thead th:nth-child(10){width:8%}
-  #view-invoices #invoiceRows tr>*:nth-child(11),#view-invoices table:has(#invoiceRows) thead th:nth-child(11){width:7%}
-  #view-invoices #invoiceRows tr>*:nth-child(12),#view-invoices table:has(#invoiceRows) thead th:nth-child(12){width:13.5%}
+  /* Invoice desktop column sizing moved to the single v61.107AAH block at the end of this file. */
 
   /* Expense bills use the same compact principle; fixed layout shares any extra columns safely. */
   #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th:first-child,
@@ -7479,5 +7446,703 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
   }
   html body #view-expenses #expenseBillsExportCsv{
     margin-left:auto!important;
+  }
+}
+
+/* v61.107AAB — PHASE 1 ONLY: public Frindly website shell. Auth/signup logic is unchanged. */
+#authShell.auth-shell{padding:0!important;align-items:stretch!important;justify-content:stretch!important;background:#f5f7fb!important}
+#authShell .public-site{width:100%;min-height:100dvh;display:flex;flex-direction:column;background:linear-gradient(135deg,#0f1f3d 0%,#172b55 56%,#1b315e 100%);overflow:auto}
+#authShell .public-site-nav{height:72px;flex:0 0 72px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(24px,5vw,76px);border-bottom:1px solid rgba(255,255,255,.11);background:rgba(13,29,57,.74);backdrop-filter:blur(12px);position:sticky;top:0;z-index:3}
+#authShell .public-brand{border:0;background:transparent;padding:0;cursor:pointer;display:flex;align-items:center}
+#authShell .public-brand img{display:block;width:112px;height:auto;max-height:42px;object-fit:contain}
+#authShell .public-site-nav nav{display:flex;align-items:center;gap:7px}
+#authShell .public-site-nav nav button{border:0;background:transparent;color:rgba(255,255,255,.78);font-size:13px;font-weight:700;padding:10px 14px;border-radius:9px;cursor:pointer}
+#authShell .public-site-nav nav button:hover,#authShell .public-site-nav nav button.active{color:#fff;background:rgba(255,255,255,.1)}
+#authShell .public-site-content{width:100%;max-width:1500px;margin:0 auto;flex:1;display:flex;padding:clamp(28px,4vw,62px) clamp(24px,5vw,76px) 46px}
+#authShell .public-page{width:100%}
+#authShell .public-page[hidden]{display:none!important}
+#authShell .public-home{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(390px,560px);gap:clamp(36px,6vw,90px);align-items:center}
+#authShell .public-hero{max-width:760px;color:#fff;padding:22px 0}
+#authShell .public-kicker{display:inline-block;color:#c7a7ff;font-size:11px;font-weight:850;letter-spacing:.16em;margin-bottom:15px}
+#authShell .public-hero h1,#authShell .public-page-intro h1,#authShell .public-contact-copy h1{margin:0;color:#fff;letter-spacing:-.04em;line-height:1.03}
+#authShell .public-hero h1{font-size:clamp(45px,5.6vw,78px);max-width:720px}
+#authShell .public-hero h1 span{color:#c49bff}
+#authShell .public-lead{max-width:680px;margin:22px 0 28px;color:#d6dfef;font-size:clamp(16px,1.45vw,20px);line-height:1.6}
+#authShell .public-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:24px}
+#authShell .public-benefits>div{min-height:116px;padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.07);box-shadow:inset 0 1px rgba(255,255,255,.04)}
+#authShell .public-benefits strong,#authShell .public-benefits span{display:block}
+#authShell .public-benefits strong{color:#fff;font-size:14px;margin-bottom:7px}
+#authShell .public-benefits span{color:#bfcce0;font-size:12px;line-height:1.5}
+#authShell .public-proof{display:flex;flex-wrap:wrap;gap:18px;margin-top:23px;color:#bfcce0;font-size:11px;font-weight:700}
+#authShell .public-proof span::first-letter{color:#c49bff}
+#authShell .public-auth-slot{display:flex;justify-content:flex-end;align-items:center}
+#authShell .auth-card{width:min(520px,100%)!important;max-height:none;background:#fff;border:1px solid rgba(255,255,255,.45);border-radius:18px!important;box-shadow:0 28px 80px rgba(3,12,29,.34)!important;padding:28px!important}
+#authShell .auth-tabs button.active{color:#172b55;border-bottom-color:#8b5cf6}
+#authShell .auth-link{color:#6540bb}
+#authShell .auth-form .primary{background:#172b55;border-color:#172b55}
+#authShell .auth-form .primary:hover{filter:brightness(1.08)}
+#authShell .public-page-intro{max-width:830px;margin:12px auto 34px;text-align:center}
+#authShell .public-page-intro h1,#authShell .public-contact-copy h1{font-size:clamp(35px,4vw,56px)}
+#authShell .public-page-intro p,#authShell .public-contact-copy>p{color:#c8d3e5;font-size:16px;line-height:1.65}
+#authShell .public-feature-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+#authShell .public-feature-grid article{padding:22px;border-radius:15px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.075);color:#fff}
+#authShell .public-feature-grid article>span{color:#c49bff;font-size:11px;font-weight:850;letter-spacing:.1em}
+#authShell .public-feature-grid h2{margin:12px 0 8px;color:#fff;font-size:18px}
+#authShell .public-feature-grid p{margin:0;color:#bdc9dc;font-size:13px;line-height:1.55}
+#authShell .public-cta{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-top:22px;padding:20px 22px;border-radius:15px;background:#fff;color:#172b55}
+#authShell .public-cta strong,#authShell .public-cta span{display:block}
+#authShell .public-cta strong{font-size:17px}.public-cta span{font-size:12px;margin-top:4px;color:#68758b}
+#authShell .public-cta button{border:0;border-radius:10px;padding:11px 18px;background:#172b55;color:#fff;font-weight:800;cursor:pointer;white-space:nowrap}
+#authShell .public-contact{display:grid;grid-template-columns:minmax(0,.85fr) minmax(420px,650px);gap:clamp(40px,7vw,110px);align-items:center;max-width:1180px;margin:auto}
+#authShell .public-contact-note{margin-top:28px;padding:16px 18px;border-left:3px solid #9d72ee;background:rgba(255,255,255,.06);color:#fff;border-radius:0 10px 10px 0}
+#authShell .public-contact-note strong,#authShell .public-contact-note span{display:block}.public-contact-note span{color:#bfcce0;font-size:12px;margin-top:3px}
+#authShell .public-contact-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:26px;border-radius:18px;background:#fff;box-shadow:0 28px 80px rgba(3,12,29,.3)}
+#authShell .public-contact-form label{display:flex;flex-direction:column;gap:6px;color:#344054;font-size:12px;font-weight:750}
+#authShell .public-contact-form label small{font-weight:500;color:#98a2b3}
+#authShell .public-contact-form .wide,#authShell .public-contact-form>button,#authShell .public-contact-status{grid-column:1/-1}
+#authShell .public-contact-form input,#authShell .public-contact-form select,#authShell .public-contact-form textarea{width:100%;border:1px solid #d7deea;border-radius:9px;padding:10px 11px;background:#fff;color:#17233c;font:inherit;font-weight:500}
+#authShell .public-contact-form textarea{resize:vertical;min-height:116px}
+#authShell .public-contact-form input:focus,#authShell .public-contact-form select:focus,#authShell .public-contact-form textarea:focus{outline:2px solid rgba(139,92,246,.2);border-color:#8b5cf6}
+#authShell .public-contact-form>button{min-height:44px;background:#172b55;border-color:#172b55}
+#authShell .public-contact-status{min-height:18px;text-align:center;font-size:12px;color:#667085}.public-contact-status.success{color:#167044!important}.public-contact-status.error{color:#b42318!important}
+#authShell .public-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+@media(max-width:900px){
+ #authShell .public-site-content{padding:28px 22px 38px}
+ #authShell .public-home{grid-template-columns:1fr;gap:26px}.public-hero{text-align:center;margin:auto}.public-lead{margin-left:auto!important;margin-right:auto!important}.public-proof{justify-content:center}.public-auth-slot{justify-content:center!important}
+ #authShell .public-benefits{grid-template-columns:repeat(3,1fr)}
+ #authShell .public-feature-grid{grid-template-columns:1fr 1fr}
+ #authShell .public-contact{grid-template-columns:1fr;gap:26px}.public-contact-copy{text-align:center}
+}
+@media(max-width:600px){
+ #authShell .public-site-nav{height:auto;min-height:68px;padding:10px 14px;gap:8px;align-items:flex-start}.public-brand img{width:82px!important;margin-top:7px}.public-site-nav nav{gap:1px!important}.public-site-nav nav button{font-size:10px!important;padding:9px 7px!important}
+ #authShell .public-site-content{padding:20px 14px 30px}.public-hero{padding:8px 0}.public-hero h1{font-size:42px!important}.public-lead{font-size:15px!important;margin:16px 0 20px!important}
+ #authShell .public-benefits{grid-template-columns:1fr}.public-benefits>div{min-height:0!important;text-align:left}.public-proof{gap:8px 14px!important}
+ #authShell .auth-card{min-height:0!important;border-radius:16px!important;padding:20px 16px!important;box-shadow:0 18px 48px rgba(3,12,29,.3)!important}
+ #authShell .public-feature-grid{grid-template-columns:1fr}.public-cta{align-items:flex-start!important;flex-direction:column}.public-cta button{width:100%}
+ #authShell .public-contact-form{grid-template-columns:1fr;padding:20px 16px}.public-contact-form label,.public-contact-form .wide{grid-column:1!important}
+}
+
+
+/* v61.107AAC — public-site visual hotfix only: keep marketing canvas on the Frindly navy background. */
+#authShell .public-site-content{background:transparent!important;}
+#authShell .public-page,#authShell .public-home,#authShell .public-features,#authShell .public-contact{background:transparent!important;}
+/* V61.107AAD — public Plans & Features comparison + Super Admin catalogue editor */
+#authShell .public-plan-comparison{margin-top:34px;padding-top:30px;border-top:1px solid rgba(255,255,255,.13)}
+#authShell .public-comparison-head{text-align:center;max-width:760px;margin:0 auto 20px}
+#authShell .public-comparison-head h2{margin:8px 0 7px;color:#fff;font-size:clamp(26px,3vw,38px);letter-spacing:-.025em}
+#authShell .public-comparison-head p{margin:0;color:#bdc9dc;font-size:13px;line-height:1.55}
+#authShell .public-plan-comparison-wrap{border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden;background:rgba(255,255,255,.06);box-shadow:0 18px 50px rgba(3,11,29,.18)}
+#authShell .public-comparison-loading{padding:22px;margin:0;color:#c8d3e5;text-align:center}
+#authShell .public-comparison-table{width:100%;border-collapse:collapse;min-width:760px;background:#fff;color:#172b55}
+#authShell .public-comparison-table th,#authShell .public-comparison-table td{padding:14px 13px;border-bottom:1px solid #e8edf5;border-right:1px solid #edf1f6;vertical-align:middle}
+#authShell .public-comparison-table thead th{background:#f7f8fc;text-align:center;min-width:150px}
+#authShell .public-comparison-table thead th:first-child{text-align:left;min-width:260px}
+#authShell .public-comparison-table thead strong,#authShell .public-comparison-table thead span,#authShell .public-comparison-table thead small{display:block}
+#authShell .public-comparison-table thead strong{font-size:17px;color:#172b55;margin-bottom:5px}
+#authShell .public-comparison-table thead span{font-size:12px;color:#53627a;line-height:1.45}
+#authShell .public-comparison-table thead small{margin-top:6px;color:#7b3ff2;font-weight:800}
+#authShell .public-comparison-table tbody th{text-align:left;font-size:13px;font-weight:750;background:#fff}
+#authShell .public-comparison-table tbody th small{display:block;margin-top:3px;color:#77849a;font-weight:500;line-height:1.35}
+#authShell .public-comparison-table tbody td{text-align:center;font-size:13px;font-weight:750}
+#authShell .public-comparison-table td.has-feature{color:#147d64;font-size:19px}
+#authShell .public-comparison-table td.no-feature{color:#a9b2c1;font-size:17px}
+#authShell .public-comparison-table .public-comparison-group th{padding:9px 13px;background:#172b55;color:#fff;font-size:11px;letter-spacing:.08em;text-transform:uppercase;border-color:#172b55}
+#authShell .public-plan-comparison .table-scroll{overflow-x:auto}
+@media(max-width:760px){#authShell .public-plan-comparison{margin-top:24px;padding-top:24px}#authShell .public-comparison-table{min-width:680px}#authShell .public-comparison-table th,#authShell .public-comparison-table td{padding:11px 10px}}
+
+/* v61.107AAF — public comparison typography + shared public footer only */
+#authShell .public-comparison-table{font-size:14px;line-height:1.4}
+#authShell .public-comparison-table th,#authShell .public-comparison-table td{padding:15px 16px}
+#authShell .public-comparison-table thead th{padding-top:17px;padding-bottom:17px}
+#authShell .public-comparison-table thead strong{font-size:16px;font-weight:800;letter-spacing:-.015em;text-transform:none}
+#authShell .public-comparison-table thead span{font-size:12px;line-height:1.5}
+#authShell .public-comparison-table thead small{font-size:11px;line-height:1.4}
+#authShell .public-comparison-table tbody th{font-size:14px;font-weight:700;line-height:1.35;text-transform:none;letter-spacing:0}
+#authShell .public-comparison-table tbody th strong{display:block;color:#172b55;font-size:14px;font-weight:800;line-height:1.35;text-transform:none;letter-spacing:0}
+#authShell .public-comparison-table tbody th small{margin-top:4px;color:#6f7d92;font-size:11.5px;font-weight:500;line-height:1.45;text-transform:none;letter-spacing:0}
+#authShell .public-comparison-table tbody td{font-size:13px;font-weight:750}
+#authShell .public-comparison-table td.has-feature{font-size:18px}
+#authShell .public-comparison-table td.no-feature{font-size:16px}
+#authShell .public-comparison-table .public-comparison-group th{padding:10px 16px;background:#eef2f8;color:#465675;font-size:12px;font-weight:800;letter-spacing:0;text-transform:none;border-color:#dfe6f0}
+#authShell .public-comparison-table tbody tr:not(.public-comparison-group):hover th,#authShell .public-comparison-table tbody tr:not(.public-comparison-group):hover td{background:#fafbfe}
+
+#authShell .public-footer{flex:0 0 auto;width:100%;margin:0;border-top:1px solid rgba(196,155,255,.32);background:#0c1933;color:#fff}
+#authShell .public-footer-inner{width:100%;max-width:1500px;margin:0 auto;padding:25px clamp(24px,5vw,76px) 24px;display:grid;grid-template-columns:minmax(270px,1.25fr) minmax(250px,.9fr) minmax(220px,.7fr);gap:34px;align-items:start}
+#authShell .public-footer-brand{min-width:0}
+#authShell .public-footer-logo{display:inline-flex;align-items:center;border:0;background:transparent;padding:0;margin:0 0 10px;cursor:pointer}
+#authShell .public-footer-logo img{display:block;width:102px;height:auto;max-height:38px;object-fit:contain}
+#authShell .public-footer-brand>strong{display:block;color:#fff;font-size:14px;font-weight:750;margin-bottom:8px}
+#authShell .public-footer-brand p{margin:0;color:#9eacc3;font-size:11.5px;line-height:1.6}
+#authShell .public-footer-links{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;padding-top:4px}
+#authShell .public-footer-links a,#authShell .public-footer-links button{appearance:none;border:0;background:transparent;padding:2px 0;color:#c8d3e5;font:inherit;font-size:12px;font-weight:650;line-height:1.45;text-align:left;text-decoration:none;cursor:pointer}
+#authShell .public-footer-links a:hover,#authShell .public-footer-links button:hover{color:#fff;text-decoration:underline;text-decoration-color:#9d72ee;text-underline-offset:3px}
+#authShell .public-footer-meta{justify-self:end;text-align:right;padding-top:4px}
+#authShell .public-footer-meta>strong{display:block;color:#e8edf6;font-size:12px;font-weight:750}
+#authShell .public-footer-currency{color:#aebbd0;font-weight:650}
+#authShell .public-footer-social{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+#authShell .public-footer-social button{width:30px;height:30px;border:1px solid rgba(255,255,255,.17);border-radius:9px;background:rgba(255,255,255,.055);color:#cbd5e5;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+#authShell .public-footer-social button:hover{border-color:rgba(196,155,255,.65);background:rgba(196,155,255,.12);color:#fff}
+@media(max-width:900px){
+ #authShell .public-footer-inner{grid-template-columns:1.1fr .9fr;gap:24px 34px}
+ #authShell .public-footer-meta{grid-column:1/-1;justify-self:start;text-align:left;display:flex;align-items:center;gap:20px;padding-top:0}
+ #authShell .public-footer-social{margin-top:0;justify-content:flex-start}
+}
+@media(max-width:600px){
+ #authShell .public-comparison-table{min-width:660px}
+ #authShell .public-comparison-table th,#authShell .public-comparison-table td{padding:12px 11px}
+ #authShell .public-comparison-table tbody th strong{font-size:13px}
+ #authShell .public-comparison-table tbody th small{font-size:11px}
+ #authShell .public-footer-inner{padding:22px 18px;grid-template-columns:1fr;gap:20px;text-align:center}
+ #authShell .public-footer-logo{justify-content:center}
+ #authShell .public-footer-links{grid-template-columns:1fr;gap:7px}
+ #authShell .public-footer-links a,#authShell .public-footer-links button{text-align:center}
+ #authShell .public-footer-meta{grid-column:auto;justify-self:center;text-align:center;display:block}
+ #authShell .public-footer-social{justify-content:center;margin-top:12px}
+}
+
+/* v61.107AAG — public plan comparison presentation only */
+#authShell .public-plan-comparison-wrap{
+  border:0;
+  border-radius:22px;
+  overflow:hidden;
+  background:#f8faff;
+  box-shadow:0 22px 60px rgba(3,11,29,.22);
+}
+#authShell .public-plan-comparison .table-scroll{overflow-x:auto;padding:14px;background:#f8faff}
+#authShell .public-comparison-table{
+  border-collapse:separate;
+  border-spacing:0 8px;
+  background:transparent;
+  color:#172b55;
+}
+#authShell .public-comparison-table th,
+#authShell .public-comparison-table td{
+  border:0;
+  padding:14px 16px;
+  background:#fff;
+}
+#authShell .public-comparison-table thead th{
+  position:relative;
+  background:transparent;
+  padding:8px 10px 14px;
+  min-width:160px;
+}
+#authShell .public-comparison-table thead th:first-child{
+  min-width:300px;
+  color:#6d7890;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:none;
+  vertical-align:bottom;
+  padding-left:16px;
+}
+#authShell .public-comparison-table thead th:not(:first-child){
+  background:#fff;
+  border:1px solid #e6eaf2;
+  border-radius:16px;
+  box-shadow:0 7px 20px rgba(23,43,85,.07);
+}
+#authShell .public-comparison-table thead th:nth-child(3){
+  border-color:rgba(123,63,242,.35);
+  box-shadow:0 9px 26px rgba(123,63,242,.12);
+}
+#authShell .public-comparison-table thead strong{font-size:18px;margin-bottom:7px}
+#authShell .public-comparison-table thead span{font-size:12px;color:#65728a}
+#authShell .public-comparison-table thead small{
+  display:inline-flex;
+  width:auto;
+  margin:8px auto 0;
+  padding:4px 9px;
+  border-radius:999px;
+  background:#f2ebff;
+  color:#7139df;
+  font-size:10.5px;
+  font-weight:800;
+}
+#authShell .public-comparison-table tbody tr:not(.public-comparison-group) th{
+  border-radius:13px 0 0 13px;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(23,43,85,.035);
+}
+#authShell .public-comparison-table tbody tr:not(.public-comparison-group) td{
+  background:#fff;
+  box-shadow:0 3px 12px rgba(23,43,85,.035);
+}
+#authShell .public-comparison-table tbody tr:not(.public-comparison-group) td:last-child{border-radius:0 13px 13px 0}
+#authShell .public-comparison-table tbody th strong{font-size:14.5px;letter-spacing:-.005em}
+#authShell .public-comparison-table tbody th small{font-size:11.5px;line-height:1.45;color:#748197;max-width:650px}
+#authShell .public-comparison-table tbody td{font-size:13px;color:#263a61}
+#authShell .public-comparison-table td.has-feature{
+  color:#17866a;
+  font-size:0;
+}
+#authShell .public-comparison-table td.has-feature::after{
+  content:'✓';
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:27px;
+  height:27px;
+  border-radius:50%;
+  background:#eaf8f3;
+  color:#17866a;
+  font-size:16px;
+  font-weight:900;
+}
+#authShell .public-comparison-table td.no-feature{color:#aeb7c5;font-size:0}
+#authShell .public-comparison-table td.no-feature::after{content:'—';font-size:17px;font-weight:650;color:#aeb7c5}
+#authShell .public-comparison-table .public-comparison-group th{
+  padding:16px 10px 4px;
+  background:transparent;
+  color:#687690;
+  font-size:11.5px;
+  font-weight:850;
+  letter-spacing:.015em;
+  border:0;
+  box-shadow:none;
+}
+#authShell .public-comparison-table tbody tr:not(.public-comparison-group):hover th,
+#authShell .public-comparison-table tbody tr:not(.public-comparison-group):hover td{background:#fbfcff}
+/* Limits render as compact badges rather than spreadsheet values. */
+#authShell .public-comparison-table tbody tr:last-child td,
+#authShell .public-comparison-table tbody tr:nth-last-child(2) td{font-weight:800}
+#authShell .public-comparison-table tbody tr:last-child td:not(.has-feature):not(.no-feature),
+#authShell .public-comparison-table tbody tr:nth-last-child(2) td:not(.has-feature):not(.no-feature){color:#263a61}
+@media(max-width:900px){
+ #authShell .public-plan-comparison .table-scroll{padding:10px}
+ #authShell .public-comparison-table{min-width:720px;border-spacing:0 7px}
+ #authShell .public-comparison-table thead th:first-child{min-width:270px}
+}
+@media(max-width:600px){
+ #authShell .public-plan-comparison-wrap{border-radius:17px}
+ #authShell .public-plan-comparison .table-scroll{padding:8px}
+ #authShell .public-comparison-table{min-width:680px;border-spacing:0 6px}
+ #authShell .public-comparison-table th,#authShell .public-comparison-table td{padding:11px 10px}
+ #authShell .public-comparison-table thead th:first-child{min-width:245px}
+ #authShell .public-comparison-table thead strong{font-size:15px}
+ #authShell .public-comparison-table tbody th strong{font-size:13px}
+ #authShell .public-comparison-table tbody th small{font-size:10.5px}
+}
+
+/* v61.107AAH — isolated comparison tick + compact public footer presentation */
+#authShell .public-comparison-table td.has-feature,
+#authShell .public-comparison-table td.no-feature{font-size:0;color:transparent}
+#authShell .public-footer-inner{padding:17px clamp(24px,5vw,76px) 16px;grid-template-columns:minmax(420px,1.35fr) minmax(300px,.9fr) minmax(220px,.6fr);gap:28px;align-items:center}
+#authShell .public-footer-brand{display:flex;align-items:center;gap:20px;min-width:0}
+#authShell .public-footer-logo{flex:0 0 auto;margin:0}
+#authShell .public-footer-brand-copy{min-width:0;padding-left:20px;border-left:1px solid rgba(255,255,255,.12)}
+#authShell .public-footer-brand-copy>strong{display:block;color:#fff;font-size:13px;font-weight:750;margin:0 0 4px}
+#authShell .public-footer-brand-copy p{margin:0;color:#9eacc3;font-size:11px;line-height:1.45}
+#authShell .public-footer-links{padding-top:0;align-self:center}
+#authShell .public-footer-meta{padding-top:0;align-self:center}
+#authShell .public-footer-social{margin-top:9px}
+#authShell .public-footer-social button{width:30px;height:30px;padding:0}
+#authShell .public-footer-social svg{width:15px;height:15px;display:block;fill:currentColor}
+@media(max-width:900px){
+ #authShell .public-footer-inner{grid-template-columns:1fr 1fr;gap:20px 28px;padding-top:18px;padding-bottom:18px}
+ #authShell .public-footer-brand{align-items:center}
+ #authShell .public-footer-meta{grid-column:1/-1}
+}
+@media(max-width:600px){
+ #authShell .public-footer-inner{grid-template-columns:1fr;gap:17px;padding:18px}
+ #authShell .public-footer-brand{flex-direction:column;gap:10px;text-align:center}
+ #authShell .public-footer-brand-copy{padding-left:0;border-left:0}
+ #authShell .public-footer-logo{margin:0 auto}
+ #authShell .public-footer-meta{grid-column:auto}
+}
+
+/* v61.107AAI: footer link alignment and location label only */
+#authShell .public-footer-inner{grid-template-columns:minmax(270px,1fr) minmax(530px,1.8fr) minmax(120px,.38fr);gap:24px}
+#authShell .public-footer-links{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;column-gap:clamp(12px,1.6vw,26px);row-gap:8px;white-space:nowrap;padding:0}
+#authShell .public-footer-links a,#authShell .public-footer-links button{flex:0 0 auto;white-space:nowrap}
+#authShell .public-footer-meta{justify-self:center;text-align:center}
+#authShell .public-footer-social{justify-content:center}
+@media(max-width:1150px){
+ #authShell .public-footer-inner{grid-template-columns:1fr;gap:15px;justify-items:center}
+ #authShell .public-footer-brand{justify-content:center}
+ #authShell .public-footer-links{justify-content:center;white-space:normal}
+ #authShell .public-footer-meta{grid-column:auto;justify-self:center;text-align:center;display:block}
+ #authShell .public-footer-social{justify-content:center;margin-top:9px}
+}
+@media(max-width:600px){
+ #authShell .public-footer-links{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center}
+ #authShell .public-footer-links a,#authShell .public-footer-links button{text-align:center}
+}
+
+/* v61.107AAJ — Phase 2 onboarding visual refresh only. No onboarding workflow/state logic changed. */
+.onboarding-shell{
+  background:
+    radial-gradient(circle at 14% 16%,rgba(151,79,255,.12),transparent 30%),
+    radial-gradient(circle at 88% 82%,rgba(85,92,220,.10),transparent 34%),
+    linear-gradient(180deg,#f8f9fd 0%,#f1f4f9 100%)!important;
+}
+.onboarding-card{
+  width:min(760px,100%)!important;
+  border:1px solid #e3e7f0!important;
+  border-radius:24px!important;
+  box-shadow:0 28px 80px rgba(15,31,62,.14)!important;
+  padding:30px!important;
+}
+.onboarding-top{padding-bottom:2px!important}
+.onboarding-top .auth-brand{display:flex!important;align-items:center!important;gap:12px!important}
+.onboarding-top .auth-brand picture{display:flex!important;align-items:center!important}
+.onboarding-top .finlo-auth-logo{width:112px!important;height:auto!important;max-height:46px!important;object-fit:contain!important;border-radius:0!important}
+.onboarding-top .auth-brand>div{padding-left:12px!important;border-left:1px solid #e3e7f0!important}
+.onboarding-top .auth-brand strong{display:block!important;color:#16264a!important;font-size:15px!important;line-height:1.2!important}
+.onboarding-top .auth-brand span{display:block!important;margin-top:3px!important;color:#7b8498!important;font-size:11px!important}
+.onboarding-top>span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:58px!important;padding:6px 10px!important;border-radius:999px!important;background:#f3efff!important;color:#7040d8!important;font-size:11px!important;letter-spacing:.02em!important}
+.onboarding-progress{height:5px!important;margin:18px 0 32px!important;background:#ececf4!important;border-radius:999px!important;box-shadow:inset 0 1px 2px rgba(20,31,56,.06)!important}
+.onboarding-progress span{background:linear-gradient(90deg,#8e49ff 0%,#a64fff 52%,#cf55ff 100%)!important;box-shadow:0 0 12px rgba(166,79,255,.34)!important;border-radius:999px!important;transition:width .25s ease!important}
+.onboarding-card h1{font-size:30px!important;line-height:1.15!important;letter-spacing:-.025em!important;color:#14264b!important;margin-bottom:9px!important}
+.onboarding-card h1+p{font-size:14px!important;line-height:1.55!important;color:#707b91!important;margin-bottom:24px!important}
+.onboarding-fields{gap:16px!important}
+.onboarding-card label{color:#253858!important;font-weight:650!important;font-size:12px!important;gap:7px!important}
+.onboarding-card input,.onboarding-card select,.onboarding-card textarea{border-color:#dce2ec!important;border-radius:11px!important;background:#fff!important;box-shadow:0 1px 2px rgba(15,31,62,.025)!important}
+.onboarding-card input:focus,.onboarding-card select:focus,.onboarding-card textarea:focus{border-color:#9a5cff!important;box-shadow:0 0 0 3px rgba(154,92,255,.11)!important;outline:none!important}
+.onboarding-card .choice-grid{gap:12px!important}
+.onboarding-card .choice-card{border:1px solid #e0e5ee!important;border-radius:14px!important;background:#fff!important;box-shadow:0 3px 12px rgba(20,38,75,.035)!important;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease!important}
+.onboarding-card .choice-card:hover{border-color:#b89af1!important;box-shadow:0 7px 18px rgba(82,53,142,.08)!important;transform:translateY(-1px)!important}
+.onboarding-card .choice-card.selected{border-color:#9a5cff!important;background:linear-gradient(180deg,#fdfbff,#f8f4ff)!important;box-shadow:0 0 0 3px rgba(154,92,255,.10)!important}
+.onboarding-card .choice-card.selected .choice-check{color:#8e49ff!important}
+.onboarding-card .choice-card strong{color:#1c2f55!important;font-size:14px!important}
+.onboarding-card .choice-card span{color:#727e92!important}
+.onboarding-card .primary{background:linear-gradient(135deg,#192d54,#263f72)!important;border-color:#192d54!important;box-shadow:0 5px 14px rgba(20,38,75,.12)!important}
+.onboarding-card .primary:hover{filter:brightness(1.06)!important}
+.onboarding-card .secondary{border-color:#d7deea!important;color:#253858!important;background:#fff!important}
+.onboarding-card .notice.soft{border:1px solid #e6e0f4!important;background:#faf8ff!important;border-radius:13px!important}
+.onboarding-card .ready-mark{background:#f1eaff!important;color:#8e49ff!important;box-shadow:0 0 0 8px rgba(142,73,255,.055)!important}
+.onboarding-card .onboarding-import-card{border-color:#e0e5ee!important;border-radius:14px!important;box-shadow:0 4px 14px rgba(20,38,75,.035)!important}
+@media(max-width:760px){
+  .onboarding-shell{background:#fff!important}
+  .onboarding-card{padding:calc(18px + env(safe-area-inset-top)) 18px calc(22px + env(safe-area-inset-bottom))!important;border-radius:0!important;border:0!important;box-shadow:none!important}
+  .onboarding-top .finlo-auth-logo{width:96px!important;max-height:40px!important}
+  .onboarding-top .auth-brand>div{padding-left:9px!important}
+  .onboarding-card h1{font-size:26px!important}
+  .onboarding-progress{margin:14px 0 26px!important}
+  .onboarding-actions{background:linear-gradient(180deg,rgba(255,255,255,.84),#fff 26%)!important}
+}
+@media(max-height:560px) and (orientation:landscape){
+  .onboarding-card{max-height:calc(100dvh - 20px)!important;padding:18px 22px!important}
+  .onboarding-progress{margin:10px 0 18px!important}
+  .onboarding-card h1{font-size:24px!important}
+  .onboarding-card h1+p{margin-bottom:16px!important}
+}
+
+/* v61.107AAL Phase 6: signup plan cards. Presentation only; checkout contracts remain unchanged. */
+#signupForm .signup-plan-picker{margin:4px 0 16px}
+#signupForm .signup-plan-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 0 10px}
+#signupForm .signup-plan-heading strong{font-size:14px;color:#17233b}
+#signupForm .signup-plan-heading span{font-size:11px;color:#738096;text-align:right}
+#signupForm .signup-plan-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+#signupForm .signup-plan-card{min-width:0;border:1px solid #dfe4ed;border-radius:14px;padding:12px;background:#fff;box-shadow:0 5px 16px rgba(24,35,61,.05);cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+#signupForm .signup-plan-card:hover{border-color:#b9a9ee;box-shadow:0 8px 22px rgba(68,49,130,.09);transform:translateY(-1px)}
+#signupForm .signup-plan-card.selected{border:2px solid #7657d6;padding:11px;box-shadow:0 8px 24px rgba(94,70,178,.14)}
+#signupForm .signup-plan-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;min-height:42px}
+#signupForm .signup-plan-card-head>div{min-width:0}
+#signupForm .signup-plan-name{display:block;font-size:14px;font-weight:800;color:#18223a}
+#signupForm .signup-plan-card-head small{display:block;margin-top:3px;font-size:10px;line-height:1.25;color:#77839a}
+#signupForm .signup-plan-selected{flex:0 0 auto;border-radius:999px;background:#eee9ff;color:#5f43b7;padding:3px 7px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+#signupForm .signup-plan-price{display:flex;align-items:baseline;gap:3px;margin:9px 0 8px;color:#1b2841}
+#signupForm .signup-plan-price strong{font-size:23px;line-height:1;font-weight:850}
+#signupForm .signup-plan-price span{font-size:10px;color:#758096}
+#signupForm .signup-plan-choices{display:grid;gap:5px}
+#signupForm button.signup-plan-choice{width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid #e1e5ed;border-radius:9px;background:#f9fafc;color:#344057;padding:7px 8px;font:inherit;text-align:left;cursor:pointer}
+#signupForm button.signup-plan-choice span{font-size:9.5px;line-height:1.2}
+#signupForm button.signup-plan-choice strong{font-size:10px;white-space:nowrap}
+#signupForm button.signup-plan-choice.active{border-color:#7657d6;background:#f3efff;color:#52379f;box-shadow:inset 0 0 0 1px #7657d6}
+#signupForm button.signup-plan-choice:disabled{opacity:.48;cursor:not-allowed}
+#signupForm .signup-plan-choice.single{border:1px solid #e1e5ed;border-radius:9px;background:#f9fafc;padding:8px;font-size:10px;color:#657187}
+#signupForm .signup-plan-meta{margin-top:8px;padding-top:7px;border-top:1px solid #edf0f5;font-size:9.5px;line-height:1.3;color:#68758c}
+#signupForm #signupPlanSummary{display:block;margin-top:8px;line-height:1.35;color:#68758c;font-size:10px}
+#signupForm .signup-plan-loading{grid-column:1/-1;margin:0;padding:14px;border:1px dashed #d8dce5;border-radius:12px;text-align:center;color:#718096}
+@media(max-width:760px){#signupForm .signup-plan-grid{grid-template-columns:1fr}#signupForm .signup-plan-card{padding:11px}#signupForm .signup-plan-card.selected{padding:10px}#signupForm .signup-plan-heading{align-items:flex-start;flex-direction:column;gap:3px}#signupForm .signup-plan-heading span{text-align:left}}
+
+/* v61.107AAO — Phase 6C content-aware signup width only.
+   Keep four public plans on one row when present, but reclaim space automatically
+   when Super Admin hides one or more plans. */
+@media (min-width:1280px){
+  #authShell .public-site-content{max-width:1600px;}
+
+  /* Four visible plans: preserve the approved wide AAN layout. */
+  #authShell .public-home:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="4"]){
+    grid-template-columns:minmax(0,1fr) minmax(820px,880px);
+    gap:clamp(28px,2.5vw,44px);
+  }
+  #authShell .auth-card:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="4"]){width:min(880px,100%)!important;}
+
+  /* Three plans: shrink the signup side and let marketing reclaim the space. */
+  #authShell .public-home:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="3"]){
+    grid-template-columns:minmax(0,1fr) minmax(650px,720px);
+    gap:clamp(32px,3.2vw,54px);
+  }
+  #authShell .auth-card:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="3"]){width:min(720px,100%)!important;}
+
+  /* Two plans: return close to the normal login/signup width. */
+  #authShell .public-home:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="2"]){
+    grid-template-columns:minmax(0,1.35fr) minmax(500px,590px);
+    gap:clamp(36px,4vw,66px);
+  }
+  #authShell .auth-card:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="2"]){width:min(590px,100%)!important;}
+
+  /* One plan: compact signup panel; no reserved empty plan columns. */
+  #authShell .public-home:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="1"]){
+    grid-template-columns:minmax(0,1.55fr) minmax(390px,520px);
+    gap:clamp(36px,5vw,80px);
+  }
+  #authShell .auth-card:has(#signupForm:not([hidden]) .signup-plan-grid[data-plan-count="1"]){width:min(520px,100%)!important;}
+
+  #authShell .public-auth-slot:has(#signupForm:not([hidden])){width:100%;}
+  #signupForm .signup-plan-grid[data-plan-count="4"]{grid-template-columns:repeat(4,minmax(0,1fr));}
+  #signupForm .signup-plan-grid[data-plan-count="3"]{grid-template-columns:repeat(3,minmax(0,1fr));}
+  #signupForm .signup-plan-grid[data-plan-count="2"]{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #signupForm .signup-plan-grid[data-plan-count="1"]{grid-template-columns:1fr;}
+}
+#signupForm .signup-plan-card{display:flex;flex-direction:column;}
+#signupForm .signup-plan-card-head{min-height:62px;}
+#signupForm .signup-plan-price{min-height:28px;}
+#signupForm .signup-plan-choices{min-height:79px;}
+#signupForm .signup-plan-choice.single{min-height:79px;display:flex;align-items:center;}
+#signupForm .signup-plan-meta{margin-top:auto;}
+@media (max-width:1279px) and (min-width:761px){
+  #signupForm .signup-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  #signupForm .signup-plan-grid[data-plan-count="1"]{grid-template-columns:1fr;}
+}
+@media (max-width:760px){
+  #signupForm .signup-plan-grid{grid-template-columns:1fr;}
+}
+
+/* v61.107AAV — Phase 8 subscription billing history only */
+#subscriptionCard .subscription-billing-history{margin:22px 0;padding-top:18px;border-top:1px solid #e0e7eb}
+#subscriptionCard .billing-history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+#subscriptionCard .billing-history-head h4{margin:0 0 3px}
+#subscriptionCard .billing-history-head p{margin:0}
+#subscriptionCard .billing-upcoming{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 14px}
+#subscriptionCard .billing-upcoming>div{border:1px solid #e4e8ef;border-radius:10px;padding:10px 12px;background:#fafbfc;display:flex;flex-direction:column;gap:3px}
+#subscriptionCard .billing-upcoming span{font-size:12px;color:#667085}
+#subscriptionCard .billing-upcoming strong{font-size:14px;color:#172033}
+#subscriptionCard .billing-history-table th,#subscriptionCard .billing-history-table td{white-space:nowrap;vertical-align:middle}
+#subscriptionCard .billing-history-actions{display:flex;gap:6px;justify-content:flex-end}
+#subscriptionCard .billing-history-link{display:inline-flex;align-items:center;text-decoration:none;padding:6px 10px;font-size:12px}
+#subscriptionCard .billing-status{display:inline-flex;padding:4px 8px;border-radius:999px;background:#eef2f6;font-size:12px;font-weight:700}
+#subscriptionCard .billing-status-paid{background:#e9f8ef;color:#137a3f}
+#subscriptionCard .billing-status-open{background:#fff4e5;color:#9a5b00}
+@media(max-width:760px){#subscriptionCard .billing-upcoming{grid-template-columns:1fr}#subscriptionCard .billing-history-table th,#subscriptionCard .billing-history-table td{white-space:normal}#subscriptionCard .billing-history-actions{justify-content:flex-start;flex-wrap:wrap}}
+
+/* v61.107AAW — Super Admin subscription billing oversight */
+.admin-billing-kpis{grid-template-columns:repeat(6,minmax(120px,1fr));margin-bottom:14px}.admin-billing-filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}.admin-subscription-table td small{display:block;margin-top:3px;color:var(--muted,#667085)}.admin-sub-detail{margin-top:14px}.admin-sub-detail h4{margin:18px 0 8px}.admin-sub-detail .compact-btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}@media(max-width:900px){.admin-billing-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-billing-filters{grid-template-columns:1fr}.admin-subscription-table{min-width:860px}}
+
+/* v61.107AAY — quote progress invoicing, scoped and mobile friendly */
+.quote-invoice-options-card{max-width:620px;width:min(620px,calc(100vw - 32px));background:#fff;color:var(--text,#18303f);position:relative;margin:30px auto;padding:26px;border-radius:16px;box-shadow:0 24px 70px rgba(8,27,47,.28)}
+.quote-progress-card{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0;padding:12px;border:1px solid var(--border,#dbe3ea);border-radius:12px;background:var(--surface-soft,#f7f9fb)}
+.quote-progress-card span{display:flex;flex-direction:column;gap:3px;font-size:12px}.quote-progress-card strong{font-size:15px}
+.quote-invoice-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.qio-choice{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:58px;text-align:left}.qio-choice small{font-weight:400;opacity:.75}
+.quote-progress-custom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}.quote-progress-custom label{min-width:0}.quote-progress-custom input{width:100%}
+.invoice-progress-summary{margin:16px 0 8px;padding:10px 12px;border:1px solid #dbe3ea;border-radius:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 16px;font-size:12px}.invoice-progress-summary>strong{grid-column:1/-1;font-size:13px}.invoice-progress-summary span{display:flex;justify-content:space-between;gap:12px}
+@media(max-width:640px){.quote-invoice-options-card{width:calc(100vw - 20px);max-width:none;max-height:calc(100dvh - 20px);overflow:auto;margin:10px auto;padding:18px 16px;border-radius:14px}.quote-progress-card{grid-template-columns:1fr}.quote-invoice-choices{grid-template-columns:1fr}.quote-progress-custom{grid-template-columns:1fr}.quote-progress-custom button{width:100%}.invoice-progress-summary{grid-template-columns:1fr}.quote-list-actions .row-actions{flex-wrap:wrap}.quote-list-actions .row-actions button{min-height:40px}}
+
+/* v61.107AAZ — optional direct advance/progress invoicing */
+.direct-stage-billing{margin:0 0 12px}.direct-stage-toggle{border:0;background:transparent;color:#082f4f;font-weight:700;padding:4px 2px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.direct-stage-panel{margin:8px 0 12px;padding:14px}.direct-stage-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.direct-stage-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.direct-stage-summary span{border:1px solid #e1e7ec;border-radius:9px;padding:9px;display:flex;flex-direction:column;gap:3px;font-size:12px}.direct-stage-summary strong{font-size:14px;color:#082f4f}.direct-stage-actions{justify-content:flex-end;margin-top:12px}.direct-progress-action{display:flex;justify-content:flex-end;margin:8px 0 12px}
+@media(max-width:640px){.direct-stage-grid,.direct-stage-summary{grid-template-columns:1fr}.direct-stage-actions{display:grid;grid-template-columns:1fr;gap:8px}.direct-stage-actions button,.direct-progress-action button{width:100%;min-height:42px}.direct-stage-panel{padding:12px}.direct-stage-toggle{text-align:left}}
+
+/* v61.107AAA: staged-invoice identification + single-submit send feedback */
+.invoice-stage-banner{display:flex;align-items:center;gap:12px;margin:0 0 12px;padding:10px 12px;border:1px solid #dbe3ea;border-radius:10px;background:#fff}.invoice-stage-banner[hidden]{display:none}.invoice-stage-banner>div{display:flex;flex-direction:column;gap:2px}.invoice-stage-banner small{color:#607080}.invoice-stage-badge,.preview-stage-badge{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800;letter-spacing:.06em;background:#eef1f8;color:#44327a;white-space:nowrap}.preview-invoice-heading{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.preview-invoice-heading h3{margin:0}.invoice-send-busy{cursor:wait!important;opacity:.78}.invoice-send-spinner{display:inline-block;width:13px;height:13px;margin-right:7px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:invoiceSendSpin .7s linear infinite}.invoice-send-success{white-space:nowrap}@keyframes invoiceSendSpin{to{transform:rotate(360deg)}}
+@media(max-width:640px){.invoice-stage-banner{align-items:flex-start}.invoice-stage-banner small{line-height:1.35}.preview-invoice-heading{gap:6px}}
+/* v61.107AAB: direct billing-series continuation UI only */
+.direct-progress-action{gap:8px;flex-wrap:wrap}.direct-progress-dialog{width:min(560px,calc(100vw - 32px));padding:4px}.direct-progress-dialog-summary,.direct-progress-next-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.direct-progress-dialog-summary span,.direct-progress-next-summary span{border:1px solid #e1e7ec;border-radius:9px;padding:10px;display:flex;flex-direction:column;gap:4px;font-size:12px}.direct-progress-dialog-summary strong,.direct-progress-next-summary strong{font-size:14px;color:#082f4f}.direct-progress-next-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:640px){.direct-progress-action{display:grid;grid-template-columns:1fr}.direct-progress-action button{width:100%;min-height:42px}.direct-progress-dialog{width:100%;padding:0}.direct-progress-dialog-summary,.direct-progress-next-summary{grid-template-columns:1fr}}
+
+/* v61.107AAD: compact staged-invoice history inside the existing progress summary. */
+.invoice-progress-history{grid-column:1/-1;display:grid;gap:4px;margin:2px 0 4px;padding-top:6px;border-top:1px solid #e5ebf0}
+.invoice-progress-history>em{font-style:normal;font-weight:700;font-size:11px;color:#52606d;margin-bottom:1px}
+.invoice-progress-history>span{display:flex;justify-content:space-between;gap:16px;font-size:11px;line-height:1.35}
+.invoice-progress-history>span>span{min-width:0}
+.invoice-progress-history>span>b{white-space:nowrap}
+@media(max-width:760px){.invoice-progress-history>span{gap:10px}.invoice-progress-history>span>span{overflow-wrap:anywhere}}
+/* v61.107AAE — layout-only polish: Quotes header action */
+@media screen and (min-width:761px){
+  #view-jobcosting .quote-list-controls{grid-template-columns:minmax(0,1fr) 220px auto;align-items:end}
+  #view-jobcosting .quote-list-controls #jcQuoteRefresh{min-width:84px}
+}
+
+/* v61.107AAI — deterministic desktop invoice-list grid.
+   Header and every invoice row share one structural grid. No desktop nth-child
+   width negotiation remains; mobile rules below 901px are unchanged. */
+@media screen and (min-width:901px){
+  #view-invoices .invoice-list-card .table-scroll{
+    width:100%;max-width:100%;min-width:0;overflow:visible!important;
+  }
+  #view-invoices .invoice-list-card table{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    table-layout:auto!important;border-collapse:separate!important;border-spacing:0!important;
+  }
+  #view-invoices .invoice-list-card thead,
+  #view-invoices .invoice-list-card tbody{
+    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  #view-invoices .invoice-list-card thead tr,
+  #view-invoices .invoice-list-card tbody tr.invoice-list-row{
+    --invoice-list-grid: minmax(92px,.78fr) minmax(82px,.68fr) minmax(125px,1.15fr) 88px 92px 104px 78px 104px 92px 116px 104px minmax(300px,2.35fr);
+    display:grid!important;
+    grid-template-columns:var(--invoice-list-grid)!important;
+    align-items:center!important;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+  }
+  #view-invoices .invoice-list-card thead tr>* ,
+  #view-invoices .invoice-list-card tbody tr.invoice-list-row>*{
+    display:block!important;width:auto!important;min-width:0!important;max-width:none!important;
+    box-sizing:border-box!important;padding-left:6px!important;padding-right:6px!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  #view-invoices .invoice-list-card .inv-col-invoice,
+  #view-invoices .invoice-list-card .inv-col-status,
+  #view-invoices .invoice-list-card .inv-col-customer{min-width:0!important;max-width:none!important}
+  #view-invoices .invoice-list-card .inv-col-actions{
+    overflow:visible!important;text-overflow:clip!important;text-align:left!important;
+  }
+  #view-invoices .invoice-list-card .invoice-row-actions{
+    display:flex!important;align-items:center!important;justify-content:flex-start!important;
+    gap:6px!important;flex-wrap:nowrap!important;width:100%!important;min-width:0!important;
+    white-space:nowrap!important;overflow:visible!important;
+  }
+  #view-invoices .invoice-list-card .invoice-row-actions>*{flex:0 0 auto!important}
+  #view-invoices .invoice-list-card .invoice-record-payment-action{
+    flex:0 0 auto!important;min-width:max-content!important;padding-left:9px!important;padding-right:9px!important;
+  }
+  #view-invoices .invoice-list-card .invoice-more-trigger{flex:0 0 auto!important;min-width:62px!important}
+}
+#invoiceActionMenu{position:fixed;z-index:10050;min-width:178px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 30px rgba(20,40,60,.20);padding:7px;display:grid;gap:6px}
+#invoiceActionMenu[hidden]{display:none!important}
+#invoiceActionMenu button{width:100%;text-align:left;white-space:nowrap}
+
+/* v61.107AAN — invoice deterministic grid repair.
+   The earlier compact-table selectors use table:has(#invoiceRows) and are more
+   specific than the AAI grid cells, leaving each grid item at a tiny percent of
+   its own column. This final scoped block keeps one shared grid, forces every
+   header/body cell to fill its assigned track, and fits inside the page without
+   horizontal side scrolling. */
+@media screen and (min-width:901px){
+  html body #view-invoices .invoice-list-card .table-scroll{
+    overflow-x:hidden!important;
+    overflow-y:visible!important;
+  }
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows){
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    table-layout:auto!important;
+    border-collapse:separate!important;
+    border-spacing:0!important;
+  }
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead,
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tbody{
+    display:block!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+  }
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead tr,
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tbody tr.invoice-list-row{
+    --invoice-list-grid:
+      minmax(0,.82fr)
+      minmax(0,.62fr)
+      minmax(0,1.00fr)
+      minmax(0,.58fr)
+      minmax(0,.64fr)
+      minmax(0,.82fr)
+      minmax(0,.72fr)
+      minmax(0,.86fr)
+      minmax(0,.72fr)
+      minmax(0,.90fr)
+      minmax(0,.70fr)
+      minmax(206px,1.10fr);
+    display:grid!important;
+    grid-template-columns:var(--invoice-list-grid)!important;
+    align-items:center!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) tr>*:nth-child(n){
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+  }
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead tr>*,
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tbody tr.invoice-list-row>*{
+    display:block!important;
+    justify-self:stretch!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    box-sizing:border-box!important;
+    padding-left:7px!important;
+    padding-right:7px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead tr>*{
+    white-space:normal!important;
+    overflow:visible!important;
+    text-overflow:clip!important;
+    line-height:1.15!important;
+  }
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(1),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(2),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(3),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(4),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(5),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(11),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(12){
+    text-align:left!important;
+  }
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(6),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(7),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(8),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(9),
+  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(10){
+    text-align:right!important;
+    font-variant-numeric:tabular-nums!important;
+  }
+  html body #view-invoices .invoice-list-card .inv-col-actions{
+    overflow:hidden!important;
+    text-overflow:clip!important;
+    padding-left:5px!important;
+    padding-right:5px!important;
+  }
+  html body #view-invoices .invoice-list-card .invoice-row-actions{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:flex-start!important;
+    gap:6px!important;
+    flex-wrap:nowrap!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+  }
+  html body #view-invoices .invoice-list-card .invoice-row-actions>*{
+    flex:0 0 auto!important;
+    margin:0!important;
+  }
+  html body #view-invoices .invoice-list-card .invoice-icon-action{
+    width:34px!important;
+    min-width:34px!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding:0!important;
+  }
+  html body #view-invoices .invoice-list-card .invoice-more-trigger{
+    min-width:68px!important;
+    height:34px!important;
+    min-height:34px!important;
+    padding-left:8px!important;
+    padding-right:8px!important;
+  }
+  html body #view-invoices .invoice-list-card .invoice-record-payment-action{
+    display:none!important;
   }
 }
