@@ -120,7 +120,9 @@ rejected(t9)
 print('PASS 8: wrong business is rejected')
 
 t10,b10,i10=make(); a10=settle(t10); assert a10['status']=='succeeded'
-corrupt('update public.customer_payments set invoice_id=%s where id=%s',(str(uuid.uuid4()),a10['customer_payment_id']))
+other_invoice = uuid.uuid4()
+execute('insert into public.invoices(id,business_id,total,lifecycle_state) values (%s,%s,%s,%s)',(str(other_invoice),str(uuid.uuid4()),100,'issued'))
+corrupt('update public.customer_payments set invoice_id=%s where id=%s',(str(other_invoice),a10['customer_payment_id']))
 rejected(t10)
 print('PASS 9: wrong invoice is rejected')
 
