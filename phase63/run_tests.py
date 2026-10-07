@@ -32,11 +32,12 @@ def corrupt(sql,args=()):
     """
     with connect() as c:
         with c.cursor() as q:
+            # Transactional DDL: if the intended corruption fails, the context
+            # manager rolls back the trigger-disable automatically. Do not
+            # issue ENABLE TRIGGER inside an already-aborted transaction.
             q.execute('ALTER TABLE public.customer_payments DISABLE TRIGGER USER')
-            try:
-                q.execute(sql,args)
-            finally:
-                q.execute('ALTER TABLE public.customer_payments ENABLE TRIGGER USER')
+            q.execute(sql,args)
+            q.execute('ALTER TABLE public.customer_payments ENABLE TRIGGER USER')
 
 def make(amount=25,total=100,b=None,i=None,intent=None,invoice=True,void=False):
     b=b or uuid.uuid4(); i=i or uuid.uuid4(); t=uuid.uuid4()
@@ -89,12 +90,19 @@ print('PASS 4: voided invoice blocked')
 t6,_,_=make(amount=120,total=100); assert settle(t6)['status']=='needs_review' and count(t6)==0
 print('PASS 5: overpayment blocked')
 
-# A real transaction cannot reference a nonexistent invoice due to the verified FK.
-# Create a valid row, then deliberately corrupt ONLY the disposable fixture.
+# Phase64: the verified invoice FK makes a missing invoice unrepresentable
+# through normal SQL. Assert that PostgreSQL rejects deletion and the valid
+# transaction can still settle. Do NOT bypass production-equivalent FK rules.
 t7,_,i7=make()
-corrupt('delete from public.invoices where id=%s',(str(i7),))
-assert settle(t7)['status']=='needs_review' and count(t7)==0
-print('PASS 6: missing invoice blocked')
+try:
+    execute('delete from public.invoices where id=%s',(str(i7),))
+except psycopg2.errors.ForeignKeyViolation:
+    pass
+else:
+    raise AssertionError('Invoice FK allowed deletion of referenced invoice')
+assert execute('select count(*) from public.invoices where id=%s',(str(i7),),True)[0]==1
+assert settle(t7)['status']=='succeeded' and count(t7)==1
+print('PASS 6: invoice FK prevents missing-invoice state; valid settlement succeeds')
 
 t8,b8,i8=make(); execute("update public.invoice_payment_transactions set status='succeeded',customer_payment_id=NULL where id=%s",(str(t8),))
 # Phase50: corrupted succeeded rows must fail closed, not acknowledge settlement.
