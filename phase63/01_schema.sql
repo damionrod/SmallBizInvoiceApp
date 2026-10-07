@@ -20,6 +20,12 @@ CREATE UNIQUE INDEX customer_payments_stripe_checkout_session_uidx ON public.cus
 CREATE UNIQUE INDEX invoice_payment_transactions_stripe_payment_intent_id_key ON public.invoice_payment_transactions(stripe_payment_intent_id);
 CREATE UNIQUE INDEX invoice_payment_transactions_stripe_checkout_session_id_key ON public.invoice_payment_transactions(stripe_checkout_session_id);
 
+-- Proposed safeguard: isolated test fixture only.
+-- Enforce at most one customer payment per online transaction.
+CREATE UNIQUE INDEX customer_payments_transaction_uidx
+ON public.customer_payments(invoice_payment_transaction_id)
+WHERE invoice_payment_transaction_id IS NOT NULL;
+
 -- Phase59: actual verified FK relationship for payment references, fixture-only.
 ALTER TABLE public.invoice_payment_transactions
   ADD CONSTRAINT invoice_payment_transactions_customer_payment_id_fkey

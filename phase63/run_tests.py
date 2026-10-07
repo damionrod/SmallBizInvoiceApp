@@ -64,19 +64,31 @@ except UniqueViolation: pass
 else: raise AssertionError('Transaction-level duplicate PaymentIntent was accepted')
 print('PASS 2a: duplicate PaymentIntent rejected by transaction unique index')
 
-# Actual settlement unique_violation path: two distinct transaction identities,
-# but an already-present customer payment row with a conflicting Stripe session ID.
+# Test 2b: isolate a Stripe Checkout session uniqueness conflict.
+# Use a different valid transaction ID so the transaction-link unique
+# index cannot be responsible for rejecting the settlement.
 t3,b3,i3=make()
-# Use a REAL transaction ID: Phase59 added an FK on customer_payments.invoice_payment_transaction_id.
-# The conflicting row is valid under the fixture schema; the Stripe Checkout unique index,
-# not the foreign key, must reject the subsequent settlement insert.
-execute("insert into public.customer_payments(business_id,invoice_id,amount,payment_source,invoice_payment_transaction_id,currency,stripe_checkout_session_id) values (%s,%s,1,'stripe_connect',%s,'NZD','cs_conflict_phase53')", (str(b3),str(i3),str(t3)))
-execute("update public.invoice_payment_transactions set stripe_checkout_session_id='cs_conflict_phase53' where id=%s",(str(t3),))
-try: settle(t3)
-except UniqueViolation: pass
-else: raise AssertionError('Settlement swallowed unrelated customer-payment unique violation')
-assert count(t3)==1  # The deliberately pre-existing row remains; no second payment was inserted.
-print('PASS 2b: settlement rethrows Stripe session uniqueness conflict without adding a second payment')
+other_t3,_,_=make()
+
+execute(
+    "insert into public.customer_payments(business_id,invoice_id,amount,payment_source,invoice_payment_transaction_id,currency,stripe_checkout_session_id) values (%s,%s,1,'stripe_connect',%s,'NZD','cs_conflict_phase53')",
+    (str(b3),str(i3),str(other_t3))
+)
+execute(
+    "update public.invoice_payment_transactions set stripe_checkout_session_id='cs_conflict_phase53' where id=%s",
+    (str(t3),)
+)
+
+try:
+    settle(t3)
+except UniqueViolation:
+    pass
+else:
+    raise AssertionError('Settlement swallowed Stripe session uniqueness conflict')
+
+assert count(t3)==0, 'Failed settlement unexpectedly created a payment'
+assert count(other_t3)==1, 'Pre-existing conflicting payment was changed'
+print('PASS 2b: Stripe session uniqueness conflict rejected independently of transaction-link index')
 
 t4,_,_=make()
 with concurrent.futures.ThreadPoolExecutor(max_workers=2) as p:
@@ -155,9 +167,14 @@ print('PASS 15: mismatched Stripe Checkout session rejected')
 # Phase53: demonstrate the actual schema permits multiple payment rows for one transaction
 # when Stripe IDs differ. This is a documented risk, not a passing security guarantee.
 t17,b17,i17=make(); a17=settle(t17)
-execute("insert into public.customer_payments(business_id,invoice_id,amount,payment_source,invoice_payment_transaction_id,currency,stripe_payment_intent_id,stripe_checkout_session_id) values (%s,%s,1,'stripe_connect',%s,'NZD','pi_second_for_same_tx','cs_second_for_same_tx')",(str(b17),str(i17),str(t17)))
-assert count(t17)==2, 'Expected production-equivalent index gap to be demonstrable'
-print('OBSERVED 16: two customer payments can share a transaction ID when Stripe IDs differ (index gap)')
+try:
+    execute("insert into public.customer_payments(business_id,invoice_id,amount,payment_source,invoice_payment_transaction_id,currency,stripe_payment_intent_id,stripe_checkout_session_id) values (%s,%s,1,'stripe_connect',%s,'NZD','pi_second_for_same_tx','cs_second_for_same_tx')",(str(b17),str(i17),str(t17)))
+except UniqueViolation:
+    pass
+else:
+    raise AssertionError('Duplicate transaction payment was accepted')
+assert count(t17)==1, 'Duplicate transaction payment was inserted'
+print('PASS 16: duplicate transaction payment rejected by unique index')
 print('17 assertions/scenarios defined; PostgreSQL execution required to verify results')
 
 # Phase57: exercise reconstructed production customer-payment triggers without bypass.
