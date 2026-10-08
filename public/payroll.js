@@ -397,6 +397,23 @@
       }catch(error){console.error('Payroll duplicate-pay validation failed',error);return toast(error?.message||'Could not verify whether these employees have already been paid. Pay run was not finalised.')}
     }
 
+    if(finalise){
+      const payDate=$('prPayDate').value;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(payDate))return toast('Cannot finalise: a valid pay date is required.');
+      let periodReady;
+      try{
+        periodReady=await client().rpc('frindly_payroll_period_ready',{p_business_id:state.businessId,p_pay_date:payDate});
+      }catch(error){
+        console.error('Payroll accounting-period readiness failed',error);
+        return toast('Cannot finalise: accounting-period readiness could not be verified.');
+      }
+      if(periodReady.error){
+        console.error('Payroll accounting-period readiness failed',periodReady.error);
+        return toast('Cannot finalise: accounting-period readiness could not be verified.');
+      }
+      if(periodReady.data!==true)return toast('Cannot finalise: no open accounting period covers the pay date, or payroll access could not be verified.');
+    }
+
     const totals=payEmployees.reduce((z,x)=>({gross:z.gross+x.gross,ded:z.ded+x.deductions,net:z.net+x.net,emp:z.emp+x.employerGross,cost:z.cost+x.cost}),{gross:0,ded:0,net:0,emp:0,cost:0});
     const runNo=old?.pay_run_number||await nextRunNo();
     const snapshot={country:state.settings?.country_code||'NZ',pay_date:$('prPayDate').value,rules:activeRuleSnapshot($('prPayDate').value)};

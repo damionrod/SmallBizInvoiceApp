@@ -1992,13 +1992,21 @@ ${businessName}`,'');
 
   async function renderInvoicePaymentSettings(){
     const root=q('invoicePaymentSettingsRoot');if(!root)return;
-    if(state.profile?.is_super_admin===true){root.innerHTML='<div class="card"><p class="hint">Open Super Admin → Modules to enable Online Invoice Payments for this business, then grant it through a plan or business override.</p></div>';return}
     root.innerHTML='<div class="card"><p class="hint">Loading Stripe payment setup…</p></div>';
     const {data,error}=await invoicePaymentsRequest({action:'status'});
     if(error||data?.error){root.innerHTML=`<div class="card"><p class="hint">${escapeHtml(data?.error||error?.message||'Online payment setup is unavailable.')}</p></div>`;return}
     const settings=data?.settings||{};
     const accountReady=settings.connect_status==='active'&&settings.card_payments_status==='active';
-    const canManage=state.accessRole==='owner';
+    // Match the live invoice-payments Edge Function's owner-only check.
+    // Do not infer ownership from Super Admin privileges or cached UI roles.
+    let canManage=false;
+    try{
+      const {data:activeBusinessId,error:businessError}=await state.client.rpc('current_business_id');
+      if(!businessError&&activeBusinessId&&String(activeBusinessId)===String(state.business?.id||'')){
+        const {data:actualRole,error:roleError}=await state.client.rpc('v6147_current_business_role',{p_business_id:activeBusinessId});
+        canManage=!roleError&&actualRole==='owner';
+      }
+    }catch(_error){canManage=false;}
     const requirements=Array.isArray(settings.requirements?.currently_due)?settings.requirements.currently_due:[];
     const setupLabel=!settings.stripe_account_id?'Connect Stripe and set up bank account':accountReady?'Manage Stripe account and bank details':'Continue Stripe setup';
     root.innerHTML=`<div class="card invoice-payment-settings-card"><div class="card-title"><div><h3>Stripe Connect</h3><p class="hint">Stripe collects the business identity and bank details. Frindly stores the connected-account ID and setup status only.</p></div><span class="gateway-status ${accountReady?'enabled':settings.connect_status==='restricted'?'warning':'ready'}">${escapeHtml(invoicePaymentStatusLabel(settings.connect_status))}</span></div><div class="invoice-payment-connect-summary"><div><span>Card payments</span><strong>${escapeHtml(human(settings.card_payments_status||'not_requested'))}</strong></div><div><span>Partial payments</span><strong>${settings.allow_partial_payments===false?'Off':'On'}</strong></div><div><span>Fee handling</span><strong>${settings.fee_mode==='pass'?'Pass to customer':settings.fee_mode==='split'?'Split estimate':'Business absorbs'}</strong></div></div>${requirements.length?`<div class="admin-inline-message warning">Stripe still needs: ${requirements.map(escapeHtml).join(', ')}</div>`:''}<div class="actions"><button class="primary" type="button" id="invoicePaymentConnectBtn" ${canManage?'':'disabled'}>${setupLabel}</button></div><p class="hint">The button opens Stripe’s hosted onboarding. Complete the business verification and bank-account steps there before sending invoices with Pay Now.</p></div><div class="card"><div class="card-title"><div><h3>Customer payment options</h3><p class="hint">The original invoice amount stays unchanged. Any online processing charge is shown separately at checkout.</p></div></div><div class="form-grid compact"><label>Processing fee<select id="invoicePaymentFeeMode" ${canManage?'':'disabled'}><option value="bear" ${settings.fee_mode==='bear'?'selected':''}>Business absorbs the Stripe fee</option><option value="split" ${settings.fee_mode==='split'?'selected':''}>Split the estimated fee 50 / 50</option><option value="pass" ${settings.fee_mode==='pass'?'selected':''}>Pass the estimated fee to the customer</option></select><small>Stripe’s actual fee is recorded separately; this setting controls the estimated fee shown before Checkout.</small></label><label class="tick-option"><input id="invoicePaymentPartial" type="checkbox" ${settings.allow_partial_payments!==false?'checked':''} ${canManage?'':'disabled'}><span>Allow customers to make partial payments</span></label></div><div class="actions"><button class="primary" type="button" id="saveInvoicePaymentSettings" ${canManage?'':'disabled'}>Save payment settings</button></div><p class="hint" id="invoicePaymentSettingsMessage"></p></div>`;

@@ -28,18 +28,26 @@ Deno.serve(async(req)=>{
   try{cfg=await getStripeConfig(db,false)}catch(e){return new Response(e instanceof Error?e.message:'Missing Stripe configuration',{status:500})}
 
   const secret=cfg.secretKey;
-  const wh=cfg.webhookSecret;
-  if(!wh) return new Response('Stripe webhook signing secret is not configured in Super Admin → Payment gateway settings.',{status:500});
+  const webhookSecrets=String(cfg.webhookSecret||'').split(',').map((s)=>s.trim()).filter(Boolean);
+  if(!webhookSecrets.length) return new Response('Stripe webhook signing secret is not configured in Super Admin → Payment gateway settings.',{status:500});
 
   const stripe=new Stripe(secret,{apiVersion:STRIPE_API_VERSION});
   const sig=req.headers.get('stripe-signature');
   if(!sig) return new Response('Missing signature',{status:400});
 
-  let event:Stripe.Event;
-  try{
-    event=await stripe.webhooks.constructEventAsync(await req.text(),sig,wh);
-  }catch(e){
-    return new Response(`Webhook signature error: ${e instanceof Error?e.message:'invalid'}`,{status:400});
+  let event:Stripe.Event|null=null;
+  const body=await req.text();
+  let signatureError='';
+  for(const wh of webhookSecrets){
+    try{
+      event=await stripe.webhooks.constructEventAsync(body,sig,wh);
+      break;
+    }catch(e){
+      signatureError=e instanceof Error?e.message:'invalid';
+    }
+  }
+  if(!event){
+    return new Response(`Webhook signature error: ${signatureError||'invalid'}`,{status:400});
   }
 
   const referralEvent=async(bid:string|undefined,eventName:string)=>{
@@ -166,30 +174,76 @@ Deno.serve(async(req)=>{
       const resendKey=Deno.env.get('RESEND_API_KEY');
       if(!resendKey)return;
       const {data:tx,error:txError}=await db.from('invoice_payment_transactions').select('id,amount,gross_amount,customer_fee_amount,currency,status,payment_date,stripe_payment_intent_id,stripe_checkout_session_id,metadata,invoices(invoice_number,customer_name,customer_email,total,balance_due),businesses(name,settings)').eq('id',transactionId).maybeSingle();
-      if(txError||!tx||tx.status!=='succeeded'||tx.metadata?.receipt_sent_at||!tx.invoices?.customer_email)return;
+      if(txError||!tx||tx.status!=='succeeded'||!tx.invoices?.customer_email)return;
       const settings=tx.businesses?.settings||{},invoice=tx.invoices||{},currency=String(tx.currency||settings.currency||'NZD').toUpperCase();
+      const {data:claim,error:claimError}=await db.rpc('v6179_claim_invoice_payment_receipt',{p_transaction_id:transactionId});
+      if(claimError)throw claimError;
+      if(!claim?.claimed)return;
+      const claimToken=String(claim.claim_token);
+
       const businessName=String(settings.trading||settings.company||tx.businesses?.name||'Your Business');
       const esc=(value:any)=>String(value??'').replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]||m));
       const money=(value:any)=>{try{return new Intl.NumberFormat('en-NZ',{style:'currency',currency}).format(Number(value||0))}catch{return `${currency} ${Number(value||0).toFixed(2)}`}};
       const invoiceNumber=String(invoice.invoice_number||'Invoice');
       const subject=`Payment received for ${invoiceNumber} · ${businessName}`;
       const html=`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a"><h2>Payment received</h2><p>Hi ${esc(invoice.customer_name||'Customer')},</p><p>${esc(businessName)} has received your payment for invoice <strong>${esc(invoiceNumber)}</strong>.</p><table cellpadding="6" cellspacing="0"><tr><td>Invoice payment</td><td><strong>${money(tx.amount)}</strong></td></tr>${Number(tx.customer_fee_amount||0)>0?`<tr><td>Payment processing fee</td><td>${money(tx.customer_fee_amount)}</td></tr>`:''}<tr><td>Total charged</td><td><strong>${money(tx.gross_amount)}</strong></td></tr><tr><td>Remaining invoice balance</td><td>${money(invoice.balance_due)}</td></tr></table><p>Reference: ${esc(tx.stripe_payment_intent_id||tx.stripe_checkout_session_id||'Stripe payment')}</p><p>Thank you,<br>${esc(businessName)}</p></div>`;
-      const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:platformFrom(businessName),to:[invoice.customer_email],reply_to:validReplyTo(settings.outboundEmail||settings.email),subject,html})});
-      if(!response.ok){console.warn('Online payment receipt email failed',await response.text());return;}
-      await db.from('invoice_payment_transactions').update({metadata:{...(tx.metadata||{}),receipt_sent_at:new Date().toISOString()},updated_at:new Date().toISOString()}).eq('id',transactionId);
+      try{
+      const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resendKey}`,'Content-Type':'application/json','Idempotency-Key':String(claim.idempotency_key)},body:JSON.stringify({from:platformFrom(businessName),to:[invoice.customer_email],reply_to:validReplyTo(settings.outboundEmail||settings.email),subject,html})});
+      if(!response.ok)throw new Error(`Resend HTTP ${response.status}: ${(await response.text()).slice(0,300)}`);
+      const sent=await response.json();
+      const {data:completed,error:completeError}=await db.rpc('v6179_complete_invoice_payment_receipt',{p_transaction_id:transactionId,p_claim_token:claimToken,p_resend_message_id:String(sent?.id||'')});
+      if(completeError||completed!==true)throw completeError||new Error('Receipt completion not confirmed');
+      }catch(e){
+        // Never automatically release a claimed receipt after a provider request.
+        // An expired claim is quarantined for manual Resend reconciliation.
+        console.warn('Invoice receipt delivery requires reconciliation',transactionId,e);
+      }
     };
 
+    // Validate the Stripe object against the transaction created by Frindly.
+    const verifiedInvoiceTransaction=async(session:any,accountId:string,transactionId:string)=>{
+      const {data:tx,error}=await db.from('invoice_payment_transactions')
+        .select('id,stripe_account_id,stripe_checkout_session_id,stripe_payment_intent_id,gross_amount,currency,status')
+        .eq('id',transactionId).maybeSingle();
+      if(error)throw error;
+      if(!tx)throw new Error('Stripe payment transaction does not exist.');
+      const sessionId=String(session?.id||'');
+      const intentId=String(session?.payment_intent||'');
+      if(!accountId||String(tx.stripe_account_id||'')!==accountId)throw new Error('Stripe connected account mismatch.');
+      if(sessionId&&tx.stripe_checkout_session_id&&tx.stripe_checkout_session_id!==sessionId)throw new Error('Stripe Checkout session mismatch.');
+      if(intentId&&tx.stripe_payment_intent_id&&tx.stripe_payment_intent_id!==intentId)throw new Error('Stripe payment intent mismatch.');
+      const amount=Number(session?.amount_total);
+      if(!Number.isSafeInteger(amount)||amount<=0||amount!==Math.round(Number(tx.gross_amount)*100))throw new Error('Stripe payment amount mismatch.');
+      if(String(session?.currency||'').toLowerCase()!==String(tx.currency||'').toLowerCase())throw new Error('Stripe payment currency mismatch.');
+      return tx;
+    };
+    const verifiedCommunityCampaign=async(session:any,campaignId:string)=>{
+      if(String((event as any).account||''))throw new Error('Community ad payment must be on the platform account.');
+      const {data:campaign,error}=await db.from('community_ad_campaigns')
+        .select('id,stripe_checkout_session_id,stripe_payment_intent_id,price_charged,currency,payment_status,status')
+        .eq('id',campaignId).maybeSingle();
+      if(error)throw error;
+      if(!campaign)throw new Error('Community ad campaign does not exist.');
+      if(!session?.id||campaign.stripe_checkout_session_id!==String(session.id))throw new Error('Community ad Checkout session mismatch.');
+      if(campaign.stripe_payment_intent_id&&session.payment_intent&&campaign.stripe_payment_intent_id!==String(session.payment_intent))throw new Error('Community ad payment intent mismatch.');
+      if(!Number.isSafeInteger(Number(session.amount_total))||Number(session.amount_total)!==Math.round(Number(campaign.price_charged)*100))throw new Error('Community ad payment amount mismatch.');
+      if(String(session.currency||'').toLowerCase()!==String(campaign.currency||'').toLowerCase())throw new Error('Community ad payment currency mismatch.');
+      return campaign;
+    };
     const settleOnlineCheckout=async(session:any,success:boolean)=>{
       const accountId=String((event as any).account||'');
       const transactionId=String(session?.metadata?.payment_transaction_id||'');
       if(!accountId||!transactionId)return false;
       const paymentIntentId=String(session?.payment_intent||'');
+      const tx=await verifiedInvoiceTransaction(session,accountId,transactionId);
       if(!success){
-        const {error}=await db.from('invoice_payment_transactions').update({status:'failed',failure_reason:'Stripe reported that the customer payment failed.',stripe_checkout_session_id:session?.id||null,stripe_payment_intent_id:paymentIntentId||null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',transactionId).neq('status','succeeded');
+        const {error}=await db.from('invoice_payment_transactions').update({status:'failed',failure_reason:'Stripe reported that the customer payment failed.',stripe_checkout_session_id:session?.id||null,stripe_payment_intent_id:paymentIntentId||null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',transactionId).neq('status','succeeded').neq('status','needs_review');
         if(error)throw error;
         return true;
       }
 
+      // Payments flagged for manual review must not be automatically settled by delayed Stripe events.
+      if(tx.status==='succeeded'||tx.status==='needs_review')return true;
       const intent=paymentIntentId?await connectedPaymentIntent(accountId,paymentIntentId):null;
       const charge=intent?.latest_charge&&typeof intent.latest_charge==='object'?intent.latest_charge:null;
       const balance=intent?.latest_charge?.balance_transaction&&typeof intent.latest_charge.balance_transaction==='object'?intent.latest_charge.balance_transaction:null;
@@ -209,7 +263,7 @@ Deno.serve(async(req)=>{
         updated_at:new Date().toISOString()
       };
       Object.keys(patch).forEach(k=>patch[k]===undefined&&delete patch[k]);
-      const {error:updateError}=await db.from('invoice_payment_transactions').update(patch).eq('id',transactionId);
+      const {error:updateError}=await db.from('invoice_payment_transactions').update(patch).eq('id',transactionId).neq('status','succeeded');
       if(updateError)throw updateError;
       const {error:recordError}=await db.rpc('v6181_record_online_invoice_payment',{
         p_transaction_id:transactionId,
@@ -225,6 +279,8 @@ Deno.serve(async(req)=>{
       const campaignId=String(session?.metadata?.community_ad_campaign_id||'');
       if(!campaignId)return false;
       const paymentIntentId=session?.payment_intent?String(session.payment_intent):'';
+      const campaign=await verifiedCommunityCampaign(session,campaignId);
+      if(campaign.payment_status==='paid')return true;
       const patch:any={
         stripe_checkout_session_id:session?.id||null,
         stripe_payment_intent_id:paymentIntentId||null,
@@ -232,7 +288,7 @@ Deno.serve(async(req)=>{
         status:success?'pending_review':'pending_payment',
         updated_at:new Date().toISOString()
       };
-      const {error}=await db.from('community_ad_campaigns').update(patch).eq('id',campaignId);
+      const {error}=await db.from('community_ad_campaigns').update(patch).eq('id',campaignId).neq('payment_status','paid');
       if(error)throw error;
       return true;
     };
@@ -241,12 +297,13 @@ Deno.serve(async(req)=>{
       const accountId=String((event as any).account||'');
       const transactionId=String(intent?.metadata?.payment_transaction_id||'');
       if(!accountId||!transactionId)return false;
+      const sessionLike={id:null,payment_intent:intent?.id,amount_total:intent?.amount_received||intent?.amount,currency:intent?.currency,metadata:intent?.metadata};
       if(!success){
-        const {error}=await db.from('invoice_payment_transactions').update({status:'failed',failure_reason:'Stripe reported that the payment intent failed.',stripe_payment_intent_id:intent?.id||null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',transactionId).neq('status','succeeded');
+        await verifiedInvoiceTransaction(sessionLike,accountId,transactionId);
+        const {error}=await db.from('invoice_payment_transactions').update({status:'failed',failure_reason:'Stripe reported that the payment intent failed.',stripe_payment_intent_id:intent?.id||null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',transactionId).neq('status','succeeded').neq('status','needs_review');
         if(error)throw error;
         return true;
       }
-      const sessionLike={id:null,payment_intent:intent?.id,amount_total:intent?.amount_received||intent?.amount,metadata:intent?.metadata};
       return settleOnlineCheckout(sessionLike,true);
     };
 
@@ -261,9 +318,15 @@ Deno.serve(async(req)=>{
     // Existing V61.51 subscription + referral behavior below remains unchanged.
     if(event.type==='checkout.session.completed'){
       const cs=event.data.object as Stripe.Checkout.Session;
-      if(await settleCommunityAdCheckout(cs,cs.payment_status==='paid')) return new Response('ok');
+      if(cs.metadata?.community_ad_campaign_id){
+        if(cs.payment_status==='paid' && await settleCommunityAdCheckout(cs,true)) return new Response('ok');
+        // Checkout completion alone is not proof of failure for delayed payment methods.
+        await verifiedCommunityCampaign(cs,String(cs.metadata.community_ad_campaign_id));
+        return new Response('ok');
+      }
       if(cs.metadata?.payment_transaction_id&&cs.payment_status!=='paid'){
-        const {error}=await db.from('invoice_payment_transactions').update({status:'processing',stripe_checkout_session_id:cs.id,stripe_payment_intent_id:cs.payment_intent?String(cs.payment_intent):null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',String(cs.metadata.payment_transaction_id)).neq('status','succeeded');
+        await verifiedInvoiceTransaction(cs,String((event as any).account||''),String(cs.metadata.payment_transaction_id));
+        const {error}=await db.from('invoice_payment_transactions').update({status:'processing',stripe_checkout_session_id:cs.id,stripe_payment_intent_id:cs.payment_intent?String(cs.payment_intent):null,stripe_event_id:event.id,updated_at:new Date().toISOString()}).eq('id',String(cs.metadata.payment_transaction_id)).neq('status','succeeded').neq('status','needs_review');
         if(error)throw error;
         return new Response('ok');
       }
