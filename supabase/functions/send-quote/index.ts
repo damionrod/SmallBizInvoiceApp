@@ -1,14 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { platformFrom, validReplyTo } from "../_shared/email-sender.ts";
+import { platformFrom, validReplyTo, corsHeaders, clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
 import { storePdfAndAttachment, storedPdfAttachment } from "../_shared/document-attachment.ts";
 
-const cors = {
-  "Access-Control-Allow-Origin":"*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods":
-    "POST, OPTIONS"
-};
+const cors = corsHeaders();
 
 const json = (x:any,status=200) =>
   new Response(
@@ -125,6 +119,7 @@ Deno.serve(async(req)=>{
         401
       );
     }
+    await enforceRateLimit(admin,"send-quote:user",user.id||clientIp(req),30,3600);
 
     const isMultipart = (req.headers.get("content-type") || "").toLowerCase().includes("multipart/form-data");
     let quoteId="", to="", pdf:File|null=null;
@@ -140,6 +135,7 @@ Deno.serve(async(req)=>{
         400
       );
     }
+    await enforceRateLimit(admin,"send-quote:quote",quoteId,10,3600);
 
     const {
       data:q,
@@ -362,7 +358,7 @@ Kind regards,
             ? e.message
             : "Unknown quote email error"
       },
-      400
+      (e as any)?.status || 400
     );
   }
 });

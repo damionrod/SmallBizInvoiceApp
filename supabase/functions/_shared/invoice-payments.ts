@@ -1,10 +1,8 @@
+import { corsHeaders } from './email-sender.ts';
+
 export const INVOICE_PAYMENTS_MODULE = 'invoice_payments';
 
-export const PAYMENT_CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+export const PAYMENT_CORS = corsHeaders();
 
 export const paymentJson = (value: unknown, status = 200) => new Response(
   JSON.stringify(value),
@@ -17,7 +15,7 @@ export function roundCents(value: number): number {
 
 export function calculateCustomerFee(amount: number, settings: any): number {
   const base = Math.max(0, roundCents(amount));
-  const mode = String(settings?.fee_mode || 'bear');
+  const mode = String(settings?.fee_mode || 'pass');
   if (mode === 'bear') return 0;
 
   const percent = Math.max(0, Number(settings?.fee_percent || 0)) / 100;

@@ -347,6 +347,8 @@ window.switchView=function switchView(v){
   const invoiceViews=['create','invoices','customers'];
   const target=$('view-'+v);
   if(!target)return;
+  const current=document.querySelector('.view.active')?.id?.replace(/^view-/,'');
+  if(current&&current!==v&&window.DraftProtection?.shouldBlockNavigation?.()&&!window.DraftProtection.confirmDiscard())return;
   if(invoiceViews.includes(v))lastInvoiceView=v;
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   target.classList.add('active');

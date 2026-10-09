@@ -1,10 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
 
-const cors={
-  "Access-Control-Allow-Origin":"*",
-  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods":"POST, OPTIONS"
-};
+const cors=corsHeaders();
 const out=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...cors,"Content-Type":"application/json"}});
 const MAX_BYTES=10*1024*1024;
 const ALLOWED=new Set(['image/jpeg','image/png','image/webp','application/pdf']);
@@ -74,8 +71,10 @@ Deno.serve(async(req)=>{
   const perfStarted=performance.now();
   let perfAuthDone=perfStarted,perfReferenceDone=perfStarted,perfOpenAiStart=0,perfOpenAiDone=0,perfPostDone=0;
   try{
+    await enforceRateLimit(admin,'scan-expense:ip',clientIp(req),80,3600);
     const {data:{user}}=await client.auth.getUser();
     if(!user)return out({ok:false,error:'Not authenticated'},401);
+    await enforceRateLimit(admin,'scan-expense:user',user.id||clientIp(req),30,3600);
     const body=await req.json();
     const requestedBusinessId=String(body?.business_id||'').trim();
     const {data:currentBusinessId,error:businessError}=await client.rpc('current_business_id');
@@ -85,6 +84,7 @@ Deno.serve(async(req)=>{
     // also makes super-admin testing use the business currently open in Finlo.
     const {data:allowedBusiness,error:allowedBusinessError}=await client.from('businesses').select('id').eq('id',businessId).maybeSingle();
     if(allowedBusinessError||!allowedBusiness)return out({ok:false,error:'Business account not available'},403);
+    await enforceRateLimit(admin,'scan-expense:business',businessId,120,3600);
     perfAuthDone=performance.now();
 
     const documents=Array.isArray(body?.documents)?body.documents:[{filename:body?.filename,mime_type:body?.mime_type,file_base64:body?.file_base64}];
@@ -220,6 +220,6 @@ The business currency is generally NZD, but use the document currency when clear
   }catch(e){
     console.error(e);
     try{if(logId)await admin.from('expense_ai_scans').update({status:'failed',error_message:String(e instanceof Error?e.message:e).slice(0,500),completed_at:new Date().toISOString()}).eq('id',logId)}catch{}
-    return out({ok:false,error:e instanceof Error?e.message:'AI scan failed'},400);
+    return out({ok:false,error:e instanceof Error?e.message:'AI scan failed'},(e as any)?.status||400);
   }
 });

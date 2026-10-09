@@ -2,12 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getStripeConfig, randomIntegrationSuffix, stripeHeaders } from "../_shared/payment-config.ts";
 import { activeBillingSubscriptions, billingRequest, billingSubscription, pendingPlanChange } from "../_shared/subscription-billing.ts";
 import { refereeCheckoutDiscount } from "../_shared/referral-checkout.ts";
+import { corsHeaders, clientIp, enforceRateLimit } from "../_shared/email-sender.ts";
 
-const cors={
-  "Access-Control-Allow-Origin":"*",
-  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods":"POST, OPTIONS"
-};
+const cors=corsHeaders();
 const out=(x:any,s=200)=>new Response(JSON.stringify(x),{status:s,headers:{...cors,"Content-Type":"application/json"}});
 
 function validateReturnUrl(raw:any,req:Request){
@@ -45,6 +42,7 @@ Deno.serve(async(req)=>{
     stage='authenticating the current user';
     const {data:{user}}=await client.auth.getUser();
     if(!user)return out({error:'Not authenticated'},401);
+    await enforceRateLimit(admin,'create-checkout:user',user.id||clientIp(req),20,3600);
 
     stage='resolving the active business';
     const {data:businessId,error:businessError}=await client.rpc('current_business_id');
@@ -242,6 +240,6 @@ Deno.serve(async(req)=>{
     return out({url:d.url});
   }catch(e){
     const error=e instanceof Error?e.message:'Checkout failed';
-    return out({error,stage},400);
+    return out({error,stage},(e as any)?.status||400);
   }
 });

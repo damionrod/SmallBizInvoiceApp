@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles-core.css?v=61.102L-login-reliability" />
-  <link rel="stylesheet" href="styles.css?v=61.107ABD-helper-fab-20pct-smaller" />
+  <link rel="stylesheet" href="styles-core.css?v=61.116-settings-simplified" />
+  <link rel="stylesheet" href="styles.css?v=61.118-live-bank-feeds" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
   <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
   <script src="app-config.js?v=61.102L-login-reliability"></script>
@@ -57,7 +57,7 @@
   </div>
   <section class="onboarding-shell" id="onboardingShell" hidden aria-label="Frindly setup">
     <div class="onboarding-card">
-      <div class="onboarding-top"><div class="auth-brand"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img class="finlo-auth-logo" src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly"></picture><div><strong>Frindly</strong><span>Quick setup</span></div></div><span id="onboardingProgress">1 of 5</span></div>
+      <div class="onboarding-top"><div class="auth-brand"><picture><source srcset="frindly-logo.webp?v=61.97-performance-fixes" type="image/webp"><img class="finlo-auth-logo" src="frindly-logo.png?v=61.97-performance-fixes" alt="Frindly"></picture><div><strong>Frindly</strong><span>Quick setup</span></div></div><span id="onboardingProgress">1 of 4</span></div>
       <div class="onboarding-progress"><span id="onboardingBar"></span></div>
       <div id="onboardingBody"></div>
     </div>
@@ -238,7 +238,7 @@
         <button class="module-tab active" data-bank-tab="reconcile">Reconcile</button><button class="module-tab" data-bank-tab="import">Import</button><button class="module-tab" data-bank-tab="reconciled">Reconciled</button><button class="module-tab" data-bank-tab="settings">Settings</button>
       </div>
       <section class="bank-panel active" data-bank-panel="reconcile"><div class="card"><div class="bank-toolbar"><label>Bank account<select id="brAccountFilter"><option value="">All accounts</option></select></label><label>Type<select id="brTypeFilter"><option value="">Money in & out</option><option value="in">Money in</option><option value="out">Money out</option></select></label><label>Search<input id="brSearch" placeholder="Reference, name, amount"></label><button class="secondary" id="brRefresh">Refresh</button></div></div><div id="brUnreconciledList" class="bank-card-list"></div></section>
-      <section class="bank-panel" data-bank-panel="import"><div id="brImportOrigin" class="notice soft bank-import-origin" hidden></div><div class="card"><div class="card-title"><div><h2>Import bank CSV</h2><p class="hint">Upload a CSV. Columns are detected automatically; adjust mapping before import if needed.</p></div></div><div class="form-grid compact"><label>Bank account<select id="brImportAccount"></select></label><label>CSV file<input id="brCsvFile" type="file" accept=".csv,text/csv"></label></div><div id="brMapping" class="bank-mapping" hidden></div><div id="brImportPreview" class="bank-import-preview"></div><div class="actions"><button class="primary" id="brImportConfirm" hidden>Import new transactions</button></div></div></section>
+      <section class="bank-panel" data-bank-panel="import"><div id="brImportOrigin" class="notice soft bank-import-origin" hidden></div><div id="brLiveBankFeedsCard"></div><div class="card"><div class="card-title"><div><h2>Import bank CSV</h2><p class="hint">Upload a CSV. Columns are detected automatically; adjust mapping before import if needed.</p></div></div><div class="form-grid compact"><label>Bank account<select id="brImportAccount"></select></label><label>CSV file<input id="brCsvFile" type="file" accept=".csv,text/csv"></label></div><div id="brMapping" class="bank-mapping" hidden></div><div id="brImportPreview" class="bank-import-preview"></div><div class="actions"><button class="primary" id="brImportConfirm" hidden>Import new transactions</button></div></div></section>
       <section class="bank-panel" data-bank-panel="reconciled"><div class="card"><div class="bank-toolbar bank-history-toolbar"><label>Bank account<select id="brHistoryAccount"><option value="">All accounts</option></select></label><label>Status<select id="brHistoryStatus"><option value="">All history</option><option value="reconciled">Reconciled only</option><option value="excluded">Excluded only</option></select></label><label>Search<input id="brHistorySearch" placeholder="Reference, payee, match"></label><label>From<input id="brHistoryFrom" type="date"></label><label>To<input id="brHistoryTo" type="date"></label><button class="secondary" id="brHistoryRefresh">Refresh</button></div><div class="bank-history-bulk" id="brHistoryBulk" hidden><label><input type="checkbox" id="brHistorySelectAll"> Select all visible</label><button class="secondary" id="brHistoryUndoSelected" type="button" disabled>Undo selected</button></div></div><div id="brReconciledList" class="bank-card-list"></div></section>
       <section class="bank-panel" data-bank-panel="settings">
         <div class="card"><h2>Reconciliation Settings</h2><div class="form-grid compact"><label>Date tolerance (days)<input id="brDateTolerance" type="number" min="0" max="30" value="5"></label><label>High-confidence threshold<input id="brConfidenceThreshold" type="number" min="50" max="100" value="85"></label></div><div class="actions"><button class="primary" id="brSaveSettings">Save Settings</button></div></div>
@@ -299,14 +299,14 @@
     <section id="view-financials" class="view">
       <div class="page-head financials-main-head"><div><h1>Financials</h1><p>Understand your profit, cash, GST and overall financial position.</p></div><button class="primary" id="finAccountantBtn" type="button">For My Accountant</button></div>
       <div class="financial-nav-shell">
-        <div class="module-tabs financial-module-tabs"><button class="module-tab active" data-fin-tab="overview">Summary</button><button class="module-tab" data-fin-tab="pnl">Profit &amp; Loss</button><button class="module-tab" data-fin-tab="cashflow">Money In &amp; Out</button><button class="module-tab" data-fin-tab="gst">GST</button><button class="module-tab" data-fin-tab="budget">Budget</button><button class="module-tab" data-fin-tab="owners">Owner Current Accounts</button></div>
-        <details class="financial-more-reports" id="finMoreReports"><summary class="secondary" id="finMoreReportsSummary" aria-expanded="false">More financial reports</summary><div class="financial-more-menu"><button type="button" data-fin-tab="balance">Balance Sheet</button><button type="button" data-fin-tab="cashbook">Cash Book</button><button type="button" data-fin-tab="ledger">General Ledger</button><button type="button" data-fin-tab="trial">Trial Balance</button></div></details>
+        <div class="module-tabs financial-module-tabs"><button class="module-tab active" data-fin-tab="overview">Estimated Summary</button><button class="module-tab" data-fin-tab="pnl">Accounting P&amp;L</button><button class="module-tab" data-fin-tab="cashflow">Money In &amp; Out</button><button class="module-tab" data-fin-tab="gst">GST</button><button class="module-tab" data-fin-tab="budget">Budget</button><button class="module-tab" data-fin-tab="owners">Owner Current Accounts</button></div>
+        <details class="financial-more-reports" id="finMoreReports"><summary class="secondary" id="finMoreReportsSummary" aria-expanded="false">More financial reports</summary><div class="financial-more-menu"><button type="button" data-fin-tab="balance">Balance Sheet</button><button type="button" data-fin-tab="cashstatement">Statement of Cash Flows</button><button type="button" data-fin-tab="cashbook">Cash Book</button><button type="button" data-fin-tab="ledger">General Ledger</button><button type="button" data-fin-tab="trial">Trial Balance</button></div></details>
       </div>
       <div class="card financial-period-card" id="financialReportPeriodCard"><label>Period<select id="finPeriod"><option value="this_month">This Month</option><option value="last_month">Last Month</option><option value="this_quarter">This Quarter</option><option value="last_quarter">Last Quarter</option><option value="fytd" selected>Financial Year to Date</option><option value="current_fy">Current Financial Year</option><option value="previous_fy">Previous Financial Year</option><option value="3">Last 3 Months</option><option value="6">Last 6 Months</option><option value="12">Last 12 Months</option><option value="custom">Custom Date Range</option></select></label><div id="finCustomDates" class="financial-custom-dates" hidden><label>From<input id="finFrom" type="date"></label><label>To<input id="finTo" type="date"></label></div></div>
 
       <div class="financial-panel" id="financial-panel-overview">
         <div id="finPurchaseReviewError" class="notice" role="alert" hidden></div>
-        <div class="card"><div class="card-title"><div><h2>Summary</h2><p class="hint">Estimates use the original bill category until its items are confirmed. Confirmed stock, materials and equipment await cost of sales or depreciation postings; this is not the posted accounting P&amp;L.</p></div></div><div class="financial-summary-statement">
+        <div class="card"><div class="card-title"><div><h2>Estimated Summary</h2><p class="hint">Management estimate only. Use Accounting P&amp;L, Trial Balance and General Ledger for posted accounting reports.</p></div></div><div class="financial-summary-statement">
           <div class="financial-statement-row"><span>Sales</span><strong id="finSales">—</strong></div>
           <details class="financial-statement-group"><summary><span>Direct Costs</span><strong id="finDirect">—</strong></summary><div id="finDirectBreakdown"></div></details>
           <div class="financial-statement-row subtotal"><span>Gross Profit</span><strong id="finGross">—</strong></div><div class="financial-statement-row muted"><span>Gross Margin</span><strong id="finGrossMargin">—</strong></div>
@@ -321,6 +321,7 @@
 
       <div class="financial-panel" id="financial-panel-pnl" hidden><div class="page-head compact-head"><div><h2>Profit &amp; Loss</h2><p id="finPnlPeriod"></p></div><button class="secondary" id="finPnlCsv">Download CSV</button></div><div class="card financial-statement" id="finPnlBody"></div></div>
       <div class="financial-panel" id="financial-panel-cashflow" hidden><div class="page-head compact-head"><div><h2>Money In &amp; Out</h2><p>Cash movement based on payments recorded in Frindly</p></div></div><div class="card financial-statement" id="finCashFlowBody"></div></div>
+      <div class="financial-panel" id="financial-panel-cashstatement" hidden><div class="page-head compact-head"><div><h2>Statement of Cash Flows</h2><p id="finCashStatementPeriod">Posted Accounting / Direct Method</p></div><button class="secondary" id="finCashStatementCsv">Download CSV</button></div><div class="card financial-statement" id="finCashStatementBody"></div></div>
       <div class="financial-panel" id="financial-panel-balance" hidden><div class="page-head compact-head"><div><h2>Balance Sheet</h2><p>Posted accounting balances only. Incomplete opening history is disclosed rather than estimated.</p></div></div><div class="card financial-statement" id="finBalanceBody"></div></div>
       <div class="financial-panel" id="financial-panel-ledger" hidden><div class="page-head compact-head"><div><h2>General Ledger</h2><p>Posted accounting entries with source and journal references.</p></div><button class="secondary" id="finLedgerCsv">Download CSV</button></div><div class="card filters financial-ledger-filters"><label>Account<select id="finLedgerAccount"><option value="">All accounts</option></select></label><label>Source<select id="finLedgerSource"><option value="">All sources</option><option value="invoice">Invoice</option><option value="customer_payment">Customer Payment</option><option value="customer_credit_note">Customer Credit Note</option><option value="customer_refund">Customer Refund</option><option value="expense">Expense</option><option value="supplier_payment">Expense Payment</option><option value="supplier_credit">Supplier Credit</option><option value="supplier_refund">Supplier Refund</option><option value="payroll">Payroll</option><option value="bank">Bank</option><option value="reversal">Reversal</option></select></label></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Account</th><th>Description</th><th>Source / reference</th><th>Debit</th><th>Credit</th><th>Running balance</th></tr></thead><tbody id="finLedgerRows"></tbody></table></div></div></div>
 <div class="financial-panel" id="financial-panel-trial" hidden><div class="page-head compact-head"><div><h2>Trial Balance</h2><p>Derived exclusively from posted ledger entries.</p></div><button class="secondary" id="finTrialCsv">Download CSV</button></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Account code</th><th>Account name</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody id="finTrialRows"></tbody><tfoot><tr><th colspan="2">Total</th><th id="finTrialDebit">—</th><th id="finTrialCredit">—</th><th id="finTrialStatus">—</th></tr></tfoot></table></div></div></div>
@@ -586,7 +587,7 @@
     <section id="view-accountant" class="view">
       <div class="accountant-standalone-panel" id="report-panel-accountant">
         <div class="page-head compact-head"><div><h2>For My Accountant</h2><p>Prepare Frindly records for your accountant or accounting software.</p></div></div>
-<div class="card" id="accountantReadinessCard"><div class="card-title"><div><h3>Check My Records</h3><p class="hint">Review whether your records are ready to send to your accountant.</p></div></div><div class="form-grid compact"><label>Year end date<input id="finYearEndDate" type="date"></label><div><button class="secondary" id="finYearEndRun" type="button">Run readiness check</button></div></div><div id="finYearEndResult" class="notice" style="margin-top:12px">Choose your financial year end and run the check.</div></div>
+<div class="card" id="accountantReadinessCard"><div class="card-title"><div><h3>Check My Records</h3><p class="hint">Review whether your records are ready to send to your accountant.</p></div></div><div class="form-grid compact"><label>Year end date<input id="finYearEndDate" type="date"></label><div><button class="secondary" id="finYearEndRun" type="button">Run readiness check</button></div><div><button class="secondary" id="finAccountingIntegrityRun" type="button">Run accounting integrity checks</button></div><div><button class="secondary" id="finHolidayLiabilityPost" type="button">Post holiday liability</button></div></div><div id="finYearEndResult" class="notice" style="margin-top:12px">Choose your financial year end and run the check.</div><div id="finAccountingIntegrityResult" class="notice" style="margin-top:12px" hidden></div></div>
         <div class="card accountant-period-card">
           <div class="card-title"><div><h3>Accounting Period</h3><p class="hint">Choose the records to include.</p></div></div>
           <div class="quick-range accountant-quick-range"><button class="secondary" data-accountant-range="this_month">This month</button><button class="secondary" data-accountant-range="last_month">Last month</button><button class="secondary" data-accountant-range="fy">Current financial year</button><button class="secondary" data-accountant-range="previous_fy">Previous financial year</button></div>
@@ -614,25 +615,23 @@
 
 
     <section id="view-settings" class="view">
-      <div class="page-head"><div><h1>Settings</h1><p>Manage your business, tax, invoicing, job costing, team and account settings.</p></div></div>
+      <div class="page-head"><div><h1>Settings</h1><p>Manage your business setup, tax, invoices, payments, team access and plan data.</p></div></div>
       <div class="settings-page-layout">
         <aside class="settings-page-nav" aria-label="Settings sections">
-          <button class="active" type="button" data-settings-nav="account">Business Details</button>
-          <button type="button" data-settings-nav="tax">Tax &amp; GST</button>
-          <button type="button" data-settings-nav="invoicing">Invoices</button>
-          <button type="button" data-settings-nav="payments" id="onlinePaymentsSettingsNav" hidden>Payments</button>
+          <button class="active" type="button" data-settings-nav="account">Business Setup</button>
+          <button type="button" data-settings-nav="tax">Tax &amp; Accounting</button>
+          <button type="button" data-settings-nav="invoicing">Invoices &amp; Payments</button>
           <button type="button" data-settings-nav="job">Quotes &amp; Job Costing</button>
-          <button type="button" data-settings-nav="owners">Owners, Directors &amp; Shareholders</button>
-          <button type="button" data-settings-nav="users">Users &amp; Access</button>
-          <button type="button" data-settings-nav="subscription">Subscription &amp; Billing</button>
-          <button type="button" data-settings-nav="import">Import &amp; Migration</button>
+          <button type="button" data-settings-nav="users">Team &amp; Access</button>
+          <button type="button" data-settings-nav="plan">Plan &amp; Data</button>
         </aside>
         <div class="settings-page-content">
           <section class="settings-page-panel" data-settings-panel="account"><div id="centralAccountSettings"></div></section>
           <section class="settings-page-panel" data-settings-panel="invoicing" hidden>
       <div class="settings-grid">
         <div class="card">
-          <h2>Company details</h2>
+          <h2>Invoice display details</h2>
+          <p class="hint">These details appear on invoices and quotes. Your main business profile is managed under Business Setup.</p>
           <div class="form-grid compact">
             <label>Company name<input id="sCompany"></label><label>Trading name<input id="sTrading"></label>
             <label>Invoice prefix<input id="sInvoicePrefix" maxlength="10" placeholder="INV"></label><label class="wide">Address<input id="sAddress"></label><label>Phone<input id="sPhone"></label><label>Email<input id="sEmail"></label><label>Website<input id="sWebsite" placeholder="https://yourbusiness.co.nz"></label>
@@ -682,8 +681,8 @@
       </div>
 
       <div class="card">
-        <div class="card-title"><h2>Bank accounts</h2><button class="secondary" id="addBank" type="button">+ Add bank account</button></div>
-        <p class="hint">Choose one default account. Every invoice tells the customer to use the invoice number as the payment reference.</p>
+        <div class="card-title"><h2>Invoice bank payment details</h2><button class="secondary" id="addBank" type="button">+ Add bank account</button></div>
+        <p class="hint">Choose one default account for invoice payment instructions. These accounts also sync into Bank Reconciliation.</p>
         <div id="bankSettings"></div>
       </div>
 
@@ -728,6 +727,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
       </div>
 
       <div class="actions"><button class="primary" id="saveSettings">Save invoice settings</button></div>
+            <div class="settings-merged-section" id="centralPaymentsSettings"></div>
           </section>
           <section class="settings-page-panel" data-settings-panel="payments" hidden>
             <div class="settings-section-head"><h2>Online Invoice Payments</h2><p>Connect this business to Stripe so customers can pay issued invoices securely from the Pay Now button.</p></div>
@@ -742,6 +742,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
         <div class="actions"><button class="primary" id="financialSaveSettings" type="button">Save Financial Settings</button></div>
       </div>
 
+            <div class="settings-merged-section settings-owner-section" id="centralOwnerSettings"></div>
           </section>
           <section class="settings-page-panel" data-settings-panel="job" hidden><div class="settings-section-head"><h2>Quotes &amp; Job Costing</h2><p>Existing Job Costing and quotation settings.</p></div><div id="centralJobSettings"></div></section>
           <section class="settings-page-panel" data-settings-panel="owners" hidden>
@@ -752,8 +753,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
             <div class="modal" id="finOwnerHistoryModal" aria-hidden="true"><div class="modal-card"><div class="modal-head"><div><h3 id="finOwnerHistoryTitle">Owner / shareholder history</h3><p>Effective-dated register changes. Financial transactions are shown separately in the current account.</p></div><button type="button" class="icon-btn" id="finOwnerHistoryClose" aria-label="Close">×</button></div><div id="finOwnerHistoryRows"></div></div></div>
           </section>
           <section class="settings-page-panel" data-settings-panel="users" hidden><div class="settings-section-head"><h2>Users &amp; Access</h2><p>Manage the existing team, roles and access for this business.</p></div><div id="centralUserSettings"></div></section>
-          <section class="settings-page-panel" data-settings-panel="subscription" hidden><div class="settings-section-head"><h2>Subscription &amp; Billing</h2><p>Manage this business’s Frindly plan, billing and included modules.</p></div><div id="centralSubscriptionSettings"></div></section>
-          <section class="settings-page-panel" data-settings-panel="import" hidden><div id="importMigrationSettingsRoot"></div></section>
+          <section class="settings-page-panel" data-settings-panel="plan" hidden><div class="settings-section-head"><h2>Plan &amp; Data</h2><p>Manage this business’s subscription, billing, imports and data export in one place.</p></div><div id="centralSubscriptionSettings"></div><div id="centralPlanDataSettings"></div><div id="importMigrationSettingsRoot"></div></section>
         </div>
       </div>
       <div class="infra-config" aria-hidden="true"><input id="sSupabaseUrl"><input id="sSupabaseKey"></div>
@@ -823,8 +823,8 @@ Please find attached quote {quoteNumber}."></textarea></label>
       </div>
       <div class="admin-view-panel" data-admin-panel="invoice-payments" hidden><div class="admin-section-head"><div><h2>Invoice Payments</h2><p class="hint">Monitor Stripe Connect invoice payments across businesses. Payment status is driven by verified Stripe webhooks.</p></div><button class="secondary" id="adminReloadInvoicePayments" type="button">Refresh payments</button></div>
         <div class="summary-grid" id="adminInvoicePaymentKpis"><div class="metric"><span>Received</span><strong id="adminInvoicePaymentsReceived">$0.00</strong></div><div class="metric"><span>Stripe fees</span><strong id="adminInvoicePaymentsFees">$0.00</strong></div><div class="metric"><span>Successful payments</span><strong id="adminInvoicePaymentsSucceeded">0</strong></div><div class="metric"><span>Needs review</span><strong id="adminInvoicePaymentsReview">0</strong></div></div>
-        <div class="card filters"><label>Search<input id="adminInvoicePaymentSearch" placeholder="Business, invoice or Stripe ID"></label><label>Status<select id="adminInvoicePaymentStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="succeeded">Succeeded</option><option value="failed">Failed</option><option value="needs_review">Needs review</option><option value="refunded">Refunded</option><option value="disputed">Disputed</option></select></label></div>
-        <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Business</th><th>Invoice</th><th>Amount applied</th><th>Customer fee</th><th>Status</th><th>Payment date</th><th>Stripe reference</th></tr></thead><tbody id="adminInvoicePaymentRows"></tbody></table></div></div>
+        <div class="card filters"><label>Search<input id="adminInvoicePaymentSearch" placeholder="Business, invoice or Stripe ID"></label><label>Status<select id="adminInvoicePaymentStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="succeeded">Succeeded</option><option value="failed">Failed</option><option value="needs_review">Needs review</option><option value="refunded">Refunded</option><option value="partially_refunded">Partially refunded</option><option value="disputed">Disputed</option></select></label></div>
+        <div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Business</th><th>Invoice</th><th>Amount applied</th><th>Customer fee</th><th>Status</th><th>Payment date</th><th>Stripe reference</th><th>Action</th></tr></thead><tbody id="adminInvoicePaymentRows"></tbody></table></div></div>
       </div>
       <div class="admin-view-panel" data-admin-panel="tax-rules" hidden><div class="admin-section-head"><div><h2>Stock &amp; Equipment Tax Rules</h2><p>Official sources, draft versions and human approval.</p></div></div><div id="seTaxRulesRoot"></div></div>
       <div class="admin-view-panel" data-admin-panel="referrals" hidden><div class="admin-section-head"><div><h2>Referrals & Credits</h2><p class="hint">Existing referral campaign, attribution and Frindly credit management.</p></div></div>
@@ -1087,16 +1087,17 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="app-version">© 2026 Frindly · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="referrals.js?v=61.102L-login-reliability"></script>
-  <script src="saas.js?v=61.107AAY-auto-renew-switch"></script>
+  <script src="saas.js?v=61.119-blinkpay-admin-settings"></script>
   <script src="stock-equipment.js?v=61.107ZQ-mobile-audit-layout"></script>
   <link rel="stylesheet" href="stock-equipment.css?v=61.107ZP-layout-mobile" />
   <link rel="stylesheet" href="purchase-review.css?v=61.102L-login-reliability" />
-  <script src="onboarding.js?v=61.107AAK-phase3-entitlements"></script>
+  <script src="onboarding.js?v=61.115-onboarding-simplified"></script>
   <script src="finlo-helper.js?v=61.107ABA-helper-fab-safe"></script>
-  <script src="import-migration.js?v=61.102L-login-reliability"></script>
+  <script src="import-migration.js?v=61.115-onboarding-simplified"></script>
   <script src="support-console.js?v=61.102L-login-reliability"></script>
   <script src="support-inbox.js?v=61.102L-login-reliability"></script>
   <script src="support-center.js?v=61.102L-login-reliability"></script>
   <script src="community.js?v=61.107AAZ-community-v2"></script>
+  <script src="advanced-business-features.js?v=61.117-safe-feature-gaps"></script>
 </body>
 </html>

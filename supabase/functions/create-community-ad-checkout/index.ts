@@ -1,11 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getStripeConfig, randomIntegrationSuffix, stripeHeaders } from "../_shared/payment-config.ts";
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const cors = corsHeaders();
 const out = (x: any, status = 200) =>
   new Response(JSON.stringify(x), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
@@ -46,6 +42,7 @@ Deno.serve(async (req) => {
     stage = "authenticating";
     const { data: { user } } = await client.auth.getUser();
     if (!user) return out({ error: "Not authenticated" }, 401);
+    await enforceRateLimit(admin, "community-ad-checkout:user", user.id || clientIp(req), 15, 3600);
 
     stage = "loading Stripe";
     const { secretKey: stripe } = await getStripeConfig(admin, true);
@@ -140,6 +137,6 @@ Deno.serve(async (req) => {
 
     return out({ url: d.url, campaignId: campaign.id });
   } catch (e) {
-    return out({ error: e instanceof Error ? e.message : "Community banner checkout failed", stage }, 400);
+    return out({ error: e instanceof Error ? e.message : "Community banner checkout failed", stage }, (e as any)?.status || 400);
   }
 });

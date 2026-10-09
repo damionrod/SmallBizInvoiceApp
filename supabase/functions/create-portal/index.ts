@@ -2,11 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getStripeConfig } from '../_shared/payment-config.ts';
 import { activeBillingSubscriptions, billingRequest, billingSubscription, billingPortalConfiguration, billingReturnUrl, syncBillingSubscription, pendingPlanChange } from '../_shared/subscription-billing.ts';
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+const cors = corsHeaders();
 const out = (value: any, status = 200) => new Response(JSON.stringify(value), {
   status, headers: { ...cors, 'Content-Type': 'application/json' },
 });
@@ -20,6 +16,7 @@ Deno.serve(async (request) => {
     const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
     const { data: { user } } = await client.auth.getUser();
     if (!user) return out({ error: 'Not authenticated' }, 401);
+    await enforceRateLimit(admin, 'create-portal:user', user.id || clientIp(request), 30, 3600);
     const { data: businessId, error: businessError } = await client.rpc('current_business_id');
     if (businessError || !businessId) return out({ error: 'No active business context found' }, 403);
     const { action = 'portal', returnUrl } = await request.json();
@@ -134,6 +131,6 @@ Deno.serve(async (request) => {
     const session = await billingRequest(secretKey, 'billing_portal/sessions', form);
     return out({ url: session.url });
   } catch (error) {
-    return out({ error: error instanceof Error ? error.message : 'Billing is unavailable.' }, 400);
+    return out({ error: error instanceof Error ? error.message : 'Billing is unavailable.' }, (error as any)?.status || 400);
   }
 });

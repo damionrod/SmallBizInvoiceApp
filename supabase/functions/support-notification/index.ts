@@ -1,7 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { platformFrom } from '../_shared/email-sender.ts';
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'};
+import { platformFrom, corsHeaders, clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
+const cors=corsHeaders();
 const json=(v:unknown,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{...cors,'Content-Type':'application/json'}});
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c));
 Deno.serve(async(req)=>{
@@ -13,6 +13,7 @@ Deno.serve(async(req)=>{
   const userDb=createClient(url,anon,{global:{headers:{Authorization:auth}}});
   const service=createClient(url,serviceKey,{auth:{persistSession:false}});
   const {data:{user}}=await userDb.auth.getUser(); if(!user)return json({error:'Unauthorized'},401);
+  await enforceRateLimit(service,'support-notification:user',user.id||clientIp(req),40,3600);
   const body=await req.json(); const threadId=String(body.threadId||''),action=String(body.action||'customer_message');
   const {data:t,error}=await userDb.from('support_threads').select('id,business_id,created_by_user_id,subject,category,status,businesses(name)').eq('id',threadId).single();
   if(error||!t)return json({error:'Support conversation not found.'},404);
@@ -27,5 +28,5 @@ Deno.serve(async(req)=>{
   const rr=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json'},body:JSON.stringify({from:platformFrom('Frindly Support'),to:[to],subject,html})});
   const d=await rr.json(); if(!rr.ok)return json({ok:false,email:false,error:d?.message||'Email provider rejected notification.'},200);
   return json({ok:true,email:true,id:d.id});
- }catch(e){return json({error:e instanceof Error?e.message:'Support notification failed.'},500)}
+ }catch(e){return json({error:e instanceof Error?e.message:'Support notification failed.'},(e as any)?.status||500)}
 });

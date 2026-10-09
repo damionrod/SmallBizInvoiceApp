@@ -1,16 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { appOrigin, createOpaqueToken, hashOpaqueToken } from '../_shared/invoice-payments.ts';
-import { platformFrom, validReplyTo } from '../_shared/email-sender.ts';
+import { platformFrom, validReplyTo, corsHeaders, clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
 import { storePdfAndAttachment, storedPdfAttachment } from '../_shared/document-attachment.ts';
 
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-const json = (value: unknown, status = 200) => new Response(
+const json = (req: Request, value: unknown, status = 200) => new Response(
   JSON.stringify(value),
-  { status, headers: { ...cors, 'Content-Type': 'application/json' } },
+  { status, headers: { ...corsHeaders(req), 'Content-Type': 'application/json' } },
 );
 const esc = (value: any) => String(value ?? '').replace(/[&<>"']/g, (match) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[match] || match));
 const money = (value: any, currency = 'NZD') => {
@@ -23,7 +18,7 @@ const money = (value: any, currency = 'NZD') => {
 const fill = (template: string, values: Record<string, string>) => String(template || '').replace(/\{(\w+)\}/g, (_, key) => values[key] ?? `{${key}}`);
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -36,7 +31,8 @@ Deno.serve(async (req) => {
     const client = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: auth } } });
     const admin = createClient(supabaseUrl, serviceKey);
     const { data: { user } } = await client.auth.getUser();
-    if (!user) return json({ error: 'Not authenticated' }, 401);
+    if (!user) return json(req, { error: 'Not authenticated' }, 401);
+    await enforceRateLimit(admin, 'send-invoice:user', user.id || clientIp(req), 30, 3600);
 
     const isMultipart = (req.headers.get('content-type') || '').toLowerCase().includes('multipart/form-data');
     let to = '', invoiceId = '', action = 'invoice', subjectOverride = '', bodyOverride = '', pdf: File | null = null;
@@ -47,22 +43,23 @@ Deno.serve(async (req) => {
     } else {
       const body = await req.json(); to = String(body?.to || '').trim(); invoiceId = String(body?.invoice?.id || body?.invoiceId || '').trim(); action = String(body?.action || 'invoice').trim(); subjectOverride = String(body?.subject || '').trim(); bodyOverride = String(body?.body || '').trim();
     }
-    if (!to || !invoiceId || (isMultipart && !pdf)) return json({ error: 'Invoice and recipient are required.' }, 400);
+    if (!to || !invoiceId || (isMultipart && !pdf)) return json(req, { error: 'Invoice and recipient are required.' }, 400);
+    await enforceRateLimit(admin, 'send-invoice:invoice', invoiceId, 12, 3600);
     const { data: owned, error: ownedError } = await client
       .from('invoices')
       .select('id,business_id,invoice_number,customer_name,total,balance_due,due_date,company_snapshot,lifecycle_state')
       .eq('id', invoiceId)
       .single();
-    if (ownedError || !owned) return json({ error: 'Invoice not found for this account.' }, 403);
+    if (ownedError || !owned) return json(req, { error: 'Invoice not found for this account.' }, 403);
 
     const isReminder = action === 'reminder';
     if (isReminder) {
-      if (String(owned.lifecycle_state || '').toLowerCase() !== 'issued') return json({ error: 'Only issued invoices can receive payment reminders.' }, 400);
-      if (Number(owned.balance_due ?? owned.total ?? 0) <= 0.005) return json({ error: 'This invoice is already fully paid.' }, 400);
-      if (!subjectOverride || !bodyOverride) return json({ error: 'Reminder subject and message are required.' }, 400);
+      if (String(owned.lifecycle_state || '').toLowerCase() !== 'issued') return json(req, { error: 'Only issued invoices can receive payment reminders.' }, 400);
+      if (Number(owned.balance_due ?? owned.total ?? 0) <= 0.005) return json(req, { error: 'This invoice is already fully paid.' }, 400);
+      if (!subjectOverride || !bodyOverride) return json(req, { error: 'Reminder subject and message are required.' }, 400);
     } else {
       const { error: issueError } = await client.rpc('v6170c1_issue_invoice', { p_invoice_id: owned.id });
-      if (issueError) return json({ error: issueError.message || 'This invoice could not be issued safely.' }, 400);
+      if (issueError) return json(req, { error: issueError.message || 'This invoice could not be issued safely.' }, 400);
     }
 
     const snapshot = owned.company_snapshot || {};
@@ -134,7 +131,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify(payload),
     });
     const data = await response.json();
-    if (!response.ok) return json({ error: data?.message || 'Email provider rejected the message.', details: data }, response.status);
+    if (!response.ok) return json(req, { error: data?.message || 'Email provider rejected the message.', details: data }, response.status);
     if (isReminder) {
       const { error: historyError } = await admin.from('invoice_reminder_history').insert({
         business_id: owned.business_id,
@@ -146,9 +143,9 @@ Deno.serve(async (req) => {
       });
       if (historyError) console.warn('Reminder sent but history could not be recorded.', historyError);
     }
-    return json({ success: true, id: data.id, payment_enabled: Boolean(paymentUrl), action: isReminder ? 'reminder' : 'invoice' });
+    return json(req, { success: true, id: data.id, payment_enabled: Boolean(paymentUrl), action: isReminder ? 'reminder' : 'invoice' });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'Unknown email error' }, 400);
+    return json(req, { error: error instanceof Error ? error.message : 'Unknown email error' }, (error as any)?.status || 400);
   }
 });
 

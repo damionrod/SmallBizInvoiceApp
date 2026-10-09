@@ -570,6 +570,22 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 @media(max-width:700px){.financial-more-control{width:100%;margin-left:0}.financial-more-control select{flex:1}.financial-period-card{align-items:stretch}.financial-period-card>label,.financial-custom-dates,.financial-custom-dates label{width:100%;min-width:0}.financial-custom-dates{display:grid;grid-template-columns:1fr 1fr}.financial-liability-grid{grid-template-columns:1fr}.financial-statement-row,.financial-statement-group>summary{padding:12px 0}.financial-chart{min-height:245px}.financial-mapping-row{grid-template-columns:1fr;gap:6px}.financial-gst-controls{display:grid;grid-template-columns:1fr}.financial-gst-controls label{min-width:0}.financial-panel .table-scroll table{min-width:720px}.financial-budget-table{min-width:1450px}.financial-budget-table th:first-child,.financial-budget-table td:first-child{min-width:155px}}
 @media(max-width:480px){.financial-custom-dates{grid-template-columns:1fr}.financial-statement-row{align-items:flex-start}.financial-statement-row strong{max-width:48%;text-align:right}.financial-statement-group>summary{align-items:flex-start}.financial-statement-group>summary strong{max-width:45%;text-align:right}}
 
+/* v61.117 additive feature gap panels: customer statements, POs, manual journals and tax planner. */
+.customer-statement-card,.advanced-feature-panel{scroll-margin-top:80px}
+.statement-controls{align-items:end}
+.statement-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.statement-summary .metric{min-width:0}
+.manual-journal-lines input,.manual-journal-lines select,#poLineRows input{width:100%;min-width:120px}
+.advanced-feature-panel .table-scroll table{min-width:760px}
+#poEditor[hidden]{display:none}
+@media(max-width:760px){
+  .statement-summary{grid-template-columns:1fr 1fr}
+  .statement-controls{grid-template-columns:1fr}
+  .customer-statement-card .actions,.advanced-feature-panel .actions{display:grid;grid-template-columns:1fr;gap:8px}
+  .customer-statement-card .table-scroll table,.advanced-feature-panel .table-scroll table{min-width:720px}
+}
+@media(max-width:480px){.statement-summary{grid-template-columns:1fr}}
+
 /* Frindly scoped navigation and workflow cleanup.  These rules intentionally
    sit after the existing theme so they do not alter accounting or data styles. */
 .topbar .brand-shell{display:flex;align-items:center;gap:16px;min-width:0;flex:1}
@@ -2851,6 +2867,8 @@ body.auth-locked .app-version{display:none}
 .settings-page-nav button{width:100%;text-align:left;border:0;background:transparent;padding:11px 12px;border-radius:9px;font:inherit;cursor:pointer;color:inherit}
 .settings-page-nav button.active{background:rgba(25,118,189,.10);font-weight:700;color:#135f98}
 .settings-page-content{min-width:0}.settings-page-panel{min-width:0}.settings-section-head{margin:0 0 14px}.settings-section-head h2{margin:0 0 4px}.settings-section-head p{margin:0;color:var(--muted,#667085)}
+.settings-merged-section{margin-top:18px;padding-top:18px;border-top:1px solid var(--border,#dfe6ee)}
+.settings-merged-section:empty{display:none}
 #accountModal:not(.open){display:none!important}
 @media(max-width:760px){.settings-page-layout{grid-template-columns:1fr}.settings-page-nav{position:static;display:grid;grid-template-columns:1fr 1fr}.settings-page-nav button{min-height:44px}.settings-page-content{width:100%}}
 @media(max-width:460px){.settings-page-nav{grid-template-columns:1fr}}
@@ -8196,3 +8214,41 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 .finlo-helper-button.is-dragging{filter:brightness(1.03);transform:scale(.985)!important}
 @media(max-width:760px){.finlo-helper-button{min-width:120px;min-height:40px;padding:0 18px!important}}
 @media(prefers-reduced-motion:reduce){.finlo-helper-button{transition:none}}
+
+/* v61.113: keep bank reconciliation lines usable on tablet and narrow desktop. */
+#view-bankreconciliation .bank-card-list{min-width:0}
+#view-bankreconciliation .bank-recon-pair{overflow:hidden}
+#view-bankreconciliation .bank-recon-pair-grid{min-width:0}
+#view-bankreconciliation .bank-statement-side,
+#view-bankreconciliation .bank-books-side,
+#view-bankreconciliation .bank-recon-book-card{min-width:0}
+#view-bankreconciliation .bank-statement-side strong,
+#view-bankreconciliation .bank-statement-side small,
+#view-bankreconciliation .bank-recon-book-card strong,
+#view-bankreconciliation .bank-recon-book-card small{overflow-wrap:anywhere}
+#view-bankreconciliation .bank-recon-secondary-actions{overflow-x:auto;max-width:100%;padding-bottom:2px}
+@media(max-width:1280px){
+  #view-bankreconciliation .bank-card-list{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:8px}
+  #view-bankreconciliation .bank-recon-pair{min-width:720px}
+  #view-bankreconciliation .bank-recon-pair-grid{grid-template-columns:minmax(220px,.85fr) minmax(420px,1.25fr)}
+  #view-bankreconciliation .bank-statement-side{position:sticky;left:0;z-index:2;background:#fff;box-shadow:8px 0 16px rgba(15,23,42,.08)}
+}
+@media(max-width:760px){
+  #view-bankreconciliation .bank-card-list{overflow-x:visible;padding-bottom:0}
+  #view-bankreconciliation .bank-recon-pair{min-width:0}
+  #view-bankreconciliation .bank-recon-pair-grid{grid-template-columns:1fr}
+  #view-bankreconciliation .bank-statement-side{position:static;box-shadow:none}
+}
+
+.live-bank-feeds-card{margin-bottom:14px}
+.bank-feed-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.bank-feed-summary>div{border:1px solid #e4e8ef;border-radius:10px;padding:10px 12px;background:#fbfcff}
+.bank-feed-summary span{display:block;color:#667085;font-size:12px}
+.bank-feed-summary strong{display:block;margin-top:3px;color:#16264a;font-size:14px;overflow-wrap:anywhere}
+.bank-feed-account-list{display:grid;gap:8px;margin:10px 0}
+.bank-feed-account-list>div{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #e7ebf2;border-radius:10px;padding:10px 12px}
+.bank-feed-account-list small{display:block;color:#667085}
+@media(max-width:720px){
+  .bank-feed-summary{grid-template-columns:1fr}
+  .bank-feed-account-list>div{display:block}
+}

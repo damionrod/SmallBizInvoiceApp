@@ -7,3 +7,8 @@ verify_jwt = false
 # Stripe signs webhook requests instead of sending a Supabase user JWT.
 [functions.stripe-webhook]
 verify_jwt = false
+
+# BlinkPay redirects back from the bank without a Supabase user JWT.
+# User actions inside the same function still verify the Authorization header manually.
+[functions.blinkpay-bank-feeds]
+verify_jwt = false

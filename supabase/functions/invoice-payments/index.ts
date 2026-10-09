@@ -3,6 +3,7 @@ import {
   getStripeConfig,
   randomIntegrationSuffix,
   stripeConnectHeaders,
+  stripeHeaders,
 } from '../_shared/payment-config.ts';
 import {
   INVOICE_PAYMENTS_MODULE,
@@ -16,6 +17,7 @@ import {
   paymentJson,
   roundCents,
 } from '../_shared/invoice-payments.ts';
+import { clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
 
 type Context = {
   client: any;
@@ -57,7 +59,15 @@ async function requireEnabled(admin: any, businessId: string) {
 }
 
 async function stripeAccount(secret: string, accountId: string) {
-  // API v2 requires JSON headers even for GETs, with indexed include fields.
+  const response = await fetch(`https://api.stripe.com/v1/accounts/${encodeURIComponent(accountId)}`, {
+    headers: stripeHeaders(secret),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error?.message || 'Unable to retrieve the connected Stripe account.');
+  return data;
+}
+
+async function stripeCoreAccount(secret: string, accountId: string) {
   const params = new URLSearchParams();
   params.append('include[0]', 'configuration.merchant');
   params.append('include[1]', 'identity');
@@ -70,13 +80,28 @@ async function stripeAccount(secret: string, accountId: string) {
   return data;
 }
 
+async function stripeConnectAccount(secret: string, accountId: string) {
+  try {
+    return await stripeCoreAccount(secret, accountId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || '');
+    if (!/v2 api is not yet available|not yet available|no such account|does not have access|not have access|not accessible/i.test(message)) throw error;
+    return await stripeAccount(secret, accountId);
+  }
+}
+
+function isInaccessibleConnectedAccount(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /no such account|does not have access|not have access|not accessible|account.*application/i.test(message);
+}
+
 function cardStatus(account: any): string {
-  return String(account?.configuration?.merchant?.capabilities?.card_payments?.status || 'not_requested');
+  return String(account?.configuration?.merchant?.capabilities?.card_payments?.status || account?.capabilities?.card_payments || (account?.charges_enabled ? 'active' : 'not_requested'));
 }
 
 function connectStatus(account: any): string {
   const status = cardStatus(account);
-  if (status === 'active') return 'active';
+  if (status === 'active' && (account?.charges_enabled === true || account?.configuration?.merchant?.capabilities?.card_payments?.status === 'active')) return 'active';
   if (['restricted', 'inactive'].includes(status)) return 'restricted';
   return 'pending';
 }
@@ -109,7 +134,7 @@ async function getSettings(admin: any, businessId: string) {
     card_payments_status: 'not_requested',
     details_submitted: false,
     requirements: {},
-    fee_mode: 'bear',
+    fee_mode: 'pass',
     fee_percent: 2.65,
     fee_fixed_amount: 0.30,
     allow_partial_payments: true,
@@ -156,22 +181,34 @@ async function createConnectAccount(ctx: Context, req: Request) {
   const { data: business, error: businessError } = await ctx.admin.from('businesses').select('id,name,settings').eq('id', ctx.businessId).single();
   if (businessError || !business) throw new Error('Business details could not be loaded.');
   const existing = await getSettings(ctx.admin, ctx.businessId);
-  if (existing.stripe_account_id) {
-    const account = await stripeAccount(cfg.secretKey, existing.stripe_account_id);
-    const status = await saveAccountStatus(ctx.admin, ctx.businessId, account);
-    return paymentJson({ success: true, account_id: existing.stripe_account_id, settings: { ...existing, ...status }, account });
-  }
 
   const settings = business.settings || {};
-  const body = {
-    contact_email: String(ctx.user.email || '').trim() || undefined,
+  let existingAccount: any = null;
+  if (existing.stripe_account_id) {
+    try {
+      existingAccount = await stripeConnectAccount(cfg.secretKey, existing.stripe_account_id);
+    } catch (error) {
+      if (!isInaccessibleConnectedAccount(error)) throw error;
+      console.warn('Stored Stripe connected account is not accessible from the current platform; creating a new connected account.', existing.stripe_account_id);
+    }
+  }
+  if (existingAccount) {
+    const status = await saveAccountStatus(ctx.admin, ctx.businessId, existingAccount);
+    return paymentJson({ success: true, account_id: existing.stripe_account_id, settings: { ...existing, ...status }, account: existingAccount });
+  }
+
+  const email = String(ctx.user.email || '').trim();
+  const body: any = {
+    contact_email: email || undefined,
     display_name: String(business.name || settings.company || settings.trading || 'Frindly business').trim(),
     dashboard: 'full',
     identity: { country: 'nz' },
     configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
     defaults: { responsibilities: { fees_collector: 'stripe', losses_collector: 'stripe' } },
+    metadata: { business_id: ctx.businessId },
     include: ['configuration.merchant', 'identity', 'requirements'],
   };
+
   const response = await fetch('https://api.stripe.com/v2/core/accounts', {
     method: 'POST',
     headers: stripeConnectHeaders(cfg.secretKey, true),
@@ -212,14 +249,31 @@ async function refreshStatus(ctx: Context) {
   const cfg = await getStripeConfig(ctx.admin, true);
   const settings = await getSettings(ctx.admin, ctx.businessId);
   if (!settings.stripe_account_id) return paymentJson({ settings });
-  const account = await stripeAccount(cfg.secretKey, settings.stripe_account_id);
+  let account: any = null;
+  try {
+    account = await stripeConnectAccount(cfg.secretKey, settings.stripe_account_id);
+  } catch (error) {
+    if (!isInaccessibleConnectedAccount(error)) throw error;
+    const patch = {
+      business_id: ctx.businessId,
+      stripe_account_id: null,
+      connect_status: 'not_started',
+      card_payments_status: 'not_requested',
+      details_submitted: false,
+      requirements: {},
+      updated_at: new Date().toISOString(),
+    };
+    const { error: saveError } = await ctx.admin.from('invoice_payment_settings').upsert(patch, { onConflict: 'business_id' });
+    if (saveError) throw saveError;
+    return paymentJson({ settings: { ...settings, ...patch }, account: null });
+  }
   const status = await saveAccountStatus(ctx.admin, ctx.businessId, account);
   return paymentJson({ settings: { ...settings, ...status }, account });
 }
 
 async function saveSettings(ctx: Context, payload: any) {
   await requireEnabled(ctx.admin, ctx.businessId);
-  const feeMode = String(payload?.fee_mode || 'bear');
+  const feeMode = String(payload?.fee_mode || 'pass');
   if (!['bear', 'split', 'pass'].includes(feeMode)) throw new Error('Choose Bear, Split or Pass for payment fees.');
   const { data, error } = await ctx.admin.from('invoice_payment_settings').upsert({
     business_id: ctx.businessId,
@@ -265,7 +319,7 @@ async function checkout(admin: any, payload: any, req: Request) {
   if (enabled.error || enabled.data !== true) return bad('Online payments are not currently enabled for this business.', 403);
   if (!record.settings.stripe_account_id || record.settings.connect_status !== 'active') return bad('This business has not finished Stripe payment setup.', 409);
   const cfg = await getStripeConfig(admin, true);
-  const account = await stripeAccount(cfg.secretKey, String(record.settings.stripe_account_id));
+  const account = await stripeConnectAccount(cfg.secretKey, String(record.settings.stripe_account_id));
   if (cardStatus(account) !== 'active') {
     await saveAccountStatus(admin, String(record.link.business_id), account);
     return bad('This business needs to finish Stripe payment setup before accepting payments.', 409);
@@ -324,7 +378,7 @@ async function checkout(admin: any, payload: any, req: Request) {
 
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
-    headers: { ...stripeConnectHeaders(cfg.secretKey), 'Stripe-Account': String(record.settings.stripe_account_id) },
+    headers: { ...stripeHeaders(cfg.secretKey, true), 'Stripe-Account': String(record.settings.stripe_account_id) },
     body: form,
   });
   const session = await response.json();
@@ -351,8 +405,14 @@ Deno.serve(async (req) => {
     const payload = await req.json().catch(() => ({}));
     const action = String(payload?.action || '');
 
-    if (action === 'details') return await details(admin, payload);
-    if (action === 'checkout') return await checkout(admin, payload, req);
+    if (action === 'details') {
+      await enforceRateLimit(admin, 'invoice-payments:details', String(payload?.token || clientIp(req)), 120, 3600);
+      return await details(admin, payload);
+    }
+    if (action === 'checkout') {
+      await enforceRateLimit(admin, 'invoice-payments:checkout', String(payload?.token || clientIp(req)), 20, 3600);
+      return await checkout(admin, payload, req);
+    }
 
     const ctx = await contextFor(req, action !== 'status');
     if (ctx instanceof Response) return ctx;
@@ -364,6 +424,6 @@ Deno.serve(async (req) => {
     if (action === 'status') return await refreshStatus(ctx);
     return bad('Unknown invoice payment action.', 400);
   } catch (error) {
-    return bad(error instanceof Error ? error.message : 'Invoice payment request failed.', 400);
+    return bad(error instanceof Error ? error.message : 'Invoice payment request failed.', (error as any)?.status || 400);
   }
 });

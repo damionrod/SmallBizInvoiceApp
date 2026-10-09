@@ -41,3 +41,68 @@ export function validReplyTo(value: unknown): string | undefined {
   const email = String(value ?? '').trim();
   return EMAIL_RE.test(email) ? email : undefined;
 }
+
+const DEFAULT_ORIGINS = [
+  'https://frindly.co.nz',
+  'https://www.frindly.co.nz',
+  'http://localhost:8888',
+  'http://localhost:5173',
+  'http://127.0.0.1:8888',
+  'http://127.0.0.1:5173',
+];
+
+function configuredOrigins() {
+  return String(Deno.env.get('ALLOWED_APP_ORIGINS') || Deno.env.get('PUBLIC_APP_URL') || '')
+    .split(',')
+    .map((x) => x.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+}
+
+function allowedOrigins() {
+  const configured = configuredOrigins();
+  return new Set([...DEFAULT_ORIGINS, ...configured]);
+}
+
+export function corsHeaders(req?: Request) {
+  const origin = String(req?.headers.get('origin') || '').replace(/\/$/, '');
+  const allow = allowedOrigins();
+  const selected = origin && allow.has(origin) ? origin : (configuredOrigins()[0] || 'https://frindly.co.nz');
+  return {
+    'Access-Control-Allow-Origin': selected,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+}
+
+export function clientIp(req: Request) {
+  return String(
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('x-forwarded-for') ||
+    req.headers.get('x-real-ip') ||
+    'unknown',
+  ).split(',')[0].trim().slice(0, 80) || 'unknown';
+}
+
+export async function enforceRateLimit(
+  admin: any,
+  scope: string,
+  identifier: unknown,
+  limit: number,
+  windowSeconds: number,
+) {
+  const id = String(identifier || 'unknown').trim().slice(0, 160) || 'unknown';
+  const { data, error } = await admin.rpc('v61111_check_edge_rate_limit', {
+    p_scope: scope,
+    p_identifier: id,
+    p_limit: limit,
+    p_window_seconds: windowSeconds,
+  });
+  if (error) throw error;
+  if (data && data.allowed === false) {
+    const err = new Error(`Too many requests. Please try again after ${data.reset_at || 'a short wait'}.`);
+    (err as any).status = 429;
+    throw err;
+  }
+  return data;
+}

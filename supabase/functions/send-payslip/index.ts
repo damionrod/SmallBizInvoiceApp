@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { platformFrom, validReplyTo } from "../_shared/email-sender.ts";
+import { platformFrom, validReplyTo, corsHeaders, clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
 import { storePdfAndAttachment, storedPdfAttachment } from "../_shared/document-attachment.ts";
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
+const cors=corsHeaders();
 const json=(x:any,status=200)=>new Response(JSON.stringify(x),{status,headers:{...cors,"Content-Type":"application/json"}});
 const esc=(s:any)=>String(s??"").replace(/[&<>"']/g,(m)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]||m));
 Deno.serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{headers:cors});try{
@@ -9,10 +9,12 @@ Deno.serve(async(req)=>{if(req.method==="OPTIONS")return new Response("ok",{head
   if(!key)throw new Error("Email service is not configured.");if(!service)throw new Error("Supabase server configuration is missing.");
   const auth=req.headers.get("Authorization")||"",client=createClient(url,anon,{global:{headers:{Authorization:auth}}}),admin=createClient(url,service);
   const {data:{user}}=await client.auth.getUser();if(!user)return json({error:"Not authenticated"},401);
+  await enforceRateLimit(admin,"send-payslip:user",user.id||clientIp(req),30,3600);
   const isMultipart=(req.headers.get("content-type")||"").toLowerCase().includes("multipart/form-data");let payslipId="",to="",pdf:File|null=null;if(isMultipart){const form=await req.formData();payslipId=String(form.get("payslipId")||"").trim();to=String(form.get("to")||"").trim();const incoming=form.get("pdf");pdf=incoming instanceof File?incoming:null;}else{const body=await req.json();payslipId=String(body?.payslipId||"").trim();to=String(body?.to||"").trim();}if(!payslipId||!to||(isMultipart&&!pdf))return json({error:"Payslip and recipient are required."},400);
+  await enforceRateLimit(admin,"send-payslip:payslip",payslipId,10,3600);
   const {data:p,error}=await client.from("payroll_payslips").select("id,business_id,payslip_number,payslip_data").eq("id",payslipId).single();if(error||!p)return json({error:"Payslip not found for this account."},403);
   const {data:b}=await client.from("businesses").select("name,settings").eq("id",p.business_id).single();const {data:subscriberProfile}=await client.from("profiles").select("email").eq("business_id",p.business_id).eq("role","owner").limit(1).maybeSingle();const s=b?.settings||{},trading=s.trading||s.company||b?.name||"Your Business",subscriberEmail=String(subscriberProfile?.email||s.email||user.email||"").trim(),sender=`${trading.replace(/[<>]/g,"")} Payroll`,employee=p.payslip_data?.employee?.name||"Employee",payDate=p.payslip_data?.run?.pay_date||"";
   const payload:any={from:platformFrom(sender,"Frindly Payroll"),to:[to],subject:`Payslip ${p.payslip_number} from ${trading}`,html:`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24313a"><p>Hi ${esc(employee)},</p><p>Please find attached your payslip <strong>${esc(p.payslip_number)}</strong>${payDate?` for pay date ${esc(payDate)}`:""}.</p><p>Kind regards,<br><strong>${esc(trading)}</strong></p></div>`};
   const replyTo=validReplyTo(s.outboundEmail||subscriberEmail);if(replyTo)payload.reply_to=replyTo;payload.attachments=[isMultipart&&pdf?await storePdfAndAttachment(admin,p.business_id,"payslip",p.id,pdf,`${p.payslip_number}.pdf`):await storedPdfAttachment(admin,p.business_id,"payslip",p.id,`${p.payslip_number}.pdf`)];
   const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok)return json({error:data?.message||"Email provider rejected the message.",details:data},r.status);return json({success:true,id:data.id});
-}catch(e){return json({error:e instanceof Error?e.message:"Unknown payslip email error"},400)}});
+}catch(e){return json({error:e instanceof Error?e.message:"Unknown payslip email error"},(e as any)?.status||400)}});

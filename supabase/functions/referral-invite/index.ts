@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { platformFrom } from '../_shared/email-sender.ts';
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS'};
+import { platformFrom, corsHeaders } from '../_shared/email-sender.ts';
+const cors=corsHeaders();
 const json=(x:any,status=200)=>new Response(JSON.stringify(x),{status,headers:{...cors,'Content-Type':'application/json'}});
 const norm=(x:any)=>String(x||'').trim().toLowerCase();
 const TEST_REFERRAL_EMAILS=new Set(['damionrod@gmail.com','damionrod@yahoo.com']);
@@ -40,5 +40,5 @@ Deno.serve(async req=>{
    const id=String(body.inviteId||'');const {data:inv}=await db.from('referral_invites').select('*').eq('id',id).eq('referring_business_id',bid).maybeSingle();if(!inv||!['invited','failed'].includes(inv.status))return json({error:'Referral invitation is not available for resend.'},404);if(Date.now()-new Date(inv.last_sent_at).getTime()<15*60000&&!isTestReferralEmail(inv.invited_email))return json({error:'Please wait 15 minutes before resending this invitation.'},429);const raw=token(),tokenHash=await hash(raw);const updated={...inv,token_hash:tokenHash,status:'invited',last_sent_at:new Date().toISOString(),resend_count:Number(inv.resend_count||0)+1,updated_at:new Date().toISOString()};await db.from('referral_invites').update({token_hash:updated.token_hash,status:'invited',last_sent_at:updated.last_sent_at,resend_count:updated.resend_count,updated_at:updated.updated_at}).eq('id',inv.id);await sendMail(updated,raw,body.redirectUrl);return json({ok:true});
   }
   return json({error:'Unknown action.'},400);
- }catch(e){return json({error:e instanceof Error?e.message:'Referral invitation failed'},400)}
+ }catch(e){return json({error:e instanceof Error?e.message:'Referral invitation failed'},(e as any)?.status||400)}
 });

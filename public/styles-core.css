@@ -409,10 +409,10 @@ tbody tr:last-child td{border-bottom:0}
 }
 
 /* v61.107Y: Owners & Shareholders add form — desktop single-row layout only */
-.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{grid-template-columns:minmax(0,1.8fr) minmax(0,1.2fr) minmax(150px,1fr);align-items:end;gap:14px 16px}
-.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid label{min-width:0}
-.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid input,.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid select{min-width:0}
-@media(max-width:760px){.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{grid-template-columns:1fr;align-items:stretch}}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:minmax(0,1.8fr) minmax(0,1.2fr) minmax(150px,1fr);align-items:end;gap:14px 16px}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid label,.settings-owner-section .fin-owner-add-grid label{min-width:0}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid input,.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid select,.settings-owner-section .fin-owner-add-grid input,.settings-owner-section .fin-owner-add-grid select{min-width:0}
+@media(max-width:760px){.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:1fr;align-items:stretch}}
 /* v61.107ZA — read-only Shareholder Summary report */
 .shareholder-report-card{margin-top:14px}.shareholder-report-note{margin:10px 16px 14px}.shareholder-report-notice{margin-top:14px}.shareholder-summary-grid .metric small{display:block;margin-top:4px;font-weight:400}@media(max-width:760px){.shareholder-summary-grid{grid-template-columns:1fr 1fr}.shareholder-report-card table{min-width:680px}}@media(max-width:520px){.shareholder-summary-grid{grid-template-columns:1fr}}
 
@@ -498,20 +498,20 @@ tbody tr:last-child td{border-bottom:0}
 
 /* Add owner/shareholder: all four fields and the action share one desktop row. */
 @media(min-width:1100px){
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{
    grid-template-columns:minmax(250px,1.55fr) minmax(170px,.95fr) minmax(145px,.7fr) minmax(245px,1.2fr) auto!important;
    gap:12px 14px;align-items:end
  }
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label{min-width:0}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label:nth-child(4){white-space:nowrap}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action{display:flex;align-items:end}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button{white-space:nowrap;min-height:42px}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label,.settings-owner-section .fin-owner-add-grid>label{min-width:0}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label:nth-child(4),.settings-owner-section .fin-owner-add-grid>label:nth-child(4){white-space:nowrap}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action,.settings-owner-section .fin-owner-add-action{display:flex;align-items:end}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button,.settings-owner-section .fin-owner-add-action button{white-space:nowrap;min-height:42px}
 }
 @media(max-width:1099px) and (min-width:761px){
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid{grid-template-columns:1fr 1fr!important}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action{grid-column:1/-1;display:flex;justify-content:flex-end}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:1fr 1fr!important}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action,.settings-owner-section .fin-owner-add-action{grid-column:1/-1;display:flex;justify-content:flex-end}
 }
 @media(max-width:760px){
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action{display:block}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button{width:100%}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action,.settings-owner-section .fin-owner-add-action{display:block}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button,.settings-owner-section .fin-owner-add-action button{width:100%}
 }
