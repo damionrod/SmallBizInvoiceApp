@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { appOrigin, createOpaqueToken, hashOpaqueToken } from '../_shared/invoice-payments.ts';
-import { platformFrom, validReplyTo, corsHeaders, clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
+import { platformFrom, validReplyTo, corsHeaders, clientIp, enforceRateLimit, recordEmailActivity } from '../_shared/email-sender.ts';
 import { storePdfAndAttachment, storedPdfAttachment } from '../_shared/document-attachment.ts';
 
 const json = (req: Request, value: unknown, status = 200) => new Response(
@@ -132,6 +132,26 @@ Deno.serve(async (req) => {
     });
     const data = await response.json();
     if (!response.ok) return json(req, { error: data?.message || 'Email provider rejected the message.', details: data }, response.status);
+    try {
+      const { error: activityError } = await recordEmailActivity(admin, {
+        business_id: owned.business_id,
+        message_type: isReminder ? 'invoice_reminder' : 'invoice',
+        source_table: 'invoices',
+        source_id: owned.id,
+        recipient: to,
+        subject,
+        provider_message_id: data.id,
+        sent_by: user.id,
+        metadata: {
+          action: isReminder ? 'reminder' : 'invoice',
+          invoice_number: currentInvoice.invoice_number,
+          payment_enabled: Boolean(paymentUrl),
+        },
+      });
+      if (activityError) console.warn('Email activity could not be recorded.', activityError);
+    } catch (activityError) {
+      console.warn('Email activity could not be recorded.', activityError);
+    }
     if (isReminder) {
       const { error: historyError } = await admin.from('invoice_reminder_history').insert({
         business_id: owned.business_id,

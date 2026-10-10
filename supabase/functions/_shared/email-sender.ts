@@ -106,3 +106,34 @@ export async function enforceRateLimit(
   }
   return data;
 }
+
+export async function recordEmailActivity(
+  admin: any,
+  event: {
+    business_id: string;
+    message_type: string;
+    source_table?: string | null;
+    source_id?: string | null;
+    recipient: string;
+    subject?: string | null;
+    provider_message_id?: string | null;
+    sent_by?: string | null;
+    status?: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  const row = {
+    business_id: event.business_id,
+    message_type: event.message_type,
+    source_table: event.source_table || null,
+    source_id: event.source_id || null,
+    recipient: event.recipient,
+    subject: event.subject || null,
+    provider: 'resend',
+    provider_message_id: event.provider_message_id || null,
+    status: event.status || 'sent',
+    sent_by: event.sent_by || null,
+    metadata: event.metadata || {},
+  };
+  return admin.from('email_delivery_events').insert(row);
+}

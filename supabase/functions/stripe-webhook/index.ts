@@ -2,7 +2,7 @@ import Stripe from 'npm:stripe@22.4.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getStripeConfig, stripeHeaders, STRIPE_API_VERSION } from '../_shared/payment-config.ts';
 import { subscriptionPlanPatch, subscriptionCancellationPatch } from '../_shared/subscription-billing.ts';
-import { platformFrom, validReplyTo } from '../_shared/email-sender.ts';
+import { platformFrom, validReplyTo, recordEmailActivity } from '../_shared/email-sender.ts';
 
 function subscriptionBillingPeriod(subscription:any){
   // Frindly Checkout creates one recurring plan item. New Stripe versions keep
@@ -220,7 +220,7 @@ Deno.serve(async(req)=>{
     const sendOnlineReceipt=async(transactionId:string)=>{
       const resendKey=Deno.env.get('RESEND_API_KEY');
       if(!resendKey)return;
-      const {data:tx,error:txError}=await db.from('invoice_payment_transactions').select('id,amount,gross_amount,customer_fee_amount,currency,status,payment_date,stripe_payment_intent_id,stripe_checkout_session_id,metadata,invoices(invoice_number,customer_name,customer_email,total,balance_due),businesses(name,settings)').eq('id',transactionId).maybeSingle();
+      const {data:tx,error:txError}=await db.from('invoice_payment_transactions').select('id,business_id,invoice_id,amount,gross_amount,customer_fee_amount,currency,status,payment_date,stripe_payment_intent_id,stripe_checkout_session_id,metadata,invoices(invoice_number,customer_name,customer_email,total,balance_due),businesses(name,settings)').eq('id',transactionId).maybeSingle();
       if(txError||!tx||tx.status!=='succeeded'||tx.metadata?.receipt_sent_at||!tx.invoices?.customer_email)return;
       const settings=tx.businesses?.settings||{},invoice=tx.invoices||{},currency=String(tx.currency||settings.currency||'NZD').toUpperCase();
 
@@ -238,6 +238,8 @@ Deno.serve(async(req)=>{
         metadata:{...(tx.metadata||{}),receipt_sent_at:new Date().toISOString(),receipt_resend_message_id:String(sent?.id||'')},
         updated_at:new Date().toISOString()
       }).eq('id',transactionId).is('metadata->>receipt_sent_at',null);
+      const {error:activityError}=await recordEmailActivity(db,{business_id:tx.business_id,message_type:'payment_receipt',source_table:'invoices',source_id:tx.invoice_id,recipient:invoice.customer_email,subject,provider_message_id:String(sent?.id||''),sent_by:null,metadata:{invoice_number:invoiceNumber,transaction_id:transactionId}});
+      if(activityError)console.warn('Receipt email activity could not be recorded',activityError);
       }catch(e){
         // Never automatically release a claimed receipt after a provider request.
         // An expired claim is quarantined for manual Resend reconciliation.

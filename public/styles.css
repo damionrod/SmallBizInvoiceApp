@@ -1599,6 +1599,72 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   padding-top:12px;
   border-top:1px solid #e5ebef;
 }
+#payrollPayslipModal .actions{
+  position:sticky;
+  bottom:0;
+  z-index:4;
+  background:linear-gradient(180deg,rgba(255,255,255,.92),#fff 32%);
+  padding-bottom:6px;
+}
+.payroll-email-button{
+  min-height:46px;
+  transition:transform .14s ease,box-shadow .14s ease,background .14s ease,filter .14s ease;
+}
+.payroll-email-button:hover:not(:disabled){
+  filter:brightness(1.03);
+  box-shadow:0 9px 18px rgba(24,61,89,.16);
+}
+.payroll-email-button:active:not(:disabled){
+  transform:translateY(1px) scale(.985);
+}
+.payroll-email-button.is-loading{
+  cursor:progress;
+  opacity:.86;
+}
+.payroll-email-button.is-success{
+  background:#178a4f!important;
+  border-color:#178a4f!important;
+  color:#fff!important;
+}
+.payroll-email-button.is-error{
+  background:#b54747!important;
+  border-color:#b54747!important;
+  color:#fff!important;
+}
+
+.email-activity-card{
+  max-width:780px;
+  margin:14px auto 0;
+  padding:14px;
+  border:1px solid #e3e9ed;
+  border-radius:10px;
+  background:#fbfcfd;
+}
+.email-activity-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  padding:10px 0;
+  border-top:1px solid #e6ebef;
+}
+.email-activity-row:first-child{border-top:0}
+.email-activity-row strong,.email-activity-row small{display:block}
+.email-activity-row small{color:var(--muted);font-size:.78rem;margin-top:2px}
+.email-activity-row>div:last-child{text-align:right}
+.email-status{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:3px 8px;
+  border-radius:999px;
+  background:#e9f2fb;
+  color:#1f5d91;
+  font-size:.72rem;
+  font-weight:800;
+}
+.email-status-delivered{background:#e7f6ed;color:#167348}
+.email-status-bounced,.email-status-failed,.email-status-complained{background:#fdecec;color:#a33b3b}
+.email-status-delivery_unknown{background:#fff4d8;color:#8a6200}
 
 .payslip{
   box-sizing:border-box!important;
@@ -1729,8 +1795,10 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   .payslip table{font-size:10.5px!important}
   .payslip th,.payslip td{padding:6px 5px!important}
   .payslip h3{font-size:13px!important}
-  #payrollPayslipModal .actions{display:grid;grid-template-columns:1fr;gap:8px}
+  #payrollPayslipModal .actions{display:grid;grid-template-columns:1fr;gap:8px;padding:10px 0 calc(10px + env(safe-area-inset-bottom))}
   #payrollPayslipModal .actions button{width:100%}
+  .email-activity-row{grid-template-columns:1fr}
+  .email-activity-row>div:last-child{text-align:left}
 }
 
 @media print{

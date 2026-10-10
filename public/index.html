@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-core.css?v=61.116-settings-simplified" />
-  <link rel="stylesheet" href="styles.css?v=61.118-live-bank-feeds" />
+  <link rel="stylesheet" href="styles.css?v=61.124-email-activity" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
   <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
   <script src="app-config.js?v=61.102L-login-reliability"></script>
@@ -343,6 +343,11 @@
           <div id="finGstIrdResult" class="gst-ird-result"><div><span>Box 15</span><strong id="finGstIrdResultLabel">GST to pay / refund</strong></div><strong id="finGstIrdResultAmount">—</strong></div>
           <p id="finGstIrdNote" class="gst-ird-note" hidden></p>
         </section>
+        <section class="card gst-review-section" id="finIrdConnectCard" hidden>
+          <div class="card-title"><div><span class="eyebrow">IRD Connect</span><h3>GST filing package</h3><p class="hint" id="finIrdConnectHint">Prepare an IRD-ready package and record the myIR filing reference.</p></div></div>
+          <div id="finIrdConnectSummary"></div>
+          <div class="actions"><button class="secondary" id="finIrdGstPackageCsv" type="button">Download IRD package CSV</button><button class="secondary" id="finIrdGstRecordExport" type="button">Record package exported</button><button class="primary" id="finIrdGstMarkFiled" type="button">Mark filed in myIR</button></div>
+        </section>
         <details class="card gst-review-section"><summary><strong>Sales included in this return</strong></summary><div class="table-scroll"><table class="gst-transaction-table"><thead><tr><th scope="col">Date</th><th scope="col">Invoice number</th><th scope="col">Customer</th><th scope="col">Total</th><th scope="col">GST</th></tr></thead><tbody id="finGstSalesRows"></tbody></table></div></details>
         <details class="card gst-review-section"><summary><strong>Purchases &amp; expenses included in this return</strong></summary><div class="table-scroll"><table class="gst-transaction-table"><thead><tr><th scope="col">Date</th><th scope="col">Supplier</th><th scope="col">Expense/bill number</th><th scope="col">Total</th><th scope="col">GST</th></tr></thead><tbody id="finGstExpenseRows"></tbody></table></div></details>
         <details class="card gst-review-section"><summary><strong>GST Adjustments &amp; Review</strong></summary><div class="head-actions"><button class="secondary" id="finGstAddAdjustment" type="button">+ Manual GST Adjustment</button></div><div class="table-scroll"><table class="gst-transaction-table"><thead><tr><th>Date</th><th>Description</th><th>GST impact</th><th>Reason</th></tr></thead><tbody id="finGstAdjustmentRows"></tbody></table></div><div class="table-scroll gst-excluded-review"><table class="gst-transaction-table"><thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Total</th><th>Reason</th></tr></thead><tbody id="finGstExcludedRows"></tbody></table></div><div class="gst-hidden-totals" hidden><span id="finGstSalesEx">—</span><span id="finGstPurchasesEx">—</span><span id="finGstCalcSales">—</span><span id="finGstCalcPurchases">—</span><span id="finGstAdjustments">—</span><div id="finGstMyIrRows"></div></div></details>
@@ -626,7 +631,7 @@
           <button type="button" data-settings-nav="plan">Plan &amp; Data</button>
         </aside>
         <div class="settings-page-content">
-          <section class="settings-page-panel" data-settings-panel="account"><div id="centralAccountSettings"></div></section>
+          <section class="settings-page-panel" data-settings-panel="account"><div id="centralAccountSettings"></div><div class="card table-card email-activity-settings-card" id="settingsEmailActivityCard"><div class="card-title"><div><h2>Email Activity</h2><p class="hint">Recent invoice, quote, payslip and payment reminder emails accepted by the email provider.</p></div><button class="secondary" type="button" id="settingsEmailActivityRefresh">Refresh</button></div><div class="table-scroll"><table><thead><tr><th>Date</th><th>Type</th><th>Sent to</th><th>Related item</th><th>Status</th></tr></thead><tbody id="settingsEmailActivityRows"><tr><td colspan="5">Open Settings to load email activity.</td></tr></tbody></table></div></div></section>
           <section class="settings-page-panel" data-settings-panel="invoicing" hidden>
       <div class="settings-grid">
         <div class="card">
@@ -1073,7 +1078,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
 
     <div class="payrun-footer-actions"><button class="secondary" id="prSaveDraft">Save Pay Run</button><button class="primary" id="prFinalise">Finalise Pay Run</button></div>
   </div></div>
-  <div class="modal" id="payrollPayslipModal" role="dialog" aria-modal="true"><div class="modal-box payroll-modal-box"><button type="button" class="close" aria-label="Close dialog" id="payrollClosePayslip">×</button><div id="payrollPayslipContent"></div><div class="actions"><button class="secondary" id="payrollPayslipPdf">Download PDF</button><button class="primary" id="payrollPayslipEmail">Email Payslip</button></div></div></div>
+  <div class="modal" id="payrollPayslipModal" role="dialog" aria-modal="true"><div class="modal-box payroll-modal-box"><button type="button" class="close" aria-label="Close dialog" id="payrollClosePayslip">×</button><div id="payrollPayslipContent"></div><div class="actions"><button class="secondary" id="payrollPayslipPdf" type="button">Download PDF</button><button class="primary payroll-email-button" id="payrollPayslipEmail" type="button" aria-live="polite">Email Payslip</button></div></div></div>
   <div class="modal" id="payrollIrdFilingModal" role="dialog" aria-modal="true"><div class="modal-box payroll-modal-box payroll-ird-modal"><button type="button" class="close" aria-label="Close dialog" id="payrollCloseIrdFiling">×</button><div class="page-head compact-head"><div><span class="eyebrow">IRD PAYDAY FILING</span><h2 id="payrollIrdTitle">IRD Filing</h2><p id="payrollIrdSubtitle">Prepare manual myIR entry or an upload file from a finalised pay run.</p></div></div><div id="payrollIrdContent"></div><div class="actions"><button class="secondary" id="payrollIrdSummaryCsv" type="button">Download summary CSV</button><button class="secondary" id="payrollIrdUploadCsv" type="button">Download IRD upload file</button><button class="primary" id="payrollIrdMarkFiled" type="button">Mark as filed</button></div></div></div>
 
 
@@ -1087,7 +1092,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div class="app-version">© 2026 Frindly · v61.79D-CONVERSATION-SOL</div>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="referrals.js?v=61.102L-login-reliability"></script>
-  <script src="saas.js?v=61.119-blinkpay-admin-settings"></script>
+  <script src="saas.js?v=61.124-email-activity"></script>
   <script src="stock-equipment.js?v=61.107ZQ-mobile-audit-layout"></script>
   <link rel="stylesheet" href="stock-equipment.css?v=61.107ZP-layout-mobile" />
   <link rel="stylesheet" href="purchase-review.css?v=61.102L-login-reliability" />

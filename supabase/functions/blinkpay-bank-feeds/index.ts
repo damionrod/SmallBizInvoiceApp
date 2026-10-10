@@ -29,18 +29,18 @@ async function blinkPayConfig(admin: any, req?: Request, requireEnabled = false)
   const publicConfig = row?.public_config || {};
   const clientId = clean(publicConfig.client_id || env('BLINKPAY_CLIENT_ID'), 500);
   const clientSecret = clean(stored.client_secret || env('BLINKPAY_CLIENT_SECRET'), 1000);
-  // Blink Data returns a unique bank authorisation URL for each consent; no static URL.
-  const tokenUrl = clean(publicConfig.token_url || env('BLINKPAY_TOKEN_URL') || (row?.mode === 'live' ? 'https://data.blinkpay.co.nz/oauth2/token' : 'https://sandbox.data.blinkpay.co.nz/oauth2/token'), 1000);
-  const dataBaseUrl = clean(publicConfig.data_base_url || env('BLINKPAY_DATA_BASE_URL') || (row?.mode === 'live' ? 'https://data.blinkpay.co.nz' : 'https://sandbox.data.blinkpay.co.nz'), 1000).replace(/\/$/, '');
+  const authUrl = clean(publicConfig.auth_url || env('BLINKPAY_AUTH_URL'), 1000);
+  const tokenUrl = clean(publicConfig.token_url || env('BLINKPAY_TOKEN_URL'), 1000);
+  const dataBaseUrl = clean(publicConfig.data_base_url || env('BLINKPAY_DATA_BASE_URL'), 1000).replace(/\/$/, '');
   const redirectUri = clean(publicConfig.redirect_uri || env('BLINKPAY_REDIRECT_URI') || (req ? `${new URL(req.url).origin}/functions/v1/blinkpay-bank-feeds?action=callback` : ''), 1000);
-  const scopes = 'ReadAccounts ReadBalances ReadTransactions';
-  const accountsPath = clean(publicConfig.accounts_path || env('BLINKPAY_ACCOUNTS_PATH') || '/v1/accounts', 500);
-  const transactionsPath = clean(publicConfig.transactions_path || env('BLINKPAY_TRANSACTIONS_PATH') || '/v1/accounts/{account_id}/transactions', 500);
+  const scopes = clean(publicConfig.scopes || env('BLINKPAY_SCOPES') || 'accounts balances transactions statements', 500);
+  const accountsPath = clean(publicConfig.accounts_path || env('BLINKPAY_ACCOUNTS_PATH') || '/accounts', 500);
+  const transactionsPath = clean(publicConfig.transactions_path || env('BLINKPAY_TRANSACTIONS_PATH') || '/accounts/{accountId}/transactions', 500);
   const enabled = row ? row.enabled === true : Boolean(clientId && clientSecret);
   const environment = row?.mode === 'live' || env('BLINKPAY_ENV') === 'production' ? 'production' : 'sandbox';
-  const configured = Boolean(clientId && clientSecret && tokenUrl && dataBaseUrl);
+  const configured = Boolean(clientId && clientSecret && authUrl && tokenUrl && dataBaseUrl);
   if (requireEnabled && !enabled) throw new Error('BlinkPay live bank feeds are disabled in Super Admin → Payment Settings.');
-  return { clientId, clientSecret, tokenUrl, dataBaseUrl, redirectUri, scopes, accountsPath, transactionsPath, enabled, environment, configured };
+  return { clientId, clientSecret, authUrl, tokenUrl, dataBaseUrl, redirectUri, scopes, accountsPath, transactionsPath, enabled, environment, configured };
 }
 
 async function userFromRequest(req: Request, supabaseUrl: string, anonKey: string) {
@@ -83,62 +83,90 @@ async function status(req: Request, admin: any, businessId: string, userId: stri
   });
 }
 
-async function accessToken(cfg: any) {
-  const body = new URLSearchParams({ grant_type: 'client_credentials', client_id: cfg.clientId, client_secret: cfg.clientSecret });
-  const response = await fetch(cfg.tokenUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !payload.access_token) throw new Error(`Blink Data authentication failed (${response.status}). Check sandbox credentials and API permissions.`);
-  return payload.access_token as string;
-}
-
-async function connectStart(req: Request, admin: any, businessId: string, userId: string, body: any) {
+async function connectStart(req: Request, admin: any, businessId: string, userId: string) {
   if (!await canUseLiveFeeds(admin, businessId, userId)) return json(req, { error: 'Live Bank Feeds is not enabled for this plan or user role.' }, 403);
   const cfg = await blinkPayConfig(admin, req, true);
-  if (!cfg.configured) return json(req, { error: 'BlinkPay requires client ID, secret, token URL and data base URL.' }, 400);
-  const bank = clean(body.bank, 40);
-  // The Redirect Flow requires a bank; PNZ is the documented sandbox test bank.
-  const supported = cfg.environment === 'sandbox' ? ['PNZ','ANZ','ASB','BNZ','Kiwibank','NZHL','Westpac'] : ['ANZ','ASB','BNZ','Kiwibank','NZHL','Westpac'];
-  if (!supported.includes(bank)) return json(req, { error: 'Select a supported bank before connecting.' }, 400);
-  const token = await accessToken(cfg);
-  const response = await fetch(`${cfg.dataBaseUrl}/v1/consents`, {
-    method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ flow: { detail: { type: 'redirect', bank, redirect_uri: cfg.redirectUri } }, permissions: ['ReadAccounts','ReadBalances','ReadTransactions'] }),
-  });
-  const consent = await response.json().catch(() => ({}));
-  if (!response.ok || !consent.consent_id || !consent.redirect_uri) return json(req, { error: `Blink Data consent creation failed (${response.status}): ${clean(consent.message || consent.error || 'Check permissions and whitelisted callback URL.', 200)}` }, 400);
+  if (!cfg.configured) return json(req, { error: 'BlinkPay is not configured yet. Add the Blink Data client ID, secret, auth URL, token URL and data base URL in Super Admin → Payment Settings.' }, 400);
+  const state = randomState();
+  const scopes = cfg.scopes.split(/\s+/).filter(Boolean);
   const { data, error } = await admin.from('blinkpay_feed_connections').insert({
-    business_id: businessId, environment: cfg.environment, status: 'pending', bank_name: bank,
-    consent_id: consent.consent_id, consent_state: randomState(), scopes: ['ReadAccounts','ReadBalances','ReadTransactions'],
-    created_by: userId, updated_by: userId,
+    business_id: businessId,
+    environment: cfg.environment,
+    status: 'pending',
+    consent_state: state,
+    scopes,
+    created_by: userId,
+    updated_by: userId,
   }).select('id').single();
   if (error) return json(req, { error: error.message }, 400);
-  return json(req, { url: consent.redirect_uri, connection_id: data.id });
+  const url = new URL(cfg.authUrl);
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('client_id', cfg.clientId);
+  url.searchParams.set('redirect_uri', cfg.redirectUri);
+  url.searchParams.set('scope', scopes.join(' '));
+  url.searchParams.set('state', state);
+  return json(req, { url: url.toString(), connection_id: data.id });
+}
+
+async function exchangeCode(code: string, req: Request, cfg: any) {
+  const body = new URLSearchParams();
+  body.set('grant_type', 'authorization_code');
+  body.set('code', code);
+  body.set('redirect_uri', cfg.redirectUri);
+  body.set('client_id', cfg.clientId);
+  body.set('client_secret', cfg.clientSecret);
+  const response = await fetch(cfg.tokenUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.error_description || payload?.error || 'BlinkPay token exchange failed.');
+  return payload;
 }
 
 async function callback(req: Request, admin: any) {
   const url = new URL(req.url);
-  const cid = clean(url.searchParams.get('cid'), 200);
-  const result = clean(url.searchParams.get('status'), 40);
-  if (!cid) return new Response('Missing BlinkPay consent ID.', { status: 400 });
-  const { data: connection } = await admin.from('blinkpay_feed_connections').select('*').eq('consent_id', cid).eq('status', 'pending').maybeSingle();
-  if (!connection) return new Response('Unknown or completed BlinkPay consent.', { status: 400 });
-  if (result) {
-    await admin.from('blinkpay_feed_connections').update({ status: 'error', last_sync_status: 'failed', last_sync_message: `Bank authorisation ${result}.`, updated_at: new Date().toISOString() }).eq('id', connection.id);
+  const state = clean(url.searchParams.get('state'), 200);
+  const code = clean(url.searchParams.get('code'), 2000);
+  const error = clean(url.searchParams.get('error'), 500);
+  const { data: connection } = await admin.from('blinkpay_feed_connections').select('*').eq('consent_state', state).maybeSingle();
+  if (!connection) return new Response('Invalid BlinkPay connection state.', { status: 400 });
+  if (error || !code) {
+    await admin.from('blinkpay_feed_connections').update({ status: 'error', last_sync_status: 'failed', last_sync_message: error || 'BlinkPay did not return an authorization code.', updated_at: new Date().toISOString() }).eq('id', connection.id);
     return Response.redirect(`${appUrl()}/#bankreconciliation/import?blinkpay=error`, 302);
   }
   try {
     const cfg = await blinkPayConfig(admin, req, true);
-    if (cfg.environment !== connection.environment) throw new Error('BlinkPay environment changed during consent.');
-    const token = await accessToken(cfg);
-    const consent = await blinkFetch(`/v1/consents/${encodeURIComponent(cid)}`, token, cfg);
-    const consentStatus = clean(consent.status || consent.consent_status || consent.consentStatus, 60);
-    if (consentStatus !== 'Authorised') throw new Error(`Bank consent is not authorised (${consentStatus || 'unknown'}).`);
-    await admin.from('blinkpay_feed_connections').update({ status: 'active', access_token: null, refresh_token: null, token_expires_at: null, last_sync_status: 'connected', last_sync_message: null, updated_at: new Date().toISOString() }).eq('id', connection.id);
+    const token = await exchangeCode(code, req, cfg);
+    const expires = token.expires_in ? new Date(Date.now() + Number(token.expires_in) * 1000).toISOString() : null;
+    await admin.from('blinkpay_feed_connections').update({
+      status: 'active',
+      access_token: token.access_token || null,
+      refresh_token: token.refresh_token || null,
+      token_expires_at: expires,
+      consent_id: token.consent_id || token.consentId || connection.consent_id || null,
+      last_sync_status: 'connected',
+      last_sync_message: null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', connection.id);
     return Response.redirect(`${appUrl()}/#bankreconciliation/import?blinkpay=connected`, 302);
   } catch (err) {
     await admin.from('blinkpay_feed_connections').update({ status: 'error', last_sync_status: 'failed', last_sync_message: err instanceof Error ? err.message : 'BlinkPay callback failed.', updated_at: new Date().toISOString() }).eq('id', connection.id);
     return Response.redirect(`${appUrl()}/#bankreconciliation/import?blinkpay=error`, 302);
   }
+}
+
+async function refreshTokenIfNeeded(admin: any, connection: any, cfg: any) {
+  if (!connection.refresh_token || !connection.token_expires_at || new Date(connection.token_expires_at).getTime() > Date.now() + 120000) return connection;
+  const body = new URLSearchParams();
+  body.set('grant_type', 'refresh_token');
+  body.set('refresh_token', connection.refresh_token);
+  body.set('client_id', cfg.clientId);
+  body.set('client_secret', cfg.clientSecret);
+  const response = await fetch(cfg.tokenUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(payload?.error_description || payload?.error || 'BlinkPay token refresh failed.');
+  const expires = payload.expires_in ? new Date(Date.now() + Number(payload.expires_in) * 1000).toISOString() : connection.token_expires_at;
+  const updated = { ...connection, access_token: payload.access_token || connection.access_token, refresh_token: payload.refresh_token || connection.refresh_token, token_expires_at: expires };
+  await admin.from('blinkpay_feed_connections').update({ access_token: updated.access_token, refresh_token: updated.refresh_token, token_expires_at: expires, updated_at: new Date().toISOString() }).eq('id', connection.id);
+  return updated;
 }
 
 async function blinkFetch(path: string, token: string, cfg: any) {
@@ -219,22 +247,18 @@ async function sync(req: Request, admin: any, businessId: string, userId: string
   const cfg = await blinkPayConfig(admin, req, true);
   if (!cfg.configured) return json(req, { error: 'BlinkPay is not configured yet.' }, 400);
   const { data: connection } = await admin.from('blinkpay_feed_connections').select('*').eq('business_id', businessId).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (!connection?.consent_id) return json(req, { error: 'No active BlinkPay consent is connected yet.' }, 400);
+  if (!connection?.access_token) return json(req, { error: 'No active BlinkPay feed is connected yet.' }, 400);
   const { data: run } = await admin.from('blinkpay_feed_sync_runs').insert({ business_id: businessId, connection_id: connection.id, status: 'running', created_by: userId }).select('id').single();
   let imported = 0, duplicates = 0, accounts = 0;
   try {
-    const active = connection;
-    if (active.environment !== cfg.environment) throw new Error('BlinkPay environment does not match the connected bank.');
-    const token = await accessToken(cfg);
-    const consent = await blinkFetch(`/v1/consents/${encodeURIComponent(active.consent_id)}`, token, cfg);
-    if (clean(consent.status || consent.consent_status || consent.consentStatus, 60) !== 'Authorised') throw new Error('BlinkPay bank consent is no longer authorised. Reconnect the bank.');
-    const accountPayload = await blinkFetch(`${cfg.accountsPath}?consent_id=${encodeURIComponent(active.consent_id)}`, token, cfg);
+    const active = await refreshTokenIfNeeded(admin, connection, cfg);
+    const accountPayload = await blinkFetch(cfg.accountsPath, active.access_token, cfg);
     for (const account of accountRows(accountPayload)) {
       const mapped = await upsertAccount(admin, businessId, active.id, account, userId);
       if (!mapped?.bankAccountId) continue;
       accounts++;
-      const path = cfg.transactionsPath.replace(/\{accountId\}|\{account_id\}/g, encodeURIComponent(mapped.providerAccountId));
-      const txPayload = await blinkFetch(`${path}${path.includes('?') ? '&' : '?'}consent_id=${encodeURIComponent(active.consent_id)}`, token, cfg);
+      const path = cfg.transactionsPath.replace('{accountId}', encodeURIComponent(mapped.providerAccountId));
+      const txPayload = await blinkFetch(path, active.access_token, cfg);
       const rows = transactionRows(txPayload);
       for (const row of rows) {
         const externalId = transactionId(row);
@@ -306,7 +330,7 @@ Deno.serve(async (req) => {
     const businessId = clean(body.business_id, 80);
     if (!businessId) return json(req, { error: 'Business id is required.' }, 400);
     if (action === 'status') return status(req, admin, businessId, user.id);
-    if (action === 'connect-start') return connectStart(req, admin, businessId, user.id, body);
+    if (action === 'connect-start') return connectStart(req, admin, businessId, user.id);
     if (action === 'sync') return sync(req, admin, businessId, user.id);
     if (action === 'disconnect') return disconnect(req, admin, businessId, user.id, body);
     return json(req, { error: 'Unknown BlinkPay bank feed action.' }, 400);

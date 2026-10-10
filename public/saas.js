@@ -425,7 +425,7 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.107AAH-invoice-layout-menu','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.107AAY-progress-invoicing','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.120A-reconciliation-display','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.105-phase13b-payroll-reversal','financials.js?v=61.106W-dashboard-period-filter','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.118-live-bank-feeds','community.js?v=61.106-community-module']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.124-email-activity','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.124-email-activity','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZW-advanced-filters','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.124-payslip-email','financials.js?v=61.123-ird-connect','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.124-module-fallback','community.js?v=61.106-community-module']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
@@ -644,6 +644,7 @@
     if(section==='tax')window.Financials?.refresh?.();
     if(section==='job'){q('jc-panel-settings')?.classList.add('active');window.JobCosting?.onShow?.();}
     if(section==='users'&&['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))renderTeamAccess();
+    if(section==='account'){window.FrindlyEmailActivity?.settings?.();q('settingsEmailActivityRefresh')&&(q('settingsEmailActivityRefresh').onclick=()=>window.FrindlyEmailActivity?.settings?.())}
     if(section==='invoicing'){
       const role=state.profile?.is_super_admin?'owner':(state.accessRole||''),paymentAccess=(state.profile?.is_super_admin||await hasModule('invoice_payments'))&&['owner','admin'].includes(role);
       q('centralPaymentsSettings')?.toggleAttribute('hidden',!paymentAccess);
@@ -1545,16 +1546,34 @@
         description:'Read-only Blink Data bank feeds. Businesses can connect supported NZ bank accounts from Bank Reconciliation when this is enabled.',
         publicFields:[
           {key:'client_id',label:'Client ID',placeholder:'BlinkPay sandbox/client ID'},
-          
+          {key:'auth_url',label:'Authorisation URL',placeholder:'https://...'},
           {key:'token_url',label:'Token URL',placeholder:'https://...'},
           {key:'data_base_url',label:'Data API base URL',placeholder:'https://...'},
-          
-          {key:'accounts_path',label:'Accounts endpoint path',placeholder:'/v1/accounts'},
-          {key:'transactions_path',label:'Transactions endpoint path',placeholder:'/v1/accounts/{account_id}/transactions'},
+          {key:'scopes',label:'Scopes',placeholder:'accounts balances transactions statements'},
+          {key:'accounts_path',label:'Accounts endpoint path',placeholder:'/accounts'},
+          {key:'transactions_path',label:'Transactions endpoint path',placeholder:'/accounts/{accountId}/transactions'},
           {key:'redirect_uri',label:'Redirect / callback URI',placeholder:`${(C.supabaseUrl||'').replace(/\/$/,'')}/functions/v1/blinkpay-bank-feeds?action=callback`}
         ],
         secretFields:[{key:'client_secret',label:'Client secret',placeholder:'BlinkPay client secret'}],
         readyNote:'Once enabled, Live Bank Feeds can use this provider for businesses/plans with the module enabled.'
+      },
+      {
+        provider:'akahu',name:'Akahu',supported:true,
+        description:'Read-only Akahu bank feeds for NZ account and transaction data. Businesses can connect accounts from Bank Reconciliation when this is enabled.',
+        publicFields:[
+          {key:'app_token',label:'App ID Token',placeholder:'Akahu App ID Token'},
+          {key:'auth_url',label:'Authorisation URL',placeholder:'https://oauth.akahu.nz'},
+          {key:'token_url',label:'Token URL',placeholder:'https://oauth.akahu.nz/token'},
+          {key:'api_base_url',label:'API base URL',placeholder:'https://api.akahu.io/v1'},
+          {key:'scopes',label:'Scopes',placeholder:'ENDURING_CONSENT ACCOUNTS TRANSACTIONS'},
+          {key:'accounts_path',label:'Accounts endpoint path',placeholder:'/accounts'},
+          {key:'transactions_path',label:'Transactions endpoint path',placeholder:'/transactions'},
+          {key:'revoke_path',label:'Revoke endpoint path',placeholder:'/token'},
+          {key:'sync_start_days',label:'Initial sync days',placeholder:'90'},
+          {key:'redirect_uri',label:'Redirect / callback URI',placeholder:`${(C.supabaseUrl||'').replace(/\/$/,'')}/functions/v1/akahu-bank-feeds?action=callback`}
+        ],
+        secretFields:[{key:'app_secret',label:'App Secret',placeholder:'Akahu App Secret'}],
+        readyNote:'Once enabled, Live Bank Feeds can use Akahu for businesses/plans with the module enabled.'
       },
       {
         provider:'paypal',name:'PayPal',supported:false,
@@ -1595,7 +1614,7 @@
       const publicFields=def.publicFields.map(f=>`<label class="wide">${escapeHtml(f.label)}<input data-pay-public="${f.key}" value="${escapeHtml(cfg[f.key]||'')}" placeholder="${escapeHtml(f.placeholder||'')}"></label>`).join('');
       const secretFields=def.secretFields.map(f=>`<label class="wide">${escapeHtml(f.label)}<input type="password" data-pay-secret="${f.key}" value="" placeholder="${configured?'Saved securely — enter only to replace/add':escapeHtml(f.placeholder||'')}"></label>`).join('');
       const webhook=def.webhook?`<label class="wide">Stripe webhook URL<div class="gateway-webhook">${escapeHtml(def.webhook)}</div></label>`:'';
-      const enabledLabel=def.provider==='blinkpay'?'Enabled for bank feeds':'Enabled for checkout';
+      const enabledLabel=['blinkpay','akahu'].includes(def.provider)?'Enabled for bank feeds':'Enabled for checkout';
       return `<div class="payment-gateway-card" data-payment-card="${def.provider}"><div class="gateway-head"><div><h3>${escapeHtml(def.name)}</h3><p>${escapeHtml(def.description)}</p></div><span class="gateway-status ${statusClass}">${status}</span></div><div class="gateway-fields"><label>Mode<select data-pay-mode><option value="test" ${row.mode!=='live'?'selected':''}>Test / Sandbox</option><option value="live" ${row.mode==='live'?'selected':''}>Live</option></select></label><label>Gateway status<select data-pay-enabled><option value="false" ${!enabled?'selected':''}>Disabled</option><option value="true" ${enabled?'selected':''} ${!def.supported?'disabled':''}>${enabledLabel}</option></select></label>${publicFields}${secretFields}${webhook}</div>${configured?'<div class="gateway-secret-state">✓ Secret credentials are stored securely in Supabase Vault.</div>':''}<p class="gateway-note ${def.supported?'':'warning'}">${escapeHtml(def.supported?(def.readyNote||'Once enabled, this provider can be used by its adapter.'):'Configuration storage is ready, but this provider is not yet an active checkout adapter.')}</p><div class="gateway-actions"><button class="primary" type="button" data-payment-save="${def.provider}">Save ${escapeHtml(def.name)}</button>${def.supported?`<button class="secondary" type="button" data-payment-test="${def.provider}">Test connection</button>`:''}</div></div>`;
     }).join('');
     root.querySelectorAll('[data-payment-save]').forEach(btn=>btn.onclick=()=>savePaymentProvider(btn.dataset.paymentSave));
@@ -1618,13 +1637,14 @@
   }
 
   async function testPaymentProvider(provider,btn){
-    if(provider!=='stripe'&&provider!=='blinkpay')return;
+    if(provider!=='stripe'&&provider!=='blinkpay'&&provider!=='akahu')return;
     const original=btn?.textContent||'Test connection';if(btn){btn.disabled=true;btn.textContent='Testing…'}
     const {data,error}=provider==='stripe'
       ? await state.client.functions.invoke('test-payment-provider',{body:{provider}})
-      : await state.client.functions.invoke('blinkpay-bank-feeds',{body:{action:'status',business_id:state.business?.id}});
+      : await state.client.functions.invoke(provider==='akahu'?'akahu-bank-feeds':'blinkpay-bank-feeds',{body:{action:'status',business_id:state.business?.id}});
     if(btn){btn.disabled=false;btn.textContent=original}
     if(error||data?.error){alert('Connection test failed: '+(data?.error||error?.message||'Unknown error'));return}
+    if(provider==='akahu'){alert(data?.configured&&data?.provider_enabled?'Akahu configuration is ready.':'Akahu settings saved, but it is not fully enabled/configured yet.');return}
     if(provider==='blinkpay'){alert(data?.configured&&data?.provider_enabled?'BlinkPay configuration is ready.':'BlinkPay settings saved, but it is not fully enabled/configured yet.');return}
     alert(`Stripe connection successful${data?.account_name?' — '+data.account_name:''}.`);
   }
@@ -2168,37 +2188,37 @@ ${businessName}`,'');
     if(q('jobCostingNav')){
       const entitled=await hasModule('job_costing'),allowed=entitled&&roleCanRead('core');
       q('jobCostingNav').dataset.entitlementBlocked=entitled?'0':'1';q('jobCostingNav').hidden=!allowed;
-      if(!allowed && document.getElementById('view-jobcosting')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(!allowed && document.getElementById('view-jobcosting')?.classList.contains('active') && window.switchView)window.switchView('dashboard');
     }
     if(q('expensesNav')){
       const entitled=await hasModule('expenses'),allowed=entitled&&roleCanRead('expenses');
       q('expensesNav').dataset.entitlementBlocked=entitled?'0':'1';q('expensesNav').hidden=!allowed;
-      if(!allowed && document.getElementById('view-expenses')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(!allowed && document.getElementById('view-expenses')?.classList.contains('active') && window.switchView)window.switchView('dashboard');
     }
     if(q('stockEquipmentNav')){
       const entitled=await hasModule('stock_equipment'),allowed=entitled&&roleCanRead('expenses');
       q('stockEquipmentNav').dataset.entitlementBlocked=entitled?'0':'1';q('stockEquipmentNav').hidden=!allowed;
       const view=q('view-stock-equipment');if(view)view.hidden=!allowed;
-      if(!allowed&&view?.classList.contains('active'))window.switchView?.('create');
+      if(!allowed&&view?.classList.contains('active'))window.switchView?.('dashboard');
     }
     if(q('payrollNav')){
       const entitled=await hasModule('payroll'),allowed=entitled&&roleCanRead('payroll');
       q('payrollNav').dataset.entitlementBlocked=entitled?'0':'1';q('payrollNav').hidden=!allowed;
       if(q('payrollReportTab'))q('payrollReportTab').hidden=!allowed;
       if(q('payrollSettingsCard'))q('payrollSettingsCard').hidden=!allowed;
-      if(!allowed && document.getElementById('view-payroll')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(!allowed && document.getElementById('view-payroll')?.classList.contains('active') && window.switchView)window.switchView('dashboard');
     }
     if(q('financialsNav')){
       const entitled=await hasModule('financials'),allowed=entitled&&roleCanRead('financials');
       q('financialsNav').dataset.entitlementBlocked=entitled?'0':'1';q('financialsNav').hidden=!allowed;
       if(q('financialSettingsCard'))q('financialSettingsCard').hidden=!allowed;
-      if(!allowed && document.getElementById('view-financials')?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(!allowed && document.getElementById('view-financials')?.classList.contains('active') && window.switchView)window.switchView('dashboard');
     }
     if(q('bankReconciliationNav')){
       const entitled=await hasModule('bank_reconciliation'),allowed=entitled&&roleCanRead('bank');
       q('bankReconciliationNav').dataset.entitlementBlocked=entitled?'0':'1';q('bankReconciliationNav').hidden=!allowed;
       const view=document.getElementById('view-bankreconciliation');if(view)view.hidden=!allowed;
-      if(!allowed && view?.classList.contains('active') && window.switchView)window.switchView('create');
+      if(!allowed && view?.classList.contains('active') && window.switchView)window.switchView('dashboard');
     }
     if(q('communityNav')){
       const entitled=state.profile?.is_super_admin||await hasModule('community'),allowed=entitled&&roleCanRead('core');

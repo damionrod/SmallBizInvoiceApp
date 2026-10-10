@@ -543,7 +543,14 @@
   async function reversePayRun(id){const r=state.runs.find(x=>x.id===id);if(!r||r.status!=='finalised')return;const reason=prompt(`Reverse finalised pay run ${r.pay_run_number}?\n\nThe pay run and payslips will be retained as read-only history and a reversing accounting journal will be created.\n\nEnter the reason for reversal:`);if(reason===null)return;if(!reason.trim())return toast('A reversal reason is required.');if(!confirm(`Confirm reversal of ${r.pay_run_number}? This creates a permanent accounting reversal and cannot be deleted.`))return;const {error}=await client().rpc('v61105_phase13b_reverse_pay_run',{p_pay_run_id:id,p_reason:reason.trim()});if(error)return toast(error.message);await load();toast('Pay run reversed. The original payroll and reversing journal have been retained.')}
   async function openPayslipChooser(runId){const {data,error}=await client().from('payroll_payslips').select('*').eq('business_id',state.businessId).eq('pay_run_id',runId);if(error)return toast(error.message);if(!(data||[]).length)return toast('No payslips found.');if(data.length===1)return showPayslip(data[0]);const choice=prompt('Enter employee name or number:\n'+data.map(p=>`${p.payslip_data.employee.number} – ${p.payslip_data.employee.name}`).join('\n'));if(!choice)return;const p=data.find(x=>[x.payslip_data.employee.name,x.payslip_data.employee.number].some(v=>String(v).toLowerCase().includes(choice.toLowerCase())));if(p)showPayslip(p);else toast('Payslip not found')}
   function payslipHtml(p){const d=p.payslip_data,pay=d.pay,b=d.business,e=d.employee,r=d.run,adjust=pay.adjustments||[],taxable=adjust.filter(l=>l.type==='earning'||(l.type==='allowance'&&l.taxable!==false)),nonTax=adjust.filter(l=>(l.type==='allowance'&&l.taxable===false)||l.type==='reimbursement'),deductions=adjust.filter(l=>l.type==='deduction'),netTaxable=trunc2(num(pay.gross)-num(pay.paye)-num(pay.kiwisaver_employee)-num(pay.student_loan)-num(pay.other_deductions)),finalPaid=num(pay.net);return `<div class="payslip"><div class="payslip-head"><div><h2>${esc(b.name)}</h2><p>${esc(b.address||'')}</p></div><div><strong>PAYSLIP</strong><span>${esc(p.payslip_number)}</span></div></div><div class="payslip-meta"><div><span>Employee</span><strong>${esc(e.name)}</strong><small>${esc(e.number)}</small></div><div><span>Pay period</span><strong>${iso(r.period_start)} – ${iso(r.period_end)}</strong><small>Pay date ${iso(r.pay_date)}</small></div></div>${(pay.work_details||[]).length?`<h3>Jobs & Hours</h3><table><thead><tr><th>Date</th><th>Job</th><th>Hours</th><th>Rate</th><th>Pay</th></tr></thead><tbody>${pay.work_details.map(w=>`<tr><td>${iso(w.date)}</td><td>${esc(w.job)}</td><td>${num(w.hours).toFixed(2)}</td><td>${w.rate?money(w.rate):'—'}</td><td>${w.amount?money(w.amount):'Included'}</td></tr>`).join('')}</tbody></table>`:''}<h3>Pay Calculation</h3><table><tbody><tr><th>Ordinary / salary earnings</th><td>${money(pay.ordinary)}</td></tr>${pay.holiday?`<tr><th>Holiday pay</th><td>${money(pay.holiday)}</td></tr>`:''}${taxable.map(l=>`<tr><th>${esc(l.description)}${l.type==='allowance'?' (taxable allowance)':''}</th><td>${money(l.amount)}</td></tr>`).join('')}<tr class="total"><th>Gross taxable earnings</th><td>${money(pay.gross)}</td></tr><tr><th>PAYE / tax deducted</th><td>-${money(pay.paye)}</td></tr>${pay.kiwisaver_employee?`<tr><th>KiwiSaver employee</th><td>-${money(pay.kiwisaver_employee)}</td></tr>`:''}${pay.student_loan?`<tr><th>Student loan</th><td>-${money(pay.student_loan)}</td></tr>`:''}${deductions.map(l=>`<tr><th>${esc(l.description)}</th><td>-${money(l.amount)}</td></tr>`).join('')}<tr><th>Net taxable wages</th><td>${money(netTaxable)}</td></tr>${nonTax.map(l=>`<tr><th>${esc(l.description)} (non-taxable ${l.type==='reimbursement'?'reimbursement':'allowance'})</th><td>${money(l.amount)}</td></tr>`).join('')}<tr class="total payslip-final"><th>Final amount paid</th><td>${money(finalPaid)}</td></tr><tr><th>Employer KiwiSaver (net)</th><td>${money(pay.kiwisaver_employer)}</td></tr></tbody></table></div>`}
-  function showPayslip(p){state.currentPayslip=p;$('payrollPayslipContent').innerHTML=payslipHtml(p);open('payrollPayslipModal')}
+  function showPayslip(p){
+    state.currentPayslip=p;
+    const activity=window.FrindlyEmailActivity?.placeholder?.('payslip',p.id,{empty:'This payslip has not been emailed yet.'})||'';
+    $('payrollPayslipContent').innerHTML=payslipHtml(p)+activity;
+    setPayslipEmailButtonState('idle');
+    open('payrollPayslipModal');
+    window.FrindlyEmailActivity?.render?.($('payrollPayslipContent'));
+  }
   async function buildPayslipPdf(payslip=null){
     const target=payslip||state.currentPayslip;
     if(!target)return null;
@@ -599,15 +606,33 @@
     const update=await client().from('payroll_payslips').update({emailed_at:new Date().toISOString(),emailed_to:to}).eq('id',p.id);
     if(update.error)throw update.error;
   }
-  async function emailPayslip(){
+  function setPayslipEmailButtonState(mode,message){
+    const btn=$('payrollPayslipEmail');if(!btn)return;
+    btn.classList.remove('is-loading','is-success','is-error');
+    btn.disabled=mode==='loading';
+    btn.setAttribute('aria-busy',mode==='loading'?'true':'false');
+    if(mode==='loading'){btn.classList.add('is-loading');btn.textContent=message||'Sending…';return}
+    if(mode==='success'){btn.classList.add('is-success');btn.textContent=message||'Sent';return}
+    if(mode==='error'){btn.classList.add('is-error');btn.textContent=message||'Try again';return}
+    btn.textContent='Email Payslip';
+  }
+  async function emailPayslip(event){
+    event?.preventDefault?.();
     const p=state.currentPayslip;if(!p)return;
+    const btn=$('payrollPayslipEmail');if(btn?.disabled)return;
     try{
       const to=await currentEmployeeEmail(p);
       if(!to)return toast('This employee does not have an email address.');
+      setPayslipEmailButtonState('loading','Sending…');
       await sendPayslipEmail(p,to);
       if(p.payslip_data?.employee)p.payslip_data.employee.email=to;
+      p.emailed_at=new Date().toISOString();
+      p.emailed_to=to;
+      setPayslipEmailButtonState('success','Sent');
+      window.FrindlyEmailActivity?.render?.($('payrollPayslipContent'));
       toast('Payslip emailed to '+to);
-    }catch(e){console.error(e);toast('Email failed: '+(e?.message||e))}
+      setTimeout(()=>setPayslipEmailButtonState('idle'),1800);
+    }catch(e){console.error(e);setPayslipEmailButtonState('error','Try again');toast('Email failed: '+(e?.message||e));setTimeout(()=>setPayslipEmailButtonState('idle'),2200)}
   }
   async function emailRunPayslips(runId){
     const run=state.runs.find(r=>r.id===runId);

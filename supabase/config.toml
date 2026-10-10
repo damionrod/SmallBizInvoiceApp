@@ -12,3 +12,8 @@ verify_jwt = false
 # User actions inside the same function still verify the Authorization header manually.
 [functions.blinkpay-bank-feeds]
 verify_jwt = false
+
+# Akahu redirects back from OAuth without a Supabase user JWT.
+# User actions inside the same function still verify the Authorization header manually.
+[functions.akahu-bank-feeds]
+verify_jwt = false

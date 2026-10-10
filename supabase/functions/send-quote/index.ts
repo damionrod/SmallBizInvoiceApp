@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { platformFrom, validReplyTo, corsHeaders, clientIp, enforceRateLimit } from '../_shared/email-sender.ts';
+import { platformFrom, validReplyTo, corsHeaders, clientIp, enforceRateLimit, recordEmailActivity } from '../_shared/email-sender.ts';
 import { storePdfAndAttachment, storedPdfAttachment } from "../_shared/document-attachment.ts";
 
 const cors = corsHeaders();
@@ -342,6 +342,29 @@ Kind regards,
         },
         r.status
       );
+    }
+
+    try{
+      const {error:activityError}=await recordEmailActivity(
+        admin,
+        {
+          business_id:q.business_id,
+          message_type:"quote",
+          source_table:"quotes",
+          source_id:q.id,
+          recipient:to,
+          subject,
+          provider_message_id:data.id,
+          sent_by:user.id,
+          metadata:{
+            quote_number:q.quote_number,
+            status:q.status
+          }
+        }
+      );
+      if(activityError)console.warn("Email activity could not be recorded.",activityError);
+    }catch(activityError){
+      console.warn("Email activity could not be recorded.",activityError);
     }
 
     return json({
