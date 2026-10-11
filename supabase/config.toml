@@ -1,0 +1,24 @@
+# Public invoice-payment links authenticate customers with an opaque, hashed
+# token inside the function. The admin actions authenticate the Supabase user
+# explicitly, so the platform JWT gate must be disabled for this mixed endpoint.
+[functions.invoice-payments]
+verify_jwt = false
+
+# Stripe signs webhook requests instead of sending a Supabase user JWT.
+[functions.stripe-webhook]
+verify_jwt = false
+
+# BlinkPay redirects back from the bank without a Supabase user JWT.
+# User actions inside the same function still verify the Authorization header manually.
+[functions.blinkpay-bank-feeds]
+verify_jwt = false
+
+# Akahu redirects back from OAuth without a Supabase user JWT.
+# User actions inside the same function still verify the Authorization header manually.
+[functions.akahu-bank-feeds]
+verify_jwt = false
+
+# Automatic invoice reminders are idempotent and only claim reminders that are due.
+# Supabase Cron calls this function without a user JWT.
+[functions.invoice-reminder-worker]
+verify_jwt = false
