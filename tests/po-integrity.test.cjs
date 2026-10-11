@@ -1,0 +1,12 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const app=fs.readFileSync('public/advanced-business-features.js','utf8');
+const sql=fs.readFileSync('supabase/migrations/20261012130000_v61142e_po_field_integrity.sql','utf8');
+test('PO saves use one atomic RPC',()=>{assert.match(app,/rpc\('v61142b_save_purchase_order'/);});
+test('PO form carries delivery date',()=>{assert.match(app,/id="poExpectedDate"/);assert.ok(app.includes("expected_date:$('poExpectedDate')"));});
+test('PO form carries line GST rate',()=>{assert.match(app,/data-po-gst-rate/);assert.match(app,/gst_rate:Number\(/);});
+test('SQL preserves delivery date and currency',()=>{assert.match(sql,/expected_date=coalesce/);assert.match(sql,/currency=coalesce/);});
+test('SQL preserves GST amounts on save',()=>{assert.match(sql,/gst_amount=v_gst/);assert.match(sql,/round\(\(value->>'qty'\)/);});
+test('SQL rejects invalid quantities',()=>{assert.match(sql,/v_qty<=0/);});
+test('SQL uses caller permissions',()=>{assert.match(sql,/security invoker/);assert.match(sql,/v6147_can_write_area/);});
