@@ -231,22 +231,94 @@
     body.innerHTML=rows.length?rows.map(p=>`<tr><td>${esc(p.po_number)}</td><td>${esc(p.supplier_name||'')}</td><td>${esc(p.order_date||'')}</td><td><span class="badge">${esc(p.status||'draft')}</span></td><td>${money(p.total_amount)}</td><td><button class="secondary" data-po-open="${esc(p.id)}" type="button">Open</button></td></tr>`).join(''):'<tr><td colspan="6">No purchase orders yet.</td></tr>';
     body.querySelectorAll('[data-po-open]').forEach(b=>b.onclick=()=>openPoEditor(b.dataset.poOpen));
   }
-  async function openPoEditor(id){
-    const editor=$('poEditor'); if(!editor)return; editor.hidden=false;
-    let po=null,lines=[]; if(id){const found=await safeSelect('purchase_orders',q=>q.select('*').eq('business_id',businessId()).eq('id',id).maybeSingle());po=Array.isArray(found)?found[0]:found;lines=await safeSelect('purchase_order_lines',q=>q.select('*').eq('business_id',businessId()).eq('purchase_order_id',id).order('line_order'))}
-    if(!lines.length)lines=[{description:'',qty:1,unit_price:0}];
-    editor.innerHTML=`<div class="card-title"><h3>${po?'Edit':'New'} Purchase Order</h3><button class="secondary" id="poClose" type="button">Close</button></div><div class="form-grid compact"><label>PO number<input id="poNumber" value="${esc(po?.po_number||'PO-'+Date.now().toString().slice(-6))}"></label><label>Supplier<input id="poSupplier" value="${esc(po?.supplier_name||'')}"></label><label>Order date<input id="poDate" type="date" value="${esc(po?.order_date||today())}"></label><label>Status<select id="poStatus"><option value="draft">Draft</option><option value="approved">Approved</option><option value="sent">Sent</option><option value="partially_received">Partially received</option><option value="billed">Billed</option><option value="closed">Closed</option><option value="cancelled">Cancelled</option></select></label><label class="wide">Notes<input id="poNotes" value="${esc(po?.notes||'')}"></label></div><div class="table-scroll"><table><thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th></th></tr></thead><tbody id="poLineRows">${lines.map(l=>`<tr><td><input data-po-desc value="${esc(l.description||'')}"></td><td><input data-po-qty type="number" min="0" step="0.01" value="${num(l.qty)||1}"></td><td><input data-po-price type="number" min="0" step="0.01" value="${num(l.unit_price)}"></td><td><button class="secondary" data-po-remove type="button">Remove</button></td></tr>`).join('')}</tbody></table></div><div class="actions"><button class="secondary" id="poAddLine" type="button">+ Add line</button><button class="primary" id="poSave" type="button">Save Purchase Order</button></div><p class="hint">Saving a PO does not create a bill, payment or journal.</p>`;
-    $('poStatus').value=po?.status||'draft'; $('poClose').onclick=()=>editor.hidden=true; $('poAddLine').onclick=()=>{$('poLineRows').insertAdjacentHTML('beforeend','<tr><td><input data-po-desc></td><td><input data-po-qty type="number" min="0" step="0.01" value="1"></td><td><input data-po-price type="number" min="0" step="0.01" value="0"></td><td><button class="secondary" data-po-remove type="button">Remove</button></td></tr>');wirePoRemove()}; wirePoRemove(); $('poSave').onclick=()=>savePo(po?.id);
+  // Purchase order helpers are deliberately isolated from expense and accounting posting.
+  let poSuppliers=[], poHistory=[];
+  async function poLoadHistory(supplierId){
+    poHistory=[];
+    if(!supplierId)return;
+    const expenses=await safeSelect('expenses',q=>q.select('id,invoice_date').eq('business_id',businessId()).eq('supplier_id',supplierId).neq('lifecycle_state','voided').order('invoice_date',{ascending:false}).limit(150));
+    const ids=expenses.map(e=>e.id); if(!ids.length)return;
+    const details=await safeSelect('expense_lines',q=>q.select('expense_id,description,total_amount,ex_gst').eq('business_id',businessId()).in('expense_id',ids).limit(500));
+    const byId=new Map(expenses.map(e=>[e.id,e]));
+    poHistory=details.map(d=>({...d,invoice_date:byId.get(d.expense_id)?.invoice_date||''})).filter(d=>d.description).sort((a,b)=>b.invoice_date.localeCompare(a.invoice_date));
   }
-  function wirePoRemove(){document.querySelectorAll('[data-po-remove]').forEach(b=>b.onclick=()=>b.closest('tr')?.remove())}
+  function poSuggestion(desc){
+    const value=String(desc||'').trim().toLowerCase();
+    return poHistory.find(h=>h.description.trim().toLowerCase()===value)||null;
+  }
+  function poRow(l={}){
+    return `<tr><td><input data-po-desc list="poHistoryItems" value="${esc(l.description||'')}" aria-label="Item description"></td><td><input data-po-qty type="number" min="0.01" step="0.01" value="${num(l.qty)||1}" aria-label="Quantity"></td><td><input data-po-price type="number" min="0" step="0.01" value="${num(l.unit_price)}" aria-label="Purchase order unit price"></td><td><span data-po-last>—</span></td><td><span data-po-estimate>—</span></td><td><button class="secondary" data-po-remove type="button">Remove</button></td></tr>`;
+  }
+  function poRefreshEstimates(){
+    let sum=0, known=0;
+    document.querySelectorAll('#poLineRows tr').forEach(r=>{
+      const item=poSuggestion(r.querySelector('[data-po-desc]')?.value), qty=num(r.querySelector('[data-po-qty]')?.value);
+      // Expense lines have amounts but no quantity. Never present a historical line total as a unit price.
+      const last=r.querySelector('[data-po-last]'),estimate=r.querySelector('[data-po-estimate]');
+      if(last)last.textContent=item?`${money(item.ex_gst)} (historical line amount; qty unknown)`:'—';
+      if(estimate)estimate.textContent='—';
+    });
+    const total=$('poPrivateEstimate');if(total)total.textContent='Not available from recorded expenses (historical quantities not stored).';
+  }
+  function poRefreshSuggestions(){
+    const list=$('poHistoryItems');if(!list)return;
+    const unique=[...new Map(poHistory.map(h=>[h.description.trim().toLowerCase(),h.description])).values()];
+    list.innerHTML=unique.slice(0,150).map(x=>`<option value="${esc(x)}"></option>`).join('');
+    poRefreshEstimates();
+  }
+  function wirePoRows(){
+    document.querySelectorAll('#poLineRows tr').forEach(r=>{
+      r.querySelector('[data-po-desc]')?.addEventListener('input',poRefreshEstimates);
+      r.querySelector('[data-po-qty]')?.addEventListener('input',poRefreshEstimates);
+      r.querySelector('[data-po-remove]')?.addEventListener('click',()=>{r.remove();poRefreshEstimates()});
+    });
+    poRefreshEstimates();
+  }
+  async function openPoEditor(id){
+    const editor=$('poEditor');if(!editor)return;editor.hidden=false;
+    let po=null,lines=[];
+    if(id){const found=await safeSelect('purchase_orders',q=>q.select('*').eq('business_id',businessId()).eq('id',id).maybeSingle());po=Array.isArray(found)?found[0]:found;lines=await safeSelect('purchase_order_lines',q=>q.select('*').eq('business_id',businessId()).eq('purchase_order_id',id).order('line_order'))}
+    if(!lines.length)lines=[{description:'',qty:1,unit_price:0}];
+    poSuppliers=await safeSelect('suppliers',q=>q.select('id,supplier_name,trading_name,email').eq('business_id',businessId()).eq('archived',false).order('supplier_name').limit(500));
+    editor.innerHTML=`<div class="card-title"><h3>${po?'Edit':'New'} Purchase Order</h3><button class="secondary" id="poClose" type="button">Close</button></div>
+      <div class="form-grid compact"><label>PO number<input id="poNumber" value="${esc(po?.po_number||'PO-'+Date.now().toString().slice(-6))}"></label>
+      <label>Supplier<select id="poSupplierSelect"><option value="">Select supplier</option>${poSuppliers.map(x=>`<option value="${esc(x.id)}">${esc(x.supplier_name||x.trading_name||'Supplier')}</option>`).join('')}</select></label>
+      <label>Supplier name (for existing unlinked orders)<input id="poSupplier" value="${esc(po?.supplier_name||'')}"></label>
+      <label>Order date<input id="poDate" type="date" value="${esc(po?.order_date||today())}"></label>
+      <label>Status<select id="poStatus"><option value="draft">Draft</option><option value="approved">Approved</option><option value="sent">Sent</option><option value="partially_received">Partially received</option><option value="billed">Billed</option><option value="closed">Closed</option><option value="cancelled">Cancelled</option></select></label>
+      <label class="wide">Notes<input id="poNotes" value="${esc(po?.notes||'')}"></label></div>
+      <datalist id="poHistoryItems"></datalist>
+      <div class="table-scroll"><table><thead><tr><th>Description</th><th>Qty</th><th>PO unit price</th><th>Previous cost (private)</th><th>Estimated line cost (private)</th><th></th></tr></thead><tbody id="poLineRows">${lines.map(poRow).join('')}</tbody></table></div>
+      <p class="hint">Historical expense lines do not record item quantities, so their totals cannot reliably be used as unit prices. Estimates are never sent to suppliers.</p>
+      <p class="hint"><strong>Internal estimated total:</strong> <span id="poPrivateEstimate">—</span></p>
+      <div class="actions"><button class="secondary" id="poAddLine" type="button">+ Add line</button><button class="primary" id="poSave" type="button">Save Purchase Order</button>${po?'<button class="secondary" id="poEmail" type="button">Email Purchase Order</button>':''}</div>
+      <p class="hint">Saving a PO does not create a bill, payment or journal. Emailing sends only the supplier-facing PO fields.</p>`;
+    $('poStatus').value=po?.status||'draft';
+    $('poSupplierSelect').value=po?.supplier_id||'';
+    $('poSupplierSelect').onchange=async()=>{const supplier=poSuppliers.find(x=>x.id===$('poSupplierSelect').value);if(supplier)$('poSupplier').value=supplier.supplier_name||supplier.trading_name||'';await poLoadHistory(supplier?.id);poRefreshSuggestions()};
+    $('poClose').onclick=()=>editor.hidden=true;
+    $('poAddLine').onclick=()=>{$('poLineRows').insertAdjacentHTML('beforeend',poRow());wirePoRows()};
+    $('poSave').onclick=()=>savePo(po?.id);
+    if(po)$('poEmail').onclick=()=>emailPo(po.id);
+    await poLoadHistory($('poSupplierSelect').value);poRefreshSuggestions();wirePoRows();
+  }
   async function savePo(id){
     const lines=[...document.querySelectorAll('#poLineRows tr')].map((r,i)=>({line_order:i+1,description:r.querySelector('[data-po-desc]')?.value||'',qty:num(r.querySelector('[data-po-qty]')?.value)||1,unit_price:num(r.querySelector('[data-po-price]')?.value)})).filter(l=>l.description);
-    const total=lines.reduce((a,l)=>a+l.qty*l.unit_price,0), row={business_id:businessId(),po_number:$('poNumber').value.trim(),supplier_name:$('poSupplier').value.trim(),order_date:$('poDate').value,status:$('poStatus').value,notes:$('poNotes').value,total_amount:total,currency:currency(),updated_by:userId(),updated_at:new Date().toISOString()};
-    const c=client(); const saved=id?await c.from('purchase_orders').update(row).eq('id',id).select('id').single():await c.from('purchase_orders').insert({...row,created_by:userId()}).select('id').single();
+    const total=lines.reduce((a,l)=>a+l.qty*l.unit_price,0),row={business_id:businessId(),po_number:$('poNumber').value.trim(),supplier_id:$('poSupplierSelect').value||null,supplier_name:$('poSupplier').value.trim(),order_date:$('poDate').value,status:$('poStatus').value,notes:$('poNotes').value,total_amount:total,currency:currency(),updated_by:userId(),updated_at:new Date().toISOString()};
+    if(!row.supplier_name)return toast('Choose a supplier before saving.');
+    const c=client(),saved=id?await c.from('purchase_orders').update(row).eq('business_id',businessId()).eq('id',id).select('id').single():await c.from('purchase_orders').insert({...row,created_by:userId()}).select('id').single();
     if(saved.error)return toast(saved.error.message);
-    await c.from('purchase_order_lines').delete().eq('business_id',businessId()).eq('purchase_order_id',saved.data.id);
+    const del=await c.from('purchase_order_lines').delete().eq('business_id',businessId()).eq('purchase_order_id',saved.data.id);if(del.error)return toast(del.error.message);
     if(lines.length){const ins=await c.from('purchase_order_lines').insert(lines.map(l=>({...l,business_id:businessId(),purchase_order_id:saved.data.id,line_total:l.qty*l.unit_price})));if(ins.error)return toast(ins.error.message)}
-    toast('Purchase order saved.'); $('poEditor').hidden=true; renderPurchaseOrders();
+    toast('Purchase order saved.');$('poEditor').hidden=true;renderPurchaseOrders();
+  }
+  async function emailPo(id){
+    const supplier=poSuppliers.find(s=>s.id===$('poSupplierSelect')?.value);
+    if(!supplier?.email)return toast('Select a supplier with an email address saved in Suppliers.');
+    if(!await (window.FrindlyDialogs?.confirm?.(`Send the saved purchase order to ${supplier.email}? Save any changes before sending.`)??Promise.resolve(window.confirm(`Send purchase order to ${supplier.email}?`))))return;
+    const button=$('poEmail');if(button){button.disabled=true;button.textContent='Sending…'}
+    try{const {data,error}=await client().functions.invoke('send-purchase-order',{body:{purchaseOrderId:id}});if(error||!data?.success)throw Error(data?.error||error?.message||'Could not send purchase order');toast(`Purchase order emailed to ${supplier.email}.`);renderPurchaseOrders()}
+    catch(e){toast(`Purchase order email failed: ${e.message||e}`)}finally{if(button){button.disabled=false;button.textContent='Email Purchase Order'}}
   }
 
   function install(){
