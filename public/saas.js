@@ -877,7 +877,7 @@
     if(btn){btn.disabled=false;btn.textContent='Save Role Defaults'};await loadRolePermissions();
   }
   async function resetRolePermissions(){
-    const role=q('rolePermissionsRole')?.value||'';if(!role||!confirm(`Reset ${teamRoleLabel(role)} to Frindly system defaults? Individual user overrides will not be changed.`))return;
+    const role=q('rolePermissionsRole')?.value||'';if(!role||!await window.FrindlyDialogs.confirm(`Reset ${teamRoleLabel(role)} to Frindly system defaults? Individual user overrides will not be changed.`))return;
     const {error}=await state.client.rpc('v6149_reset_role_permissions',{p_business_id:state.business.id,p_role:role});if(error){if(q('rolePermissionsMessage'))q('rolePermissionsMessage').textContent=error.message;return}await loadRolePermissions();
   }
 
@@ -897,7 +897,7 @@
     if(btn){btn.disabled=false;btn.textContent='Save Access'};closeCustomAccessModal();await renderTeamAccess();
   }
   async function resetCustomAccess(){
-    const membershipId=state.customAccessMembershipId;if(!membershipId||!confirm('Reset all custom access for this user back to their role defaults?'))return;const {error}=await state.client.rpc('v6148_reset_member_access',{p_business_id:state.business.id,p_membership_id:membershipId});if(error){if(q('customAccessMessage'))q('customAccessMessage').textContent=error.message;return}await openCustomAccessModal(membershipId,q('customAccessUserName')?.textContent||'User');
+    const membershipId=state.customAccessMembershipId;if(!membershipId||!await window.FrindlyDialogs.confirm('Reset all custom access for this user back to their role defaults?'))return;const {error}=await state.client.rpc('v6148_reset_member_access',{p_business_id:state.business.id,p_membership_id:membershipId});if(error){if(q('customAccessMessage'))q('customAccessMessage').textContent=error.message;return}await openCustomAccessModal(membershipId,q('customAccessUserName')?.textContent||'User');
   }
 
   function publicAppUrl(){try{const u=new URL(location.href);if(u.protocol==='http:'||u.protocol==='https:'){u.search='';u.hash='';return u.toString()}}catch{}return ''}
@@ -944,7 +944,7 @@
     rows.querySelectorAll('[data-invite-resend]').forEach(b=>b.onclick=()=>manageInvite('resend',b.dataset.inviteResend,b));rows.querySelectorAll('[data-invite-revoke]').forEach(b=>b.onclick=()=>manageInvite('revoke',b.dataset.inviteRevoke,b));
   }
   async function manageInvite(action,id,btn){
-    if(action==='revoke'&&!confirm('Revoke this pending invitation?'))return;if(action==='resend'&&!publicAppUrl())return alert('Open Frindly from its deployed Netlify URL before resending invitations.');
+    if(action==='revoke'&&!await window.FrindlyDialogs.confirm('Revoke this pending invitation?'))return;if(action==='resend'&&!publicAppUrl())return alert('Open Frindly from its deployed Netlify URL before resending invitations.');
     btn.disabled=true;const old=btn.textContent;btn.textContent=action==='resend'?'Sending…':'Revoking…';const data=await inviteApi({action,businessId:state.business.id,inviteId:id,redirectUrl:publicAppUrl()});btn.disabled=false;btn.textContent=old;if(data?.error)return alert(data.error);await renderPendingInvites();
   }
   function openAddBusinessModal(){
@@ -977,7 +977,7 @@
     const status=q('teamAccessRows')?.querySelector(`[data-team-status="${membershipId}"]`)?.value;
     if(!role||!status)return;
     const action=status==='removed'?'remove this user from the business':status==='suspended'?'suspend this user':'save these access changes';
-    if(!confirm(`Are you sure you want to ${action}?`))return;
+    if(!await window.FrindlyDialogs.confirm(`Are you sure you want to ${action}?`))return;
     btn.disabled=true;const old=btn.textContent;btn.textContent='Saving…';
     const {error}=await state.client.rpc('v6145_update_business_member',{p_business_id:state.business.id,p_membership_id:membershipId,p_role:role,p_status:status});
     btn.disabled=false;btn.textContent=old;
@@ -1009,7 +1009,7 @@
   }
 
   async function removeAccountPhoto(){
-    if(!confirm('Remove your profile photo?'))return;
+    if(!await window.FrindlyDialogs.confirm('Remove your profile photo?'))return;
     const meta={...(state.user?.user_metadata||{})};const avatarPath=meta.frindly_avatar_path||'';delete meta.frindly_avatar;delete meta.frindly_avatar_path;
     if(avatarPath){const {error:removeError}=await state.client.storage.from('frindly-avatars').remove([avatarPath]);if(removeError)return alert(removeError.message||'Could not remove the profile photo.')}
     const {data,error}=await state.client.auth.updateUser({data:meta});
@@ -1301,7 +1301,7 @@
     const turningOn=scheduled||pref==='manual';
     const end=billingDateText(sub.cancel_at||sub.current_period_end);
     const prompt=turningOn?`Turn auto renewal on for ${state.business.name}? Frindly will automatically charge the saved payment method at the next renewal.`:`Turn auto renewal off for ${state.business.name}? You will not be charged automatically. Your subscription stays active until ${end}, and Frindly will remind you before it expires.`;
-    if(!confirm(prompt))return;
+    if(!await window.FrindlyDialogs.confirm(prompt))return;
     const original=button?.disabled;if(button)button.disabled=true;
     try{await billingApi(turningOn?'auto_renew_on':'auto_renew_off');await refreshSubscriptionBilling();if(q('billingMessage'))q('billingMessage').textContent=turningOn?'Auto renewal is on.':'Auto renewal is off. You will not be charged automatically; Frindly will remind you before expiry.';}
     catch(error){if(q('billingMessage'))q('billingMessage').textContent=error?.message||'Billing is unavailable. Please try again.';}
@@ -1318,7 +1318,7 @@
       if(subscriptionReadOnly(sub)||!sub?.stripe_subscription_id)return;
       if((action==='cancel'&&cancellationScheduled)||(action==='keep'&&!cancellationScheduled))return;
       const text=action==='cancel'?`Cancel the ${state.business.name} subscription? Access continues until ${billingDateText(sub.cancel_at||sub.current_period_end)} and then the subscription will end. You will not be charged again.`:`Keep the ${state.business.name} subscription? Cancellation will be removed and auto renewal will be turned back on.`;
-      if(!confirm(text))return;
+      if(!await window.FrindlyDialogs.confirm(text))return;
     }
     const original=button?.textContent;if(button){button.disabled=true;button.textContent=action==='keep'?'Keeping subscription…':'Opening Stripe…'}
     try{
@@ -1444,7 +1444,7 @@
       const message=change.kind==='downgrade'
         ?`Schedule ${change.planName} for ${effective}? Your current plan stays available until then. Nothing is charged now. From that date the new price is ${recurring} / ${change.interval==='annual'?'year':'month'}. You can undo this before the change takes effect.`
         :`Change to ${change.planName} now? Stripe will charge ${due} now, including any applicable credit or tax, and then ${recurring} / ${change.interval==='annual'?'year':'month'}. ${change.renewsAt?`Your next renewal is ${billingDateText(change.renewsAt*1000)}.`:'Your billing date may change with the new interval.'} If payment fails, your existing plan stays in place.`;
-      if(!confirm(message))return false;
+      if(!await window.FrindlyDialogs.confirm(message))return false;
       if(btn)btn.textContent=change.kind==='downgrade'?'Scheduling…':'Processing payment…';
       const result=await planBillingAction({planSlug:slug,billingInterval,action:'confirm',quote:change.quote});
       if(!result?.scheduled&&!result?.upgraded)throw new Error('Stripe has not confirmed the change. Refresh billing before retrying.');
@@ -1475,7 +1475,7 @@
   async function undoScheduledPlanChange(){
     if(state.accessRole!=='owner'||!billingScheduledChange)return;
     const name=billingScheduledChange.planName;
-    if(!confirm(`Undo the scheduled change to ${name}? Your current subscription will continue to renew.`))return;
+    if(!await window.FrindlyDialogs.confirm(`Undo the scheduled change to ${name}? Your current subscription will continue to renew.`))return;
     const btn=q('undoPlanChangeBtn');if(btn)btn.disabled=true;
     try{
       await planBillingAction({action:'undo'});
@@ -1768,8 +1768,8 @@
       const warning=`Permanently delete ${businessName}?
 
 This will permanently remove the business account, its users, invoices, customers, recurring rules, job costings, quotes, subscriptions, module settings and all other database records linked to this business. This cannot be undone.`;
-      if(!confirm(warning))return;
-      const typed=prompt(`Type the business name exactly to confirm deletion:
+      if(!await window.FrindlyDialogs.confirm(warning))return;
+      const typed=await window.FrindlyDialogs.prompt(`Type the business name exactly to confirm deletion:
 
 ${businessName}`,'');
       if(typed===null)return;
@@ -1868,7 +1868,7 @@ ${businessName}`,'');
     if(!name||!slug)return alert('Plan name and slug are required.');
     if(monthlyPrice<0||annualPrice!=null&&annualPrice<0)return alert('Plan prices cannot be negative.');
     if(slug!=='trial'&&monthlyPrice>0&&isPublic&&!stripe){
-      if(!confirm('This paid plan has no Stripe monthly Price ID. Customers can see it but monthly checkout will not work until you add one. Save anyway?'))return;
+      if(!await window.FrindlyDialogs.confirm('This paid plan has no Stripe monthly Price ID. Customers can see it but monthly checkout will not work until you add one. Save anyway?'))return;
     }
     const btn=card.querySelector(`[data-plan-save="${id}"]`);
     const original=btn?.textContent||'Save plan';
@@ -1935,7 +1935,7 @@ ${businessName}`,'');
     root.querySelectorAll('[data-public-feature-card]').forEach(card=>{
       const source=card.querySelector('[data-pf-source]'),module=card.querySelector('[data-pf-module]');const sync=()=>{module.disabled=source.value!=='module'};source.onchange=sync;sync();
       card.querySelector('[data-pf-save]').onclick=async()=>{const id=card.dataset.publicFeatureCard;const btn=card.querySelector('[data-pf-save]');btn.disabled=true;const {error}=await state.client.rpc('v61107aad_admin_save_public_feature',{p_id:id==='new'?null:id,p_feature_key:card.querySelector('[data-pf-key]').value.trim(),p_title:card.querySelector('[data-pf-title]').value.trim(),p_description:card.querySelector('[data-pf-description]').value.trim(),p_feature_group:card.querySelector('[data-pf-group]').value.trim(),p_module_slug:card.querySelector('[data-pf-module]').value||null,p_value_source:source.value,p_is_public:card.querySelector('[data-pf-public]').checked,p_sort_order:Number(card.querySelector('[data-pf-sort]').value||100)});btn.disabled=false;if(error)return alert('Could not save public feature: '+error.message);if(q('adminPublicFeatureMessage')){q('adminPublicFeatureMessage').textContent='Public feature saved.';q('adminPublicFeatureMessage').className='admin-inline-message success'}await renderAdminPublicFeatures();await renderPublicPlansFeatures()};
-      const del=card.querySelector('[data-pf-delete]');if(del)del.onclick=async()=>{if(!confirm(`Delete the public feature “${card.querySelector('[data-pf-title]').value.trim()}”? This only removes it from the marketing catalogue; it does not change subscriber module access.`))return;const {error}=await state.client.rpc('v61107aad_admin_delete_public_feature',{p_id:card.dataset.publicFeatureCard});if(error)return alert('Could not delete public feature: '+error.message);await renderAdminPublicFeatures();await renderPublicPlansFeatures()};
+      const del=card.querySelector('[data-pf-delete]');if(del)del.onclick=async()=>{if(!await window.FrindlyDialogs.confirm(`Delete the public feature “${card.querySelector('[data-pf-title]').value.trim()}”? This only removes it from the marketing catalogue; it does not change subscriber module access.`))return;const {error}=await state.client.rpc('v61107aad_admin_delete_public_feature',{p_id:card.dataset.publicFeatureCard});if(error)return alert('Could not delete public feature: '+error.message);await renderAdminPublicFeatures();await renderPublicPlansFeatures()};
     });
   }
 
@@ -1965,13 +1965,13 @@ ${businessName}`,'');
     q('adminPayrollComplianceUpdates').querySelectorAll('[data-compliance-draft]').forEach(b=>b.onclick=()=>createComplianceDraft(b.dataset.complianceDraft));q('adminPayrollComplianceUpdates').querySelectorAll('[data-compliance-dismiss]').forEach(b=>b.onclick=()=>dismissComplianceUpdate(b.dataset.complianceDismiss));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-edit]').forEach(b=>b.onclick=()=>openRulesetEditor(b.dataset.rulesetEdit));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-validate]').forEach(b=>b.onclick=()=>setRulesetStatus(b.dataset.rulesetValidate,'validated'));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-approve]').forEach(b=>b.onclick=()=>setRulesetStatus(b.dataset.rulesetApprove,'approved'));q('adminPayrollRulesets').querySelectorAll('[data-ruleset-activate]').forEach(b=>b.onclick=()=>activateRuleset(b.dataset.rulesetActivate));
   }
   async function checkAdminPayrollCompliance(){const b=q('adminCheckPayrollUpdates');try{b.disabled=true;b.textContent='Checking…';const {data,error}=await state.client.functions.invoke('check-payroll-compliance-sources',{body:{}});if(error)throw error;if(data?.results?.some(x=>x.status==='check_error'))alert('Official source check completed with an error. Current approved payroll rules remain unchanged.');await renderAdminPayrollCompliance()}catch(e){alert('Could not check official payroll updates: '+(e.message||e))}finally{b.disabled=false;b.textContent='Check for Official Updates'}}
-  async function createComplianceDraft(id){const name=prompt('Draft ruleset name','NZ Payroll Rules'),version=prompt('Draft version','v1.0'),from=prompt('Effective from (YYYY-MM-DD)','2027-04-01'),to=prompt('Effective to (YYYY-MM-DD, optional)','2028-03-31');if(!name||!version||!from)return;const {error}=await state.client.rpc('v6168a_create_draft_ruleset',{p_update_id:id,p_name:name,p_version:version,p_effective_from:from,p_effective_to:to||null});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
-  async function dismissComplianceUpdate(id){const notes=prompt('Review notes (optional)','');if(!confirm('Mark this official-source change as reviewed with no payroll impact?'))return;const {error}=await state.client.rpc('v6168a_mark_update_no_impact',{p_update_id:id,p_notes:notes||null});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
+  async function createComplianceDraft(id){const name=await window.FrindlyDialogs.prompt('Draft ruleset name','NZ Payroll Rules'),version=await window.FrindlyDialogs.prompt('Draft version','v1.0'),from=await window.FrindlyDialogs.prompt('Effective from (YYYY-MM-DD)','2027-04-01'),to=await window.FrindlyDialogs.prompt('Effective to (YYYY-MM-DD, optional)','2028-03-31');if(!name||!version||!from)return;const {error}=await state.client.rpc('v6168a_create_draft_ruleset',{p_update_id:id,p_name:name,p_version:version,p_effective_from:from,p_effective_to:to||null});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
+  async function dismissComplianceUpdate(id){const notes=await window.FrindlyDialogs.prompt('Review notes (optional)','');if(!await window.FrindlyDialogs.confirm('Mark this official-source change as reviewed with no payroll impact?'))return;const {error}=await state.client.rpc('v6168a_mark_update_no_impact',{p_update_id:id,p_notes:notes||null});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
   async function openRulesetEditor(id){const box=q('adminPayrollDraftEditor');const {data,error}=await state.client.from('payroll_ruleset_rules').select('*').eq('ruleset_id',id).order('rule_type').order('rule_key');if(error)return alert(error.message);box.innerHTML=`<h3>Edit Draft Rules</h3><p class="hint">These are staging values only. Saving here does not change production payroll.</p><div class="table-scroll"><table><thead><tr><th>Rule</th><th>Value</th><th>Source / note</th><th></th></tr></thead><tbody>${(data||[]).map(r=>`<tr><td>${escapeHtml(r.rule_type)}<small>${escapeHtml(r.rule_key)}</small></td><td><select data-draft-kind="${r.id}"><option value="numeric" ${r.numeric_value!=null?'selected':''}>Number</option><option value="json" ${r.json_value!=null?'selected':''}>JSON</option><option value="text" ${r.text_value!=null?'selected':''}>Text</option></select><textarea rows="2" data-draft-value="${r.id}">${escapeHtml(r.numeric_value!=null?String(r.numeric_value):r.json_value!=null?JSON.stringify(r.json_value):r.text_value||'')}</textarea></td><td><input data-draft-source="${r.id}" value="${escapeHtml(r.source_note||'')}"></td><td><button class="secondary compact-btn" data-draft-save="${r.id}">Save</button></td></tr>`).join('')}</tbody></table></div><div class="head-actions"><button class="secondary" data-draft-add="${id}">+ Add Draft Rule</button><button class="secondary" data-draft-close>Close</button></div>`;box.querySelectorAll('[data-draft-save]').forEach(b=>b.onclick=()=>saveDraftRule(b.dataset.draftSave));box.querySelector('[data-draft-add]').onclick=()=>addDraftRule(id);box.querySelector('[data-draft-close]').onclick=()=>box.innerHTML=''}
   async function saveDraftRule(id){const kind=document.querySelector(`[data-draft-kind="${id}"]`).value,raw=document.querySelector(`[data-draft-value="${id}"]`).value.trim(),source=document.querySelector(`[data-draft-source="${id}"]`).value.trim(),payload={numeric_value:null,text_value:null,json_value:null,source_note:source||null,updated_at:new Date().toISOString()};if(kind==='numeric'){const n=Number(raw);if(!Number.isFinite(n))return alert('Enter a valid number.');payload.numeric_value=n}else if(kind==='json'){try{payload.json_value=JSON.parse(raw)}catch{return alert('Enter valid JSON.')}}else payload.text_value=raw;const {error}=await state.client.from('payroll_ruleset_rules').update(payload).eq('id',id);if(error)return alert(error.message);alert('Draft rule saved. Production payroll is unchanged.')}
-  async function addDraftRule(rulesetId){const type=prompt('Rule type (for example paye)');if(!type)return;const key=prompt('Rule key');if(!key)return;const kind=prompt('Value type: numeric, json or text','numeric');if(!['numeric','json','text'].includes(kind))return alert('Value type must be numeric, json or text.');const raw=prompt('Value');if(raw===null)return;const source=prompt('Official source / review note','')||'';const payload={ruleset_id:rulesetId,rule_type:type.trim().toLowerCase(),rule_key:key.trim().toLowerCase(),numeric_value:null,text_value:null,json_value:null,source_note:source||null};if(kind==='numeric'){const n=Number(raw);if(!Number.isFinite(n))return alert('Enter a valid number.');payload.numeric_value=n}else if(kind==='json'){try{payload.json_value=JSON.parse(raw)}catch{return alert('Enter valid JSON.')}}else payload.text_value=raw;const {error}=await state.client.from('payroll_ruleset_rules').insert(payload);if(error)return alert(error.message);await openRulesetEditor(rulesetId)}
-  async function setRulesetStatus(id,status){const wording=status==='approved'?'Approve this validated ruleset? Approval alone does not activate it.':'Mark this Draft ruleset as validated?';if(!confirm(wording))return;const {error}=await state.client.rpc('v6168a_set_ruleset_status',{p_ruleset_id:id,p_status:status});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
-  async function activateRuleset(id){if(!confirm('Activate this APPROVED ruleset for production payroll according to its effective dates? This is the explicit human approval gate.'))return;const {error}=await state.client.rpc('v6168a_activate_ruleset',{p_ruleset_id:id});if(error)return alert(error.message);await Promise.all([renderAdminPayrollCompliance(),renderAdminCountryPayrollRules()])}
+  async function addDraftRule(rulesetId){const type=await window.FrindlyDialogs.prompt('Rule type (for example paye)');if(!type)return;const key=await window.FrindlyDialogs.prompt('Rule key');if(!key)return;const kind=await window.FrindlyDialogs.prompt('Value type: numeric, json or text','numeric');if(!['numeric','json','text'].includes(kind))return alert('Value type must be numeric, json or text.');const raw=await window.FrindlyDialogs.prompt('Value');if(raw===null)return;const source=await window.FrindlyDialogs.prompt('Official source / review note','')||'';const payload={ruleset_id:rulesetId,rule_type:type.trim().toLowerCase(),rule_key:key.trim().toLowerCase(),numeric_value:null,text_value:null,json_value:null,source_note:source||null};if(kind==='numeric'){const n=Number(raw);if(!Number.isFinite(n))return alert('Enter a valid number.');payload.numeric_value=n}else if(kind==='json'){try{payload.json_value=JSON.parse(raw)}catch{return alert('Enter valid JSON.')}}else payload.text_value=raw;const {error}=await state.client.from('payroll_ruleset_rules').insert(payload);if(error)return alert(error.message);await openRulesetEditor(rulesetId)}
+  async function setRulesetStatus(id,status){const wording=status==='approved'?'Approve this validated ruleset? Approval alone does not activate it.':'Mark this Draft ruleset as validated?';if(!await window.FrindlyDialogs.confirm(wording))return;const {error}=await state.client.rpc('v6168a_set_ruleset_status',{p_ruleset_id:id,p_status:status});if(error)return alert(error.message);await renderAdminPayrollCompliance()}
+  async function activateRuleset(id){if(!await window.FrindlyDialogs.confirm('Activate this APPROVED ruleset for production payroll according to its effective dates? This is the explicit human approval gate.'))return;const {error}=await state.client.rpc('v6168a_activate_ruleset',{p_ruleset_id:id});if(error)return alert(error.message);await Promise.all([renderAdminPayrollCompliance(),renderAdminCountryPayrollRules()])}
 
   function payrollRuleValue(r){if(r.numeric_value!=null)return String(r.numeric_value);if(r.json_value!=null)return JSON.stringify(r.json_value);return r.text_value??''}
   function payrollRuleValueType(r){return r.numeric_value!=null?'numeric':r.json_value!=null?'json':'text'}
@@ -2136,7 +2136,7 @@ ${businessName}`,'');
 
   async function noteAdminPaymentException(id){
     const row=(state.adminInvoicePaymentRows||[]).find(x=>String(x.id)===String(id));if(!row)return;
-    const note=prompt(`Add a Super Admin review note for ${row.invoices?.invoice_number||'this payment'}:`,row.metadata?.admin_review_note||'');
+    const note=await window.FrindlyDialogs.prompt(`Add a Super Admin review note for ${row.invoices?.invoice_number||'this payment'}:`,row.metadata?.admin_review_note||'');
     if(note===null)return;
     const clean=note.trim();if(!clean)return alert('Review note is required.');
     const {error}=await state.client.rpc('v61108_admin_note_invoice_payment_exception',{p_transaction_id:id,p_note:clean});
