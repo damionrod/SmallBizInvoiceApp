@@ -233,21 +233,41 @@
   }
   // Purchase order helpers are deliberately isolated from expense and accounting posting.
   let poSuppliers=[], poHistory=[];
+  let poHistoryError='', poHistoryRequest=0;
   async function poLoadHistory(supplierId){
-    poHistory=[];
+    const request=++poHistoryRequest;
+    poHistory=[];poHistoryError='';
     if(!supplierId)return;
-    const expenses=await safeSelect('expenses',q=>q.select('id,invoice_date').eq('business_id',businessId()).eq('supplier_id',supplierId).neq('lifecycle_state','voided').order('invoice_date',{ascending:false}).limit(150));
-    const ids=expenses.map(e=>e.id); if(!ids.length)return;
-    const details=await safeSelect('expense_lines',q=>q.select('expense_id,description,total_amount,ex_gst').eq('business_id',businessId()).in('expense_id',ids).limit(500));
-    const byId=new Map(expenses.map(e=>[e.id,e]));
-    poHistory=details.map(d=>({...d,invoice_date:byId.get(d.expense_id)?.invoice_date||''})).filter(d=>d.description).sort((a,b)=>b.invoice_date.localeCompare(a.invoice_date));
+    const supplier=poSuppliers.find(s=>s.id===supplierId);
+    const normalized=s=>String(s||'').trim().toLocaleLowerCase();
+    const names=[supplier?.supplier_name,supplier?.trading_name].filter(Boolean);
+    try{
+      const c=client(),bid=businessId();
+      // Include older expenses whose supplier name was saved before supplier IDs were linked.
+      const [linked,named]=await Promise.all([
+        c.from('expenses').select('id,invoice_date,supplier_id,supplier_name').eq('business_id',bid).eq('supplier_id',supplierId).order('invoice_date',{ascending:false}).limit(500),
+        c.from('expenses').select('id,invoice_date,supplier_id,supplier_name').eq('business_id',bid).is('supplier_id',null).order('invoice_date',{ascending:false}).limit(1000)
+      ]);
+      if(linked.error)throw linked.error;if(named.error)throw named.error;
+      const matches=[...(linked.data||[]),...(named.data||[]).filter(e=>names.some(n=>normalized(n)===normalized(e.supplier_name)))];
+      const expenses=[...new Map(matches.map(e=>[e.id,e])).values()].sort((a,b)=>String(b.invoice_date||'').localeCompare(String(a.invoice_date||'')));
+      const details=[];
+      for(let i=0;i<expenses.length;i+=100){
+        const ids=expenses.slice(i,i+100).map(e=>e.id);
+        const {data,error}=await c.from('expense_lines').select('expense_id,description,total_amount,ex_gst').eq('business_id',bid).in('expense_id',ids).limit(1000);
+        if(error)throw error;details.push(...(data||[]));
+      }
+      if(request!==poHistoryRequest)return;
+      const byId=new Map(expenses.map(e=>[e.id,e]));
+      poHistory=details.map(d=>({...d,invoice_date:byId.get(d.expense_id)?.invoice_date||''})).filter(d=>String(d.description||'').trim()).sort((a,b)=>String(b.invoice_date).localeCompare(String(a.invoice_date)));
+    }catch(e){if(request!==poHistoryRequest)return;poHistoryError='Previously purchased items could not be loaded. Please try again.';console.warn('Purchase order item history:',e);}
   }
   function poSuggestion(desc){
     const value=String(desc||'').trim().toLowerCase();
     return poHistory.find(h=>h.description.trim().toLowerCase()===value)||null;
   }
   function poRow(l={}){
-    return `<tr><td><input data-po-desc list="poHistoryItems" value="${esc(l.description||'')}" aria-label="Item description"></td><td><input data-po-qty type="number" min="0.01" step="0.01" value="${num(l.qty)||1}" aria-label="Quantity"></td><td><input data-po-price type="number" min="0" step="0.01" value="${num(l.unit_price)}" aria-label="Purchase order unit price"></td><td><span data-po-last>—</span></td><td><span data-po-estimate>—</span></td><td><button class="secondary" data-po-remove type="button">Remove</button></td></tr>`;
+    return `<tr><td><input data-po-desc autocomplete="off" value="${esc(l.description||'')}" aria-label="Item description" aria-autocomplete="list" aria-expanded="false"><div class="po-item-menu" role="listbox" hidden></div></td><td><input data-po-qty type="number" min="0.01" step="0.01" value="${num(l.qty)||1}" aria-label="Quantity"></td><td><input data-po-price type="number" min="0" step="0.01" value="${num(l.unit_price)}" aria-label="Purchase order unit price"></td><td><span data-po-last>—</span></td><td><span data-po-estimate>—</span></td><td><button class="secondary" data-po-remove type="button">Remove</button></td></tr>`;
   }
   function poRefreshEstimates(){
     let sum=0, known=0;
@@ -261,14 +281,32 @@
     const total=$('poPrivateEstimate');if(total)total.textContent='Not available from recorded expenses (historical quantities not stored).';
   }
   function poRefreshSuggestions(){
-    const list=$('poHistoryItems');if(!list)return;
-    const unique=[...new Map(poHistory.map(h=>[h.description.trim().toLowerCase(),h.description])).values()];
-    list.innerHTML=unique.slice(0,150).map(x=>`<option value="${esc(x)}"></option>`).join('');
+    const message=$('poHistoryMessage');
+    if(message)message.textContent=poHistoryError||(!poHistory.length&&$('poSupplierSelect')?.value?'No previous items recorded for this supplier. You can type a new description.':'');
+    document.querySelectorAll('#poLineRows tr').forEach(r=>{const menu=r.querySelector('.po-item-menu');if(menu&&!menu.hidden)poShowItems(r)});
     poRefreshEstimates();
   }
+  function poShowItems(row){
+    const input=row.querySelector('[data-po-desc]'),menu=row.querySelector('.po-item-menu');if(!input||!menu)return;
+    const term=input.value.trim().toLocaleLowerCase(),seen=new Set();
+    const items=poHistory.filter(h=>{const label=String(h.description||'').trim(),key=label.toLocaleLowerCase();if(!label||seen.has(key)||!key.includes(term))return false;seen.add(key);return true}).slice(0,60);
+    const supplierChosen=!!$('poSupplierSelect')?.value;
+    menu.innerHTML=items.map(h=>`<button type="button" class="po-item-option" role="option" data-po-choice="${esc(h.description)}">${esc(h.description)}</button>`).join('')||`<div class="po-item-empty">${poHistoryError?esc(poHistoryError):supplierChosen?'No matching previous items. Type a new description.':'Select a supplier to see previous items.'}</div>`;
+    menu.hidden=false;input.setAttribute('aria-expanded','true');
+    menu.querySelectorAll('[data-po-choice]').forEach(button=>button.addEventListener('mousedown',e=>e.preventDefault()));
+    menu.querySelectorAll('[data-po-choice]').forEach(button=>button.addEventListener('click',()=>{input.value=button.dataset.poChoice;poHideItems(row);poRefreshEstimates();input.focus()}));
+  }
+  function poHideItems(row){const menu=row.querySelector('.po-item-menu'),input=row.querySelector('[data-po-desc]');if(menu)menu.hidden=true;if(input)input.setAttribute('aria-expanded','false')}
   function wirePoRows(){
     document.querySelectorAll('#poLineRows tr').forEach(r=>{
-      r.querySelector('[data-po-desc]')?.addEventListener('input',poRefreshEstimates);
+      if(r.dataset.poWired)return;r.dataset.poWired='true';
+      const input=r.querySelector('[data-po-desc]');
+      input?.addEventListener('focus',()=>poShowItems(r));
+      input?.addEventListener('click',()=>poShowItems(r));
+      input?.addEventListener('input',()=>{poShowItems(r);poRefreshEstimates()});
+      input?.addEventListener('keydown',e=>{if(e.key==='Escape')poHideItems(r);if(e.key==='ArrowDown'){const first=r.querySelector('.po-item-option');if(first){e.preventDefault();first.focus()}}});
+      r.querySelector('.po-item-menu')?.addEventListener('keydown',e=>{if(e.key==='Escape'){poHideItems(r);input?.focus()}});
+      input?.addEventListener('blur',()=>setTimeout(()=>{if(!r.contains(document.activeElement))poHideItems(r)},120));
       r.querySelector('[data-po-qty]')?.addEventListener('input',poRefreshEstimates);
       r.querySelector('[data-po-remove]')?.addEventListener('click',()=>{r.remove();poRefreshEstimates()});
     });
@@ -287,7 +325,8 @@
       <label>Order date<input id="poDate" type="date" value="${esc(po?.order_date||today())}"></label>
       <label>Status<select id="poStatus"><option value="draft">Draft</option><option value="approved">Approved</option><option value="sent">Sent</option><option value="partially_received">Partially received</option><option value="billed">Billed</option><option value="closed">Closed</option><option value="cancelled">Cancelled</option></select></label>
       <label class="wide">Notes<input id="poNotes" value="${esc(po?.notes||'')}"></label></div>
-      <datalist id="poHistoryItems"></datalist>
+      <p class="hint" id="poHistoryMessage" role="status"></p>
+      <style>#poLineRows td:first-child{position:relative;min-width:210px;overflow:visible}.po-item-menu{position:absolute;z-index:1100;top:calc(100% - 2px);left:0;min-width:250px;width:max-content;max-width:min(450px,85vw);max-height:230px;overflow:auto;background:var(--card-bg,#fff);color:var(--text,#17233b);border:1px solid #b9bdc9;border-radius:9px;box-shadow:0 8px 20px #17233b33;padding:4px}.po-item-menu[hidden]{display:none!important}.po-item-option{display:block;width:100%;text-align:left;padding:9px 11px;border:0;border-radius:5px;background:transparent;color:inherit;cursor:pointer;white-space:normal}.po-item-option:hover,.po-item-option:focus{background:#ece8fb}.po-item-empty{padding:10px;font-size:12px;color:#626878}#poLineRows{overflow:visible}</style>
       <div class="table-scroll"><table><thead><tr><th>Description</th><th>Qty</th><th>PO unit price</th><th>Previous cost (private)</th><th>Estimated line cost (private)</th><th></th></tr></thead><tbody id="poLineRows">${lines.map(poRow).join('')}</tbody></table></div>
       <p class="hint">Historical expense lines do not record item quantities, so their totals cannot reliably be used as unit prices. Estimates are never sent to suppliers.</p>
       <p class="hint"><strong>Internal estimated total:</strong> <span id="poPrivateEstimate">—</span></p>
