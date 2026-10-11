@@ -17,3 +17,8 @@ verify_jwt = false
 # User actions inside the same function still verify the Authorization header manually.
 [functions.akahu-bank-feeds]
 verify_jwt = false
+
+# Automatic invoice reminders are idempotent and only claim reminders that are due.
+# Supabase Cron calls this function without a user JWT.
+[functions.invoice-reminder-worker]
+verify_jwt = false

@@ -1801,6 +1801,22 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   .email-activity-row>div:last-child{text-align:left}
 }
 
+.email-activity-filters{
+  display:grid;
+  grid-template-columns:minmax(140px,.7fr) minmax(150px,.7fr) minmax(220px,1fr);
+  gap:10px;
+  align-items:end;
+  margin:10px 0 12px;
+}
+.email-activity-filters label{margin:0}
+.email-activity-actions{margin-top:10px}
+@media(max-width:700px){
+  .email-activity-filters{grid-template-columns:1fr}
+}
+
+.auto-reminder-settings-card .tick-option{margin:8px 0 12px}
+.auto-reminder-schedule-grid small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+
 @media print{
   body *{visibility:hidden!important}
   #payrollPayslipContent,#payrollPayslipContent *{visibility:visible!important}

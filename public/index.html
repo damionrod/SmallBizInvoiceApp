@@ -137,6 +137,10 @@
           <label class="tick-option"><input id="recurringEnabled" type="checkbox"> <span>✓ Create this as a recurring invoice</span></label>
           <div id="recurringOptions" style="display:none;margin-top:10px"><label>Repeat every<select id="recurringFrequency"><option value="weekly">Week</option><option value="fortnightly" selected>Fortnight</option><option value="monthly">Month</option></select></label></div>
         </div>
+        <div>
+          <div class="invoice-heading-with-help"><h2>Automatic reminders</h2><span class="invoice-info" tabindex="0" role="button" aria-label="Automatic reminder help">i<span class="invoice-tooltip" role="tooltip">This only affects automatic reminders. The manual reminder button is unchanged.</span></span></div>
+          <label>Reminder setting<select id="invoiceAutoReminderPolicy"><option value="default">Use customer/business default</option><option value="on">Always send for this invoice</option><option value="off">Do not send for this invoice</option></select></label>
+        </div>
       </div>
       </details>
 
@@ -631,7 +635,7 @@
           <button type="button" data-settings-nav="plan">Plan &amp; Data</button>
         </aside>
         <div class="settings-page-content">
-          <section class="settings-page-panel" data-settings-panel="account"><div id="centralAccountSettings"></div><div class="card table-card email-activity-settings-card" id="settingsEmailActivityCard"><div class="card-title"><div><h2>Email Activity</h2><p class="hint">Recent invoice, quote, payslip and payment reminder emails accepted by the email provider.</p></div><button class="secondary" type="button" id="settingsEmailActivityRefresh">Refresh</button></div><div class="table-scroll"><table><thead><tr><th>Date</th><th>Type</th><th>Sent to</th><th>Related item</th><th>Status</th></tr></thead><tbody id="settingsEmailActivityRows"><tr><td colspan="5">Open Settings to load email activity.</td></tr></tbody></table></div></div></section>
+          <section class="settings-page-panel" data-settings-panel="account"><div id="centralAccountSettings"></div><div class="card table-card email-activity-settings-card" id="settingsEmailActivityCard"><div class="card-title"><div><h2>Email Activity</h2><p class="hint">Recent invoice, quote, payslip and payment reminder emails accepted by the email provider. Detailed activity is retained for 90 days.</p></div><button class="secondary" type="button" id="settingsEmailActivityRefresh">Refresh</button></div><div class="email-activity-filters"><label>Type<select id="settingsEmailActivityType"><option value="">All emails</option><option value="invoice">Invoices</option><option value="invoice_reminder">Payment reminders</option><option value="quote">Quotes</option><option value="payslip">Payslips</option><option value="payment_receipt">Payment receipts</option></select></label><label>Since<input id="settingsEmailActivitySince" type="date"></label><label>Recipient search<input id="settingsEmailActivitySearch" placeholder="name@email.co.nz"></label></div><div class="table-scroll"><table><thead><tr><th>Date</th><th>Type</th><th>Sent to</th><th>Related item</th><th>Status</th></tr></thead><tbody id="settingsEmailActivityRows"><tr><td colspan="5">Open Settings to load email activity.</td></tr></tbody></table></div><div class="actions email-activity-actions"><button class="secondary" type="button" id="settingsEmailActivityMore" hidden>Load more</button></div></div></section>
           <section class="settings-page-panel" data-settings-panel="invoicing" hidden>
       <div class="settings-grid">
         <div class="card">
@@ -716,6 +720,18 @@ Please find attached invoice {invoiceNumber}."></textarea></label>
           <label>Sender display name<input id="sReminderEmailSenderName" placeholder="{tradingName} Accounts"></label>
           <label>Email subject<input id="sReminderEmailSubject" placeholder="Payment reminder – Invoice {invoiceNumber}"></label>
           <label class="wide">Email body<textarea id="sReminderEmailBody" rows="8"></textarea></label>
+        </div>
+      </div>
+
+      <div class="card auto-reminder-settings-card">
+        <h2>Automatic payment reminders</h2>
+        <p class="hint">Optional. Manual reminders stay available. Automatic reminders only run for issued invoices that have already been emailed and still have an outstanding balance.</p>
+        <label class="tick-option"><input id="sAutoReminderEnabled" type="checkbox"> <span>Automatically send payment reminders</span></label>
+        <div class="form-grid compact auto-reminder-schedule-grid">
+          <label>Before due date<input id="sAutoReminderBefore" type="number" min="0" max="30" step="1" placeholder="3"><small>Days before the due date. Use 0 to disable.</small></label>
+          <label>On due date<select id="sAutoReminderDue"><option value="true">Send</option><option value="false">Do not send</option></select></label>
+          <label>First overdue reminder<input id="sAutoReminderAfter1" type="number" min="0" max="90" step="1" placeholder="7"><small>Days after due date. Use 0 to disable.</small></label>
+          <label>Second overdue reminder<input id="sAutoReminderAfter2" type="number" min="0" max="90" step="1" placeholder="14"><small>Days after due date. Use 0 to disable.</small></label>
         </div>
       </div>
 

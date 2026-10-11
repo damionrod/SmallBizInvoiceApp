@@ -557,14 +557,16 @@
     let node=null,temp=null;
     if(payslip){
       temp=document.createElement('div');
-      temp.style.cssText='position:fixed;left:-10000px;top:0;width:820px;background:#fff;z-index:-1;';
+      temp.style.cssText='position:absolute;left:-10000px;top:0;width:820px;background:#fff;pointer-events:none;opacity:1;';
       temp.innerHTML=payslipHtml(target);
       document.body.appendChild(temp);
       node=temp.querySelector('.payslip');
     }else node=$('payrollPayslipContent')?.querySelector('.payslip');
     if(!node){if(temp)temp.remove();throw new Error('Payslip content is not available.');}
     try{
-      const canvas=await html2canvas(node,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,scrollX:0,scrollY:0});
+      if(!window.html2canvas)throw new Error('Payslip renderer is still loading. Please try again in a moment.');
+      if(!window.jspdf?.jsPDF)throw new Error('PDF library is still loading. Please try again in a moment.');
+      const canvas=await window.html2canvas(node,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false,scrollX:0,scrollY:0});
       const {jsPDF}=window.jspdf,pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
       const pageW=210,pageH=297,margin=10,printW=pageW-(margin*2),printH=pageH-(margin*2);
       const imgH=canvas.height*printW/canvas.width;
@@ -597,9 +599,11 @@
     }
     return String(p.payslip_data?.employee?.email||'').trim();
   }
-  async function sendPayslipEmail(p,to){
+  async function sendPayslipEmail(p,to,onProgress){
+    onProgress?.('Preparing PDF…');
     const pdf=await buildPayslipPdf(p);
     if(!pdf)throw new Error('Could not prepare payslip PDF.');
+    onProgress?.('Sending…');
     const blob=pdf.output('blob');
     const {error}=window.SAAS?.invokeAuthenticatedDocumentFunction?await window.SAAS.invokeAuthenticatedDocumentFunction('send-payslip',{payslipId:p.id,to},blob):(window.SAAS?.invokeAuthenticatedFunction?await window.SAAS.invokeAuthenticatedFunction('send-payslip',{payslipId:p.id,to}):await client().functions.invoke('send-payslip',{body:{payslipId:p.id,to}}));
     if(error)throw error;
@@ -623,8 +627,9 @@
     try{
       const to=await currentEmployeeEmail(p);
       if(!to)return toast('This employee does not have an email address.');
-      setPayslipEmailButtonState('loading','Sending…');
-      await sendPayslipEmail(p,to);
+      setPayslipEmailButtonState('loading','Preparing PDF…');
+      await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
+      await sendPayslipEmail(p,to,message=>setPayslipEmailButtonState('loading',message));
       if(p.payslip_data?.employee)p.payslip_data.employee.email=to;
       p.emailed_at=new Date().toISOString();
       p.emailed_to=to;
