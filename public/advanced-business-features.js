@@ -232,32 +232,46 @@
     body.querySelectorAll('[data-po-open]').forEach(b=>b.onclick=()=>openPoEditor(b.dataset.poOpen));
   }
   // Purchase order helpers are deliberately isolated from expense and accounting posting.
-  let poSuppliers=[], poHistory=[];
+  let poSuppliers=[], poHistory=[], poPreviousUnitCosts=[];
   let poHistoryError='', poHistoryRequest=0;
   async function poLoadHistory(supplierId){
     const request=++poHistoryRequest;
-    poHistory=[];poHistoryError='';
+    poHistory=[];poPreviousUnitCosts=[];poHistoryError='';
     if(!supplierId)return;
     const supplier=poSuppliers.find(s=>s.id===supplierId);
     const normalized=s=>String(s||'').trim().toLocaleLowerCase();
     const names=[supplier?.supplier_name,supplier?.trading_name].filter(Boolean);
+    // A legacy name is safe only if it uniquely identifies this supplier in the current business.
+    const uniqueNames=names.filter(n=>poSuppliers.filter(x=>[x.supplier_name,x.trading_name].some(v=>normalized(v)===normalized(n))).length===1);
     try{
       const c=client(),bid=businessId();
       // Include older expenses whose supplier name was saved before supplier IDs were linked.
       const [linked,named]=await Promise.all([
-        c.from('expenses').select('id,invoice_date,supplier_id,supplier_name').eq('business_id',bid).eq('supplier_id',supplierId).order('invoice_date',{ascending:false}).limit(500),
-        c.from('expenses').select('id,invoice_date,supplier_id,supplier_name').eq('business_id',bid).is('supplier_id',null).order('invoice_date',{ascending:false}).limit(1000)
+        c.from('expenses').select('id,invoice_date,supplier_id,supplier_name,description').eq('business_id',bid).eq('supplier_id',supplierId).order('invoice_date',{ascending:false}).limit(500),
+        c.from('expenses').select('id,invoice_date,supplier_id,supplier_name,description').eq('business_id',bid).is('supplier_id',null).order('invoice_date',{ascending:false}).limit(1000)
       ]);
       if(linked.error)throw linked.error;if(named.error)throw named.error;
-      const matches=[...(linked.data||[]),...(named.data||[]).filter(e=>names.some(n=>normalized(n)===normalized(e.supplier_name)))];
+      const matches=[...(linked.data||[]),...(named.data||[]).filter(e=>uniqueNames.some(n=>normalized(n)===normalized(e.supplier_name)))];
       const expenses=[...new Map(matches.map(e=>[e.id,e])).values()].sort((a,b)=>String(b.invoice_date||'').localeCompare(String(a.invoice_date||'')));
-      const details=[];
+      const details=expenses.filter(e=>String(e.description||'').trim()).map(e=>({expense_id:e.id,description:e.description,ex_gst:null,invoice_date:e.invoice_date}));
       for(let i=0;i<expenses.length;i+=100){
         const ids=expenses.slice(i,i+100).map(e=>e.id);
         const {data,error}=await c.from('expense_lines').select('expense_id,description,total_amount,ex_gst').eq('business_id',bid).in('expense_id',ids).limit(1000);
         if(error)throw error;details.push(...(data||[]));
       }
+      // Historical PO lines have real quantities and unit prices, unlike expense lines.
+      // Load them only for this supplier and this business; never infer unit cost from an expense total.
+      const {data:pastOrders,error:pastOrdersError}=await c.from('purchase_orders').select('id,order_date').eq('business_id',bid).eq('supplier_id',supplierId).order('order_date',{ascending:false}).limit(500);
+      if(pastOrdersError)throw pastOrdersError;
+      const costHistory=[];
+      for(let i=0;i<(pastOrders||[]).length;i+=100){
+        const batch=pastOrders.slice(i,i+100),orderDates=new Map(batch.map(o=>[o.id,o.order_date]));
+        const {data:pastLines,error:pastLinesError}=await c.from('purchase_order_lines').select('purchase_order_id,description,qty,unit_price').eq('business_id',bid).in('purchase_order_id',batch.map(o=>o.id)).limit(1000);
+        if(pastLinesError)throw pastLinesError;
+        costHistory.push(...(pastLines||[]).filter(l=>Number(l.qty)>0&&Number.isFinite(Number(l.unit_price))&&Number(l.unit_price)>=0).map(l=>({...l,order_date:orderDates.get(l.purchase_order_id)||''})));
+      }
       if(request!==poHistoryRequest)return;
+      poPreviousUnitCosts=costHistory.sort((a,b)=>String(b.order_date).localeCompare(String(a.order_date)));
       const byId=new Map(expenses.map(e=>[e.id,e]));
       poHistory=details.map(d=>({...d,invoice_date:byId.get(d.expense_id)?.invoice_date||''})).filter(d=>String(d.description||'').trim()).sort((a,b)=>String(b.invoice_date).localeCompare(String(a.invoice_date)));
     }catch(e){if(request!==poHistoryRequest)return;poHistoryError='Previously purchased items could not be loaded. Please try again.';console.warn('Purchase order item history:',e);}
@@ -267,22 +281,42 @@
     return poHistory.find(h=>h.description.trim().toLowerCase()===value)||null;
   }
   function poRow(l={}){
-    return `<tr><td><input data-po-desc autocomplete="off" value="${esc(l.description||'')}" aria-label="Item description" aria-autocomplete="list" aria-expanded="false"><div class="po-item-menu" role="listbox" hidden></div></td><td><input data-po-qty type="number" min="0.01" step="0.01" value="${num(l.qty)||1}" aria-label="Quantity"></td><td><input data-po-price type="number" min="0" step="0.01" value="${num(l.unit_price)}" aria-label="Purchase order unit price"></td><td><span data-po-last>—</span></td><td><span data-po-estimate>—</span></td><td><button class="secondary" data-po-remove type="button">Remove</button></td></tr>`;
+    return `<tr><td><input data-po-desc autocomplete="off" value="${esc(l.description||'')}" aria-label="Item description" aria-autocomplete="list" aria-expanded="false"><div class="po-item-menu" role="listbox" hidden></div></td><td><input data-po-qty type="number" min="0.01" step="0.01" value="${l.qty??1}" aria-label="Quantity"></td><td><input data-po-price type="number" min="0" step="0.01" value="${num(l.unit_price)}" aria-label="Purchase order unit price"></td><td><span data-po-last>—</span><div><input data-po-private-cost type="number" min="0" step="0.01" placeholder="Optional private unit cost" aria-label="Private estimated unit cost" style="width:145px;max-width:100%;margin-top:5px"></div></td><td><span data-po-estimate>—</span></td><td><button class="secondary" data-po-remove type="button">Remove</button></td></tr>`;
   }
   function poRefreshEstimates(){
-    let sum=0, known=0;
+    let sum=0, known=0, totalRows=0;
     document.querySelectorAll('#poLineRows tr').forEach(r=>{
-      const item=poSuggestion(r.querySelector('[data-po-desc]')?.value), qty=num(r.querySelector('[data-po-qty]')?.value);
-      // Expense lines have amounts but no quantity. Never present a historical line total as a unit price.
+      totalRows++;
+      const description=String(r.querySelector('[data-po-desc]')?.value||'').trim().toLocaleLowerCase();
+      const previous=poPreviousUnitCosts.find(h=>String(h.description||'').trim().toLocaleLowerCase()===description);
+      const expense=poSuggestion(description),qty=Number(r.querySelector('[data-po-qty]')?.value);
       const last=r.querySelector('[data-po-last]'),estimate=r.querySelector('[data-po-estimate]');
-      if(last)last.textContent=item?`${money(item.ex_gst)} (historical line amount; qty unknown)`:'—';
-      if(estimate)estimate.textContent='—';
+      const privateInput=r.querySelector('[data-po-private-cost]');
+      // Never infer a unit cost from an expense line without a recorded quantity.
+      // A manually entered private unit estimate takes priority over previous PO history.
+      const manual=privateInput&&privateInput.value.trim()!==''?Number(privateInput.value):null;
+      const historical=previous?Number(previous.unit_price):null;
+      const manualValid=manual!==null&&Number.isFinite(manual)&&manual>=0;
+      const historicalValid=historical!==null&&Number.isFinite(historical)&&historical>=0;
+      const unit=manualValid?manual:historicalValid?historical:null;
+      if(last){
+        last.textContent=historicalValid?`${money(historical)} (previous PO unit price)`:
+          expense&&expense.ex_gst!=null?`${money(expense.ex_gst)} (expense line total; quantity unknown)`:
+          'No historical unit cost';
+      }
+      if(unit!==null&&Number.isFinite(qty)&&qty>0){
+        const extended=unit*qty;
+        if(estimate)estimate.textContent=`${money(extended)}${manualValid?' (manual estimate)':' (historical estimate)'}`;
+        sum+=extended;known++;
+      }else if(estimate){estimate.textContent='Enter a private unit cost to estimate';}
+      if(privateInput){privateInput.setAttribute('aria-label',`Private estimated unit cost for ${description||'new item'}`);}
     });
-    const total=$('poPrivateEstimate');if(total)total.textContent='Not available from recorded expenses (historical quantities not stored).';
+    const total=$('poPrivateEstimate');
+    if(total)total.textContent=known===totalRows&&known>0?money(sum):known?`${money(sum)} estimated; ${totalRows-known} line(s) without an estimate`:'Unavailable: enter a private unit cost or select an item with historical PO pricing.';
   }
   function poRefreshSuggestions(){
     const message=$('poHistoryMessage');
-    if(message)message.textContent=poHistoryError||(!poHistory.length&&$('poSupplierSelect')?.value?'No previous items recorded for this supplier. You can type a new description.':'');
+    if(message){message.textContent=poHistoryError||(!poHistory.length&&$('poSupplierSelect')?.value?'No previous items recorded for this supplier. You can type a new description.':'');if(poHistoryError){const retry=document.createElement('button');retry.type='button';retry.className='secondary';retry.textContent='Retry';retry.onclick=async()=>{await poLoadHistory($('poSupplierSelect')?.value);poRefreshSuggestions()};message.append(' ',retry)}}
     document.querySelectorAll('#poLineRows tr').forEach(r=>{const menu=r.querySelector('.po-item-menu');if(menu&&!menu.hidden)poShowItems(r)});
     poRefreshEstimates();
   }
@@ -308,6 +342,7 @@
       r.querySelector('.po-item-menu')?.addEventListener('keydown',e=>{if(e.key==='Escape'){poHideItems(r);input?.focus()}});
       input?.addEventListener('blur',()=>setTimeout(()=>{if(!r.contains(document.activeElement))poHideItems(r)},120));
       r.querySelector('[data-po-qty]')?.addEventListener('input',poRefreshEstimates);
+      r.querySelector('[data-po-private-cost]')?.addEventListener('input',poRefreshEstimates);
       r.querySelector('[data-po-remove]')?.addEventListener('click',()=>{r.remove();poRefreshEstimates()});
     });
     poRefreshEstimates();
@@ -328,31 +363,37 @@
       <p class="hint" id="poHistoryMessage" role="status"></p>
       <style>#poLineRows td:first-child{position:relative;min-width:210px;overflow:visible}.po-item-menu{position:absolute;z-index:1100;top:calc(100% - 2px);left:0;min-width:250px;width:max-content;max-width:min(450px,85vw);max-height:230px;overflow:auto;background:var(--card-bg,#fff);color:var(--text,#17233b);border:1px solid #b9bdc9;border-radius:9px;box-shadow:0 8px 20px #17233b33;padding:4px}.po-item-menu[hidden]{display:none!important}.po-item-option{display:block;width:100%;text-align:left;padding:9px 11px;border:0;border-radius:5px;background:transparent;color:inherit;cursor:pointer;white-space:normal}.po-item-option:hover,.po-item-option:focus{background:#ece8fb}.po-item-empty{padding:10px;font-size:12px;color:#626878}#poLineRows{overflow:visible}</style>
       <div class="table-scroll"><table><thead><tr><th>Description</th><th>Qty</th><th>PO unit price</th><th>Previous cost (private)</th><th>Estimated line cost (private)</th><th></th></tr></thead><tbody id="poLineRows">${lines.map(poRow).join('')}</tbody></table></div>
-      <p class="hint">Historical expense lines do not record item quantities, so their totals cannot reliably be used as unit prices. Estimates are never sent to suppliers.</p>
+      <p class="hint">Internal estimates use prior Purchase Order unit prices when available. Enter a private unit cost to override or estimate new items. Private estimates are session-only, not saved to Purchase Orders, and never sent to suppliers. Expense totals are never treated as unit prices.</p>
       <p class="hint"><strong>Internal estimated total:</strong> <span id="poPrivateEstimate">—</span></p>
       <div class="actions"><button class="secondary" id="poAddLine" type="button">+ Add line</button><button class="primary" id="poSave" type="button">Save Purchase Order</button>${po?'<button class="secondary" id="poEmail" type="button">Email Purchase Order</button>':''}</div>
       <p class="hint">Saving a PO does not create a bill, payment or journal. Emailing sends only the supplier-facing PO fields.</p>`;
+    editor.dataset.poUpdatedAt=po?.updated_at||'';
     $('poStatus').value=po?.status||'draft';
+    $('poStatus').disabled=true;$('poStatus').title='Status changes are managed by the purchase order workflow, not by editing order details.';
     $('poSupplierSelect').value=po?.supplier_id||'';
     $('poSupplierSelect').onchange=async()=>{const supplier=poSuppliers.find(x=>x.id===$('poSupplierSelect').value);if(supplier)$('poSupplier').value=supplier.supplier_name||supplier.trading_name||'';await poLoadHistory(supplier?.id);poRefreshSuggestions()};
     $('poClose').onclick=()=>editor.hidden=true;
     $('poAddLine').onclick=()=>{$('poLineRows').insertAdjacentHTML('beforeend',poRow());wirePoRows()};
     $('poSave').onclick=()=>savePo(po?.id);
+    const originalPoSnapshot=()=>JSON.stringify([...editor.querySelectorAll('input,select')].filter(x=>x.id!=='poHistoryMessage').map(x=>[x.id||x.dataset.poDesc||x.dataset.poQty||x.dataset.poPrice,x.value]));
+    let savedSnapshot=originalPoSnapshot();
+    editor.dataset.poDirty='false';editor.addEventListener('input',()=>{editor.dataset.poDirty=String(originalPoSnapshot()!==savedSnapshot)});editor.addEventListener('change',()=>{editor.dataset.poDirty=String(originalPoSnapshot()!==savedSnapshot)});
     if(po)$('poEmail').onclick=()=>emailPo(po.id);
     await poLoadHistory($('poSupplierSelect').value);poRefreshSuggestions();wirePoRows();
   }
   async function savePo(id){
-    const lines=[...document.querySelectorAll('#poLineRows tr')].map((r,i)=>({line_order:i+1,description:r.querySelector('[data-po-desc]')?.value||'',qty:num(r.querySelector('[data-po-qty]')?.value)||1,unit_price:num(r.querySelector('[data-po-price]')?.value)})).filter(l=>l.description);
+    const lines=[...document.querySelectorAll('#poLineRows tr')].map((r,i)=>({line_order:i+1,description:(r.querySelector('[data-po-desc]')?.value||'').trim(),qty:Number(r.querySelector('[data-po-qty]')?.value),unit_price:Number(r.querySelector('[data-po-price]')?.value)}));
+    if(!lines.length||lines.some(l=>!l.description))return toast('Add at least one item and give every line a description.');
+    if(lines.some(l=>!Number.isFinite(l.qty)||l.qty<=0||!Number.isFinite(l.unit_price)||l.unit_price<0))return toast('Quantities must be greater than zero and prices cannot be negative.');
     const total=lines.reduce((a,l)=>a+l.qty*l.unit_price,0),row={business_id:businessId(),po_number:$('poNumber').value.trim(),supplier_id:$('poSupplierSelect').value||null,supplier_name:$('poSupplier').value.trim(),order_date:$('poDate').value,status:$('poStatus').value,notes:$('poNotes').value,total_amount:total,currency:currency(),updated_by:userId(),updated_at:new Date().toISOString()};
-    if(!row.supplier_name)return toast('Choose a supplier before saving.');
-    const c=client(),saved=id?await c.from('purchase_orders').update(row).eq('business_id',businessId()).eq('id',id).select('id').single():await c.from('purchase_orders').insert({...row,created_by:userId()}).select('id').single();
+    if(!row.supplier_name||!row.supplier_id)return toast('Choose a supplier from the list before saving.');
+    const c=client(),saved=await c.rpc('v61142b_save_purchase_order',{p_order:{...row,id:id||null},p_lines:lines,p_expected_updated_at:id?$('poEditor')?.dataset.poUpdatedAt||null:null});
     if(saved.error)return toast(saved.error.message);
-    const del=await c.from('purchase_order_lines').delete().eq('business_id',businessId()).eq('purchase_order_id',saved.data.id);if(del.error)return toast(del.error.message);
-    if(lines.length){const ins=await c.from('purchase_order_lines').insert(lines.map(l=>({...l,business_id:businessId(),purchase_order_id:saved.data.id,line_total:l.qty*l.unit_price})));if(ins.error)return toast(ins.error.message)}
     toast('Purchase order saved.');$('poEditor').hidden=true;renderPurchaseOrders();
   }
   async function emailPo(id){
     const supplier=poSuppliers.find(s=>s.id===$('poSupplierSelect')?.value);
+    if($('poEditor')?.dataset.poDirty==='true')return toast('Save your purchase order changes before emailing.');
     if(!supplier?.email)return toast('Select a supplier with an email address saved in Suppliers.');
     if(!await (window.FrindlyDialogs?.confirm?.(`Send the saved purchase order to ${supplier.email}? Save any changes before sending.`)??Promise.resolve(window.confirm(`Send purchase order to ${supplier.email}?`))))return;
     const button=$('poEmail');if(button){button.disabled=true;button.textContent='Sending…'}
