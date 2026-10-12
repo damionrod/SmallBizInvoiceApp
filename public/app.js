@@ -359,7 +359,8 @@ async function renderInvoiceList(){await loadCustomerCreditNotes();let arr=await
 async function loadForEdit(x){if(isIssuedInvoice(x))return issuedInvoiceGuidance();currentId=x.id;sourceQuoteId=x.source_quote_id||null;sourceJobCostingId=x.job_costing_id||null;billingSeriesId=x.billing_series_id||null;quoteBillingType=x.quote_billing_type||null;quoteStageLabel=x.quote_stage_label||'';quoteBillingExGst=x.quote_billing_ex_gst??null;quoteOriginalExGst=x.quote_original_ex_gst??null;quotePreviouslyInvoicedExGst=x.quote_previously_invoiced_ex_gst??null;quoteRemainingExGst=x.quote_remaining_ex_gst??null;$('invoiceNumber').value=x.invoice_number;$('invoiceDate').value=x.invoice_date;$('dueDate').value=x.due_date;if($('invoiceAuTaxClass'))$('invoiceAuTaxClass').value=x.au_tax_classification||'';await refreshInvoiceTaxRuntime(x.invoice_date,true);if($('invoiceAuTaxClass'))$('invoiceAuTaxClass').value=x.au_tax_classification||$('invoiceAuTaxClass').value;$('customerName').value=x.customer_name||'';$('customerAddress').value=x.customer_address||'';$('customerEmail').value=x.customer_email||'';$('reference').value=x.reference||'';$('customerNote').value=x.customer_note||'';items=x.items||[];$('discountType').value=x.discount_type||'percent';$('discountValue').value=num(x.discount_value)||'';$('amountPaid').value=num(x.amount_paid)||'';$('recurringEnabled').checked=!!x.recurring;$('recurringFrequency').value=x.recurring_frequency||'fortnightly';$('recurringOptions').style.display=x.recurring?'block':'none';$('invoiceMoreOptions').open=!!(num(x.discount_value)||num(x.amount_paid)||x.recurring);renderItems();recalc();switchView('create');toast('Invoice loaded for editing')}
 let lastInvoiceView='create';
 window.switchView=async function switchView(v){
-  if(v==='schedule'&&$('scheduleNav')?.hidden){const access=await window.SAAS?.getScheduleAccess?.();if(!access?.allowed){console.warn('Schedule access not granted',access);window.FinloCore?.ui?.toast?.('Schedule access is unavailable. Check your plan and permissions.');return false}else{$('scheduleNav').hidden=false;window.Schedule?.setAccess?.(access)}}
+  if(v==='schedule'&&$('scheduleNav')?.hidden){let access;try{access=await window.SAAS?.getScheduleAccess?.()}catch(e){console.warn('Schedule entitlement lookup failed',e);window.FinloCore?.ui?.toast?.('Could not verify Schedule access. Please refresh and try again.');return false}if(!access?.allowed){console.warn('Schedule access not granted',access);window.FinloCore?.ui?.toast?.('Schedule access is unavailable. Check your plan and permissions.');return false}else{$('scheduleNav').hidden=false;window.Schedule?.setAccess?.(access)}}
+  if(v==='bankreconciliation'&&$('bankReconciliationNav')?.hidden){window.FinloCore?.ui?.toast?.('Banking is unavailable for this account. Check your plan and permissions.');return false}
   if(v==='stock-equipment'&&$('stockEquipmentNav')?.hidden){v='dashboard'}
   if(v==='community'&&$('communityNav')?.hidden){v='dashboard'}
   const invoiceViews=['create','invoices','customers'];
@@ -367,6 +368,9 @@ window.switchView=async function switchView(v){
   if(!target)return false;
   const current=document.querySelector('.view.active')?.id?.replace(/^view-/,'');
   if(current&&current!==v&&window.DraftProtection?.shouldBlockNavigation?.()&&!await window.DraftProtection.confirmDiscard())return false;
+  // A previous entitlement refresh can leave a permitted page hidden.
+  // Never unhide an unauthorised page: its navigation entitlement must be visible first.
+  if(v==='bankreconciliation'&&!$('bankReconciliationNav')?.hidden)target.hidden=false;
   if(invoiceViews.includes(v))lastInvoiceView=v;
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
   target.classList.add('active');
