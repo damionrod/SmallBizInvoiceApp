@@ -35,7 +35,7 @@ Deno.serve(async(req)=>{
     if(!supplier||!email.test(String(supplier.email||'')))return json({error:'Supplier email is missing or invalid'},400);
     await enforceRateLimit(admin,'send-purchase-order:user',user.id||clientIp(req),20,3600);
     await enforceRateLimit(admin,'send-purchase-order:po',po.id,10,3600);
-    const {data:lines,error:linesError}=await admin.from('purchase_order_lines').select('description,qty,unit_price,gst_amount').eq('business_id',po.business_id).eq('purchase_order_id',po.id).order('line_order');
+    const {data:lines,error:linesError}=await admin.from('purchase_order_lines').select('id,line_order,description,qty,unit_price,gst_amount').eq('business_id',po.business_id).eq('purchase_order_id',po.id).order('line_order');
     if(linesError||!lines?.length)return json({error:'Purchase order has no lines'},400);
     const {data:biz}=await admin.from('businesses').select('name').eq('id',po.business_id).maybeSingle();
     const document=await PDFDocument.create();let page=document.addPage([595,842]);const font=await document.embedFont(StandardFonts.Helvetica),bold=await document.embedFont(StandardFonts.HelveticaBold);
@@ -55,6 +55,22 @@ Deno.serve(async(req)=>{
     const userClient=createClient(url,anon,{global:{headers:{Authorization:`Bearer ${bearer}`}},auth:{persistSession:false,autoRefreshToken:false}});
     const {data:attemptId,error:reserveError}=await userClient.rpc('v61142k_reserve_po_email',{p_id:po.id,p_recipient:supplier.email});
     if(reserveError||!attemptId)return json({error:reserveError?.message||'Unable to reserve Purchase Order email'},409);
+    // The PDF was rendered before reservation. Verify its exact source snapshot
+    // after the reservation locks out user edits, before contacting Resend.
+    const {data:lockedPo,error:lockedPoError}=await admin.from('purchase_orders').select('id,business_id,po_number,supplier_id,supplier_name,order_date,expected_date,notes,status,currency,subtotal,gst_amount,total_amount,updated_at').eq('id',po.id).maybeSingle();
+    const {data:lockedLines,error:lockedLinesError}=await admin.from('purchase_order_lines').select('id,description,qty,unit_price,gst_amount,line_order').eq('business_id',po.business_id).eq('purchase_order_id',po.id).order('line_order');
+    const {data:lockedSupplier,error:lockedSupplierError}=await admin.from('suppliers').select('id,email,supplier_name').eq('business_id',po.business_id).eq('id',po.supplier_id).maybeSingle();
+    const headerKeys=['id','business_id','po_number','supplier_id','supplier_name','order_date','expected_date','notes','status','currency','subtotal','gst_amount','total_amount'];
+    const lineKeys=['id','line_order','description','qty','unit_price','gst_amount'];
+    const same=(a:Record<string,unknown>,b:Record<string,unknown>,keys:string[])=>keys.every(k=>String(a?.[k]??'')===String(b?.[k]??''));
+    const snapshotMatches=!lockedPoError&&!lockedLinesError&&!lockedSupplierError&&!!lockedPo&&!!lockedSupplier&&
+      same(po,lockedPo,headerKeys)&&same(supplier,lockedSupplier,['id','email','supplier_name'])&&
+      lines.length===(lockedLines?.length??-1)&&lines.every((item,i)=>same(item,lockedLines![i],lineKeys));
+    if(!snapshotMatches){
+      const {error:releaseError}=await admin.rpc('v61142k_finish_po_email',{p_attempt:attemptId,p_outcome:'failed',p_error:'Source document changed before provider submission'});
+      if(releaseError)console.error('PO email reservation could not be released',releaseError.message);
+      return json({error:'Purchase Order changed while preparing the email. Refresh and review before sending again.'},409);
+    }
     let response:Response;
     try{
       response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${resend}`,'Content-Type':'application/json','Idempotency-Key':String(attemptId)},body:JSON.stringify(payload)});

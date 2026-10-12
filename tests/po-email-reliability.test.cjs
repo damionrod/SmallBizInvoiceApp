@@ -13,3 +13,6 @@ const recoverySql = fsRecovery.readFileSync('supabase/migrations/20261012160000_
 if (!recoverySql.includes("auth.role() <> 'service_role'")) throw Error('Recovery must require service role');
 if (!recoverySql.includes("a.state <> 'uncertain'")) throw Error('Recovery must only resolve uncertain attempts');
 if (!recoverySql.includes('Provider verification evidence required')) throw Error('Recovery must require provider evidence');
+
+assert.ok(edge.indexOf('const snapshotMatches=') > edge.indexOf("rpc('v61142k_reserve_po_email'"));
+assert.ok(edge.indexOf('if(!snapshotMatches)') < edge.indexOf("fetch('https://api.resend.com/emails'"));
