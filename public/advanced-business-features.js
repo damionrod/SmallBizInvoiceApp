@@ -228,9 +228,12 @@
   async function renderPurchaseOrders(){
     const body=$('poRows'); if(!body)return;
     const rows=await safeSelect('purchase_orders',q=>q.select('*').eq('business_id',businessId()).order('order_date',{ascending:false}).limit(100));
-    body.innerHTML=rows.length?rows.map(p=>`<tr><td>${esc(p.po_number)}</td><td>${esc(p.supplier_name||'')}</td><td>${esc(p.order_date||'')}</td><td><span class="badge">${esc(p.status||'draft')}</span></td><td>${money(p.total_amount)}</td><td><button class="secondary" data-po-open="${esc(p.id)}" type="button">Open</button> <button class="secondary" data-po-pdf="${esc(p.id)}" type="button">PDF</button></td></tr>`).join(''):'<tr><td colspan="6">No purchase orders yet.</td></tr>';
+    body.innerHTML=rows.length?rows.map(p=>`<tr><td>${esc(p.po_number)}</td><td>${esc(p.supplier_name||'')}</td><td>${esc(p.order_date||'')}</td><td><span class="badge">${esc(p.status||'draft')}</span></td><td>${money(p.total_amount)}</td><td><button class="secondary" data-po-open="${esc(p.id)}" type="button">${String(p.status||'draft').toLowerCase()==='draft'?'Edit':'View'}</button> <button class="secondary" data-po-pdf="${esc(p.id)}" type="button">PDF</button> ${['draft','approved','sent'].includes(String(p.status||'draft').toLowerCase())?`<button class="secondary" data-po-send="${esc(p.id)}" type="button">${String(p.status).toLowerCase()==='sent'?'Resend':'Send'}</button>`:''} ${String(p.status||'draft').toLowerCase()==='draft'?`<button class="secondary" data-po-delete="${esc(p.id)}" type="button">Delete</button>`:['approved','sent','partially_received'].includes(String(p.status).toLowerCase())?`<button class="secondary" data-po-cancel="${esc(p.id)}" type="button">Cancel</button>`:''}</td></tr>`).join(''):'<tr><td colspan="6">No purchase orders yet.</td></tr>';
     body.querySelectorAll('[data-po-open]').forEach(b=>b.onclick=()=>openPoEditor(b.dataset.poOpen));
     body.querySelectorAll('[data-po-pdf]').forEach(b=>b.onclick=()=>downloadPoPdf(b.dataset.poPdf,b));
+    body.querySelectorAll('[data-po-send]').forEach(b=>b.onclick=()=>sendPoFromList(b.dataset.poSend,b));
+    body.querySelectorAll('[data-po-delete]').forEach(b=>b.onclick=()=>changePoState(b.dataset.poDelete,'delete',b));
+    body.querySelectorAll('[data-po-cancel]').forEach(b=>b.onclick=()=>changePoState(b.dataset.poCancel,'cancel',b));
   }
   // Supplier-facing PDF: only saved purchase-order fields; never include private estimates.
   async function downloadPoPdf(id,button){
@@ -272,7 +275,7 @@
   }
   // Purchase order helpers are deliberately isolated from expense and accounting posting.
   let poSuppliers=[], poHistory=[], poPreviousUnitCosts=[];
-  let poHistoryError='', poHistoryRequest=0;
+  let poHistoryError='', poHistoryRequest=0, poMenuSequence=0;
   async function poLoadHistory(supplierId){
     const request=++poHistoryRequest;
     poHistory=[];poPreviousUnitCosts=[];poHistoryError='';
@@ -356,11 +359,23 @@
   function poRefreshSuggestions(){
     const message=$('poHistoryMessage');
     if(message){message.textContent=poHistoryError||(!poHistory.length&&$('poSupplierSelect')?.value?'No previous items recorded for this supplier. You can type a new description.':'');if(poHistoryError){const retry=document.createElement('button');retry.type='button';retry.className='secondary';retry.textContent='Retry';retry.onclick=async()=>{await poLoadHistory($('poSupplierSelect')?.value);poRefreshSuggestions()};message.append(' ',retry)}}
-    document.querySelectorAll('#poLineRows tr').forEach(r=>{const menu=r.querySelector('.po-item-menu');if(menu&&!menu.hidden)poShowItems(r)});
+    document.querySelectorAll('#poLineRows tr').forEach(r=>{const menu=poMenuForRow(r);if(menu&&!menu.hidden)poShowItems(r)});
     poRefreshEstimates();
   }
+  // Render suggestions outside the scrollable table: overflow containers clip positioned descendants.
+  function poPlaceMenu(input,menu){
+    const rect=input.getBoundingClientRect();
+    const width=Math.min(Math.max(rect.width,280),Math.max(220,window.innerWidth-24));
+    menu.style.position='fixed';menu.style.zIndex='2147483000';menu.style.width=width+'px';
+    menu.style.maxWidth='calc(100vw - 16px)';menu.style.left=Math.max(8,Math.min(rect.left,window.innerWidth-width-8))+'px';
+    menu.style.top=(rect.bottom+235>window.innerHeight&&rect.top>235?Math.max(8,rect.top-235):rect.bottom+3)+'px';
+    menu.style.maxHeight=Math.max(90,Math.min(230,window.innerHeight-24))+'px';
+  }
   function poShowItems(row){
-    const input=row.querySelector('[data-po-desc]'),menu=row.querySelector('.po-item-menu');if(!input||!menu)return;
+    const input=row.querySelector('[data-po-desc]');if(!input)return;
+    const menu=poMenuForRow(row)||row.querySelector('.po-item-menu');if(!menu)return;
+    if(menu.parentElement!==document.body)document.body.appendChild(menu);
+    poPlaceMenu(input,menu);
     const term=input.value.trim().toLocaleLowerCase(),seen=new Set();
     const items=poHistory.filter(h=>{const label=String(h.description||'').trim(),key=label.toLocaleLowerCase();if(!label||seen.has(key)||!key.includes(term))return false;seen.add(key);return true}).slice(0,60);
     const supplierChosen=!!$('poSupplierSelect')?.value;
@@ -369,25 +384,30 @@
     menu.querySelectorAll('[data-po-choice]').forEach(button=>button.addEventListener('mousedown',e=>e.preventDefault()));
     menu.querySelectorAll('[data-po-choice]').forEach(button=>button.addEventListener('click',()=>{input.value=button.dataset.poChoice;poHideItems(row);poRefreshEstimates();input.focus()}));
   }
-  function poHideItems(row){const menu=row.querySelector('.po-item-menu'),input=row.querySelector('[data-po-desc]');if(menu)menu.hidden=true;if(input)input.setAttribute('aria-expanded','false')}
+  function poHideItems(row){const input=row.querySelector('[data-po-desc]'),menu=input?document.querySelector(`.po-item-menu[data-po-owner="${input.dataset.poMenuId}"]`):null;if(menu)menu.hidden=true;if(input)input.setAttribute('aria-expanded','false')}
+  function poMenuForRow(row){const input=row.querySelector('[data-po-desc]');return input?document.querySelector(`.po-item-menu[data-po-owner="${input.dataset.poMenuId}"]`):null;}
   function wirePoRows(){
     document.querySelectorAll('#poLineRows tr').forEach(r=>{
       if(r.dataset.poWired)return;r.dataset.poWired='true';
       const input=r.querySelector('[data-po-desc]');
+      const menu=r.querySelector('.po-item-menu');
+      if(input&&menu){input.dataset.poMenuId='po-menu-'+(++poMenuSequence);menu.dataset.poOwner=input.dataset.poMenuId;}
       input?.addEventListener('focus',()=>poShowItems(r));
       input?.addEventListener('click',()=>poShowItems(r));
       input?.addEventListener('input',()=>{poShowItems(r);poRefreshEstimates()});
-      input?.addEventListener('keydown',e=>{if(e.key==='Escape')poHideItems(r);if(e.key==='ArrowDown'){const first=r.querySelector('.po-item-option');if(first){e.preventDefault();first.focus()}}});
-      r.querySelector('.po-item-menu')?.addEventListener('keydown',e=>{if(e.key==='Escape'){poHideItems(r);input?.focus()}});
-      input?.addEventListener('blur',()=>setTimeout(()=>{if(!r.contains(document.activeElement))poHideItems(r)},120));
+      input?.addEventListener('keydown',e=>{if(e.key==='Escape')poHideItems(r);if(e.key==='ArrowDown'){const first=poMenuForRow(r)?.querySelector('.po-item-option');if(first){e.preventDefault();first.focus()}}});
+      poMenuForRow(r)?.addEventListener('keydown',e=>{if(e.key==='Escape'){poHideItems(r);input?.focus()}});
+      input?.addEventListener('blur',()=>setTimeout(()=>{const menu=poMenuForRow(r);if(!r.contains(document.activeElement)&&!menu?.contains(document.activeElement))poHideItems(r)},160));
       r.querySelector('[data-po-qty]')?.addEventListener('input',poRefreshEstimates);
       r.querySelector('[data-po-private-cost]')?.addEventListener('input',poRefreshEstimates);
-      r.querySelector('[data-po-remove]')?.addEventListener('click',()=>{r.remove();poRefreshEstimates()});
+      r.querySelector('[data-po-remove]')?.addEventListener('click',()=>{poMenuForRow(r)?.remove();r.remove();poRefreshEstimates()});
     });
     poRefreshEstimates();
   }
   async function openPoEditor(id){
     const editor=$('poEditor');if(!editor)return;editor.hidden=false;
+    document.querySelectorAll('.po-item-menu[data-po-owner]').forEach(m=>m.remove());
+    if(!editor.dataset.poMenuScrollBound){editor.dataset.poMenuScrollBound='true';editor.addEventListener('scroll',()=>document.querySelectorAll('.po-item-menu[data-po-owner]').forEach(m=>m.hidden=true),true);}
     let po=null,lines=[];
     if(id){const found=await safeSelect('purchase_orders',q=>q.select('*').eq('business_id',businessId()).eq('id',id).maybeSingle());po=Array.isArray(found)?found[0]:found;lines=await safeSelect('purchase_order_lines',q=>q.select('*').eq('business_id',businessId()).eq('purchase_order_id',id).order('line_order'))}
     if(!lines.length)lines=[{description:'',qty:1,unit_price:0}];
@@ -412,9 +432,10 @@
     $('poStatus').disabled=true;$('poStatus').title='Status changes are managed by the purchase order workflow, not by editing order details.';
     $('poSupplierSelect').value=po?.supplier_id||'';
     $('poSupplierSelect').onchange=async()=>{const supplier=poSuppliers.find(x=>x.id===$('poSupplierSelect').value);if(supplier)$('poSupplier').value=supplier.supplier_name||supplier.trading_name||'';await poLoadHistory(supplier?.id);poRefreshSuggestions()};
-    $('poClose').onclick=()=>editor.hidden=true;
+    $('poClose').onclick=()=>{document.querySelectorAll('.po-item-menu[data-po-owner]').forEach(m=>m.remove());editor.hidden=true;};
     $('poAddLine').onclick=()=>{$('poLineRows').insertAdjacentHTML('beforeend',poRow());wirePoRows()};
     $('poSave').onclick=()=>savePo(po?.id);
+    if(po && String(po.status||'draft').toLowerCase()!=='draft'){editor.querySelectorAll('input,select,#poAddLine,#poSave,[data-po-remove]').forEach(el=>el.disabled=true);}
     const originalPoSnapshot=()=>JSON.stringify([...editor.querySelectorAll('input,select')].filter(x=>x.id!=='poHistoryMessage').map(x=>[x.id||x.dataset.poDesc||x.dataset.poQty||x.dataset.poPrice,x.value]));
     let savedSnapshot=originalPoSnapshot();
     editor.dataset.poDirty='false';editor.addEventListener('input',()=>{editor.dataset.poDirty=String(originalPoSnapshot()!==savedSnapshot)});editor.addEventListener('change',()=>{editor.dataset.poDirty=String(originalPoSnapshot()!==savedSnapshot)});
@@ -427,9 +448,14 @@
     if(lines.some(l=>!Number.isFinite(l.qty)||l.qty<=0||!Number.isFinite(l.unit_price)||l.unit_price<0))return toast('Quantities must be greater than zero and prices cannot be negative.');
     const total=lines.reduce((a,l)=>a+l.qty*l.unit_price,0),row={business_id:businessId(),po_number:$('poNumber').value.trim(),supplier_id:$('poSupplierSelect').value||null,supplier_name:$('poSupplier').value.trim(),order_date:$('poDate').value,expected_date:$('poExpectedDate').value||null,status:$('poStatus').value,notes:$('poNotes').value,total_amount:total,currency:currency(),updated_by:userId(),updated_at:new Date().toISOString()};
     if(!row.supplier_name||!row.supplier_id)return toast('Choose a supplier from the list before saving.');
-    const c=client(),saved=await c.rpc('v61142b_save_purchase_order',{p_order:{...row,id:id||null},p_lines:lines,p_expected_updated_at:id?$('poEditor')?.dataset.poUpdatedAt||null:null});
+    const saveButton=$('poSave');if(saveButton?.disabled)return;
+    if(saveButton){saveButton.disabled=true;saveButton.textContent='Saving…';}
+    let saved;
+    try{saved=await client().rpc('v61142b_save_purchase_order',{p_order:{...row,id:id||null},p_lines:lines,p_expected_updated_at:id?$('poEditor')?.dataset.poUpdatedAt||null:null});}
+    catch(error){toast(error?.message||'Could not save purchase order.');return;}
+    finally{if(saveButton){saveButton.disabled=false;saveButton.textContent='Save Purchase Order';}}
     if(saved.error)return toast(saved.error.message);
-    toast('Purchase order saved.');$('poEditor').hidden=true;renderPurchaseOrders();
+    toast('Purchase order saved.');await renderPurchaseOrders();if(id){$('poEditor').hidden=true;}else{await openPoEditor();}
   }
   async function emailPo(id){
     const supplier=poSuppliers.find(s=>s.id===$('poSupplierSelect')?.value);
@@ -439,6 +465,37 @@
     const button=$('poEmail');if(button){button.disabled=true;button.textContent='Sending…'}
     try{const {data,error}=await client().functions.invoke('send-purchase-order',{body:{purchaseOrderId:id}});if(error||!data?.success)throw Error(data?.error||error?.message||'Could not send purchase order');toast(`Purchase order emailed to ${supplier.email}.`);renderPurchaseOrders()}
     catch(e){toast(`Purchase order email failed: ${e.message||e}`)}finally{if(button){button.disabled=false;button.textContent='Email Purchase Order'}}
+  }
+
+  async function changePoState(id,action,button){
+    const prompt=action==='delete'?'Permanently delete this unsent draft Purchase Order? This cannot be undone.':'Cancel this Purchase Order? The record and history will be retained.';
+    if(!window.confirm(prompt))return;
+    if(button)button.disabled=true;
+    try{
+      const {error}=await client().rpc('v61142i_po_action',{p_id:id,p_action:action});
+      if(error)throw error;
+      toast(action==='delete'?'Draft deleted.':'Purchase order cancelled.');
+      if($('poEditor'))$('poEditor').hidden=true;
+      await renderPurchaseOrders();
+    }catch(e){toast(e?.message||'Purchase order action failed.');}
+    finally{if(button)button.disabled=false;}
+  }
+  async function sendPoFromList(id,button){
+    if(!id||button?.disabled)return;
+    if(button)button.disabled=true;
+    try{
+      const bid=businessId(),c=client();
+      const {data:po,error:poError}=await c.from('purchase_orders').select('supplier_id,status').eq('business_id',bid).eq('id',id).single();
+      if(poError||!po)throw Error('Could not load the purchase order.');
+      const {data:supplier,error:supplierError}=await c.from('suppliers').select('email').eq('business_id',bid).eq('id',po.supplier_id).single();
+      if(supplierError||!supplier?.email)throw Error('Supplier email address is missing.');
+      if(!window.confirm(`${po.status==='sent'?'Resend':'Send'} this Purchase Order to ${supplier.email}?`))return;
+      const {data,error}=await c.functions.invoke('send-purchase-order',{body:{purchaseOrderId:id}});
+      if(error||!data?.success)throw Error(data?.error||error?.message||'Could not send Purchase Order.');
+      toast(`Purchase Order emailed to ${supplier.email}.`);
+      await renderPurchaseOrders();
+    }catch(e){toast(e?.message||'Purchase Order email failed.');}
+    finally{if(button)button.disabled=false;}
   }
 
   function install(){
