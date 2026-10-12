@@ -8336,3 +8336,30 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
   .bank-feed-summary{grid-template-columns:1fr}
   .bank-feed-account-list>div{display:block}
 }
+
+/* MatchFlow v61.142S: scoped, presentation-only bank reconciliation enhancements. */
+#view-bankreconciliation .page-head{align-items:center;gap:18px}
+#view-bankreconciliation .br-matchflow-progress{display:flex;align-items:center;gap:16px;min-width:340px;padding:12px 17px;border:1px solid #dfe4f5;border-radius:18px;background:linear-gradient(120deg,#f9fbff,#f4f0ff);box-shadow:0 5px 18px rgba(23,36,61,.06);font-size:inherit;color:#17243d}
+#view-bankreconciliation .br-mf-ring{--br-mf-percent:0%;flex:none;width:68px;height:68px;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#18b49a var(--br-mf-percent),#e4e9f5 0);position:relative}
+#view-bankreconciliation .br-mf-ring::before{content:'';position:absolute;inset:8px;background:#fff;border-radius:50%}
+#view-bankreconciliation .br-mf-ring strong{z-index:1;font-size:17px;color:#17243d}
+#view-bankreconciliation .br-mf-progress-content{display:grid;gap:8px;min-width:0;flex:1}
+#view-bankreconciliation .br-mf-progress-content>strong{font-size:13px}
+#view-bankreconciliation .br-mf-track{height:8px;border-radius:99px;background:#e3e8f6;overflow:hidden}
+#view-bankreconciliation .br-mf-track>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#18b49a,#53d9b8);transition:width .45s ease}
+#view-bankreconciliation .br-mf-progress-content small{display:flex;flex-wrap:wrap;gap:6px 12px;color:#66728b;font-size:11px}
+#view-bankreconciliation .br-mf-done{color:#087e69;font-weight:650}
+#view-bankreconciliation .bank-recon-pair{border:1px solid #dce5f1;border-radius:13px;overflow:hidden;box-shadow:0 3px 12px rgba(23,36,61,.035);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+#view-bankreconciliation .bank-recon-pair:hover{border-color:#b6a7ee;box-shadow:0 7px 22px rgba(55,44,116,.09);transform:translateY(-1px)}
+#view-bankreconciliation .bank-recon-book-card.possible-match{background:#fff9eb;border-color:#f0d591}
+#view-bankreconciliation .bank-recon-book-card.high-match{background:#effbf7;border-color:#a5dfd0}
+#view-bankreconciliation .bank-recon-book-card.no-match{background:#f8faff}
+#view-bankreconciliation .bank-recon-book-card .confidence.high{color:#087e69}
+#view-bankreconciliation .bank-recon-book-card .confidence.possible{color:#93630e}
+#view-bankreconciliation .bank-recon-book-actions button.primary{background:linear-gradient(120deg,#5541e5,#6836d8);border-color:#5541e5;box-shadow:0 3px 9px rgba(85,65,229,.15)}
+#view-bankreconciliation .bank-recon-book-actions button.primary:hover{filter:brightness(1.07);box-shadow:0 5px 13px rgba(85,65,229,.25)}
+#view-bankreconciliation .bank-recon-secondary-actions button{transition:background-color .15s ease,border-color .15s ease}
+#view-bankreconciliation .bank-recon-secondary-actions button:hover{background:#f3f0ff;border-color:#b8a9ef}
+#view-bankreconciliation .bank-recon-pair button:focus-visible{outline:3px solid #8064eb;outline-offset:2px}
+@media(max-width:850px){#view-bankreconciliation .page-head{align-items:stretch;flex-direction:column}#view-bankreconciliation .br-matchflow-progress{min-width:0;width:100%;box-sizing:border-box}}
+@media(prefers-reduced-motion:reduce){#view-bankreconciliation .bank-recon-pair,#view-bankreconciliation .br-mf-track>span,#view-bankreconciliation .bank-recon-secondary-actions button{transition:none!important}#view-bankreconciliation .bank-recon-pair:hover{transform:none}}
