@@ -405,7 +405,14 @@
 
   async function enter(session){
     state.session=session; state.user=session.user; state.loadedApp=false;
-    startupRequestedView=validStartupHashView();startupNavigationTouched=!!startupRequestedView;
+    // Settings hashes are retained from earlier visits. They must not override
+    // the Dashboard landing page on a new authenticated entry.
+    startupRequestedView=validStartupHashView();
+    if(startupRequestedView==='settings'){
+      startupRequestedView=null;
+      try{history.replaceState(null,'',location.pathname+location.search)}catch{}
+    }
+    startupNavigationTouched=!!startupRequestedView;
     showStartup();setStartupStage('checking your account');
     if(state.inviteToken){const accepted=await acceptInvitationIfPresent();if(!accepted){q('authShell').classList.add('open');return}}
     setStartupStage('loading business access');
@@ -663,7 +670,9 @@
     if(requested==='import')setTimeout(()=>q('importMigrationSettingsRoot')?.scrollIntoView?.({block:'start',behavior:'smooth'}),50);
     if(requested==='owners')setTimeout(()=>q('centralOwnerSettings')?.scrollIntoView?.({block:'start',behavior:'smooth'}),50);
     if(requested==='payments')setTimeout(()=>q('centralPaymentsSettings')?.scrollIntoView?.({block:'start',behavior:'smooth'}),50);
-    try{history.replaceState(null,'',`#settings/${section}`)}catch{}
+    // Settings panel setup can run before startup has selected its landing page.
+    // Do not create a Settings deep link until the authenticated app is ready.
+    if(state.loadedApp)try{history.replaceState(null,'',`#settings/${section}`)}catch{}
   };
 
   function setupAccountUI(){
