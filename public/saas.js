@@ -405,7 +405,14 @@
 
   async function enter(session){
     state.session=session; state.user=session.user; state.loadedApp=false;
-    startupRequestedView=validStartupHashView();startupNavigationTouched=!!startupRequestedView;
+    // Settings hashes are retained from earlier visits. They must not override
+    // the Dashboard landing page on a new authenticated entry.
+    startupRequestedView=validStartupHashView();
+    if(startupRequestedView==='settings'){
+      startupRequestedView=null;
+      try{history.replaceState(null,'',location.pathname+location.search)}catch{}
+    }
+    startupNavigationTouched=!!startupRequestedView;
     showStartup();setStartupStage('checking your account');
     if(state.inviteToken){const accepted=await acceptInvitationIfPresent();if(!accepted){q('authShell').classList.add('open');return}}
     setStartupStage('loading business access');
@@ -448,12 +455,21 @@
         if(!ctxError&&currentId){
           const {data:business,error:bError}=await state.client.from('businesses').select('id,name,address,phone,status,settings').eq('id',currentId).maybeSingle();
           if(!bError&&business){
-            const [{data:accessRole},{data:effectiveAccess}]=await Promise.all([
+            const [roleResult,permissionsResult]=await Promise.all([
               state.client.rpc('v6147_current_business_role',{p_business_id:currentId}),
               state.client.rpc('v6148_my_effective_access',{p_business_id:currentId})
             ]);
-            state.profile=data;state.business=business;state.accessRole=accessRole||(data.is_super_admin?'owner':data.role||'viewer');
-            state.effectiveAccess={};(Array.isArray(effectiveAccess)?effectiveAccess:[]).forEach(x=>{state.effectiveAccess[x.area]={read:!!x.can_read,write:!!x.can_write}});return true
+            // Never mistake a failed RPC for a genuine permission denial.
+            // A global profile role cannot replace verified business membership.
+            if(roleResult.error||permissionsResult.error||!roleResult.data||!Array.isArray(permissionsResult.data)){
+              console.warn('Business access resolution incomplete',{
+                roleLookupFailed:!!roleResult.error,permissionsLookupFailed:!!permissionsResult.error,
+                membershipMissing:!roleResult.data,permissionRowsMissing:!Array.isArray(permissionsResult.data)
+              });
+              await new Promise(r=>setTimeout(r,300));continue;
+            }
+            state.profile=data;state.business=business;state.accessRole=roleResult.data;
+            state.effectiveAccess={};permissionsResult.data.forEach(x=>{state.effectiveAccess[x.area]={read:!!x.can_read,write:!!x.can_write}});return true
           }
         }
       }
@@ -654,7 +670,9 @@
     if(requested==='import')setTimeout(()=>q('importMigrationSettingsRoot')?.scrollIntoView?.({block:'start',behavior:'smooth'}),50);
     if(requested==='owners')setTimeout(()=>q('centralOwnerSettings')?.scrollIntoView?.({block:'start',behavior:'smooth'}),50);
     if(requested==='payments')setTimeout(()=>q('centralPaymentsSettings')?.scrollIntoView?.({block:'start',behavior:'smooth'}),50);
-    try{history.replaceState(null,'',`#settings/${section}`)}catch{}
+    // Settings panel setup can run before startup has selected its landing page.
+    // Do not create a Settings deep link until the authenticated app is ready.
+    if(state.loadedApp)try{history.replaceState(null,'',`#settings/${section}`)}catch{}
   };
 
   function setupAccountUI(){
@@ -1994,17 +2012,18 @@ ${businessName}`,'');
   async function addAdminCountryPayrollRule(){try{const payload=countryRulePayload();const {error}=await state.client.from('country_payroll_rules').insert({...payload,created_at:new Date().toISOString()});if(error)throw error;q('adminPayrollRuleCountry').value=payload.country_code;['adminPayrollRuleType','adminPayrollRuleKey','adminPayrollRuleFrom','adminPayrollRuleTo','adminPayrollRuleValue','adminPayrollRuleSource'].forEach(id=>q(id).value='');q('adminPayrollRuleMessage').textContent='Rule version added.';await renderAdminCountryPayrollRules()}catch(e){alert(e.message||e)}}
   async function saveAdminCountryPayrollRule(id){try{const payload=countryRulePayload(id);const {error}=await state.client.from('country_payroll_rules').update(payload).eq('id',id);if(error)throw error;q('adminPayrollRuleMessage').textContent='Rule saved.';await renderAdminCountryPayrollRules()}catch(e){alert(e.message||e)}}
 
-  const moduleAccessCache={key:'',expires:0,promise:null,values:null};
-  function clearModuleAccessCache(){moduleAccessCache.key='';moduleAccessCache.expires=0;moduleAccessCache.promise=null;moduleAccessCache.values=null}
+  const moduleAccessCache={key:'',expires:0,promise:null,values:null,expiredTrials:null};
+  function clearModuleAccessCache(){moduleAccessCache.key='';moduleAccessCache.expires=0;moduleAccessCache.promise=null;moduleAccessCache.values=null;moduleAccessCache.expiredTrials=null}
   async function moduleAccessValues(){
     const businessId=state.business?.id||'',key=`${businessId}:${state.subscription?.id||''}`,now=Date.now();
     if(moduleAccessCache.key===key&&moduleAccessCache.values&&moduleAccessCache.expires>now)return moduleAccessCache.values;
     if(moduleAccessCache.key===key&&moduleAccessCache.promise)return moduleAccessCache.promise;
     moduleAccessCache.key=key;
     moduleAccessCache.promise=(async()=>{
-      const values=new Map(),{data,error}=await state.client.from('business_modules').select('status,trial_ends_at,modules!inner(slug,is_active)').eq('business_id',businessId);
-      if(!error)(data||[]).forEach(row=>{const slug=row.modules?.slug;if(!slug)return;const globallyActive=row.modules?.is_active===true;const active=globallyActive&&(row.status==='active'||(row.status==='trialing'&&(!row.trial_ends_at||new Date(row.trial_ends_at)>=new Date())));values.set(slug,active)});
-      moduleAccessCache.values=values;moduleAccessCache.expires=Date.now()+15000;moduleAccessCache.promise=null;return values
+      const values=new Map(),expiredTrials=new Set(),{data,error}=await state.client.from('business_modules').select('status,trial_ends_at,modules!inner(slug,is_active)').eq('business_id',businessId);
+      if(error)throw new Error('Module entitlements could not be verified. Please retry.');
+      (data||[]).forEach(row=>{const slug=row.modules?.slug;if(!slug)return;const globallyActive=row.modules?.is_active===true;const active=globallyActive&&(row.status==='active'||(row.status==='trialing'&&(!row.trial_ends_at||new Date(row.trial_ends_at)>=new Date())));values.set(slug,active);if(row.status==='trialing'&&row.trial_ends_at&&new Date(row.trial_ends_at)<new Date())expiredTrials.add(slug)});
+      moduleAccessCache.expiredTrials=expiredTrials;moduleAccessCache.values=values;moduleAccessCache.expires=Date.now()+15000;moduleAccessCache.promise=null;return values
     })().catch(error=>{clearModuleAccessCache();throw error});
     return moduleAccessCache.promise;
   }
@@ -2018,7 +2037,12 @@ ${businessName}`,'');
       const {data,error}=await state.client.rpc('se_preview_access_status',{p_business_id:state.business.id});
       if(!error&&data===true)return true;
     }
-    if(values.has(slug))return false;
+    // An expired per-module trial must not override an active subscription
+    // that independently includes the same module. Preserve explicit non-trial
+    // module restrictions and the existing global catalogue check.
+    // Reuse the server-returned grant metadata from moduleAccessValues().
+    // Avoid a second network round trip for each expired trial during startup.
+    if(values.has(slug)&&!moduleAccessCache.expiredTrials?.has(slug))return false;
     const {data:module}=await state.client.from('modules').select('is_active').eq('slug',slug).maybeSingle();
     if(module?.is_active!==true)return false;
     const sub=state.subscription||await getSubscription();
@@ -2255,7 +2279,7 @@ ${businessName}`,'');
     if(typeof window.switchView==='function'){
       const requested=startupRequestedView;
       const target=requested&&STARTUP_VIEW_ALLOWLIST.has(requested)?requested:'dashboard';
-      window.switchView(target);
+      await window.switchView(target);
     }
     window.FinloHelper?.init?.();
     await window.FinloOnboarding?.init?.();
