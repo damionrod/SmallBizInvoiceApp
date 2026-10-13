@@ -153,6 +153,58 @@
           const item=document.createElement('li');
           const date=request.requested_at?new Date(request.requested_at).toLocaleString():'';
           item.textContent=`${date} · ${money(request.original_total)} → ${money(request.proposed_total)} · ${String(request.state||'pending_review').replaceAll('_',' ')} (request only — not posted)`;
+          
+if(request.state==='pending_review'&&request.request_id){
+  const check=document.createElement('button');
+  check.type='button';
+  check.className='secondary';
+  check.textContent='Check readiness';
+  check.style.marginLeft='10px';
+
+  const outcome=document.createElement('div');
+  outcome.className='hint';
+
+  check.onclick=async()=>{
+    if(business()?.id!==originalBusiness||!item.isConnected)return;
+
+    check.disabled=true;
+    outcome.textContent='Checking readiness (read-only)…';
+
+    try{
+      const {data,error}=await client().rpc(
+        'frindly_expense_correction_request_readiness_v1',
+        {p_request_id:request.request_id}
+      );
+
+      if(error)throw error;
+      if(business()?.id!==originalBusiness||!item.isConnected)return;
+
+      const status=String(data?.status||'verification_incomplete');
+      const stale=data?.stale===true?'Yes':
+        data?.stale===false?'No':'Not verified';
+      const reasons=Array.isArray(data?.reasons)?
+        data.reasons.join(', ')||'None reported':'Unavailable';
+      const posting=data?.posting_enabled===false?
+        'Disabled':'Not verified — do not post';
+
+      outcome.textContent=
+        'Readiness: '+status+
+        ' · Stale: '+stale+
+        ' · Reasons: '+reasons+
+        ' · Posting: '+posting;
+    }catch{
+      if(item.isConnected&&business()?.id===originalBusiness){
+        outcome.textContent=
+          'Readiness unavailable. No financial records changed.';
+      }
+    }finally{
+      if(item.isConnected)check.disabled=false;
+    }
+  };
+
+  item.append(check,outcome);
+}
+
           if(request.state==='pending_review'&&request.request_id){
             const cancel=document.createElement('button');
             cancel.type='button';
