@@ -1,8 +1,8 @@
 // Public browser configuration. The Supabase publishable key is intentionally safe to ship to browsers.
 window.APP_CONFIG = {
   appName: 'Frindly',
-  supabaseUrl: 'https://oxsbzytwbphagcbilxud.supabase.co',
-  supabaseKey: 'sb_publishable_cwPJV4Skg8cjgC6UzKM3xg_O1q5dztU',
+  supabaseUrl: 'https://smvvevrtjqkflyqkyape.supabase.co',
+  supabaseKey: 'sb_publishable_S2bA1UlzgrY3sDOpcao_9A_aWAh0fXR',
   defaultTrialDays: 14,
   stripeEnabled: true,
   googleOAuthEnabled: false
