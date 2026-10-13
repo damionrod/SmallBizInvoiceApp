@@ -24,6 +24,24 @@
   function money(v){return window.FinloCore.format?.money?window.FinloCore.format.money(v,{currency:currency(),locale:undefined,currencyDisplay:'code'}):new Intl.NumberFormat(undefined,{style:'currency',currency:currency(),currencyDisplay:'code',minimumFractionDigits:2,maximumFractionDigits:2}).format(num(v))}
   function toast(m){if(window.invoiceAppHelpers?.toast)return window.invoiceAppHelpers.toast(m);if(window.FinloCore.ui?.toast)return window.FinloCore.ui.toast(m,{duration:2500});alert(m)}
   function eligibleExpenseFunders(){return state.owners.filter(o=>o.status==='active'&&(o.is_shareholder||o.is_director||String(o.owner_type||'').trim()))}
+  
+  // Isolated test-only diagnostic. Does not post journals.
+  window.FrindlyIsolatedExpenseDiagnostic = async function(expenseId) {
+    const bid = business()?.id;
+
+    if (bid !== 'f2703442-1107-4ccc-95e9-4b0ec88949b9') {
+      throw new Error('Diagnostic restricted to synthetic test business');
+    }
+
+    const { data, error } = await client().rpc(
+      'frindly_isolated_expense_posting_diagnostic_v1',
+      { p_expense_id: expenseId }
+    );
+
+    if (error) throw error;
+    return data;
+  };
+
   function renderOwnerFunding(){const paid=$('expPaymentStatus')?.value==='paid',from=$('expPaidFrom'),fromLabel=$('expPaidFromLabel'),help=$('expPaidFromHelp');if(fromLabel)fromLabel.hidden=!paid;if(!from)return;if(!paid){from.value='business_funds';if(help)help.hidden=true;return}const selected=from.value;const owners=eligibleExpenseFunders();from.innerHTML='<option value="business_funds">Business funds</option>'+owners.map(o=>`<option value="owner:${esc(o.id)}">${esc(o.display_name)} — Personal funds</option>`).join('');if(selected==='business_funds'||owners.some(o=>`owner:${o.id}`===selected))from.value=selected;else from.value='business_funds';const owner=owners.find(o=>`owner:${o.id}`===from.value);if(help){help.textContent=owner?`Recorded against ${owner.display_name}'s current account. No business-bank transaction is created.`:'';help.hidden=!owner}}
   function statusOf(e){if(isVoidedExpense(e))return 'voided';if(e.payment_status==='draft')return 'draft';const remaining=supplierCreditAdjustedOutstanding(e),payments=(e.expense_payments||[]).reduce((a,p)=>a+num(p.amount),0);if(remaining<=0.005)return 'paid';if(e.due_date&&e.due_date<today())return 'overdue';if(payments>0.005)return 'part_paid';return 'unpaid'}
   function statusLabel(s){return ({draft:'Draft',unpaid:'Unpaid',part_paid:'Part Paid',paid:'Paid',overdue:'Overdue',voided:'Voided'})[s]||s}
