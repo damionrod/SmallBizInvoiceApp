@@ -7,3 +7,4 @@ window.APP_CONFIG = {
   stripeEnabled: true,
   googleOAuthEnabled: false
 };
+// Trigger isolated test deployment
