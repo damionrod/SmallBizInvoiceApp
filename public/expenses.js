@@ -619,7 +619,54 @@ if(request.state==='pending_review'&&request.request_id){
       const uploaded=await uploadPending(saved.id);
       await saveScannedItemSuggestions(saved.id,uploaded);
       if(wantedStatus==='paid'){const paidAlready=state.editingId?existingPaid:0,remaining=Math.max(0,num(saved.total_amount)-paidAlready);if(remaining>0.005){if(ownerPersonal){const {error}=await sb.rpc('v61107u_record_owner_paid_expense',{p_expense_id:saved.id,p_owner_id:ownerId,p_payment_date:saved.invoice_date||today()});if(error)throw error}else{const {error}=await sb.from('expense_payments').insert({expense_id:saved.id,payment_date:today(),amount:Number(remaining.toFixed(2)),payment_method:'Recorded as paid'});if(error)throw error}}}
-      window.DraftProtection?.clear?.('expense-new');toast(state.editingId?'Expense updated':'Expense saved');state.editingId=null;await loadExpenses();switchTab('bills');
+
+      // ISOLATED TEST ONLY: post a newly saved synthetic expense.
+      let postingWarning = false;
+      let postingSuccess = false;
+
+      if (
+        !state.editingId &&
+        business()?.id === 'f2703442-1107-4ccc-95e9-4b0ec88949b9' &&
+        saved.supplier_name === 'Synthetic Journal Integration Test' &&
+        saved.description === 'TEST ONLY - new expense journal integration' &&
+        Number(saved.total_amount) === 115 &&
+        Number(saved.gst_amount) === 15 &&
+        saved.payment_status === 'unpaid' &&
+        !saved.is_split
+      ) {
+        try {
+          const { data, error } = await sb.rpc(
+            'frindly_isolated_new_expense_post_v1',
+            { p_expense_id: saved.id }
+          );
+
+          if (error) throw error;
+          if (!data?.journal_id) {
+            throw new Error('Journal confirmation missing');
+          }
+
+          postingSuccess = true;
+        } catch (postingError) {
+          console.error('Isolated journal posting failed:', postingError);
+          postingWarning = true;
+        }
+      }
+
+      window.DraftProtection?.clear?.('expense-new');
+
+      toast(
+        postingWarning
+          ? 'Expense saved, but accounting posting needs attention.'
+          : postingSuccess
+            ? 'Expense saved and accounting posted successfully.'
+            : state.editingId
+              ? 'Expense updated'
+              : 'Expense saved'
+      );
+
+      state.editingId = null;
+      await loadExpenses();
+      switchTab('bills');
     }catch(e){console.error(e);toast('Could not save expense: '+(e.message||e))}finally{saveBtn.disabled=false;saveBtn.textContent='Save Expense'}
   }
 
