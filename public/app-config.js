@@ -1,4 +1,4 @@
-// Public browser configuration. The Supabase publishable key is intentionally safe to ship to browsers.
+// Isolated Frindly test environment only.
 window.APP_CONFIG = {
   appName: 'Frindly',
   supabaseUrl: 'https://smvvevrtjqkflyqkyape.supabase.co',
@@ -7,4 +7,3 @@ window.APP_CONFIG = {
   stripeEnabled: true,
   googleOAuthEnabled: false
 };
-// Trigger isolated test deployment
