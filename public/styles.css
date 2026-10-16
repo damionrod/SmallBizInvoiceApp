@@ -2947,10 +2947,9 @@ body.auth-locked .app-version{display:none}
 /* V61.70C3 customer refunds */
 .refund-credit-list{display:grid;gap:10px}.refund-credit-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--border,#e5e7eb)}.refund-credit-row:last-child{border-bottom:0}.refund-credit-row div{display:grid;gap:3px}.refund-credit-row small{color:var(--muted,#667085)}@media(max-width:700px){.refund-credit-row{align-items:stretch;flex-direction:column}.refund-credit-row button{width:100%}}
 
-/* V61.70C3-P1 — obvious owner Record Payment workflow */
-.invoice-record-payment-action{white-space:nowrap;padding:.48rem .7rem;border-radius:8px;font-weight:700;cursor:pointer}
+/* V61.70C3-P1 — Record Payment workflow */
 .payment-record-panel{max-width:620px}.payment-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 18px}.payment-summary>div{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border,#d9dee7);border-radius:10px}.payment-summary span{font-size:.86rem;opacity:.72}.payment-record-panel textarea{width:100%;resize:vertical}.payment-record-actions{justify-content:flex-end;margin-top:18px}
-@media(max-width:700px){.payment-summary{grid-template-columns:1fr}.invoice-record-payment-action{width:100%;margin-top:4px}.payment-record-actions{display:grid;grid-template-columns:1fr 1fr}.payment-record-actions button{width:100%}}
+@media(max-width:700px){.payment-summary{grid-template-columns:1fr}.payment-record-actions{display:grid;grid-template-columns:1fr 1fr}.payment-record-actions button{width:100%}}
 
 /* V61.70C3-P2 — scoped UI consistency polish only. Reuses Finlo modal, form, button, table and status systems. */
 #view-invoices .invoice-module-tabs{border-bottom:1px solid var(--border,#d8e0e5);gap:0}
@@ -2976,8 +2975,6 @@ body.auth-locked .app-version{display:none}
 .payment-record-fields{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:10px}
 .payment-record-hint{margin:6px 0 0}
 .payment-record-actions{border-top:1px solid var(--border,#d8e0e5);padding-top:12px;margin-top:14px}
-.invoice-record-payment-action{white-space:nowrap}
-
 .refund-credit-card{padding:0!important;overflow:hidden}
 .refund-credit-card>.card-title{padding:13px 14px 8px}
 .refund-credit-list{padding:0 14px}
@@ -7647,6 +7644,8 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
   .financial-list-columns>.fl-balance{width:8.5%!important}
   .financial-list-columns>.fl-payment-date{width:8%!important}
   .financial-list-columns>.fl-actions{width:19%!important}
+  html body #view-invoices .financial-list-columns>.fl-party{width:11.5%!important}
+  html body #view-invoices .financial-list-columns>.fl-actions{width:21.5%!important}
 
   html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) thead th.financial-list-money-head,
   html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) thead th.financial-list-money-head,
@@ -7667,6 +7666,7 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
     display:flex!important;align-items:center!important;justify-content:flex-start!important;
     flex-wrap:nowrap!important;gap:6px!important;width:100%!important;min-width:0!important;margin:0!important;
   }
+  html body #view-invoices .table-card.invoice-list-card #invoiceRows tr.invoice-list-row>td.inv-col-actions .invoice-row-actions{gap:4px!important}
   html body #view-invoices #invoiceRows .invoice-icon-action,
   html body #view-expenses #expenseRows .expense-icon-action{
     box-sizing:border-box!important;flex:0 0 34px!important;width:34px!important;min-width:34px!important;
@@ -7699,7 +7699,13 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
   html body #view-expenses #expenseRows .expense-more-actions{
     flex:0 0 auto!important;width:auto!important;min-width:68px!important;margin:0!important;padding:0!important;
   }
-  html body #view-invoices #invoiceRows .invoice-record-payment-action{display:none!important}
+  html body #view-invoices #invoiceRows .invoice-issue-action{
+    box-sizing:border-box!important;flex:0 0 auto!important;width:auto!important;min-width:54px!important;
+    height:34px!important;min-height:34px!important;margin:0!important;padding:5px 8px!important;line-height:22px!important;
+    border-radius:8px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
+    font-size:11px!important;font-weight:800!important;white-space:nowrap!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-issue-action{min-width:46px!important;padding-inline:6px!important}
   html body #view-invoices #invoiceRows .inv-col-total strong,
   html body #view-invoices #invoiceRows .inv-col-balance strong,
   html body #view-expenses #expenseRows .exp-col-total strong,
