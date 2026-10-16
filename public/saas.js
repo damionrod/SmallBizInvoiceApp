@@ -799,11 +799,16 @@
     if(q('accountCurrency'))q('accountCurrency').value=String(state.business?.settings?.currency||'NZD').toUpperCase();
     if(q('accountHelperName'))q('accountHelperName').value=String(state.business?.settings?.helperNameOverride||'');
     if(q('accountHelperNameHint'))q('accountHelperNameHint').textContent=`Leave blank to use the platform default: ${window.FinloHelper?.getDefaultName?.()||'Frindly'}.`;
-    await refreshUsage();
-    if(['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))await renderTeamAccess();
     applyRoleAccessUI();
-    if(typeof window.switchView==='function')window.switchView('settings');
-    window.openCentralSettings?.('account');
+    // Navigation must never wait for account usage or team-access network calls.
+    // Open the page first, then refresh those independent panels in the background.
+    if(typeof window.switchView==='function'){
+      try{await window.switchView('settings')}catch(error){console.warn('Settings view initialisation failed:',error)}
+    }
+    try{await window.openCentralSettings?.('account')}catch(error){console.warn('Account settings panel initialisation failed:',error)}
+    const background=[refreshUsage()];
+    if(['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))background.push(renderTeamAccess());
+    Promise.allSettled(background).then(results=>results.forEach(result=>{if(result.status==='rejected')console.warn('Settings background data could not load:',result.reason)}));
   }
   function teamRoleLabel(role){return ({owner:'Owner',admin:'Admin',accountant:'Accountant',bookkeeper:'Bookkeeper',staff:'Staff',viewer:'Viewer'})[role]||role||'—'}
   function teamStatusLabel(status){return ({active:'Active',suspended:'Suspended',removed:'Removed'})[status]||status||'—'}

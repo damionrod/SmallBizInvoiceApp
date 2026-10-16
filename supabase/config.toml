@@ -22,3 +22,7 @@ verify_jwt = false
 # Supabase Cron calls this function without a user JWT.
 [functions.invoice-reminder-worker]
 verify_jwt = false
+
+# Smart Migration Centre is user-initiated and always requires a valid session JWT.
+[functions.import-migration-analyse]
+verify_jwt = true

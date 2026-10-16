@@ -22,6 +22,7 @@
   .subscription-summary{grid-template-columns:1fr 1fr}.plan-grid{grid-template-columns:1fr}.plan-modal-box{max-height:92vh;overflow:auto}
   #adminNav:not([hidden])~.account-chip{display:none}
 }
+
 .module-toggle{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-bottom:1px solid #e7edf1}.module-toggle:last-child{border-bottom:0}.module-toggle span{min-width:0}.module-toggle strong{display:block;color:#28475b}.module-toggle small{display:block;margin-top:3px;color:#7b8992;font-weight:500}.module-toggle input{width:20px;height:20px;flex:0 0 auto}
 
 /* ============================================================
@@ -520,15 +521,6 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 @media(max-width:430px){.expense-summary-grid,.expense-report-summary{grid-template-columns:1fr}.expense-capture-grid{grid-template-columns:1fr}.expense-amount-grid{grid-template-columns:1fr}.expense-save-card .actions{grid-template-columns:1fr}.expense-dashboard-grid .chart-wrap{height:240px}}
 .expense-quick-filters{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px}.expense-quick{border:1px solid #ccd8e2;background:#fff;color:#405462;border-radius:999px;padding:7px 12px;font-weight:700;cursor:pointer}.expense-quick.active{background:var(--navy,#1976bd);border-color:var(--navy,#1976bd);color:#fff}
 @media(max-width:760px){
-  .expense-list-card{padding:0;background:transparent;border:0;box-shadow:none}
-  .expense-list-card .table-scroll{overflow:visible}
-  .expense-list-card table,.expense-list-card tbody,.expense-list-card tr,.expense-list-card td{display:block;width:100%;min-width:0}
-  .expense-list-card thead{display:none}
-  .expense-list-card tr{background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:10px}
-  .expense-list-card td{border:0;padding:4px 0;display:grid;grid-template-columns:105px 1fr;gap:8px}
-  .expense-list-card td:before{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:800}
-  .expense-list-card td:nth-child(1):before{content:'Date'}.expense-list-card td:nth-child(2):before{content:'Expense / Ref'}.expense-list-card td:nth-child(3):before{content:'Supplier'}.expense-list-card td:nth-child(4):before{content:'Description'}.expense-list-card td:nth-child(5):before{content:'Category'}.expense-list-card td:nth-child(6):before{content:'Ex GST'}.expense-list-card td:nth-child(7):before{content:'GST'}.expense-list-card td:nth-child(8):before{content:'Total'}.expense-list-card td:nth-child(9):before{content:'Due Date'}.expense-list-card td:nth-child(10):before{content:'Payment'}.expense-list-card td:nth-child(11):before{content:'Reconciliation'}.expense-list-card td:nth-child(12):before{content:'Attachment'}
-  .expense-list-card td:nth-child(13){display:block;border-top:1px solid var(--border);margin-top:8px;padding-top:9px}.expense-list-card td:nth-child(13):before{content:'Actions';display:block;margin-bottom:6px}.expense-list-card .row-actions{display:grid;grid-template-columns:1fr 1fr}
   #expense-panel-suppliers .table-card{padding:0;background:transparent;border:0;box-shadow:none}#expense-panel-suppliers .table-card .table-scroll{overflow:visible}#expense-panel-suppliers .table-card table,#expense-panel-suppliers .table-card tbody,#expense-panel-suppliers .table-card tr,#expense-panel-suppliers .table-card td{display:block;width:100%;min-width:0}#expense-panel-suppliers .table-card thead{display:none}#expense-panel-suppliers .table-card tr{background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:10px}#expense-panel-suppliers .table-card td{border:0;padding:4px 0;display:grid;grid-template-columns:100px 1fr;gap:8px}#expense-panel-suppliers .table-card td:before{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:800}#expense-panel-suppliers .table-card td:nth-child(1):before{content:'Supplier'}#expense-panel-suppliers .table-card td:nth-child(2):before{content:'Contact'}#expense-panel-suppliers .table-card td:nth-child(3):before{content:'Phone'}#expense-panel-suppliers .table-card td:nth-child(4):before{content:'Email'}#expense-panel-suppliers .table-card td:nth-child(5):before{content:'Total Spend'}#expense-panel-suppliers .table-card td:nth-child(6):before{content:'Outstanding'}#expense-panel-suppliers .table-card td:nth-child(7){display:block;border-top:1px solid var(--border);padding-top:9px;margin-top:7px}
 }
 
@@ -540,7 +532,6 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
 @media(max-width:1000px){.expense-simple-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.expense-search-field{grid-column:1/-1}.expense-simple-filters>button{width:100%}}
 @media(max-width:760px){
   .expense-bills-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.expense-bills-summary .metric{padding:12px 10px}.expense-bills-summary .metric strong{font-size:1.15rem}.expense-simple-filters{grid-template-columns:1fr 1fr}.expense-simple-filters label:first-child,.expense-simple-filters .expense-search-field{grid-column:1/-1}.expense-list-card .card-title{align-items:stretch;flex-direction:column}.expense-list-card .head-actions{display:grid;grid-template-columns:1fr 1fr}.expense-list-card .head-actions button{width:100%}
-  .expense-list-card td:nth-child(1):before{content:'Date'}.expense-list-card td:nth-child(2):before{content:'Expense / Ref'}.expense-list-card td:nth-child(3):before{content:'Supplier'}.expense-list-card td:nth-child(4):before{content:'Category'}.expense-list-card td:nth-child(5):before{content:'Total'}.expense-list-card td:nth-child(6):before{content:'Payment'}.expense-list-card td:nth-child(7):before{content:'Attachment'}.expense-list-card td:nth-child(8){display:block;border-top:1px solid var(--border);margin-top:8px;padding-top:9px}.expense-list-card td:nth-child(8):before{content:'Actions';display:block;margin-bottom:6px}.expense-list-card .row-actions{display:grid;grid-template-columns:1fr 1fr}
   .report-module-tabs{overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}.report-panel .compact-head{align-items:stretch;flex-direction:column}.report-panel .compact-head>button{width:100%}
 }
 @media(max-width:520px){.expense-bills-summary{grid-template-columns:1fr}.expense-simple-filters{grid-template-columns:1fr}.expense-simple-filters label:first-child,.expense-simple-filters .expense-search-field{grid-column:auto}.expense-list-card .head-actions{grid-template-columns:1fr}.expense-category-row .row-actions{grid-template-columns:1fr 1fr;display:grid}.expense-category-row .row-actions button{width:100%}}
@@ -2576,8 +2567,8 @@ body > main{padding:22px 22px 64px}
 }
 
 /* V61.33 My Invoices row layout only */
-/* Legacy V61.33 desktop invoice column sizing removed in v61.107AAF.
-   Current 12-column sizing is defined once in the authoritative desktop block below. */
+/* Legacy desktop invoice column sizing was removed. The shared 11-column list
+   geometry is defined once in the authoritative v62.11 block below. */
 #view-invoices .invoice-number-link{color:var(--ds-primary,#1e6fa8);text-decoration:none;font-weight:700}
 #view-invoices .invoice-number-link:hover{text-decoration:underline}
 #view-invoices .invoice-payment-status{display:inline-flex;align-items:center;justify-content:center;min-width:62px;padding:3px 7px;border-radius:3px;font-size:10px;font-weight:800;margin-right:7px}
@@ -2588,26 +2579,6 @@ body > main{padding:22px 22px 64px}
 #view-invoices .invoice-row-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;white-space:nowrap}
 #view-invoices .invoice-row-actions input{width:176px;min-width:176px;height:30px;padding:4px 7px;font-size:11px}
 #view-invoices .invoice-row-actions button{min-height:30px!important;height:30px;padding:4px 7px!important;font-size:10px!important;white-space:nowrap}
-
-@media(max-width:760px){
-  #view-invoices .invoice-list-card table,#view-invoices .invoice-list-card tbody,#view-invoices .invoice-list-card tr,#view-invoices .invoice-list-card td{display:block;width:100%;min-width:0}
-  #view-invoices .invoice-list-card thead{display:none}
-  #view-invoices .invoice-list-card tr{background:#fff;border:1px solid var(--border);border-radius:8px;padding:11px 12px;margin-bottom:10px}
-  #view-invoices .invoice-list-card td{white-space:normal;border:0;padding:4px 0;display:grid;grid-template-columns:88px 1fr;gap:8px;align-items:start}
-  #view-invoices .invoice-list-card td:before{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase}
-  #view-invoices .invoice-list-card td:nth-child(1):before{content:"Date"}
-  #view-invoices .invoice-list-card td:nth-child(2):before{content:"Invoice"}
-  #view-invoices .invoice-list-card td:nth-child(3):before{content:"Customer"}
-  #view-invoices .invoice-list-card td:nth-child(4):before{content:"Due Date"}
-  #view-invoices .invoice-list-card td:nth-child(5):before{content:"Excl GST"}
-  #view-invoices .invoice-list-card td:nth-child(6):before{content:"GST"}
-  #view-invoices .invoice-list-card td:nth-child(7):before{content:"Total"}
-  #view-invoices .invoice-list-card td:nth-child(8):before{content:"Paid"}
-  #view-invoices .invoice-list-card td:nth-child(9):before{content:"Balance Due"}
-  #view-invoices .invoice-list-card td:nth-child(10){display:block;border-top:1px solid var(--border);margin-top:7px;padding-top:9px;overflow-x:auto}
-  #view-invoices .invoice-list-card td:nth-child(10):before{content:"Email / Actions";display:block;margin-bottom:6px}
-  #view-invoices .invoice-row-actions{min-width:520px}
-}
 
 /* ============================================================
    V61.34 — MY INVOICES RESPONSIVE TABLE/CARDS ONLY
@@ -2650,20 +2621,8 @@ body > main{padding:22px 22px 64px}
 #view-invoices .invoice-icon-delete{color:#b42318;border-color:#efc0bc;background:#fffafa}
 #view-invoices .invoice-empty-row td{text-align:center;padding:18px!important;color:var(--ds-muted,#6f7b82)}
 
-@media(max-width:1100px) and (min-width:901px){
-  #view-invoices .invoice-list-card th,
-  #view-invoices .invoice-list-card td{padding-left:3px;padding-right:3px;font-size:9.5px}
-  #view-invoices .invoice-list-card th{font-size:8.5px}
-  #view-invoices .invoice-balance-display strong,
-  #view-invoices .invoice-balance-trigger strong{font-size:9.5px}
-  #view-invoices .invoice-balance-display small,
-  #view-invoices .invoice-balance-trigger small{font-size:7.5px}
-  #view-invoices .invoice-icon-action{width:26px;min-width:26px;height:26px;min-height:26px!important;padding:5px!important}
-  #view-invoices .invoice-icon-action svg{width:14px;height:14px}
-}
-
-/* Phone and small-tablet invoice cards: never require horizontal scrolling. */
-@media(max-width:900px){
+/* Tablet invoice cards. Phone presentation is consolidated later in v61.107ZS. */
+@media(min-width:761px) and (max-width:900px){
   #view-invoices{width:100%;max-width:100%;overflow-x:hidden}
   #view-invoices .invoice-list-card{padding:0!important;border:0!important;background:transparent!important;overflow:visible}
   #view-invoices .invoice-list-card .table-scroll{overflow:visible!important;width:100%;max-width:100%}
@@ -2680,7 +2639,6 @@ body > main{padding:22px 22px 64px}
   #view-invoices .invoice-list-card .inv-col-date{grid-column:span 2;order:5}
   #view-invoices .invoice-list-card .inv-col-due{grid-column:span 2;order:6}
   #view-invoices .invoice-list-card .inv-col-excl{grid-column:span 2;order:7}
-  #view-invoices .invoice-list-card .inv-col-gst{grid-column:span 2;order:8}
   #view-invoices .invoice-list-card .inv-col-paid{grid-column:span 2;order:9}
   #view-invoices .invoice-list-card .inv-col-payment-date{grid-column:span 2;order:10}
   #view-invoices .invoice-list-card .inv-action-cell{grid-column:span 1;order:11;align-items:center!important;text-align:center;border-top:1px solid var(--ds-border-soft,#e8ecef)!important;margin-top:5px;padding-top:11px!important}
@@ -2704,24 +2662,13 @@ body > main{padding:22px 22px 64px}
   #view-invoices .invoice-empty-row td{display:block!important;width:100%!important}
 }
 
-@media(max-width:430px){
-  #view-invoices .invoice-list-card tr.invoice-list-row{padding:11px 10px;gap:0 8px}
-  #view-invoices .invoice-list-card tr.invoice-list-row td{font-size:11.5px}
-  #view-invoices .invoice-icon-action{width:42px;min-width:42px;height:42px;min-height:42px!important}
-}
-
-@media(max-width:340px){
-  #view-invoices .invoice-list-card tr.invoice-list-row{padding:10px 8px;gap:0 6px}
-  #view-invoices .invoice-icon-action{width:40px;min-width:40px;height:40px;min-height:40px!important;padding:9px!important}
-  #view-invoices .invoice-list-card tr.invoice-list-row td::before{font-size:8.5px}
-}
-
 /* V61.35 Bank Reconciliation — isolated module styles */
 #view-bankreconciliation[hidden]{display:none!important}
 .bank-recon-tabs{margin-bottom:16px;overflow-x:auto;white-space:nowrap}
 .bank-panel{display:none}.bank-panel.active{display:block}
 .bank-progress{font-size:13px;font-weight:700;color:#405462;background:#fff;border:1px solid var(--border);border-radius:7px;padding:8px 11px}
-.bank-toolbar{display:grid;grid-template-columns:minmax(180px,240px) minmax(150px,190px) minmax(240px,1fr) auto;gap:10px;align-items:end}
+.bank-toolbar{display:grid;grid-template-columns:minmax(180px,240px) minmax(150px,190px) minmax(240px,1fr) auto auto;gap:10px;align-items:end}
+@media(max-width:700px){.bank-group-match-grid{grid-template-columns:1fr}}
 .bank-card-list{display:grid;gap:12px}
 .bank-tx-card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px 16px;box-shadow:0 1px 1px rgba(0,0,0,.025)}
 .bank-tx-card.reconciled{border-left:3px solid #70a98b}
@@ -2760,45 +2707,8 @@ body > main{padding:22px 22px 64px}
 @media(max-width:700px){#bankReconModal .bank-sample-summary{grid-template-columns:1fr 1fr}#bankReconModal .bank-modal-actions{display:grid;grid-template-columns:1fr 1fr}#bankReconModal .bank-modal-actions button{min-height:42px}}
 @media(max-width:430px){#bankReconModal .bank-sample-summary{grid-template-columns:1fr}#bankReconModal .bank-modal-actions{grid-template-columns:1fr}}
 
-/* V61.39 Bank Reconciliation: side-by-side matching workspace only */
-#view-bankreconciliation .bank-card-list{gap:10px}
-.bank-recon-pair{background:#eef3f6;border:1px solid #d7e0e6;border-radius:7px;overflow:hidden}
-.bank-recon-side-labels{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #d7e0e6;background:#f5f8fa;color:#687984;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.045em}
-.bank-recon-side-labels span{padding:7px 11px}.bank-recon-side-labels span+span{border-left:1px solid #d7e0e6}
-.bank-recon-pair-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch}
-.bank-statement-side,.bank-books-side{min-width:0;padding:11px 12px;background:#fff}
-.bank-statement-side{display:grid;gap:4px;border-right:1px solid #d7e0e6}
-.bank-statement-side>strong{font-size:13px;line-height:1.25;overflow-wrap:anywhere}
-.bank-statement-side>small{font-size:11px;color:var(--muted);line-height:1.3;overflow-wrap:anywhere}
-.bank-statement-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.bank-statement-top .bank-amount{font-size:15px}
-.bank-books-side{display:flex;flex-direction:column;gap:7px}
-.bank-recon-book-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center;min-height:70px;border:1px solid #dce6ec;border-radius:5px;background:#f8fafb;padding:8px 9px}
-.bank-recon-book-card.high-match{background:#e9f7ee;border-color:#a9d8b7}
-.bank-recon-book-card.possible-match,.bank-recon-book-card.rule-match{background:#fff9e9;border-color:#ead7a2}
-.bank-recon-book-card.no-match{background:#fafbfc;border-color:#e2e7ea}
+/* Shared heading retained for the owner/shareholder match panel. */
 .bank-recon-book-head{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted)}
-.bank-recon-book-card>strong{font-size:12px;line-height:1.25;overflow-wrap:anywhere}
-.bank-recon-book-card>small{grid-column:1;font-size:11px;color:var(--muted);overflow-wrap:anywhere}
-.bank-recon-book-actions{grid-column:2;grid-row:2/4;display:flex;gap:5px;align-items:center;justify-content:flex-end}
-.bank-recon-book-actions button,.bank-recon-secondary-actions button{padding:6px 8px;font-size:11px;min-height:31px}
-.bank-recon-secondary-actions{display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap}
-@media(max-width:860px){
-  .bank-recon-side-labels{display:none}
-  .bank-recon-pair-grid{grid-template-columns:1fr}
-  .bank-statement-side{border-right:0;border-bottom:1px solid #d7e0e6}
-  .bank-statement-side::before{content:'Bank statement';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.045em;color:#687984;margin-bottom:2px}
-  .bank-books-side::before{content:'Accounting record';font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.045em;color:#687984;margin-bottom:1px}
-}
-@media(max-width:430px){
-  .bank-statement-side,.bank-books-side{padding:10px}
-  .bank-recon-book-card{grid-template-columns:1fr;min-height:0}
-  .bank-recon-book-actions{grid-column:1;grid-row:auto;display:grid;grid-template-columns:1fr 1fr;width:100%;margin-top:4px}
-  .bank-recon-book-card>small{grid-column:1}
-  .bank-recon-secondary-actions{display:grid;grid-template-columns:1fr 1fr 1fr}
-  .bank-recon-book-actions button,.bank-recon-secondary-actions button{min-height:40px;width:100%}
-}
-@media(max-width:320px){.bank-recon-secondary-actions,.bank-recon-book-actions{grid-template-columns:1fr}}
 
 /* V61.43.1 Finlo branding only */
 .auth-brand picture{display:block;flex:0 0 auto}.finlo-auth-logo{width:46px;height:46px;object-fit:cover;border-radius:10px}
@@ -2975,6 +2885,7 @@ body.auth-locked .app-version{display:none}
 /* ============================================================
    V61.70C1P — Invoice & Expense list presentation polish only
    ============================================================ */
+@media(min-width:761px) and (max-width:900px){
 #view-invoices .invoice-list-card table,
 #expense-panel-bills .expense-list-card table{width:100%;table-layout:auto}
 #view-invoices .invoice-list-card table{min-width:1080px!important}
@@ -2994,47 +2905,6 @@ body.auth-locked .app-version{display:none}
 #expense-panel-bills .expense-primary-actions>.secondary{padding:7px 9px;font-size:11px;min-height:34px}
 #expense-panel-bills .expense-more-actions summary{padding:7px 9px;font-size:11px;min-height:34px;display:flex;align-items:center}
 #expense-panel-bills .exp-col-ref small{display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis}
-
-@media(max-width:760px){
-  #view-invoices,#view-expenses{max-width:100%;overflow-x:hidden}
-  #view-invoices .invoice-list-card .table-scroll,#expense-panel-bills .expense-list-card .table-scroll{overflow:visible!important;max-width:100%}
-  #view-invoices .invoice-list-card table,#view-invoices .invoice-list-card tbody,
-  #expense-panel-bills .expense-list-card table,#expense-panel-bills .expense-list-card tbody{display:block;width:100%;min-width:0!important;max-width:100%}
-  #view-invoices .invoice-list-card thead,#expense-panel-bills .expense-list-card thead{display:none}
-  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;max-width:100%;min-width:0;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;margin:0 0 10px;gap:0 12px;overflow:visible}
-  #view-invoices .invoice-list-card tr.invoice-list-row td,#expense-panel-bills .expense-list-card tr.expense-list-row td{display:flex!important;flex-direction:column;align-items:flex-start;width:auto!important;min-width:0!important;max-width:100%;padding:6px 0!important;border:0!important;white-space:normal!important;font-size:12px;line-height:1.3}
-  #view-invoices .invoice-list-card tr.invoice-list-row td::before,#expense-panel-bills .expense-list-card tr.expense-list-row td::before{content:attr(data-label)!important;display:block!important;margin:0 0 3px;font-size:9px;line-height:1.1;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
-  #view-invoices .inv-col-invoice,#expense-panel-bills .exp-col-ref{grid-column:1;order:1;padding-top:0!important}
-  #view-invoices .inv-col-status,#expense-panel-bills .exp-col-status{grid-column:2;order:2;align-items:flex-end!important;padding-top:0!important}
-  #view-invoices .inv-col-customer,#expense-panel-bills .exp-col-supplier{grid-column:1/-1;order:3;max-width:none;border-bottom:1px solid #edf1f3!important;padding-bottom:10px!important;margin-bottom:2px}
-  #view-invoices .inv-col-total,#expense-panel-bills .exp-col-total{grid-column:1;order:4}
-  #view-invoices .inv-col-balance,#expense-panel-bills .exp-col-balance{grid-column:2;order:5;align-items:flex-end!important;text-align:right}
-  #view-invoices .inv-col-date,#expense-panel-bills .exp-col-date{grid-column:1;order:6}
-  #view-invoices .inv-col-due,#expense-panel-bills .exp-col-due{grid-column:2;order:7}
-  #view-invoices .inv-col-excl,#expense-panel-bills .exp-col-ex{grid-column:1;order:8}
-  #view-invoices .inv-col-gst,#expense-panel-bills .exp-col-gst{grid-column:2;order:9}
-  #view-invoices .inv-col-paid,#expense-panel-bills .exp-col-paid{grid-column:1;order:10}
-  #view-invoices .inv-col-payment-date,#expense-panel-bills .exp-col-payment-date{grid-column:2;order:11}
-  #view-invoices .inv-col-actions,#expense-panel-bills .exp-col-actions{grid-column:1/-1;order:12;width:auto;min-width:0;border-top:1px solid #edf1f3!important;margin-top:5px;padding-top:10px!important}
-  #view-invoices .inv-col-actions::before,#expense-panel-bills .exp-col-actions::before{display:none!important}
-  #view-invoices .invoice-row-actions,#expense-panel-bills .expense-primary-actions{width:100%;display:flex!important;flex-wrap:wrap;gap:7px}
-  #view-invoices .invoice-icon-action{width:44px;min-width:44px;height:44px;min-height:44px!important}
-  #expense-panel-bills .expense-primary-actions>.secondary,#expense-panel-bills .expense-more-actions summary{min-height:44px;padding:9px 12px;font-size:12px}
-  #expense-panel-bills .expense-more-actions{min-width:72px}
-  #view-invoices .invoice-customer-name,#expense-panel-bills .exp-col-supplier{overflow-wrap:anywhere;white-space:normal}
-}
-@media(max-width:430px){
-  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{padding:11px 10px;gap:0 10px}
-  #view-invoices .invoice-number-link,#expense-panel-bills .exp-col-ref strong{font-size:14px}
-  #view-invoices .c1-status-badge,#expense-panel-bills .expense-status{max-width:100%;white-space:nowrap}
-}
-@media(max-width:390px){
-  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{gap:0 8px}
-  #view-invoices .invoice-list-card tr.invoice-list-row td,#expense-panel-bills .expense-list-card tr.expense-list-row td{font-size:11.5px}
-}
-@media(max-width:375px){
-  #view-invoices .invoice-list-card tr.invoice-list-row,#expense-panel-bills .expense-list-card tr.expense-list-row{padding:10px 9px}
-  #view-invoices .invoice-row-actions,#expense-panel-bills .expense-primary-actions{gap:6px}
 }
 
 /* V61.70C2-D — customer credit notes (owner-facing only) */
@@ -3161,6 +3031,11 @@ body.auth-locked .app-version{display:none}
 /* V61.71B Import & Migration */
 .import-migration-box{max-width:920px;width:min(94vw,920px);max-height:92vh;overflow:auto}.import-flow{display:grid;gap:18px}.import-drop-card{border:2px dashed var(--border,#d7dde7);border-radius:16px;padding:24px;display:grid;gap:8px;text-align:center;background:var(--surface-soft,#f8fafc)}.import-drop-card input{width:100%;min-height:44px}.import-template-links{display:flex;gap:8px;flex-wrap:wrap}.import-sheet{display:grid;gap:12px}.import-sheet .card-title{align-items:end}.mapping-list,.mapping-attention{display:grid;gap:8px}.mapping-attention{padding:12px;border-radius:12px;background:#fff8e8}.mapping-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr);gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border,#e5e7eb)}.mapping-row span{display:grid}.mapping-row small{color:var(--muted,#667085)}.mapping-row select{min-height:44px}.import-ok{margin:0;color:#25734a}.issue-cards,.import-history-cards{display:grid;gap:8px}.issue-card,.history-card{border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:12px;display:flex;justify-content:space-between;gap:12px;text-align:left;background:var(--surface,#fff);width:100%;color:inherit}.issue-card{display:grid}.history-card span{display:grid;gap:3px}.history-card.static{cursor:default}.import-result{text-align:center}.import-result .summary-grid{text-align:left}
 @media(max-width:720px){.import-migration-box{width:100vw;max-width:none;height:100dvh;max-height:100dvh;border-radius:0;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}.import-flow .page-head{padding-right:32px}.mapping-row{grid-template-columns:1fr;gap:6px}.import-sheet .card-title{display:grid;gap:10px}.import-template-links{display:grid;grid-template-columns:1fr 1fr}.import-template-links button,.onboarding-actions button,.ready-actions button{min-height:44px}.history-card{display:grid}.import-flow .summary-grid{grid-template-columns:1fr 1fr}.import-drop-card{padding:18px 12px}}
+
+/* V62.15 Smart Migration Centre — scoped grouped-record review. */
+.import-record-list{display:grid;gap:9px}.import-record-card{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(150px,.75fr) minmax(190px,.8fr);align-items:center;gap:14px;padding:13px 14px;border:1px solid var(--border,#e5e7eb);border-left:4px solid #7c3aed;border-radius:13px;background:#fff}.import-record-card.warning{border-left-color:#a855f7;background:#fcfaff}.import-record-card.rejected{border-left-color:#c2415b;background:#fff8f9}.import-record-card>div{min-width:0;display:grid;gap:3px}.import-record-card strong,.import-record-card small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.import-record-card small{color:var(--muted,#667085)}.import-record-type{width:max-content;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#6d28d9}.import-record-values{text-align:right}.import-record-decision{justify-items:end}.import-record-decision select{width:100%;max-width:250px;min-height:40px}.import-mode-badge{justify-self:end;width:max-content;max-width:100%;padding:3px 8px;border-radius:999px;background:#f0e9ff;color:#5b21b6;font-size:10px;font-weight:800}.import-record-message{grid-column:1/-1;margin:0;padding-top:8px;border-top:1px solid #eee8f8;color:#8a3b55;font-size:12px;line-height:1.45}.import-sheet details{border:1px solid var(--border,#e5e7eb);border-radius:11px;padding:9px 12px}.import-sheet summary{cursor:pointer;color:var(--navy);font-weight:750}
+.mapping-confidence{display:inline-flex;align-items:center;margin-left:6px;padding:2px 6px;border-radius:999px;font-size:10px;font-style:normal;font-weight:800;line-height:1.25}.mapping-confidence.high{background:#ece7ff;color:#5b21b6}.mapping-confidence.medium{background:#f3e8ff;color:#7e22ce}.mapping-confidence.review{background:#fff1f2;color:#be123c}
+@media(max-width:760px){.import-record-card{grid-template-columns:minmax(0,1fr) auto}.import-record-decision{grid-column:1/-1;justify-items:stretch}.import-record-decision select{max-width:none}.import-record-values{min-width:105px}.import-record-message{grid-column:1/-1}}
 
 /* V61.71B-P1 bank CSV entry point */
 .import-bank-card,.onboarding-import-card{display:grid;gap:10px}.import-bank-card{grid-template-columns:minmax(0,1fr) auto;align-items:center}.import-bank-card h3,.onboarding-import-card strong{margin:0}.onboarding-import-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.onboarding-import-card span{color:var(--muted,#667085);line-height:1.45}.bank-import-origin{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.bank-import-origin span{flex:1;min-width:220px}@media(max-width:720px){.import-bank-card{grid-template-columns:1fr}.import-bank-card button,.onboarding-import-card button{width:100%;min-height:44px}.onboarding-import-options{grid-template-columns:1fr}.bank-import-origin{display:grid}.bank-import-origin span{min-width:0}}
@@ -3389,69 +3264,7 @@ body.report-widget-moving .report-widget-handle{cursor:grabbing}
    tables, row markup, data-labels and existing action handlers remain intact.
 */
 @media(max-width:760px){
-  /* Shared compact-row rhythm.  Keep touch targets at or above 44px. */
-  #view-invoices .invoice-list-card tr.invoice-list-row,
-  #expense-panel-bills .expense-list-card tr.expense-list-row{
-    padding:8px 10px;
-    margin-bottom:8px;
-    gap:0 9px;
-  }
-  #view-invoices .invoice-list-card tr.invoice-list-row td,
-  #expense-panel-bills .expense-list-card tr.expense-list-row td{
-    padding:3px 0!important;
-    font-size:11px;
-    line-height:1.2;
-  }
-  #view-invoices .invoice-list-card tr.invoice-list-row td::before,
-  #expense-panel-bills .expense-list-card tr.expense-list-row td::before{
-    margin-bottom:2px;
-    font-size:8px;
-  }
-
-  /* Invoices: show the identifying/status/amount fields; full details remain
-     available from the existing invoice link and action controls. */
-  #view-invoices .invoice-list-card .inv-col-date,
-  #view-invoices .invoice-list-card .inv-col-due,
-  #view-invoices .invoice-list-card .inv-col-excl,
-  #view-invoices .invoice-list-card .inv-col-gst,
-  #view-invoices .invoice-list-card .inv-col-paid,
-  #view-invoices .invoice-list-card .inv-col-payment-date{display:none!important}
-  #view-invoices .invoice-list-card .inv-col-invoice{grid-column:1;order:1;padding-top:0!important}
-  #view-invoices .invoice-list-card .inv-col-status{grid-column:2;order:1;align-items:flex-end!important;padding-top:0!important}
-  #view-invoices .invoice-list-card .inv-col-customer{grid-column:1/-1;order:2;padding-bottom:6px!important;margin-bottom:1px;max-width:none;border-bottom:1px solid #edf1f3!important}
-  #view-invoices .invoice-list-card .inv-col-total{grid-column:1;order:3}
-  #view-invoices .invoice-list-card .inv-col-balance{grid-column:2;order:3;align-items:flex-end!important}
-  #view-invoices .invoice-list-card .inv-col-actions{grid-column:1/-1;order:4;width:auto;min-width:0;border-top:1px solid #edf1f3!important;margin-top:4px;padding-top:7px!important}
-  #view-invoices .invoice-list-card .invoice-number-link{font-size:13px;line-height:1.15}
-  #view-invoices .invoice-list-card .invoice-customer-name{font-size:11.5px;line-height:1.25;-webkit-line-clamp:1}
-  #view-invoices .invoice-list-card .inv-col-total strong,
-  #view-invoices .invoice-list-card .invoice-balance-display strong,
-  #view-invoices .invoice-list-card .invoice-balance-trigger strong{font-size:13px;line-height:1.1}
-  #view-invoices .invoice-list-card .invoice-balance-display small,
-  #view-invoices .invoice-list-card .invoice-balance-trigger small{font-size:8px}
-  #view-invoices .invoice-list-card .invoice-row-actions{width:100%;gap:5px;flex-wrap:wrap}
-  #view-invoices .invoice-list-card .invoice-icon-action{width:44px;min-width:44px;height:44px;min-height:44px!important;padding:10px!important}
-  #view-invoices .invoice-list-card .invoice-row-actions .invoice-record-payment-action{min-height:44px!important;padding:9px 10px!important;font-size:11px!important}
-
-  /* Bills/expenses: retain the primary identity, status, supplier and
-     balance, while secondary financial/date details remain in View. */
-  #expense-panel-bills .expense-list-card .exp-col-due,
-  #expense-panel-bills .expense-list-card .exp-col-ex,
-  #expense-panel-bills .expense-list-card .exp-col-gst,
-  #expense-panel-bills .expense-list-card .exp-col-paid,
-  #expense-panel-bills .expense-list-card .exp-col-payment-date{display:none!important}
-  #expense-panel-bills .expense-list-card .exp-col-ref{grid-column:1;order:1;padding-top:0!important}
-  #expense-panel-bills .expense-list-card .exp-col-status{grid-column:2;order:1;align-items:flex-end!important;padding-top:0!important}
-  #expense-panel-bills .expense-list-card .exp-col-supplier{grid-column:1/-1;order:2;max-width:none;padding-bottom:6px!important;border-bottom:1px solid #edf1f3!important}
-  #expense-panel-bills .expense-list-card .exp-col-date{grid-column:1;order:3}
-  #expense-panel-bills .expense-list-card .exp-col-total{grid-column:2;order:3;align-items:flex-end!important}
-  #expense-panel-bills .expense-list-card .exp-col-balance{grid-column:1;order:4}
-  #expense-panel-bills .expense-list-card .exp-col-actions{grid-column:1/-1;order:5;width:auto;min-width:0;border-top:1px solid #edf1f3!important;margin-top:4px;padding-top:7px!important}
-  #expense-panel-bills .expense-list-card .expense-primary-actions{width:100%;gap:5px;flex-wrap:wrap}
-  #expense-panel-bills .expense-list-card .expense-primary-actions>.secondary,
-  #expense-panel-bills .expense-list-card .expense-more-actions summary{min-height:44px;padding:9px 10px;font-size:11px}
-
-  /* Suppliers: one compact row per supplier; details remain in View/Edit. */
+   /* Suppliers: one compact row per supplier; details remain in View/Edit. */
   #expense-panel-suppliers .table-card table,
   #expense-panel-suppliers .table-card tbody{display:block;width:100%;min-width:0}
   #expense-panel-suppliers .table-card tr{display:grid!important;grid-template-columns:1fr 1fr;gap:0 10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin:0 0 8px}
@@ -5054,412 +4867,6 @@ tbody tr:last-child td{border-bottom:0!important}
  #report-panel-payroll #payrollReportCsv{width:100%}
 }
 
-/* v61.100A COMPACT INVOICE + EXPENSE LISTS — desktop presentation only.
-   Fits the existing columns into the available page width without horizontal scrolling.
-   Mobile list/card presentation remains unchanged. */
-@media(min-width:761px){
-  #view-invoices .table-card .table-scroll,
-  #view-expenses .expense-panel#expense-panel-bills .table-card .table-scroll{
-    overflow-x:hidden!important;
-    width:100%!important;
-  }
-  #view-invoices .table-card table,
-  #view-expenses .expense-panel#expense-panel-bills .table-card table{
-    width:100%!important;
-    min-width:0!important;
-    table-layout:fixed!important;
-  }
-  #view-invoices .table-card th,
-  #view-invoices .table-card td,
-  #view-expenses .expense-panel#expense-panel-bills .table-card th,
-  #view-expenses .expense-panel#expense-panel-bills .table-card td{
-    padding-left:7px!important;
-    padding-right:7px!important;
-    font-size:11px!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-  }
-  #view-invoices .table-card th,
-  #view-expenses .expense-panel#expense-panel-bills .table-card th{
-    font-size:9.5px!important;
-    letter-spacing:.015em!important;
-  }
-
-  /* Invoice desktop column sizing moved to the single v61.107AAH block at the end of this file. */
-
-  /* Expense bills use the same compact principle; fixed layout shares any extra columns safely. */
-  #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th:first-child,
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:first-child{width:9%}
-  #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th:nth-child(2),
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:nth-child(2){width:10%}
-  #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th:nth-child(3),
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:nth-child(3){width:12%}
-  #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th:last-child,
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:last-child{width:12%}
-
-  /* Keep action controls compact instead of forcing table width. */
-  #view-invoices #invoiceRows td:last-child,
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:last-child{
-    overflow:visible!important;
-    text-overflow:clip!important;
-  }
-  #view-invoices #invoiceRows td:last-child button,
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:last-child button{
-    min-width:30px!important;
-    min-height:30px!important;
-    width:auto!important;
-    height:30px!important;
-    padding:4px 7px!important;
-    margin:1px!important;
-    font-size:10px!important;
-  }
-}
-
-/* v61.100B EXPENSE ROW ALIGNMENT — visual-only correction. */
-@media(min-width:761px){
-  #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th,
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td{
-    vertical-align:middle!important;
-    line-height:1.25!important;
-  }
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows tr{
-    height:54px!important;
-  }
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:nth-child(n+4):not(:last-child),
-  #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th:nth-child(n+4):not(:last-child){
-    text-align:right!important;
-  }
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:last-child,
-  #view-expenses .expense-panel#expense-panel-bills table:has(#expenseRows) th:last-child{
-    text-align:right!important;
-    white-space:nowrap!important;
-  }
-  #view-expenses .expense-panel#expense-panel-bills #expenseRows td:last-child{
-    display:table-cell!important;
-    vertical-align:middle!important;
-  }
-}
-
-/* v61.100C EXPENSE COLUMN ALIGNMENT — exact 12-column geometry.
-   Overrides the earlier generic numeric alignment that caused body/header drift. */
-@media(min-width:761px){
-  #view-expenses #expense-panel-bills .expense-list-card table{
-    width:100%!important;
-    min-width:0!important;
-    table-layout:fixed!important;
-  }
-  #view-expenses #expense-panel-bills .expense-list-card thead th,
-  #view-expenses #expense-panel-bills #expenseRows td{
-    box-sizing:border-box!important;
-    vertical-align:middle!important;
-    padding:10px 6px!important;
-    text-align:left!important;
-  }
-
-  /* One identical width map for BOTH header and body cells. */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(1){width:9%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(2){width:9%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(3){width:13%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(4){width:8%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(5){width:6%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(6){width:8%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(7){width:7%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(8){width:8%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(9){width:8%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(10){width:8%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(11){width:7%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(12){width:9%!important}
-
-  /* Amounts align right in both header and body; dates/text stay left. */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(6),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(7),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(8),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(9),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(10){
-    text-align:right!important;
-  }
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(12){
-    text-align:right!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .exp-col-ref small{
-    display:block!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .expense-primary-actions{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:flex-end!important;
-    gap:4px!important;
-    flex-wrap:nowrap!important;
-    white-space:nowrap!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .expense-primary-actions>button,
-  #view-expenses #expense-panel-bills #expenseRows .expense-more-actions>summary{
-    min-width:0!important;
-    height:34px!important;
-    min-height:34px!important;
-    padding:5px 7px!important;
-    font-size:10px!important;
-    line-height:22px!important;
-  }
-}
-
-/* v61.100D EXPENSE LIST — readable desktop geometry.
-   Rebalances the real 12 columns and reserves enough room for conditional actions. */
-@media(min-width:761px){
-  #view-expenses #expense-panel-bills .expense-list-card{
-    overflow:hidden!important;
-  }
-  #view-expenses #expense-panel-bills .expense-list-card .table-scroll{
-    width:100%!important;
-    max-width:100%!important;
-    overflow-x:hidden!important;
-  }
-  #view-expenses #expense-panel-bills .expense-list-card table{
-    width:100%!important;
-    min-width:0!important;
-    table-layout:fixed!important;
-  }
-  #view-expenses #expense-panel-bills .expense-list-card thead th,
-  #view-expenses #expense-panel-bills #expenseRows td{
-    box-sizing:border-box!important;
-    vertical-align:middle!important;
-    padding:10px 8px!important;
-    line-height:1.2!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    text-align:left!important;
-  }
-  #view-expenses #expense-panel-bills .expense-list-card thead th{
-    font-size:9px!important;
-    letter-spacing:0!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows td{
-    font-size:10.5px!important;
-  }
-
-  /* Exact shared header/body widths = 100%. */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(1){width:8.5%!important}  /* ref */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(2){width:8%!important}    /* status */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(3){width:14.5%!important} /* supplier */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(4){width:7.5%!important}  /* date */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(5){width:6.5%!important}  /* due */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(6){width:7.5%!important}  /* ex gst */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(7){width:6.5%!important}  /* gst */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(8){width:7.5%!important}  /* total */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(9){width:7.5%!important}  /* paid */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(10){width:8%!important}   /* balance */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(11){width:7.5%!important} /* payment date */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(12){width:10.5%!important}/* actions */
-
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(6),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(7),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(8),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(9),
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(10){
-    text-align:right!important;
-  }
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(12){
-    text-align:right!important;
-    overflow:visible!important;
-    text-overflow:clip!important;
-    padding-left:4px!important;
-    padding-right:6px!important;
-  }
-
-  /* Keep secondary reference beneath the expense number without widening its column. */
-  #view-expenses #expense-panel-bills #expenseRows .exp-col-ref strong,
-  #view-expenses #expense-panel-bills #expenseRows .exp-col-ref small{
-    display:block!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    white-space:nowrap!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .exp-col-ref small{
-    margin-top:2px!important;
-    font-size:9.5px!important;
-    color:#74839a!important;
-  }
-
-  /* Actions must fit even on unpaid rows (View + Payment + More). */
-  #view-expenses #expense-panel-bills #expenseRows .expense-primary-actions{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:flex-end!important;
-    flex-wrap:nowrap!important;
-    gap:3px!important;
-    width:100%!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .expense-primary-actions>button,
-  #view-expenses #expense-panel-bills #expenseRows .expense-more-actions>summary{
-    box-sizing:border-box!important;
-    flex:0 0 auto!important;
-    min-width:0!important;
-    width:auto!important;
-    height:32px!important;
-    min-height:32px!important;
-    padding:4px 6px!important;
-    margin:0!important;
-    font-size:9.5px!important;
-    line-height:22px!important;
-    white-space:nowrap!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .expense-more-actions{
-    flex:0 0 auto!important;
-    margin:0!important;
-  }
-}
-
-/* At narrower desktop/tablet widths, preserve readability rather than squeezing labels further. */
-@media(min-width:761px) and (max-width:1180px){
-  #view-expenses #expense-panel-bills .expense-list-card thead th{font-size:8px!important;padding-left:4px!important;padding-right:4px!important}
-  #view-expenses #expense-panel-bills #expenseRows td{font-size:9.5px!important;padding-left:4px!important;padding-right:4px!important}
-  #view-expenses #expense-panel-bills #expenseRows .expense-primary-actions>button,
-  #view-expenses #expense-panel-bills #expenseRows .expense-more-actions>summary{font-size:9px!important;padding-left:4px!important;padding-right:4px!important}
-}
-
-/* v61.100E EXPENSE LIST — guarantee separation between Payment Date and Actions.
-   Visual-only override: no markup, actions, data or expense logic changed. */
-@media(min-width:761px){
-  /* Reallocate width toward Payment Date + Actions. Exact total = 100%. */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(1){width:8%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(2){width:7.5%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(3){width:14%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(4){width:7%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(5){width:6%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(6){width:7%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(7){width:6%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(8){width:7%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(9){width:7%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(10){width:7.5%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(11){width:8.5%!important}
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(12){width:14.5%!important}
-
-  /* Payment Date is clipped inside its own cell and can never sit beneath Actions. */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(11){
-    position:relative!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    white-space:nowrap!important;
-    padding-left:6px!important;
-    padding-right:8px!important;
-  }
-
-  /* Actions are contained inside their own column; do not allow overflow into Payment Date. */
-  #view-expenses #expense-panel-bills .expense-list-card tr>*:nth-child(12){
-    overflow:hidden!important;
-    text-overflow:clip!important;
-    padding-left:5px!important;
-    padding-right:5px!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .expense-primary-actions{
-    width:100%!important;
-    max-width:100%!important;
-    display:flex!important;
-    justify-content:flex-end!important;
-    align-items:center!important;
-    gap:3px!important;
-    overflow:hidden!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .expense-primary-actions>button,
-  #view-expenses #expense-panel-bills #expenseRows .expense-more-actions>summary{
-    flex:0 1 auto!important;
-    min-width:0!important;
-    height:32px!important;
-    min-height:32px!important;
-    padding:4px 5px!important;
-    font-size:9px!important;
-    line-height:22px!important;
-  }
-  #view-expenses #expense-panel-bills #expenseRows .expense-more-actions{
-    flex:0 1 auto!important;
-    min-width:0!important;
-  }
-}
-
-/* v61.100F INVOICE LIST — protect Payment Date and reserve room for variable Actions.
-   Presentation only; invoice markup, IDs, actions and business logic are unchanged. */
-@media(min-width:761px){
-  #view-invoices .table-card .table-scroll{
-    width:100%!important;
-    max-width:100%!important;
-    overflow-x:hidden!important;
-  }
-  #view-invoices .table-card table:has(#invoiceRows){
-    width:100%!important;
-    min-width:0!important;
-    table-layout:fixed!important;
-  }
-  #view-invoices .table-card table:has(#invoiceRows) th,
-  #view-invoices #invoiceRows td{
-    box-sizing:border-box!important;
-    vertical-align:middle!important;
-    padding-left:6px!important;
-    padding-right:6px!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-  }
-
-  /* Shared header/body geometry = exactly 100%. */
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(1){width:10%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(2){width:9%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(3){width:12%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(4){width:6%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(5){width:6%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(6){width:7%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(7){width:5.5%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(8){width:7%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(9){width:7%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(10){width:8%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(11){width:7.5%!important}
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(12){width:15%!important}
-
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(6),
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(7),
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(8),
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(9),
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(10){
-    text-align:right!important;
-  }
-
-  /* Payment date cannot be covered by action controls. */
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(11){
-    position:relative!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-    padding-right:8px!important;
-  }
-
-  /* Keep all action variants contained in the final column. */
-  #view-invoices .table-card table:has(#invoiceRows) tr>*:nth-child(12){
-    overflow:hidden!important;
-    text-overflow:clip!important;
-    padding-left:4px!important;
-    padding-right:4px!important;
-  }
-  #view-invoices #invoiceRows td:last-child{
-    white-space:nowrap!important;
-  }
-  #view-invoices #invoiceRows td:last-child button,
-  #view-invoices #invoiceRows td:last-child a,
-  #view-invoices #invoiceRows td:last-child summary{
-    box-sizing:border-box!important;
-    min-width:0!important;
-    width:auto!important;
-    height:32px!important;
-    min-height:32px!important;
-    padding:4px 6px!important;
-    margin:1px!important;
-    font-size:9.5px!important;
-    line-height:22px!important;
-    white-space:nowrap!important;
-  }
-}
-
 /* v61.100G EXPENSE MORE MENU — restore dropdown visibility after compact table work.
    The native <details> behaviour and all existing expense action handlers remain unchanged. */
 @media(min-width:761px){
@@ -5511,16 +4918,6 @@ tbody tr:last-child td{border-bottom:0!important}
   }
   #view-expenses #expense-panel-bills #expenseRows .expense-more-actions>div>button+button{
     margin-top:3px!important;
-  }
-}
-
-/* v61.100H INVOICE ACTION BUTTON CONSISTENCY — visual only.
-   Match the rounded Expense-list action controls without changing actions or layout logic. */
-@media(min-width:761px){
-  #view-invoices #invoiceRows td:last-child button,
-  #view-invoices #invoiceRows td:last-child a,
-  #view-invoices #invoiceRows td:last-child summary{
-    border-radius:10px!important;
   }
 }
 
@@ -8067,188 +7464,9 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
   #view-jobcosting .quote-list-controls #jcQuoteRefresh{min-width:84px}
 }
 
-/* v61.107AAI — deterministic desktop invoice-list grid.
-   Header and every invoice row share one structural grid. No desktop nth-child
-   width negotiation remains; mobile rules below 901px are unchanged. */
-@media screen and (min-width:901px){
-  #view-invoices .invoice-list-card .table-scroll{
-    width:100%;max-width:100%;min-width:0;overflow:visible!important;
-  }
-  #view-invoices .invoice-list-card table{
-    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
-    table-layout:auto!important;border-collapse:separate!important;border-spacing:0!important;
-  }
-  #view-invoices .invoice-list-card thead,
-  #view-invoices .invoice-list-card tbody{
-    display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;
-  }
-  #view-invoices .invoice-list-card thead tr,
-  #view-invoices .invoice-list-card tbody tr.invoice-list-row{
-    --invoice-list-grid: minmax(92px,.78fr) minmax(82px,.68fr) minmax(125px,1.15fr) 88px 92px 104px 78px 104px 92px 116px 104px minmax(300px,2.35fr);
-    display:grid!important;
-    grid-template-columns:var(--invoice-list-grid)!important;
-    align-items:center!important;
-    width:100%!important;max-width:100%!important;min-width:0!important;
-  }
-  #view-invoices .invoice-list-card thead tr>* ,
-  #view-invoices .invoice-list-card tbody tr.invoice-list-row>*{
-    display:block!important;width:auto!important;min-width:0!important;max-width:none!important;
-    box-sizing:border-box!important;padding-left:6px!important;padding-right:6px!important;
-    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-  }
-  #view-invoices .invoice-list-card .inv-col-invoice,
-  #view-invoices .invoice-list-card .inv-col-status,
-  #view-invoices .invoice-list-card .inv-col-customer{min-width:0!important;max-width:none!important}
-  #view-invoices .invoice-list-card .inv-col-actions{
-    overflow:visible!important;text-overflow:clip!important;text-align:left!important;
-  }
-  #view-invoices .invoice-list-card .invoice-row-actions{
-    display:flex!important;align-items:center!important;justify-content:flex-start!important;
-    gap:6px!important;flex-wrap:nowrap!important;width:100%!important;min-width:0!important;
-    white-space:nowrap!important;overflow:visible!important;
-  }
-  #view-invoices .invoice-list-card .invoice-row-actions>*{flex:0 0 auto!important}
-  #view-invoices .invoice-list-card .invoice-record-payment-action{
-    flex:0 0 auto!important;min-width:max-content!important;padding-left:9px!important;padding-right:9px!important;
-  }
-  #view-invoices .invoice-list-card .invoice-more-trigger{flex:0 0 auto!important;min-width:62px!important}
-}
 #invoiceActionMenu{position:fixed;z-index:10050;min-width:178px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 30px rgba(20,40,60,.20);padding:7px;display:grid;gap:6px}
 #invoiceActionMenu[hidden]{display:none!important}
 #invoiceActionMenu button{width:100%;text-align:left;white-space:nowrap}
-
-/* v61.107AAN — invoice deterministic grid repair.
-   The earlier compact-table selectors use table:has(#invoiceRows) and are more
-   specific than the AAI grid cells, leaving each grid item at a tiny percent of
-   its own column. This final scoped block keeps one shared grid, forces every
-   header/body cell to fill its assigned track, and fits inside the page without
-   horizontal side scrolling. */
-@media screen and (min-width:901px){
-  html body #view-invoices .invoice-list-card .table-scroll{
-    overflow-x:hidden!important;
-    overflow-y:visible!important;
-  }
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows){
-    display:block!important;
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
-    table-layout:auto!important;
-    border-collapse:separate!important;
-    border-spacing:0!important;
-  }
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead,
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tbody{
-    display:block!important;
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
-  }
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead tr,
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tbody tr.invoice-list-row{
-    --invoice-list-grid:
-      minmax(0,.82fr)
-      minmax(0,.62fr)
-      minmax(0,1.00fr)
-      minmax(0,.58fr)
-      minmax(0,.64fr)
-      minmax(0,.82fr)
-      minmax(0,.72fr)
-      minmax(0,.86fr)
-      minmax(0,.72fr)
-      minmax(0,.90fr)
-      minmax(0,.70fr)
-      minmax(206px,1.10fr);
-    display:grid!important;
-    grid-template-columns:var(--invoice-list-grid)!important;
-    align-items:center!important;
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
-  }
-  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) tr>*:nth-child(n){
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
-  }
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead tr>*,
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tbody tr.invoice-list-row>*{
-    display:block!important;
-    justify-self:stretch!important;
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
-    box-sizing:border-box!important;
-    padding-left:7px!important;
-    padding-right:7px!important;
-    white-space:nowrap!important;
-    overflow:hidden!important;
-    text-overflow:ellipsis!important;
-  }
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) thead tr>*{
-    white-space:normal!important;
-    overflow:visible!important;
-    text-overflow:clip!important;
-    line-height:1.15!important;
-  }
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(1),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(2),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(3),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(4),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(5),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(11),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(12){
-    text-align:left!important;
-  }
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(6),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(7),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(8),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(9),
-  html body #view-invoices .invoice-list-card table:has(#invoiceRows) tr>*:nth-child(10){
-    text-align:right!important;
-    font-variant-numeric:tabular-nums!important;
-  }
-  html body #view-invoices .invoice-list-card .inv-col-actions{
-    overflow:hidden!important;
-    text-overflow:clip!important;
-    padding-left:5px!important;
-    padding-right:5px!important;
-  }
-  html body #view-invoices .invoice-list-card .invoice-row-actions{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:flex-start!important;
-    gap:6px!important;
-    flex-wrap:nowrap!important;
-    width:100%!important;
-    max-width:100%!important;
-    min-width:0!important;
-    overflow:hidden!important;
-    white-space:nowrap!important;
-  }
-  html body #view-invoices .invoice-list-card .invoice-row-actions>*{
-    flex:0 0 auto!important;
-    margin:0!important;
-  }
-  html body #view-invoices .invoice-list-card .invoice-icon-action{
-    width:34px!important;
-    min-width:34px!important;
-    height:34px!important;
-    min-height:34px!important;
-    padding:0!important;
-  }
-  html body #view-invoices .invoice-list-card .invoice-more-trigger{
-    min-width:68px!important;
-    height:34px!important;
-    min-height:34px!important;
-    padding-left:8px!important;
-    padding-right:8px!important;
-  }
-  html body #view-invoices .invoice-list-card .invoice-record-payment-action{
-    display:none!important;
-  }
-}
-
 
 /* V61.107AAT: explicit subscription auto-renew switch. Scoped to Subscription & Billing only. */
 .billing-auto-renew-summary{min-width:0}
@@ -8299,29 +7517,13 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 @media(max-width:760px){.finlo-helper-button{min-width:120px;min-height:40px;padding:0 18px!important}}
 @media(prefers-reduced-motion:reduce){.finlo-helper-button{transition:none}}
 
-/* v61.113: keep bank reconciliation lines usable on tablet and narrow desktop. */
+/* v61.113: keep the bank reconciliation list usable on narrow screens. */
 #view-bankreconciliation .bank-card-list{min-width:0}
-#view-bankreconciliation .bank-recon-pair{overflow:hidden}
-#view-bankreconciliation .bank-recon-pair-grid{min-width:0}
-#view-bankreconciliation .bank-statement-side,
-#view-bankreconciliation .bank-books-side,
-#view-bankreconciliation .bank-recon-book-card{min-width:0}
-#view-bankreconciliation .bank-statement-side strong,
-#view-bankreconciliation .bank-statement-side small,
-#view-bankreconciliation .bank-recon-book-card strong,
-#view-bankreconciliation .bank-recon-book-card small{overflow-wrap:anywhere}
-#view-bankreconciliation .bank-recon-secondary-actions{overflow-x:auto;max-width:100%;padding-bottom:2px}
 @media(max-width:1280px){
   #view-bankreconciliation .bank-card-list{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:8px}
-  #view-bankreconciliation .bank-recon-pair{min-width:720px}
-  #view-bankreconciliation .bank-recon-pair-grid{grid-template-columns:minmax(220px,.85fr) minmax(420px,1.25fr)}
-  #view-bankreconciliation .bank-statement-side{position:sticky;left:0;z-index:2;background:#fff;box-shadow:8px 0 16px rgba(15,23,42,.08)}
 }
 @media(max-width:760px){
   #view-bankreconciliation .bank-card-list{overflow-x:visible;padding-bottom:0}
-  #view-bankreconciliation .bank-recon-pair{min-width:0}
-  #view-bankreconciliation .bank-recon-pair-grid{grid-template-columns:1fr}
-  #view-bankreconciliation .bank-statement-side{position:static;box-shadow:none}
 }
 
 .live-bank-feeds-card{margin-bottom:14px}
@@ -8340,26 +7542,464 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 /* MatchFlow v61.142S: scoped, presentation-only bank reconciliation enhancements. */
 #view-bankreconciliation .page-head{align-items:center;gap:18px}
 #view-bankreconciliation .br-matchflow-progress{display:flex;align-items:center;gap:16px;min-width:340px;padding:12px 17px;border:1px solid #dfe4f5;border-radius:18px;background:linear-gradient(120deg,#f9fbff,#f4f0ff);box-shadow:0 5px 18px rgba(23,36,61,.06);font-size:inherit;color:#17243d}
-#view-bankreconciliation .br-mf-ring{--br-mf-percent:0%;flex:none;width:68px;height:68px;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#18b49a var(--br-mf-percent),#e4e9f5 0);position:relative}
+#view-bankreconciliation .br-mf-ring{--br-mf-percent:0%;flex:none;width:68px;height:68px;display:grid;place-items:center;border-radius:50%;background:conic-gradient(#6f52e8 var(--br-mf-percent),#e4e9f5 0);position:relative}
 #view-bankreconciliation .br-mf-ring::before{content:'';position:absolute;inset:8px;background:#fff;border-radius:50%}
 #view-bankreconciliation .br-mf-ring strong{z-index:1;font-size:17px;color:#17243d}
 #view-bankreconciliation .br-mf-progress-content{display:grid;gap:8px;min-width:0;flex:1}
 #view-bankreconciliation .br-mf-progress-content>strong{font-size:13px}
 #view-bankreconciliation .br-mf-track{height:8px;border-radius:99px;background:#e3e8f6;overflow:hidden}
-#view-bankreconciliation .br-mf-track>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#18b49a,#53d9b8);transition:width .45s ease}
+#view-bankreconciliation .br-mf-track>span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#5541e5,#9a7cf4);transition:width .45s ease}
 #view-bankreconciliation .br-mf-progress-content small{display:flex;flex-wrap:wrap;gap:6px 12px;color:#66728b;font-size:11px}
-#view-bankreconciliation .br-mf-done{color:#087e69;font-weight:650}
-#view-bankreconciliation .bank-recon-pair{border:1px solid #dce5f1;border-radius:13px;overflow:hidden;box-shadow:0 3px 12px rgba(23,36,61,.035);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
-#view-bankreconciliation .bank-recon-pair:hover{border-color:#b6a7ee;box-shadow:0 7px 22px rgba(55,44,116,.09);transform:translateY(-1px)}
-#view-bankreconciliation .bank-recon-book-card.possible-match{background:#fff9eb;border-color:#f0d591}
-#view-bankreconciliation .bank-recon-book-card.high-match{background:#effbf7;border-color:#a5dfd0}
-#view-bankreconciliation .bank-recon-book-card.no-match{background:#f8faff}
-#view-bankreconciliation .bank-recon-book-card .confidence.high{color:#087e69}
-#view-bankreconciliation .bank-recon-book-card .confidence.possible{color:#93630e}
-#view-bankreconciliation .bank-recon-book-actions button.primary{background:linear-gradient(120deg,#5541e5,#6836d8);border-color:#5541e5;box-shadow:0 3px 9px rgba(85,65,229,.15)}
-#view-bankreconciliation .bank-recon-book-actions button.primary:hover{filter:brightness(1.07);box-shadow:0 5px 13px rgba(85,65,229,.25)}
-#view-bankreconciliation .bank-recon-secondary-actions button{transition:background-color .15s ease,border-color .15s ease}
-#view-bankreconciliation .bank-recon-secondary-actions button:hover{background:#f3f0ff;border-color:#b8a9ef}
-#view-bankreconciliation .bank-recon-pair button:focus-visible{outline:3px solid #8064eb;outline-offset:2px}
+#view-bankreconciliation .br-mf-done{color:#563bc7;font-weight:650}
 @media(max-width:850px){#view-bankreconciliation .page-head{align-items:stretch;flex-direction:column}#view-bankreconciliation .br-matchflow-progress{min-width:0;width:100%;box-sizing:border-box}}
-@media(prefers-reduced-motion:reduce){#view-bankreconciliation .bank-recon-pair,#view-bankreconciliation .br-mf-track>span,#view-bankreconciliation .bank-recon-secondary-actions button{transition:none!important}#view-bankreconciliation .bank-recon-pair:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){#view-bankreconciliation .br-mf-track>span{transition:none!important}}
+
+/* v62.04 — compact expense status and contextual removal controls. */
+#view-expenses #expenseRows .expense-status-stack{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;max-width:100%;vertical-align:middle}
+#view-expenses #expenseRows .expense-status-stack>.expense-status{padding:3px 8px;font-size:11px;line-height:1.15}
+#view-expenses #expenseRows .expense-recon-note{display:inline-flex;align-items:center;gap:4px;max-width:100%;color:#64748b;font-size:9.5px;font-weight:650;line-height:1.05;white-space:nowrap}
+#view-expenses #expenseRows .expense-recon-note i{display:block;flex:0 0 auto;width:5px;height:5px;border-radius:50%;background:#94a3b8}
+#view-expenses #expenseRows .expense-recon-note.is-pending i{background:#d69e2e}
+#view-expenses #expenseRows .expense-recon-note.is-partial i{background:#b7791f}
+#view-expenses #expenseRows .expense-recon-note.is-matched{color:#3f6f58}
+#view-expenses #expenseRows .expense-recon-note.is-matched i{background:#31a56c}
+#view-expenses .expense-remove-action{margin-top:4px;background:#fff!important;color:#a52a2a!important;border:1px solid #efc4c4!important}
+#view-expenses .expense-remove-action:hover{background:#fff5f5!important;border-color:#d98686!important}
+@media(min-width:761px) and (max-width:900px){
+  #view-expenses #expense-panel-bills #expenseRows tr.expense-list-row{height:54px!important}
+  #view-expenses #expense-panel-bills #expenseRows .exp-col-status{overflow:visible!important;text-overflow:clip!important}
+}
+@media(max-width:760px){
+  #view-expenses #expenseRows .expense-status-stack{align-items:flex-end}
+  #view-expenses #expenseRows .expense-recon-note{font-size:9px}
+}
+
+/* v62.11 — single authoritative invoice/expense list layout.
+   Desktop uses native fixed-layout tables so each header and every record share
+   one explicit 11-column model. GST stays in the underlying record and is not
+   emitted as a cell in these two list renderers. Historical desktop table/grid
+   implementations were removed; mobile card rules remain independently scoped. */
+.financial-list-money-head{text-align:right!important}
+.financial-list-currency{
+  display:block;margin-top:3px;color:#8895a7;
+  font:700 9px/1.05 "Lato","Zoho Puvi",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  letter-spacing:.02em;
+}
+
+@media screen and (min-width:901px){
+  html body #view-invoices .table-card.invoice-list-card .table-scroll,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card .table-scroll{
+    width:100%!important;max-width:100%!important;overflow-x:hidden!important;overflow-y:visible!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows),
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows){
+    display:table!important;width:100%!important;max-width:100%!important;min-width:0!important;
+    table-layout:fixed!important;border-collapse:separate!important;border-spacing:0!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) thead,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) thead{
+    display:table-header-group!important;width:auto!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) tbody,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) tbody{
+    display:table-row-group!important;width:auto!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) thead tr,
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) #invoiceRows tr,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) thead tr,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) #expenseRows tr{
+    display:table-row!important;width:auto!important;max-width:none!important;min-width:0!important;
+    height:58px!important;grid-template-columns:none!important;grid-template-rows:none!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) tr>th,
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) tr>td,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) tr>th,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) tr>td{
+    display:table-cell!important;box-sizing:border-box!important;
+    width:auto!important;max-width:none!important;min-width:0!important;height:auto!important;
+    grid-column:auto!important;grid-row:auto!important;order:initial!important;float:none!important;
+    margin:0!important;padding:9px 8px!important;vertical-align:middle!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+    text-align:left!important;font-family:"Lato","Zoho Puvi",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) thead th,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) thead th{
+    height:58px!important;font-size:10.5px!important;font-weight:800!important;line-height:1.2!important;
+    letter-spacing:.01em!important;text-transform:none!important;color:#526892!important;background:#f5f8fc!important;
+    white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) tbody td,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) tbody td{
+    font-size:12px!important;line-height:1.25!important;
+  }
+
+  /* One semantic colgroup controls both the header and every 11-cell row. */
+  .financial-list-columns{display:table-column-group!important}
+  .financial-list-columns>col{display:table-column!important}
+  .financial-list-columns>.fl-ref{width:8.5%!important}
+  .financial-list-columns>.fl-status{width:7%!important}
+  .financial-list-columns>.fl-party{width:14%!important}
+  .financial-list-columns>.fl-date{width:6.5%!important}
+  .financial-list-columns>.fl-due{width:7%!important}
+  .financial-list-columns>.fl-excl{width:7.5%!important}
+  .financial-list-columns>.fl-total{width:7.5%!important}
+  .financial-list-columns>.fl-paid{width:6.5%!important}
+  .financial-list-columns>.fl-balance{width:8.5%!important}
+  .financial-list-columns>.fl-payment-date{width:8%!important}
+  .financial-list-columns>.fl-actions{width:19%!important}
+
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) thead th.financial-list-money-head,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) thead th.financial-list-money-head,
+  html body #view-invoices .table-card.invoice-list-card table:has(#invoiceRows) #invoiceRows tr.invoice-list-row>td.inv-col-money:nth-child(n),
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card table:has(#expenseRows) #expenseRows tr.expense-list-row>td.exp-col-money:nth-child(n){
+    text-align:right!important;font-variant-numeric:tabular-nums!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card #invoiceRows tr.invoice-list-row>td.inv-col-status:nth-child(n),
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card #expenseRows tr.expense-list-row>td.exp-col-status:nth-child(n){
+    overflow:visible!important;text-overflow:clip!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card #invoiceRows tr.invoice-list-row>td.inv-col-actions:nth-child(n),
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card #expenseRows tr.expense-list-row>td.exp-col-actions:nth-child(n){
+    overflow:visible!important;text-overflow:clip!important;
+  }
+  html body #view-invoices .table-card.invoice-list-card #invoiceRows tr.invoice-list-row>td.inv-col-actions .invoice-row-actions,
+  html body #view-expenses #expense-panel-bills .table-card.expense-list-card #expenseRows tr.expense-list-row>td.exp-col-actions .expense-primary-actions{
+    display:flex!important;align-items:center!important;justify-content:flex-start!important;
+    flex-wrap:nowrap!important;gap:6px!important;width:100%!important;min-width:0!important;margin:0!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-icon-action,
+  html body #view-expenses #expenseRows .expense-icon-action{
+    box-sizing:border-box!important;flex:0 0 34px!important;width:34px!important;min-width:34px!important;
+    height:34px!important;min-height:34px!important;margin:0!important;padding:0!important;border:1px solid #cbd6df!important;
+    border-radius:8px!important;background:#fff!important;color:#397491!important;
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-icon-action svg,
+  html body #view-expenses #expenseRows .expense-icon-action svg{
+    width:16px!important;height:16px!important;fill:none!important;stroke:currentColor!important;
+    stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important;pointer-events:none!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-icon-action:hover,
+  html body #view-expenses #expenseRows .expense-icon-action:hover{
+    background:#f2f7fa!important;border-color:#9fb6c4!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-icon-action.email-sent{
+    color:#17713c!important;border-color:#b9dfc8!important;background:#f4fbf6!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-icon-delete{
+    color:#b42318!important;border-color:#efc0bc!important;background:#fffafa!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-more-trigger,
+  html body #view-expenses #expenseRows .expense-more-actions>summary{
+    box-sizing:border-box!important;flex:0 0 auto!important;width:auto!important;min-width:68px!important;
+    height:34px!important;min-height:34px!important;margin:0!important;padding:5px 9px!important;line-height:22px!important;
+    border:1px solid #cbd6df!important;border-radius:8px!important;background:#fff!important;color:#334155!important;
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;font-size:11px!important;font-weight:700!important;
+  }
+  html body #view-expenses #expenseRows .expense-more-actions{
+    flex:0 0 auto!important;width:auto!important;min-width:68px!important;margin:0!important;padding:0!important;
+  }
+  html body #view-invoices #invoiceRows .invoice-record-payment-action{display:none!important}
+  html body #view-invoices #invoiceRows .inv-col-total strong,
+  html body #view-invoices #invoiceRows .inv-col-balance strong,
+  html body #view-expenses #expenseRows .exp-col-total strong,
+  html body #view-expenses #expenseRows .exp-col-balance strong{
+    font-size:12px!important;font-weight:800!important;
+  }
+}
+
+/* v62.13 Compact Smart Match Sets — isolated bank-reconciliation presentation. */
+#view-bankreconciliation .bank-card-list{display:grid;gap:9px;overflow:visible!important}
+#view-bankreconciliation .br-matchset{min-width:0;border:1px solid #dfe3ef;border-radius:13px;background:#fff;box-shadow:0 3px 12px rgba(23,36,61,.05);overflow:hidden}
+#view-bankreconciliation .br-matchset.is-grouped{border-color:#c9bdf5;box-shadow:0 7px 24px rgba(79,57,164,.1)}
+#view-bankreconciliation .br-matchset-labels{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;padding:6px 12px;background:#f7f8fc;border-bottom:1px solid #e7eaf2;color:#667085;font-size:10px;font-weight:800;line-height:1.2;letter-spacing:.05em;text-transform:uppercase}
+#view-bankreconciliation .br-matchset-labels>span:last-child{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#view-bankreconciliation .br-matchset-labels b{border-radius:999px;padding:3px 7px;background:#eee9ff;color:#563bc7;font-size:10px;letter-spacing:0;text-transform:none;white-space:nowrap}
+#view-bankreconciliation .br-matchset-grid{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);align-items:stretch;padding:8px 12px;gap:0;background:linear-gradient(90deg,#fbfcff 0 48%,#faf8ff 52% 100%)}
+#view-bankreconciliation .br-match-bank-stack,#view-bankreconciliation .br-match-record-stack{display:grid;align-content:center;gap:6px;min-width:0}
+#view-bankreconciliation .br-match-bank-card,#view-bankreconciliation .br-match-record-card{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;min-height:62px;padding:8px 11px;border:1px solid #dfe5ee;border-radius:10px;background:#fff;box-shadow:0 1px 5px rgba(23,36,61,.04)}
+#view-bankreconciliation .br-match-bank-card{border-left:3px solid #1e3a5a}
+#view-bankreconciliation .br-match-record-card{border-left:3px solid #6f52e8}
+#view-bankreconciliation .br-match-record-card.is-rule{border-left-color:#8b6ce4;background:#fbf9ff}
+#view-bankreconciliation .br-match-record-card.is-empty{border-style:dashed;border-left-width:1px;background:#fafbfe}
+#view-bankreconciliation .br-match-bank-card>div,#view-bankreconciliation .br-match-record-card>div{display:grid;gap:1px;min-width:0}
+#view-bankreconciliation .br-match-bank-card span,#view-bankreconciliation .br-match-record-card span{color:#667085;font-size:9px;font-weight:800;line-height:1.25;letter-spacing:.04em;text-transform:uppercase}
+#view-bankreconciliation .br-match-bank-card strong,#view-bankreconciliation .br-match-record-card strong{min-width:0;color:#17243d;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#view-bankreconciliation .br-match-bank-card small,#view-bankreconciliation .br-match-record-card small{min-width:0;color:#667085;font-size:10.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#view-bankreconciliation .br-match-bank-card>b,#view-bankreconciliation .br-match-record-card>b{flex:none;color:#17243d;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+#view-bankreconciliation .br-match-bank-card>b.money-in{color:#147a3d!important}
+#view-bankreconciliation .br-match-bank-card>b.money-out{color:#b42318!important}
+#view-bankreconciliation .br-match-connector{position:relative;display:grid;place-items:center;min-height:52px;color:#6f52e8}
+#view-bankreconciliation .br-match-connector i{position:absolute;left:5px;right:5px;top:50%;height:2px;background:linear-gradient(90deg,#8da0b7,#6f52e8);transform:translateY(-50%)}
+#view-bankreconciliation .br-match-connector i::before,#view-bankreconciliation .br-match-connector i::after{content:'';position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:#6f52e8;transform:translateY(-50%)}
+#view-bankreconciliation .br-match-connector i::before{left:-2px;background:#1e3a5a}
+#view-bankreconciliation .br-match-connector i::after{right:-2px}
+#view-bankreconciliation .br-match-connector span{z-index:1;display:grid;place-items:center;width:23px;height:23px;border:1px solid #cbbdf6;border-radius:50%;background:#fff;box-shadow:0 2px 7px rgba(84,57,188,.14);font-size:11px;font-weight:900}
+#view-bankreconciliation .is-grouped .br-match-bank-stack,#view-bankreconciliation .is-grouped .br-match-record-stack{position:relative;padding:2px 0}
+#view-bankreconciliation .is-grouped .br-match-bank-stack::after,#view-bankreconciliation .is-grouped .br-match-record-stack::before{content:'';position:absolute;top:18%;bottom:18%;width:2px;background:#9a7cf4}
+#view-bankreconciliation .is-grouped .br-match-bank-stack::after{right:-9px}
+#view-bankreconciliation .is-grouped .br-match-record-stack::before{left:-9px}
+#view-bankreconciliation .br-match-balanced{display:inline-flex;align-items:center;margin-right:auto;border-radius:999px;padding:4px 8px;background:#eee9ff;color:#563bc7;font-size:10.5px;font-weight:800;white-space:nowrap}
+#view-bankreconciliation .br-matchset-actions{display:flex;justify-content:flex-end;align-items:center;gap:5px;min-height:40px;padding:5px 12px;border-top:1px solid #eceef4;background:#fff;overflow:visible}
+#view-bankreconciliation .br-matchset-actions button{min-height:30px!important;height:30px!important;padding:4px 9px!important;border-radius:8px!important;font-size:10.5px!important;line-height:20px!important;white-space:nowrap}
+#view-bankreconciliation .br-matchset-actions .button-link{margin-right:auto;border:0;background:transparent;color:#667085;font-weight:750;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+#view-bankreconciliation .is-grouped .br-matchset-actions .button-link{margin-right:0}
+#view-bankreconciliation .br-mobile-confidence{display:none;align-items:center;border-radius:999px;padding:4px 8px;background:#eee9ff;color:#563bc7;font-size:10.5px;font-weight:800;white-space:nowrap}
+#view-bankreconciliation .br-matchset-actions .primary{background:linear-gradient(120deg,#5541e5,#713fd8);border-color:#5541e5;color:#fff}
+#view-bankreconciliation .br-matchset button:focus-visible,#view-bankreconciliation .br-builder-choice:focus-visible,#view-bankreconciliation .br-builder-record button:focus-visible{outline:3px solid rgba(111,82,232,.3);outline-offset:2px}
+.bank-recon-modal:has(#brSmartBuilder){width:min(1120px,94vw);max-width:1120px;max-height:92vh;overflow:auto}
+#brSmartBuilder .br-builder-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+#brSmartBuilder .br-builder-head h2,#brSmartBuilder .br-builder-head p{margin:0}
+#brSmartBuilder .br-builder-head p{margin-top:4px}
+#brSmartBuilder .br-builder-head>span{border-radius:999px;padding:6px 10px;background:#eee9ff;color:#563bc7;font-size:11px;font-weight:850}
+#brSmartBuilder .br-builder-grid{display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);gap:0;align-items:stretch}
+#brSmartBuilder .br-builder-grid>section{min-width:0;border:1px solid #e1e5ef;border-radius:14px;padding:12px;background:#fafbfe}
+#brSmartBuilder .br-builder-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px;color:#17243d}
+#brSmartBuilder .br-builder-title b{font-variant-numeric:tabular-nums}
+#brSmartBuilder .br-builder-link{display:grid;place-items:center;color:#6f52e8;font-size:20px;font-weight:900}
+#brSmartBuilder .br-builder-list{display:grid;gap:7px;max-height:46vh;overflow:auto;margin-top:9px;padding-right:3px}
+#brSmartBuilder .br-builder-choice{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:11px;border:1px solid #dfe4ed;border-radius:11px;background:#fff;color:#17243d;text-align:left;cursor:pointer}
+#brSmartBuilder .br-builder-choice.selected{border-color:#8064eb;background:#f5f1ff;box-shadow:0 0 0 2px rgba(128,100,235,.12)}
+#brSmartBuilder .br-builder-choice span{display:grid;gap:3px;min-width:0}
+#brSmartBuilder .br-builder-choice strong,#brSmartBuilder .br-builder-choice small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#brSmartBuilder .br-builder-choice small{color:#667085;font-size:11px}
+#brSmartBuilder .br-builder-choice b{font-variant-numeric:tabular-nums;white-space:nowrap}
+#brSmartBuilder .br-builder-record{border:1px solid #dfe4ed;border-radius:11px;background:#fff;overflow:hidden}
+#brSmartBuilder .br-builder-record.selected{border-color:#8064eb;background:#f7f4ff;box-shadow:0 0 0 2px rgba(128,100,235,.1)}
+#brSmartBuilder .br-builder-record>button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:10px 11px;border:0;background:transparent;color:#17243d;text-align:left;cursor:pointer}
+#brSmartBuilder .br-builder-record>button>span:first-child{display:grid;gap:3px;min-width:0}
+#brSmartBuilder .br-builder-record strong,#brSmartBuilder .br-builder-record small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#brSmartBuilder .br-builder-record small{color:#667085;font-size:11px}
+#brSmartBuilder .br-builder-record label{display:grid;grid-template-columns:auto 120px;align-items:center;justify-content:end;gap:8px;padding:0 10px 10px;color:#5d6574;font-size:11px;font-weight:750}
+#brSmartBuilder .br-builder-record input{height:34px;text-align:right;font-variant-numeric:tabular-nums}
+#brSmartBuilder .br-builder-balance{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;padding:12px 14px;border:1px solid #ead8a8;border-radius:12px;background:#fff8e8;color:#765315}
+#brSmartBuilder .br-builder-balance.balanced{border-color:#cfc2f7;background:#f3efff;color:#563bc7}
+#brSmartBuilder .br-builder-balance.over{border-color:#efc4c4;background:#fff5f5;color:#a52a2a}
+#brSmartBuilder .br-builder-balance span{font-size:12px;font-variant-numeric:tabular-nums}
+@media(max-width:850px){
+  #view-bankreconciliation .br-matchset-labels{display:none}
+  #view-bankreconciliation .br-matchset-grid{grid-template-columns:1fr;padding:8px;background:linear-gradient(180deg,#fbfcff,#faf8ff)}
+  #view-bankreconciliation .br-match-connector{min-height:32px}
+  #view-bankreconciliation .br-match-connector i{top:4px;bottom:4px;left:50%;right:auto;width:2px;height:auto;background:linear-gradient(#1e3a5a,#6f52e8);transform:translateX(-50%)}
+  #view-bankreconciliation .br-match-connector i::before,#view-bankreconciliation .br-match-connector i::after{left:50%;top:auto;transform:translateX(-50%)}
+  #view-bankreconciliation .br-match-connector i::before{top:-2px}
+  #view-bankreconciliation .br-match-connector i::after{bottom:-2px;right:auto}
+  #view-bankreconciliation .br-match-connector span{transform:rotate(90deg)}
+  #view-bankreconciliation .is-grouped .br-match-bank-stack::after,#view-bankreconciliation .is-grouped .br-match-record-stack::before{display:none}
+  #view-bankreconciliation .br-matchset-actions{justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;padding:5px 8px}
+  #view-bankreconciliation .br-matchset-actions>*{flex:0 0 auto}
+  #view-bankreconciliation .br-matchset-actions .button-link{width:auto;margin:0;text-align:left}
+  #view-bankreconciliation .br-match-balanced{margin-right:2px}
+  #view-bankreconciliation .br-mobile-confidence{display:inline-flex}
+  #brSmartBuilder .br-builder-grid{grid-template-columns:1fr}
+  #brSmartBuilder .br-builder-link{min-height:38px;transform:rotate(90deg)}
+  #brSmartBuilder .br-builder-list{max-height:34vh}
+}
+@media(max-width:560px){
+  #view-bankreconciliation .br-match-bank-card,#view-bankreconciliation .br-match-record-card{align-items:flex-start}
+  #view-bankreconciliation .br-match-bank-card strong,#view-bankreconciliation .br-match-record-card strong,#view-bankreconciliation .br-match-bank-card small,#view-bankreconciliation .br-match-record-card small{white-space:normal}
+  #brSmartBuilder .br-builder-head{display:grid}
+  #brSmartBuilder .br-builder-balance{align-items:flex-start;flex-direction:column}
+}
+
+/* v62.14 — transaction direction, record drill-down and compact invoice reconciliation status. */
+#view-bankreconciliation button.br-match-record-card{
+  width:100%;margin:0;font:inherit;text-align:left;cursor:pointer;
+  appearance:none;-webkit-appearance:none;color:inherit;
+}
+#view-bankreconciliation button.br-match-record-card:hover{border-color:#9d88eb;background:#fbf9ff;box-shadow:0 3px 10px rgba(83,59,175,.11)}
+#view-bankreconciliation button.br-match-record-card:focus-visible{outline:3px solid rgba(111,82,232,.3);outline-offset:2px}
+#brSmartBuilder .br-builder-choice b.money-in{color:#147a3d}
+#brSmartBuilder .br-builder-choice b.money-out{color:#b42318}
+
+#view-invoices #invoiceRows .invoice-recon-note{
+  display:flex;align-items:center;gap:4px;width:max-content;max-width:100%;
+  margin-top:3px;color:#64748b;font-size:9.5px;font-weight:650;line-height:1.05;white-space:nowrap;
+}
+#view-invoices #invoiceRows .invoice-recon-note i{display:block;flex:0 0 auto;width:5px;height:5px;border-radius:50%;background:#94a3b8}
+#view-invoices #invoiceRows .invoice-recon-note.is-pending i{background:#d69e2e}
+#view-invoices #invoiceRows .invoice-recon-note.is-partial i{background:#b7791f}
+#view-invoices #invoiceRows .invoice-recon-note.is-matched{color:#3f6f58}
+#view-invoices #invoiceRows .invoice-recon-note.is-matched i{background:#31a56c}
+@media(max-width:760px){
+  #view-invoices #invoiceRows .invoice-recon-note{margin-left:auto;font-size:9px}
+}
+
+/* Consolidated stock-equipment.css — exact rules retained for the 100-file release package. */
+#view-stock-equipment .se-root{max-width:1120px;margin:auto;padding:12px 0 36px}#view-stock-equipment .se-context{background:#eaf3fc;color:#294563;border-radius:12px;padding:14px;line-height:1.45}.se-tabs{display:flex;overflow:auto;gap:6px;padding:8px 0;max-width:100%;scrollbar-width:thin}.se-tabs button{white-space:nowrap;border:1px solid #d5e1eb;border-radius:12px;background:#fff;color:#17324d;padding:12px 14px;min-height:44px;font-weight:600}.se-tabs button[aria-current="page"]{background:#e7f1fb;border-color:#5394ca}.se-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}.se-summary>div{border:1px solid #d6e1ea;background:#fff;border-radius:12px;padding:14px;min-width:0}.se-summary span,.se-summary strong{display:block}.se-summary span{font-size:.84rem;color:#556778}.se-summary strong{font-size:1.28rem;padding-top:8px}.se-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:16px 0}.se-toolbar input{flex:1 1 170px;min-width:0}.se-rows{border:1px solid #d5e1eb;border-radius:12px;background:#fff;margin:12px 0}.se-rows>p{padding:12px}.se-row{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #edf1f5;min-width:0}.se-row:last-child{border-bottom:0}.se-row>div{min-width:0;overflow-wrap:anywhere}.se-row strong,.se-row small{display:block}.se-row small{color:#53677b;line-height:1.45;margin-top:4px}.se-row button,.se-toolbar button,.se-form button,.se-root>button{border:1px solid #b8cbdc;color:#184a78;background:#f4f9fd;border-radius:9px;padding:10px 13px;min-height:44px;cursor:pointer}.se-form{border:1px solid #c9d9e5;background:#fff;border-radius:12px;padding:16px;margin:16px 0;display:grid;gap:12px;max-width:560px}.se-form label{display:grid;gap:5px;font-weight:600}.se-form input,.se-form select,.se-toolbar input{width:100%;box-sizing:border-box;min-height:44px;padding:9px;border-radius:8px;border:1px solid #b8cbdc;font:inherit}.se-form p{line-height:1.5;margin:0;color:#53677b}.se-form button{background:#225c93;color:white;font-weight:700}.se-form button:disabled{opacity:.45}.se-rows a{overflow-wrap:anywhere}@media(max-width:550px){.se-summary{grid-template-columns:1fr 1fr}.se-row{align-items:flex-start;flex-direction:column}.se-row button{align-self:flex-start}.se-summary strong{font-size:1.1rem}.se-tabs button{padding:10px}}
+
+.se-toolbar form[data-se-search]{display:flex;gap:8px;flex:1 1 240px;flex-wrap:wrap}.se-toolbar form[data-se-search] input{flex:1 1 170px}.se-form [hidden],.se-toolbar [hidden]{display:none!important}
+.se-printed-price{display:grid;align-content:center;gap:3px;min-height:44px}.se-printed-price span{font-weight:600}.se-printed-price strong{font-size:1.1rem;color:#163e66}.se-printed-price small{color:#53677b}
+.se-invoice-review{background:#fff;border:1px solid #c9d9e5;border-radius:14px;padding:16px;margin:18px 0;display:grid;gap:14px;max-width:100%;box-sizing:border-box}.se-invoice-review label{font-weight:600;display:grid;gap:5px;min-width:0}.se-invoice-review input,.se-invoice-review select{font:inherit;box-sizing:border-box;width:100%;min-height:44px;border:1px solid #b8cbdc;border-radius:8px;padding:8px}.se-invoice-review button{min-height:44px;border:1px solid #b8cbdc;border-radius:9px;padding:9px 13px;background:#f4f9fd;color:#184a78;cursor:pointer}.se-invoice-review button[type=submit]{background:#225c93;color:#fff;justify-self:start;font-weight:700}.se-invoice-review button:disabled{opacity:.45;cursor:not-allowed}.se-invoice-review p{margin:0;line-height:1.45}.se-review-rows{display:grid;gap:10px}.se-review-item{border:1px solid #e0e9f0;border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(140px,2fr) minmax(155px,1.6fr) repeat(4,minmax(85px,1fr));gap:9px;align-items:end}.se-review-item>strong,.se-review-item>small{grid-column:1/-1}.se-review-item>button{justify-self:start;grid-column:1/-1}.se-asset-fields{grid-column:1/-1;display:flex;gap:9px;flex-wrap:wrap;align-items:end}.se-asset-fields[hidden]{display:none}.se-asset-fields label{flex:1 1 155px}.se-review-balance{padding:12px;border-radius:9px;background:#eef5fb;color:#244764}@media(max-width:850px){.se-review-item{grid-template-columns:repeat(2,minmax(0,1fr))}.se-review-item>label:first-of-type{grid-column:1/-1}}@media(max-width:520px){.se-review-item{grid-template-columns:repeat(2,minmax(0,1fr))}.se-review-item>label:nth-of-type(1),.se-review-item>label:nth-of-type(2){grid-column:1/-1}.se-asset-fields label{flex:1 1 100%}.se-invoice-review .se-toolbar button{flex:1 1 140px}}
+/* Dense invoice review: one item per row, with large enough tap targets on phones. */
+#view-stock-equipment .se-root:has(.se-invoice-review){max-width:1560px}
+.se-invoice-review{font-size:13px;gap:10px}
+.se-review-help{color:#486079;font-size:12px}
+.se-review-scroll{overflow-x:auto;max-width:100%;scrollbar-width:thin}
+.se-review-rows{gap:0;min-width:1350px;border:1px solid #d7e3ed;border-radius:10px;overflow:hidden}
+.se-review-item{display:grid;grid-template-columns:24px minmax(215px,1fr) minmax(150px,240px) max-content 55px 95px 75px 95px 32px;align-items:center;gap:6px;min-height:57px;padding:5px 8px;border:0;border-bottom:1px solid #e5ecf2;border-radius:0;background:#fff}
+.se-review-item:last-child{border-bottom:0}
+.se-review-item:nth-child(even){background:#f8fbfd}
+.se-review-item .se-item-num{font-weight:700;white-space:nowrap}
+.se-review-item label{min-width:0;gap:2px}
+.se-review-item label>span,.se-printed-price>span,.se-use-options legend{font-size:10px;line-height:1;color:#5a6c7b;font-weight:600}
+.se-review-item input:not([type=radio]):not([type=hidden]),.se-review-item select{min-height:32px;padding:4px 6px;font-size:12px}
+.se-review-item .se-item-description input{text-overflow:ellipsis}
+.se-review-item .se-printed-price{min-height:32px;gap:2px}
+.se-review-item .se-printed-price strong{font-size:12px}
+.se-use-options{display:flex;align-items:center;gap:2px;margin:0;padding:0;border:0;min-width:0}
+.se-use-options legend{margin-bottom:3px}
+.se-use-options label{display:inline-flex;align-items:center;justify-content:center;gap:2px;min-width:0;border:1px solid #c7d7e5;border-radius:6px;padding:4px 3px;white-space:nowrap;font-size:11px;cursor:pointer}
+.se-use-options label:has(input:checked){background:#dfedfc;border-color:#3779bb;color:#143e67;font-weight:700}
+.se-use-options label:focus-within{outline:2px solid #3779bb;outline-offset:2px}
+.se-use-options input[type=radio]{width:14px;height:14px;min-height:14px;margin:0;accent-color:#2869a7}
+.se-review-item .se-remove-item{grid-column:auto;justify-self:center;min-height:32px;padding:0;width:32px;font-size:20px;line-height:1}
+.se-review-item .se-incl-value{background:#f0f5f9;font-weight:700;color:#163e66}
+.se-review-item .se-asset-fields{grid-column:2/-1;display:flex;padding:5px 0;gap:8px}
+.se-review-item .se-asset-fields[hidden]{display:none}
+@media(max-width:850px){.se-review-item>label:first-of-type,.se-review-item>label:nth-of-type(1),.se-review-item>label:nth-of-type(2){grid-column:auto}}
+@media(max-width:700px){.se-review-item{min-height:54px}.se-review-help{line-height:1.35}.se-invoice-review{padding:10px}}
+/* Keep the optional register's six category tabs visible without horizontal scrolling. */
+#view-stock-equipment .se-tabs{flex-wrap:wrap;overflow:visible}
+
+.se-topline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:14px 0}.se-topline>div{border:1px solid #d6e1ea;background:#fff;border-radius:10px;padding:13px;min-width:0}.se-topline span,.se-topline strong{display:block}.se-topline span{font-size:.82rem;color:#556778}.se-topline strong{font-size:1.22rem;margin-top:6px}.se-summary small,.se-summary em{display:block;color:#53677b;margin-top:5px;font-style:normal}.se-panel h2{margin:18px 0 8px}.se-table-wrap{width:100%;overflow-x:auto;border:1px solid #d5e1eb;border-radius:12px;background:#fff;margin:12px 0}.se-table{width:100%;border-collapse:collapse;min-width:900px}.se-table th,.se-table td{padding:11px 12px;border-bottom:1px solid #edf1f5;text-align:left;vertical-align:top}.se-table th{font-size:.78rem;color:#53677b;background:#f6f9fc;white-space:nowrap}.se-table td strong,.se-table td small{display:block}.se-table td small{color:#53677b;margin-top:3px}.se-table tr:last-child td{border-bottom:0}.se-actions{display:flex;gap:6px;flex-wrap:wrap;min-width:180px}.se-actions button{min-height:36px;padding:7px 9px;border-radius:8px;border:1px solid #b8cbdc;background:#f4f9fd;color:#184a78;cursor:pointer}.se-form.wide{max-width:none}.se-form .form-grid.compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.se-form input[readonly]{background:#f5f8fb;color:#53677b}.se-table input,.se-table select{min-height:38px;border:1px solid #b8cbdc;border-radius:8px;padding:7px;box-sizing:border-box;width:100%;font:inherit}
+@media(max-width:760px){.se-topline{grid-template-columns:1fr}.se-summary{grid-template-columns:1fr}.se-form .form-grid.compact{grid-template-columns:1fr}.se-table{min-width:760px}.se-actions{min-width:150px}}
+
+/* v61.99W manual stock/consumable entry — scoped to Stock & Equipment only */
+#view-stock-equipment .se-toolbar .primary{margin-left:auto;background:#1672f3;color:#fff;border-color:#1672f3;font-weight:700}
+#view-stock-equipment .se-manual-item{max-width:760px;margin:10px 0 16px}
+#view-stock-equipment .se-form-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+#view-stock-equipment .se-form-heading h3{margin:0 0 4px}
+#view-stock-equipment .se-form-heading p{font-size:12px;max-width:520px}
+#view-stock-equipment .se-form-heading button{flex:0 0 auto}
+#view-stock-equipment .se-manual-item .optional{font-weight:400;color:#7182a2;font-size:11px}
+#view-stock-equipment .se-form-actions{display:flex;justify-content:flex-end}
+#view-stock-equipment .se-form-actions .primary{background:#1672f3;color:#fff;border-color:#1672f3;font-weight:700}
+@media(max-width:550px){
+ #view-stock-equipment .se-toolbar{align-items:stretch}
+ #view-stock-equipment .se-toolbar .primary{width:100%;margin-left:0}
+ #view-stock-equipment .se-form-heading{flex-direction:column}
+ #view-stock-equipment .se-form-heading button{align-self:flex-start}
+ #view-stock-equipment .se-form-actions .primary{width:100%}
+}
+
+/* v61.100T Stock & Equipment desktop list alignment — presentation only.
+   Keep each Stock to Sell, Consumables, CapEx and Small Tools record on one row,
+   matching the compact Invoice / Expense list treatment. */
+@media (min-width:761px){
+  #view-stock-equipment .se-table{min-width:1180px}
+  #view-stock-equipment .se-table th,
+  #view-stock-equipment .se-table td{vertical-align:middle;padding:9px 10px;white-space:nowrap}
+  #view-stock-equipment .se-table td:first-child{max-width:300px;overflow:hidden;text-overflow:ellipsis}
+  #view-stock-equipment .se-table td:first-child strong,
+  #view-stock-equipment .se-table td:first-child small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #view-stock-equipment .se-actions{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;min-width:max-content}
+  #view-stock-equipment .se-actions button{flex:0 0 auto;min-height:34px;padding:7px 9px;font-size:11px;white-space:nowrap}
+}
+
+/* v61.100U Stock & Equipment desktop width fit — presentation only.
+   Keep tracked-item lists within the module viewport like Invoices / Expenses,
+   so the list does not create a horizontal scrollbar. Mobile rules are unchanged. */
+@media (min-width:761px){
+  #view-stock-equipment .se-table-wrap{overflow-x:hidden}
+  #view-stock-equipment .se-table{width:100%;min-width:0;table-layout:fixed}
+  #view-stock-equipment .se-table th,
+  #view-stock-equipment .se-table td{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #view-stock-equipment .se-table th:first-child,
+  #view-stock-equipment .se-table td:first-child{width:22%}
+  #view-stock-equipment .se-table th:last-child,
+  #view-stock-equipment .se-table td:last-child{width:35%;overflow:visible;text-overflow:clip}
+  #view-stock-equipment .se-table td:not(:first-child):not(:last-child){font-size:12px}
+  #view-stock-equipment .se-actions{width:100%;min-width:0;gap:4px;justify-content:flex-start}
+  #view-stock-equipment .se-actions button{min-width:0;padding:6px 7px;font-size:10.5px}
+}
+
+/* v61.107ZP — Stock & Equipment alignment + responsive record summaries. */
+#view-stock-equipment .se-root{max-width:none;width:100%;margin:0;padding:12px 0 36px;box-sizing:border-box}
+@media (min-width:761px){
+ #view-stock-equipment .se-table-wrap{overflow-x:auto}
+ #view-stock-equipment .se-table{width:100%;min-width:980px;table-layout:auto}
+ #view-stock-equipment .se-table th,#view-stock-equipment .se-table td{overflow:visible;text-overflow:clip}
+ #view-stock-equipment .se-table th:first-child,#view-stock-equipment .se-table td:first-child{width:auto;min-width:180px;max-width:340px}
+ #view-stock-equipment .se-table th:last-child,#view-stock-equipment .se-table td:last-child{width:auto;min-width:220px}
+ #view-stock-equipment .se-actions{width:auto;min-width:max-content;flex-wrap:wrap}
+}
+@media (max-width:760px){
+ #view-stock-equipment .se-mobile-record-table{min-width:0!important;border-collapse:separate;border-spacing:0}
+ #view-stock-equipment .se-mobile-record-table thead{display:none}
+ #view-stock-equipment .se-mobile-record-table tbody,#view-stock-equipment .se-mobile-record-table tr,#view-stock-equipment .se-mobile-record-table td{display:block;width:100%!important;max-width:none!important;box-sizing:border-box}
+ #view-stock-equipment .se-mobile-record-table tr{position:relative;padding:11px 34px 11px 12px;border-bottom:1px solid #e8eef4;cursor:pointer;background:#fff}
+ #view-stock-equipment .se-mobile-record-table tr::after{content:'›';position:absolute;right:12px;top:17px;color:#718096;font-size:22px;line-height:1;transition:transform .15s ease}
+ #view-stock-equipment .se-mobile-record-table tr.se-mobile-expanded::after{transform:rotate(90deg)}
+ #view-stock-equipment .se-mobile-record-table td{display:none;border:0!important;padding:2px 0!important;white-space:normal!important;overflow:visible!important}
+ #view-stock-equipment .se-mobile-record-table td:first-child{display:block!important;font-size:14px}
+ #view-stock-equipment .se-mobile-record-table td:first-child strong{white-space:normal!important;overflow:visible!important}
+ #view-stock-equipment .se-mobile-record-table td.se-mobile-summary-meta{display:block!important;color:#60718a;font-size:12px}
+ #view-stock-equipment .se-mobile-record-table tr.se-mobile-expanded td{display:block!important;padding:5px 0!important}
+ #view-stock-equipment .se-mobile-record-table tr.se-mobile-expanded td::before{content:attr(data-se-label);display:block;color:#75859a;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}
+ #view-stock-equipment .se-mobile-record-table tr.se-mobile-expanded td:first-child::before{display:none}
+ #view-stock-equipment .se-mobile-record-table .se-actions{min-width:0;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+ #view-stock-equipment .se-mobile-record-table .se-actions button{min-height:40px}
+}
+
+/* Consolidated purchase-review.css — exact rules retained for the 100-file release package. */
+/* Invoice review is part of Expenses. One compact invoice at a time can be saved. */
+.pr-search{display:block;max-width:340px;margin:10px 0}.pr-search input{width:100%;min-height:38px}
+.pr-bill-list{display:grid;gap:10px}.pr-invoice{border:1px solid #d9e3f4;border-radius:10px;background:#fff;overflow:hidden}
+.pr-invoice-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 13px;background:#f6f9fd}
+.pr-invoice-head strong,.pr-invoice-head small{display:block}.pr-invoice-head small{font-size:12px;margin-top:3px;color:#4b6179}
+.pr-invoice-head .pr-state{color:#245d79;font-weight:600}.pr-invoice-head button{white-space:nowrap;padding:7px 10px}
+.pr-invoice [data-pr-items][hidden],.pr-asset[hidden],.pr-message[hidden]{display:none}
+.pr-documents{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 12px}
+.pr-documents button,.pr-upload{padding:5px 8px;font-size:12px;border:1px solid #c9d7ec;border-radius:6px;background:#fff;color:#18324a;cursor:pointer}
+.pr-upload input{display:none}.pr-items{padding:0 10px;min-width:0;overflow:visible}
+.pr-column-head,.pr-item{display:grid;grid-template-columns:20px minmax(110px,2.5fr) minmax(82px,1.3fr) minmax(95px,1.5fr) 45px minmax(60px,.85fr) minmax(50px,.75fr) minmax(68px,.85fr) 24px;gap:4px;align-items:center}
+.pr-column-head{padding:3px 4px;font-size:11px;font-weight:650;color:#526881}
+.pr-item{padding:5px 4px;border-top:1px solid #e2eaf5;font-size:12px}.pr-item:nth-child(2n){background:#f9fbff}
+.pr-item label{min-width:0;display:block}.pr-item label>span,.pr-gross small{display:none}
+.pr-item input:not([type=radio]),.pr-item select{box-sizing:border-box;width:100%;min-width:0;min-height:34px;padding:4px 5px;font-size:12px;font-weight:550;border:1px solid #cad7e8;border-radius:5px;background:#fff}
+.pr-item select{padding-right:16px;text-overflow:ellipsis}.pr-item input[name=quantity]{padding-left:3px;padding-right:2px}
+.pr-gross output{display:block;min-height:34px;line-height:34px;font-weight:700;white-space:nowrap}.pr-num{font-weight:700}
+.pr-remove{min-height:32px;padding:2px 5px;border:1px solid #cbd9e9;background:#fff;border-radius:5px}
+.pr-mobile-summary{display:none}.pr-asset{grid-column:2/-1;display:flex;gap:7px;flex-wrap:wrap;padding:5px 0}.pr-asset label{min-width:115px;flex:1}.pr-asset label>span{display:inline}
+.pr-invoice-footer{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;padding:9px 12px}
+.pr-invoice-footer [data-pr-balance]{flex:1 1 270px;font-size:12px;color:#395b75}.pr-invoice-footer button{min-height:36px;padding:7px 10px}
+.pr-correction{flex:1 1 170px;font-size:12px}.pr-correction input{min-height:34px;width:100%}.pr-message{margin:2px 12px 10px;color:#91480a;font-size:12px}
+.pr-list-nav{display:flex;align-items:center;gap:7px;margin-top:12px}.pr-list-nav span{margin-right:auto}
+@media(max-width:680px){
+ .pr-invoice-head{padding:8px;gap:5px}.pr-invoice-head strong{font-size:13px}.pr-invoice-head small{font-size:11px}.pr-invoice-head button{font-size:11px;padding:6px}
+ .pr-documents{padding:5px 7px}.pr-column-head{display:none}.pr-items{padding:0 7px}
+ .pr-item{display:flex;align-items:center;gap:3px;padding:4px 2px;flex-wrap:wrap}.pr-mobile-summary{display:flex;align-items:center;gap:4px;width:100%;min-height:40px;border:0;background:transparent;text-align:left;padding:2px;color:inherit}
+ .pr-mobile-summary span{flex:1 1 35%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:650;font-size:12px}
+ .pr-mobile-summary small{flex:1 1 25%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#526881}
+ .pr-mobile-summary strong{flex:0 0 auto;font-size:12px}.pr-item:not(.editing)>:not(.pr-mobile-summary){display:none}
+ .pr-item.editing{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.pr-item.editing .pr-mobile-summary{grid-column:1/-1}
+ .pr-item.editing label>span,.pr-item.editing .pr-gross small{display:block;font-size:10px;color:#526881}
+ .pr-item.editing .pr-description,.pr-item.editing .pr-category,.pr-item.editing .pr-use-select{grid-column:span 2}
+ .pr-item.editing .pr-num{display:none}.pr-item.editing .pr-qty,.pr-item.editing .pr-amount,.pr-item.editing .pr-gross{grid-column:span 1}
+ .pr-item.editing .pr-gross output{min-height:32px;line-height:32px}.pr-item.editing .pr-remove{grid-column:4;justify-self:end}.pr-item.editing .pr-asset{grid-column:1/-1}
+ .pr-invoice-footer{padding:8px}.pr-invoice-footer [data-pr-balance]{flex-basis:100%}
+}
+
+.pr-item[data-pr-discount]{background:#f1f8ff}.pr-item[data-pr-discount] .pr-amount input{color:#145588}.pr-qty [hidden]{display:none!important}
+
+/* v61.101C invoice-level landed-cost allocation */
+.pr-allocate{grid-column:2/5;justify-self:start;min-height:30px;padding:4px 8px;font-size:11px}.pr-allocation-suggest,.pr-allocation-summary{display:block!important;margin-top:2px;font-size:10px!important;color:#5b6472}.pr-allocation-summary{color:#5b3fb4;font-weight:650}.pr-item[data-pr-allocated]{background:#faf8ff}.pr-allocate-backdrop{position:fixed;inset:0;z-index:10050;background:rgba(15,23,42,.42);display:flex;align-items:center;justify-content:center;padding:18px}.pr-allocate-modal{width:min(860px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 22px 60px rgba(15,23,42,.24);padding:18px}.pr-allocate-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.pr-allocate-head h3{margin:0 0 4px}.pr-allocate-head p{margin:0;color:#526881}.pr-allocate-head>[data-alloc-close]{border:0;background:transparent;font-size:25px;line-height:1;cursor:pointer}.pr-allocate-controls{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin:16px 0}.pr-allocate-controls label{font-size:12px;font-weight:650}.pr-allocate-controls select{display:block;width:100%;min-height:40px;margin-top:4px}.pr-allocate-items{display:grid;gap:6px}.pr-allocate-item{display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(105px,1fr));gap:10px;align-items:center;border:1px solid #e1e8f2;border-radius:9px;padding:9px}.pr-allocate-item>div small,.pr-allocate-check small{display:block;color:#65758a;font-size:10px}.pr-allocate-check{display:flex;gap:8px;align-items:center;min-width:0}.pr-allocate-check span{min-width:0}.pr-allocate-check strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pr-manual-pair{display:grid;grid-template-columns:1fr 1fr;gap:4px}.pr-manual-pair input{width:100%;min-width:0}.pr-allocation-input{width:100%;min-width:92px;max-width:150px;min-height:38px;padding:7px 9px;border:1px solid #ccd8e6;border-radius:8px;font:inherit;font-weight:650;background:#fff;color:#10233f}.pr-allocation-input:focus{outline:2px solid rgba(79,117,246,.2);border-color:#4f75f6}.pr-allocate-total{text-align:right;font-weight:700;margin:10px 0}.pr-allocate-total.is-wrong{color:#a02b2b}.pr-allocate-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}.pr-allocate-error{color:#a02b2b;margin:8px 0 0}.pr-allocate-error[hidden]{display:none}
+@media(max-width:680px){.pr-allocate{grid-column:1/-1;justify-self:stretch}.pr-allocate-backdrop{padding:8px;align-items:flex-end}.pr-allocate-modal{max-height:94vh;border-radius:14px 14px 0 0;padding:14px}.pr-allocate-controls{grid-template-columns:1fr}.pr-allocate-item{grid-template-columns:1fr 1fr;gap:8px}.pr-allocate-check{grid-column:1/-1}.pr-allocate-item>div{border-top:1px solid #eef2f7;padding-top:5px}.pr-allocate-actions{position:sticky;bottom:-14px;background:#fff;padding:10px 0 4px}.pr-allocate-actions button{flex:1 1 auto;min-height:44px}}
+
+/* v61.101G late transaction review UI only: opaque, compact and mobile-first. */
+#prLateTransactionModal{position:fixed;inset:0;z-index:10060;background:rgba(15,23,42,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:18px;overflow:hidden}
+#prLateTransactionModal.open{display:flex}
+#prLateTransactionModal .pr-late-modal-card{position:relative;box-sizing:border-box;width:min(700px,100%);max-width:700px;max-height:min(88vh,820px);overflow:auto;background:#fff!important;opacity:1!important;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.28);padding:24px;color:#17233b}
+#prLateTransactionModal .modal-x{position:absolute;top:16px;right:16px;z-index:2;width:36px;height:36px;border:1px solid #dbe3ef;border-radius:10px;background:#fff;color:#44546a;font-size:23px;line-height:1;cursor:pointer}
+.pr-late-head{padding-right:44px;margin-bottom:16px}.pr-late-head h2{margin:0 0 6px;font-size:1.45rem;color:#17233b}.pr-late-head p{margin:0;color:#5d6b80;line-height:1.45}
+.pr-late-section-title{margin:16px 0 8px;font-size:.82rem;font-weight:750;letter-spacing:.02em;color:#52647b;text-transform:uppercase}
+.pr-late-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}.pr-late-summary>div{background:#f8fafc;border:1px solid #e3eaf3;border-radius:10px;padding:10px 12px}.pr-late-summary span{display:block;color:#68778c;font-size:.76rem;margin-bottom:2px}.pr-late-summary strong{display:block;color:#17233b;font-size:.95rem;overflow-wrap:anywhere}.pr-late-summary .pr-late-key{background:#f4f7ff;border-color:#dce5ff}.pr-late-summary .pr-late-key strong{font-size:1.02rem}
+.pr-late-found{margin:14px 0;background:#fff9e8;border:1px solid #f2df9d;border-left:4px solid #d5aa2b;border-radius:10px;padding:11px 12px;color:#604f1b}.pr-late-found strong{display:block;margin-bottom:3px}.pr-late-found p{margin:0;line-height:1.42;font-size:.9rem}
+.pr-late-options{display:grid;gap:8px}.pr-late-choice{display:flex;gap:11px;align-items:flex-start;border:1px solid #dfe6f0;border-radius:12px;padding:12px;background:#fff;cursor:pointer;transition:border-color .15s,background .15s}.pr-late-choice:hover{border-color:#b8c8e1;background:#fbfdff}.pr-late-choice:has(input:checked){border-color:#6f91f6;background:#f5f8ff;box-shadow:0 0 0 2px rgba(79,117,246,.08)}.pr-late-choice:has(input:disabled){opacity:.55;cursor:not-allowed}.pr-late-choice input{margin:3px 0 0;width:18px;height:18px;flex:0 0 auto;accent-color:#4f75f6}.pr-late-choice span{min-width:0}.pr-late-choice strong{display:block;color:#1c2c47;font-size:.94rem;margin-bottom:2px}.pr-late-choice small{display:block;color:#68778c;font-size:.79rem;line-height:1.35}
+.pr-late-reason{display:block;margin-top:14px;font-size:.86rem;font-weight:700;color:#33445d}.pr-late-reason textarea{box-sizing:border-box;width:100%;min-height:76px;margin-top:6px;resize:vertical;border:1px solid #ccd7e6;border-radius:10px;padding:10px 11px;font:inherit;color:#17233b;background:#fff}.pr-late-reason textarea:focus{outline:2px solid rgba(79,117,246,.16);border-color:#4f75f6}
+.pr-late-foot{margin-top:16px;border-top:1px solid #e7edf5;padding-top:12px}.pr-late-foot .hint{margin:0 0 10px;color:#68778c;font-size:.76rem;line-height:1.35}.pr-late-actions{display:flex;justify-content:flex-end;gap:8px}.pr-late-actions button{min-height:42px;padding:8px 16px;border-radius:9px}
+@media(max-width:600px){#prLateTransactionModal{padding:0;align-items:flex-end;background:rgba(15,23,42,.66)}#prLateTransactionModal .pr-late-modal-card{width:100%;max-width:none;max-height:96dvh;border-radius:18px 18px 0 0;border-bottom:0;padding:18px 16px 0}.pr-late-head{padding-right:40px;margin-bottom:12px}.pr-late-head h2{font-size:1.25rem}.pr-late-head p{font-size:.88rem}.pr-late-summary{grid-template-columns:1fr 1fr;gap:6px}.pr-late-summary>div{padding:9px}.pr-late-summary span{font-size:.7rem}.pr-late-summary strong{font-size:.86rem}.pr-late-found{margin:11px 0;padding:10px}.pr-late-choice{padding:11px}.pr-late-reason textarea{min-height:68px}.pr-late-foot{position:sticky;bottom:0;background:#fff;margin-left:-16px;margin-right:-16px;padding:10px 16px max(12px,env(safe-area-inset-bottom));box-shadow:0 -8px 18px rgba(15,23,42,.06)}.pr-late-actions{display:grid;grid-template-columns:1fr 1.35fr}.pr-late-actions button{width:100%;min-height:46px}.pr-late-foot .hint{font-size:.72rem}}
+@media(max-width:390px){.pr-late-summary{grid-template-columns:1fr}.pr-late-summary>div:not(.pr-late-key){display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.pr-late-summary>div:not(.pr-late-key) span{margin:0}.pr-late-actions{grid-template-columns:1fr 1fr}}
+
+
