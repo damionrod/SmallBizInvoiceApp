@@ -432,7 +432,7 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.124-email-activity','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.124-email-activity','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZW-advanced-filters','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.124-payslip-email','financials.js?v=61.123-ird-connect','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-reconciliation.js?v=61.124-module-fallback','community.js?v=61.106-community-module']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=61.124-email-activity','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.124-email-activity','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZW-advanced-filters','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.124-payslip-email','financials.js?v=61.123-ird-connect','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-import-core.js?v=62.01-bnz-csv-identity','bank-reconciliation.js?v=62.01-bnz-csv-identity','community.js?v=61.106-community-module']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
@@ -799,11 +799,16 @@
     if(q('accountCurrency'))q('accountCurrency').value=String(state.business?.settings?.currency||'NZD').toUpperCase();
     if(q('accountHelperName'))q('accountHelperName').value=String(state.business?.settings?.helperNameOverride||'');
     if(q('accountHelperNameHint'))q('accountHelperNameHint').textContent=`Leave blank to use the platform default: ${window.FinloHelper?.getDefaultName?.()||'Frindly'}.`;
-    await refreshUsage();
-    if(['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))await renderTeamAccess();
     applyRoleAccessUI();
-    if(typeof window.switchView==='function')window.switchView('settings');
-    window.openCentralSettings?.('account');
+    // Navigation must never wait for account usage or team-access network calls.
+    // Open the page first, then refresh those independent panels in the background.
+    if(typeof window.switchView==='function'){
+      try{await window.switchView('settings')}catch(error){console.warn('Settings view initialisation failed:',error)}
+    }
+    try{await window.openCentralSettings?.('account')}catch(error){console.warn('Account settings panel initialisation failed:',error)}
+    const background=[refreshUsage()];
+    if(['owner','admin'].includes(state.profile?.is_super_admin?'owner':(state.accessRole||'')))background.push(renderTeamAccess());
+    Promise.allSettled(background).then(results=>results.forEach(result=>{if(result.status==='rejected')console.warn('Settings background data could not load:',result.reason)}));
   }
   function teamRoleLabel(role){return ({owner:'Owner',admin:'Admin',accountant:'Accountant',bookkeeper:'Bookkeeper',staff:'Staff',viewer:'Viewer'})[role]||role||'—'}
   function teamStatusLabel(status){return ({active:'Active',suspended:'Suspended',removed:'Removed'})[status]||status||'—'}
