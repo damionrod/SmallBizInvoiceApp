@@ -1,0 +1,56 @@
+{
+  "name": "Frindly Market",
+  "version": "v62.20-market-foundation",
+  "sourceBranch": "market/frindly-market",
+  "baselineCommit": "5fb34c1957b751424bc8f6655754eb53f2d84a89",
+  "supabase": {
+    "projectRef": "smvvevrtjqkflyqkyape",
+    "existingName": "finlo-v6170b-isolated-test",
+    "region": "ap-southeast-2",
+    "productionSchemaObjectsMatched": true,
+    "publicTables": 217,
+    "publicFunctions": 425,
+    "publicPolicies": 478,
+    "storagePolicies": 21,
+    "allPublicTablesRlsEnabled": true,
+    "authUsersPreserved": 8,
+    "existingBusinessesPreserved": 1
+  },
+  "netlify": {
+    "siteId": "2b57d35f-1627-4e0a-82f0-d1817966b606",
+    "name": "frindly-market",
+    "teamLoginRequired": true,
+    "published": false,
+    "repositoryConnection": "pending existing-account Netlify login and browser configuration",
+    "legacyNetlifyScheduledHandlers": "excluded by an explicit empty functions directory"
+  },
+  "verification": {
+    "marketGuardTestsPassed": 16,
+    "focusedHardeningTestsPassed": 30,
+    "sqlChecksPassed": 11,
+    "frontendSyntaxFilesPassed": 36,
+    "legacyFailuresUnchanged": 39
+  },
+  "outboundServices": {
+    "documentEmails": "blocked on server",
+    "payments": "blocked on server",
+    "bankConnections": "not deployed; blocked by browser policy",
+    "receiptOcr": "blocked on server",
+    "migrationAi": "disabled in server code",
+    "deterministicMigration": "retained",
+    "productionCronAndProviderSecrets": "not copied"
+  },
+  "pending": [
+    "Finish the approved branch upload and verify its tree against the local checked source",
+    "Connect the Market Netlify project to that branch through the browser",
+    "Set test Auth site/redirect URLs to the Market site",
+    "Publish and run authenticated desktop/mobile browser checks",
+    "Continue targeted hardening; existing test failures and security advisories remain"
+  ],
+  "sourcePublication": {
+    "status": "approved_upload_in_progress",
+    "repository": "damionrod/SmallBizInvoiceApp",
+    "branch": "market/frindly-market",
+    "reason": "User authorised GitHub publication and browser setup; upload is proceeding through the verified repository-owner browser session."
+  }
+}
