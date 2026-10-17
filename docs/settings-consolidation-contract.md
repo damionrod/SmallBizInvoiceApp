@@ -1,6 +1,6 @@
 # Settings consolidation: implementation contract
 
-Status: design for the next isolated change. No new RPC, schema change, live-value correction or settings-screen replacement is included in v62.20-rc1.
+Status: partially implemented in isolated Market v62.21. See `v62.21-market-reliability.md` for implemented commands, tests and remaining boundaries. This contract is not a claim that every historical consumer or payroll/onboarding setting has migrated.
 
 ## Ownership and compatibility
 
