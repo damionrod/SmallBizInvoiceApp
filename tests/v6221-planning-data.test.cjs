@@ -95,10 +95,10 @@ test('NZ instalment guidance is not shown for an Australian business',()=>{
 function settingsHarness(result,{during=()=>{}}={}){
   const source=fs.readFileSync(path.join(__dirname,'../public/saas.js'),'utf8');
   const start=source.indexOf('  async function saveBusinessSettings(s,{expectedRevision}={}){'),end=source.indexOf('\n  let billingReadyBusiness',start);
-  const messages=[],cached=[],calls=[],state={business:{id:'business-a',updated_at:'revision-a',settings:{company:'Before'}},client:{async rpc(name,args){calls.push({name,args});during(state);return result}}};
-  const ctx={state,stripInfra:s=>{const x={...s};delete x.supabaseKey;delete x.supabaseUrl;return x},message:m=>messages.push(m),writeBusinessSettingsCache:(s,id)=>cached.push({s,id}),console:{warn(){}}};
+  const messages=[],cached=[],calls=[],hydrated=[],state={business:{id:'business-a',updated_at:'revision-a',settings:{company:'Before'}},client:{async rpc(name,args){calls.push({name,args});during(state);return result}}};
+  const ctx={state,window:{invoiceAppHelpers:{updateSettings:s=>hydrated.push(s)}},stripInfra:s=>{const x={...s};delete x.supabaseKey;delete x.supabaseUrl;return x},message:m=>messages.push(m),writeBusinessSettingsCache:(s,id)=>cached.push({s,id}),console:{warn(){}}};
   vm.runInNewContext(source.slice(start,end)+'\nthis.save=saveBusinessSettings;',ctx);
-  return {save:ctx.save,state,messages,cached,calls};
+  return {save:ctx.save,state,messages,cached,calls,hydrated};
 }
 test('settings caches and canonical revision change only after server confirmation',async()=>{
   const h=settingsHarness({data:{id:'business-a',updated_at:'revision-b',settings:{company:'Canonical'}},error:null});
@@ -168,4 +168,16 @@ test('starting-balance amounts use exact cents and reject ambiguous precision or
 test('starting-balance column suggestions are deterministic and leave unfamiliar headings unmapped',()=>{
  assert.deepEqual(starting.mapping(['Account Code','Debit Balance','Credit Balance']),columns);
  assert.deepEqual(starting.mapping(['mystery','something','else']),{code:-1,debit:-1,credit:-1});
+});
+
+test('canonical currency, payment accounts and a cleared helper override reach the invoice runtime together',async()=>{
+ const canonical={currency:'USD',bankAccounts:[{account:'USD-ACCOUNT',isDefault:true}],helperNameOverride:null};
+ const h=settingsHarness({data:{id:'business-a',updated_at:'revision-b',settings:canonical},error:null});
+ assert.equal(await h.save({currency:'USD',bankAccounts:[{account:'OLD-NZD'}],helperNameOverride:null}),true);
+ assert.deepEqual(h.hydrated[0],canonical);assert.equal(h.calls[0].args.p_settings.helperNameOverride,null);
+});
+
+test('a draft tagged to another business is rejected before any settings RPC',async()=>{
+ const h=settingsHarness({data:null,error:null});assert.equal(await h.save({_settingsBusinessId:'another-business',company:'Wrong business'}),false);
+ assert.equal(h.calls.length,0);assert.equal(h.cached.length,0);assert.equal(h.state.business.settings.company,'Before');
 });
