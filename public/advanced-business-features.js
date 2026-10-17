@@ -131,24 +131,32 @@
   async function saveLateFeeSettings(){
     if(!canBusinessWrite())return toast('Only owners and admins can change late-fee settings.');
     const next={...(business()?.settings||{}),latePaymentFees:{enabled:!!$('lateFeeEnabled').checked,daysAfterDue:num($('lateFeeDays').value),feeType:$('lateFeeType').value,feeAmount:num($('lateFeeAmount').value),label:$('lateFeeLabel').value.trim()||'Late payment fee'}};
-    const {error}=await client().from('businesses').update({settings:next,updated_at:new Date().toISOString()}).eq('id',businessId());
-    if(error)return toast(error.message);
-    window.SAAS.state.business.settings=next; window.invoiceAppHelpers?.updateSettings?.(next); toast('Late-fee settings saved.');
+    if(!await window.SAAS.saveBusinessSettings(next))return;
+    window.SAAS.state.business.settings={...window.SAAS.state.business.settings}; window.invoiceAppHelpers?.updateSettings?.(next); toast('Late-fee settings saved.');
   }
 
   function injectFinancialPanels(){
     const more=$('finMoreReports')?.querySelector('.financial-more-menu'); if(more&&!$('finManualJournalTab')){
-      more.insertAdjacentHTML('beforeend','<button type="button" id="finManualJournalTab" data-fin-tab="manualjournal">Manual Journals</button><button type="button" id="finProvisionalTaxTab" data-fin-tab="provisionaltax">Provisional Tax Plan</button>');
+      more.insertAdjacentHTML('beforeend','<button type="button" id="finManualJournalTab" data-fin-tab="manualjournal">Manual Journals</button><button type="button" id="finProvisionalTaxTab" data-fin-tab="provisionaltax">Income-tax estimate</button>');
       $('finManualJournalTab').onclick=()=>showFinancialFeature('manualjournal');
       $('finProvisionalTaxTab').onclick=()=>showFinancialFeature('provisionaltax');
     }
-    const root=$('view-financials'); if(root&&!$('financial-panel-manualjournal')){
+    if(more&&!$('finTaxOverviewTab')){
+      more.insertAdjacentHTML('beforeend','<button type="button" id="finTaxOverviewTab" data-fin-tab="taxoverview">Tax &amp; IRD</button>');
+      $('finTaxOverviewTab').onclick=()=>showFinancialFeature('taxoverview');
+    }
+    const root=$('view-financials');
+    if(root&&!$('financial-panel-taxoverview')){
+      root.insertAdjacentHTML('beforeend','<div class="financial-panel advanced-feature-panel" id="financial-panel-taxoverview" hidden><div class="page-head compact-head"><div><h2>Tax &amp; IRD</h2><p>Your saved tax work and filing records, together in one place.</p></div><button class="secondary" id="taxOverviewRefresh" type="button">Refresh</button></div><div class="card" id="taxOverviewBody"></div></div>');
+      $('taxOverviewRefresh').onclick=renderTaxOverview;
+    }
+    if(root&&!$('financial-panel-manualjournal')){
       root.insertAdjacentHTML('beforeend',`<div class="financial-panel advanced-feature-panel" id="financial-panel-manualjournal" hidden>
         <div class="page-head compact-head"><div><h2>Manual Journals</h2><p>Accountant/admin-only corrections. Posted journals must balance and can only be reversed.</p></div><button class="secondary" id="manualJournalReload" type="button">Refresh</button></div>
         <div class="card" id="manualJournalAccess"></div><div class="card" id="manualJournalEditor"></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Journal</th><th>Description</th><th>Status</th><th>Source</th></tr></thead><tbody id="manualJournalRows"></tbody></table></div></div>
       </div>
       <div class="financial-panel advanced-feature-panel" id="financial-panel-provisionaltax" hidden>
-        <div class="page-head compact-head"><div><h2>Provisional Tax Plan</h2><p>Planning worksheet only. It does not file with IRD or post journals.</p></div><button class="secondary" id="provisionalTaxReload" type="button">Refresh</button></div>
+        <div class="page-head compact-head"><div><h2>Income-tax estimate</h2><p>Planning worksheet only. It does not file with IRD or post journals.</p></div><button class="secondary" id="provisionalTaxReload" type="button">Refresh</button></div>
         <div class="card" id="provisionalTaxBody"></div>
       </div>`);
       $('manualJournalReload').onclick=renderManualJournals;
@@ -162,6 +170,7 @@
     $('financialReportPeriodCard')?.removeAttribute('hidden');
     if(tab==='manualjournal')renderManualJournals();
     if(tab==='provisionaltax')renderProvisionalTax();
+    if(tab==='taxoverview')renderTaxOverview();
   }
 
   async function renderManualJournals(){
@@ -178,7 +187,7 @@
       <div class="statement-summary"><div class="metric"><span>Debits</span><strong id="mjDebitTotal">${money(0)}</strong></div><div class="metric"><span>Credits</span><strong id="mjCreditTotal">${money(0)}</strong></div><div class="metric"><span>Status</span><strong id="mjBalanceStatus">Not balanced</strong></div></div>
       <div class="actions"><button class="secondary" id="mjAddLine" type="button">+ Add line</button><button class="primary" id="mjPost" type="button">Post manual journal</button></div>`;
     const addLine=(d=0,c=0)=>{$('mjLines').insertAdjacentHTML('beforeend',`<tr><td><select data-mj-account>${opts}</select></td><td><input data-mj-desc placeholder="Line description"></td><td><input data-mj-debit type="number" min="0" step="0.01" value="${d||''}"></td><td><input data-mj-credit type="number" min="0" step="0.01" value="${c||''}"></td><td><button class="secondary" data-mj-remove type="button">Remove</button></td></tr>`);wireManualLines()};
-    window.__frindlyAddManualLine=addLine; addLine(); addLine();
+    addLine(); addLine();
     $('mjAddLine').onclick=()=>addLine(); $('mjPost').onclick=postManualJournal;
     const journals=await safeSelect('accounting_journals',q=>q.select('id,journal_date,journal_number,description,status,source_type,source_reference').eq('business_id',businessId()).eq('source_type','manual_journal').order('journal_date',{ascending:false}).limit(30));
     rows.innerHTML=journals.length?journals.map(j=>`<tr><td>${esc(j.journal_date)}</td><td>${esc(j.journal_number||j.id)}</td><td>${esc(j.description||'')}</td><td>${esc(j.status||'')}</td><td>${esc(j.source_reference||'Manual journal')}</td></tr>`).join(''):'<tr><td colspan="5">No manual journals yet.</td></tr>';
@@ -203,19 +212,56 @@
     toast(`Manual journal posted: ${data}`); renderManualJournals();
   }
 
+  async function renderTaxOverview(){
+    const root=$('taxOverviewBody'),bid=businessId();if(!root||!bid)return;
+    if(String(business()?.settings?.country||'NZ').toUpperCase()!=='NZ'){root.innerHTML='<p>This IRD overview is for New Zealand businesses. Use your existing BAS reports for Australian records.</p>';return}
+    root.innerHTML='<p role="status">Checking saved tax and filing records…</p>';
+    const guard=()=>{if(businessId()!==bid)throw new Error('Business changed.');};
+    try{
+      const model=await window.FrindlyTaxOverview.load(client(),bid,guard);guard();
+      const amount=v=>window.FrindlyTaxOverview.value(v)===null?'Not available':money(v);
+      const label=v=>String(v||'Not recorded').replaceAll('_',' ');
+      const section=(key,title,heads,rows)=>`<h3>${esc(title)}</h3>${model[key].available?`<div class="table-scroll"><table><thead><tr>${heads.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.slice(0,30).map(row=>`<tr>${row.map(cell=>`<td>${esc(cell)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${heads.length}">No records visible with your access.</td></tr>`}</tbody></table></div>${rows.length>30?`<p class="hint">Showing the latest 30 of ${rows.length} saved records. Open the relevant module for more.</p>`:''}`:`<p class="notice warning">${esc(model[key].message)}</p>`}`;
+      const sortDate=(rows,key)=>rows.slice().sort((a,b)=>String(b[key]||'').localeCompare(String(a[key]||'')));
+      const gst=sortDate(model.gst.rows,'period_end').map(r=>[`${r.period_start} to ${r.period_end}`,label(r.status),amount(r.gst_net),r.statutory_due_date||'Not recorded']);
+      const filings=sortDate(model.filings.rows,'created_at').map(r=>[label(r.filing_type),`${r.period_start||'—'} to ${r.period_end||'—'}`,label(r.status),r.due_date||'Not recorded',r.ird_reference||'Not recorded']);
+      const payroll=model.payrollFilings.available?window.FrindlyTaxOverview.payrollRows(model.payroll.rows,model.payrollFilings.rows).map(r=>[r.pay_run_number,r.pay_date,r.filing?label(r.filing.status):'No filing recorded',r.filing?.ird_reference||'Not recorded']):[];
+      const plans=sortDate(model.plans.rows,'tax_year_end').map(r=>[r.tax_year_end||'Not recorded',label(r.method),amount(r.estimated_income_tax),label(r.status)]);
+      const instalments=sortDate(model.instalments.rows,'due_date').map(r=>[r.due_date||'Not recorded',amount(r.suggested_amount),amount(r.paid_amount),label(r.status)]);
+      root.innerHTML='<p class="hint">Read-only overview. A draft, prepared file or downloaded file does not prove IRD accepted a filing. Payment figures are saved Frindly records, not a verified myIR balance. Missing information stays marked as unavailable.</p>'+section('gst','GST work',['Period','Work status','Calculated net GST','Saved due date'],gst)+section('filings','IRD filing records',['Type','Period','Recorded status','Saved due date','IRD reference'],filings)+section('payroll','Finalised payroll — including runs with no filing recorded',['Pay run','Pay date','Latest filing event','IRD reference'],payroll)+(model.payrollFilings.available?'':`<p class="notice warning">${esc(model.payrollFilings.message)}</p>`)+section('plans','Saved provisional-tax estimates',['Tax year end','Method','Saved estimate','Recorded status'],plans)+section('instalments','Saved provisional-tax payment plan',['Saved due date','Planning amount','Recorded paid','Recorded status'],instalments)+'<p class="hint">Use Income-tax estimate for a separate profit projection. Confirm actual amounts, payment credits and filing acceptance in myIR or with your accountant.</p>';
+    }catch(e){if(businessId()===bid)root.innerHTML='<p class="notice warning">Tax records could not be verified. Refresh before relying on this overview.</p>';console.warn('Tax overview unavailable',e)}
+  }
+
   async function renderProvisionalTax(){
-    const root=$('provisionalTaxBody'); if(!root)return;
-    const fyEnd=(()=>{const now=new Date();return `${now.getFullYear()+1}-03-31`})();
-    const settings=await safeSelect('financial_settings',q=>q.select('*').eq('business_id',businessId()).maybeSingle());
-    const taxRate=num((Array.isArray(settings)?settings[0]:settings)?.estimated_tax_rate||28);
-    let profit=0; try{const r=await client().rpc('v6170b_profit_loss',{p_from:`${new Date().getFullYear()}-04-01`,p_to:today()});profit=num((r.data||[])[0]?.net_profit)}catch(e){console.warn(e)}
-    const annualised=profit>0?profit*12/Math.max(1,new Date().getMonth()+1):0, tax=annualised*taxRate/100, instalment=tax/3;
-    const dates=[`${new Date().getFullYear()}-08-28`,`${new Date().getFullYear()+1}-01-15`,`${new Date().getFullYear()+1}-05-07`];
-    root.innerHTML=`<div class="summary-grid"><div class="metric"><span>YTD posted profit</span><strong>${money(profit)}</strong></div><div class="metric"><span>Annualised estimate</span><strong>${money(annualised)}</strong></div><div class="metric"><span>Estimated tax rate</span><strong>${taxRate.toFixed(2)}%</strong></div><div class="metric"><span>Estimated provisional tax</span><strong>${money(tax)}</strong></div></div>
-      <p class="hint">Planning worksheet only. Confirm method, residual income tax and due dates with your accountant or IRD before paying.</p>
-      <div class="table-scroll"><table><thead><tr><th>Instalment</th><th>Due date</th><th>Suggested reserve</th><th>Status</th></tr></thead><tbody>${dates.map((d,i)=>`<tr><td>P${i+1}</td><td>${d}</td><td>${money(instalment)}</td><td>${d<today()?'Review/paid?':'Upcoming'}</td></tr>`).join('')}</tbody></table></div>
-      <div class="actions"><button class="secondary" id="provisionalTaxCsv" type="button">Download CSV</button></div>`;
-    $('provisionalTaxCsv').onclick=()=>{const csv=[['Provisional Tax Plan'],['FY end',fyEnd],['YTD posted profit',profit],['Annualised estimate',annualised],['Estimated tax',tax],[],['Instalment','Due date','Suggested reserve'],...dates.map((d,i)=>[`P${i+1}`,d,instalment])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`provisional-tax-plan-${today()}.csv`;a.click();};
+    const root=$('provisionalTaxBody'),bid=businessId();if(!root||!bid)return;
+    root.innerHTML='<p role="status">Loading your tax planning information…</p>';
+    try{
+      const cfgResult=await client().from('financial_settings').select('*').eq('business_id',bid).maybeSingle();
+      if(cfgResult.error)throw cfgResult.error;
+      if(!cfgResult.data)throw new Error('Review Tax settings before using this estimate.');
+      const cfg={...cfgResult.data,country:business()?.settings?.country||'NZ'},on=window.FrindlyPlanning.today(new Date(),business()?.settings?.timezone||(String(business()?.settings?.country||'NZ').toUpperCase()==='AU'?'Australia/Sydney':'Pacific/Auckland'));
+      const period=window.FrindlyPlanning.taxYear(cfg,on);
+      const report=await client().rpc('v6170b_profit_loss',{p_from:period.from,p_to:on});
+      if(report.error)throw report.error;
+      const row=Array.isArray(report.data)?report.data[0]:report.data;
+      const plan=window.FrindlyPlanning.estimate(cfg,row?.net_profit,on);
+      if(businessId()!==bid)return;
+      const dates=window.FrindlyPlanning.usualStandardDates(cfg,on);
+      root.innerHTML=`<div class="summary-grid"><div class="metric"><span>Posted profit so far</span><strong>${money(plan.profit)}</strong></div><div class="metric"><span>Profit projected over the full year</span><strong>${money(plan.annualised)}</strong></div><div class="metric"><span>Your planning rate</span><strong>${plan.rate===null?'More information needed':plan.rate.toFixed(2)+'%'}</strong></div><div class="metric"><span>Estimated income tax before credits</span><strong>${plan.tax===null?'More information needed':money(plan.tax)}</strong></div></div>
+        <p class="hint">Business year: ${esc(period.from)} to ${esc(period.end)}. Based on posted profit through ${esc(on)} (${period.elapsedDays} of ${period.yearDays} days). This simple projection uses your saved planning rate. It excludes tax adjustments, other personal income, tax credits and tax already paid. It is not an IRD provisional-tax calculation and does not post or file anything.</p>
+        ${dates.length?`<p class="hint">Usual standard-option dates for a 31 March balance date: ${dates.map(esc).join(', ')}. Confirm your method and actual working-day dates in myIR. No payment amounts have been calculated from this profit estimate.</p>`:'<p class="hint">Your balance date or GST frequency needs its own provisional-tax schedule. Check the recorded plan or confirm dates with your accountant or IRD.</p>'}
+        <div class="actions"><button class="secondary" id="provisionalTaxCsv" type="button">Download planning CSV</button></div>`;
+      $('provisionalTaxCsv').onclick=()=>{
+        if(businessId()!==bid)return toast('Business changed. Refresh the worksheet first.');
+        const rows=[['Frindly business income-tax planning estimate'],['Business year start',period.from],['Business year end',period.end],['As at',on],['Elapsed days',period.elapsedDays],['Days in business year',period.yearDays],['Posted profit',plan.profit],['Projected full-year profit',plan.annualised],['Planning rate',plan.rate??'More information needed'],['Estimated income tax before credits',plan.tax??'More information needed'],['Note','Not an IRD provisional-tax calculation; excludes adjustments, other personal income, credits and payments.']];
+        const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+        const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'})),a=document.createElement('a');a.href=url;a.download=`tax-planning-${on}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+      };
+    }catch(e){
+      if(businessId()!==bid)return;
+      console.warn('Tax planning could not load',e);
+      root.innerHTML='<p role="alert">Tax planning information could not be verified. Review Tax settings and refresh. No estimate or payment amount has been assumed.</p>';
+    }
   }
 
   function injectPurchaseOrders(){
@@ -508,5 +554,5 @@
     const mo=new MutationObserver(()=>install()); mo.observe(document.body,{childList:true,subtree:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
-  window.FrindlyAdvancedFeatures={install,renderStatement,renderManualJournals,renderProvisionalTax,renderPurchaseOrders};
+  window.FrindlyAdvancedFeatures={install,renderStatement,renderManualJournals,renderProvisionalTax,renderTaxOverview,renderPurchaseOrders};
 })();

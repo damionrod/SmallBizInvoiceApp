@@ -453,7 +453,7 @@
           if(!recovered?.error&&recovered?.businessId){const again=await state.client.rpc('current_business_id');currentId=again.data;ctxError=again.error}
         }
         if(!ctxError&&currentId){
-          const {data:business,error:bError}=await state.client.from('businesses').select('id,name,address,phone,status,settings').eq('id',currentId).maybeSingle();
+          const {data:business,error:bError}=await state.client.from('businesses').select('id,name,address,phone,status,settings,updated_at').eq('id',currentId).maybeSingle();
           if(!bError&&business){
             const [roleResult,permissionsResult]=await Promise.all([
               state.client.rpc('v6147_current_business_role',{p_business_id:currentId}),
@@ -485,14 +485,12 @@
     const legacyLocal=readJsonStorage('invoice_app_settings');
     const claimed=localStorage.getItem('v22_settings_claimed_by')||localStorage.getItem('v22_legacy_claimed_by');
     let chosen={...(cloud||{})};
-    let needsCloudSave=false;
 
     if(!cloud||Object.keys(cloud).length===0){
       const mayClaimLegacy=!claimed||claimed===businessId;
       const source=Object.keys(tenantLocal).length?tenantLocal:(mayClaimLegacy&&meaningfulLegacySettings(legacyLocal)?legacyLocal:null);
       chosen=source?stripInfra(source):{company:state.business?.name||'',trading:state.business?.name||'',address:state.business?.address||'',phone:state.business?.phone||'',email:state.user?.email||'',invoicePrefix:'INV'};
       if(source&&!claimed)localStorage.setItem('v22_settings_claimed_by',businessId);
-      needsCloudSave=true;
     }else if(!chosen._settingsBusinessId){
       // v47 and earlier could seed a new business from another business's browser settings.
       // Only remove the two business-specific sections when they exactly match the legacy
@@ -501,14 +499,15 @@
         if(chosen.products&&sameJson(chosen.products,legacyLocal.products))delete chosen.products;
         if(chosen.jobCostingSettings&&sameJson(chosen.jobCostingSettings,legacyLocal.jobCostingSettings))delete chosen.jobCostingSettings;
       }
-      needsCloudSave=true;
     }
 
     chosen={...chosen,_settingsBusinessId:businessId};
-    if(needsCloudSave){
-      await state.client.from('businesses').update({settings:chosen,updated_at:new Date().toISOString()}).eq('id',businessId);
-      state.business.settings=chosen;
-    }
+    // Opening Settings is read-only. Legacy cache is not silently written to the cloud.
+    const paymentAccounts=await state.client.rpc('v6221_payment_accounts');
+    if(state.business?.id!==businessId)return;
+    if(paymentAccounts.error||paymentAccounts.data?.business_id!==businessId){chosen.bankAccounts=[];message('Payment accounts could not be verified. Reload before creating an invoice.','error')}
+    else{chosen.bankAccounts=paymentAccounts.data.accounts||[];if(paymentAccounts.data.legacy_review_needed)console.info('Legacy payment details retained. Review and add the account explicitly in Banking.');}
+    state.business.settings=chosen;
     writeBusinessSettingsCache(chosen,businessId);
   }
 
@@ -1052,9 +1051,8 @@
       const name=q('accountBusinessName')?.value.trim()||state.business.name;
       const phone=q('accountBusinessPhone')?.value.trim()||'';
       const address=q('accountBusinessAddress')?.value.trim()||'';
-      const {error}=await state.client.from('businesses').update({name,phone,address,updated_at:new Date().toISOString()}).eq('id',state.business.id);
-      if(error)return alert(error.message||'Could not save business account details.');
-      state.business.name=name;state.business.phone=phone;state.business.address=address;
+      if(!await saveBusinessSettings({...state.business.settings,company:name,phone,address}))return;
+      window.invoiceAppHelpers?.updateSettings?.({company:name,phone,address});
       if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Business');
     }
     setupAccountUI();applyRoleAccessUI();q('accountModal')?.classList.remove('open');
@@ -1069,11 +1067,9 @@
     const nextSettings={...(state.business.settings||{}),outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id};
     if(helperName)nextSettings.helperNameOverride=helperName;else delete nextSettings.helperNameOverride;
     const buttons=[q('saveAccountPreferences'),q('saveAccountEmail')].filter(Boolean);buttons.forEach(btn=>{btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='Saving…'});
-    const {error}=await state.client.from('businesses').update({settings:nextSettings,updated_at:new Date().toISOString()}).eq('id',state.business.id);
-    buttons.forEach(btn=>{btn.disabled=false;btn.textContent=btn.dataset.oldText||'Save'});
-    if(error)return alert('Could not save business preferences: '+error.message);
-    state.business.settings=nextSettings;
-    writeBusinessSettingsCache(nextSettings,state.business.id);
+    let saved=false;
+    try{saved=await saveBusinessSettings(nextSettings)}finally{buttons.forEach(btn=>{btn.disabled=false;btn.textContent=btn.dataset.oldText||'Save'})}
+    if(!saved)return;
     window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id});window.invoiceAppHelpers?.resetInvoiceTaxRuntime?.();
     await window.FinloHelper?.refresh?.();
     if(q('accountHelperNameHint'))q('accountHelperNameHint').textContent=`Leave blank to use the platform default: ${window.FinloHelper?.getDefaultName?.()||'Frindly'}.`;
@@ -1096,41 +1092,49 @@
     '09_Tax_GST':['gst_returns','gst_adjustments','gst_correction_items','gst_settings_history','bas_returns'],
     '10_Accountant_Exports':['accounting_destination_accounts','accounting_export_mappings','tax_export_mappings','accounting_exports'],
     '11_Invoice_Payments':['invoice_payment_settings','invoice_payment_links','invoice_payment_transactions'],
-    '12_Import_Migration':['import_batches','import_sheets','import_rows','import_mappings','import_record_links'],
+    '12_Import_Migration':['import_batches','import_sheets','import_rows','import_mappings','import_record_links','import_records','import_record_members','import_mapping_profiles','import_commit_events'],
     '13_Calendar':['google_calendar_connections','google_calendar_event_links','google_calendar_sync_log'],
-    '14_Support':['support_threads','support_messages']
+    '14_Support':['support_threads','support_messages'],
+    '15_Owners':['business_owners','business_owner_history','owner_current_account_entries'],
+    '16_Filing_Plans':['payroll_ird_filings','ird_filing_batches','ird_filing_events','provisional_tax_plans','provisional_tax_instalments'],
+    '17_Corrections_Conversion':['expense_revisions','payroll_migration_opening_balances']
   };
-  const EXPORT_SENSITIVE_KEYS=/(password|passphrase|access[_-]?token|refresh[_-]?token|service[_-]?role|client[_-]?secret|(^|[_-])secret($|[_-])|api[_-]?key|private[_-]?key|stripe.*key)/i;
+  const EXPORT_SENSITIVE_KEYS=/(password|passphrase|(^|[_-])(token|authorization|cookie|otp|recovery_code|verification_code)($|[_-])|access[_-]?token|refresh[_-]?token|service[_-]?role|client[_-]?secret|(^|[_-])secret($|[_-])|api[_-]?key|private[_-]?key|stripe.*key)/i;
   function exportClean(value){
     if(Array.isArray(value))return value.map(exportClean);
-    if(value&&typeof value==='object'){const out={};for(const [k,v] of Object.entries(value)){if(EXPORT_SENSITIVE_KEYS.test(k))continue;out[k]=exportClean(v)}return out}
+    if(value&&typeof value==='object'){const out=Object.create(null);for(const [k,v] of Object.entries(value)){if(EXPORT_SENSITIVE_KEYS.test(k))continue;out[k]=exportClean(v)}return out}
     return value;
   }
-  function csvCell(v){if(v==null)return '';const s=typeof v==='object'?JSON.stringify(v):String(v);return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
+  function csvCell(v){if(v==null)return '';let s=typeof v==='object'?JSON.stringify(v):String(v);if(typeof v==='string'&&/^[\s]*[=+@-]/.test(s)&&!/^\s*-?(?:\d+(?:\.\d*)?|\.\d+)\s*$/.test(s))s="'"+s;return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
   function rowsToCsv(rows){
     if(!Array.isArray(rows)||!rows.length)return '';
     const keys=[...new Set(rows.flatMap(r=>Object.keys(r||{})))];
     return [keys.join(','),...rows.map(r=>keys.map(k=>csvCell(r?.[k])).join(','))].join('\r\n');
   }
   async function exportTable(table,businessId){
-    let query=state.client.from(table).select('*');
-    if(table==='businesses')query=query.eq('id',businessId);else query=query.eq('business_id',businessId);
-    const {data,error}=await query;
-    if(error)return {table,rows:[],error:error.message};
-    return {table,rows:exportClean(data||[]),error:null};
+    const guard=()=>{if(state.business?.id!==businessId)throw new Error('Business changed while the export was being prepared. Please run it again.');};
+    guard();
+    try{
+      const data=await window.FrindlyData.readAll(()=>{
+        const query=state.client.from(table).select('*');
+        return query.eq(table==='businesses'?'id':'business_id',businessId);
+      },{guard});
+      return {table,rows:exportClean(data),error:null};
+    }catch(error){guard();return {table,rows:[],error:error.message||'This dataset could not be exported.'};}
   }
-  async function addStoredFiles(zip,folder,bucket,records,pathKey,nameKey,warnings){
+  async function addStoredFiles(zip,folder,bucket,records,pathKey,nameKey,warnings,businessId){
     for(const record of records||[]){
+      if(state.business?.id!==businessId)throw new Error('Business changed while adding documents. Please run the export again.');
       const path=String(record?.[pathKey]||'').trim();if(!path)continue;
       const rawName=String(record?.[nameKey]||path.split('/').pop()||'file');const dot=rawName.lastIndexOf('.'),ext=dot>0?rawName.slice(dot).replace(/[^a-zA-Z0-9.]/g,'').slice(0,12):'',base=safeFileName(dot>0?rawName.slice(0,dot):rawName);const name=(base||'file')+ext;
-      try{const {data,error}=await state.client.storage.from(bucket).download(path);if(error)throw error;zip.file(`${folder}/${record.id||crypto.randomUUID()}-${name}`,data)}
+      try{const {data,error}=await state.client.storage.from(bucket).download(path);if(state.business?.id!==businessId)throw new Error('Business changed while adding documents.');if(error)throw error;zip.file(`${folder}/${record.id||crypto.randomUUID()}-${name}`,data)}
       catch(e){warnings.push(`${bucket}/${path}: ${e?.message||'file could not be downloaded'}`)}
     }
   }
   async function collectBusinessData(businessId,onProgress){
-    const results={},warnings=[],tables=Object.values(BUSINESS_EXPORT_MANIFEST).flat();let done=0;
-    for(const table of tables){const result=await exportTable(table,businessId);results[table]=result.rows;if(result.error)warnings.push(`${table}: ${result.error}`);done++;onProgress?.(done,tables.length,table)}
-    return {results,warnings,tables};
+    const results={},warnings=[],tableStatus={},tables=[...new Set(Object.values(BUSINESS_EXPORT_MANIFEST).flat())];let done=0;
+    for(const table of tables){const result=await exportTable(table,businessId);results[table]=result.rows;tableStatus[table]=result.error?'unavailable':'complete';if(result.error)warnings.push(`${table}: ${result.error}`);done++;onProgress?.(done,tables.length,table)}
+    return {results,warnings,tables,tableStatus};
   }
   async function exportBusinessData(businessId,businessName,button){
     if(!businessId)return alert('Business information is missing.');
@@ -1138,20 +1142,23 @@
     const original=button?.textContent||'Export';if(button){button.disabled=true;button.textContent='Preparing export…'}
     try{
       const startingBusiness=state.business?.id;if(startingBusiness!==businessId)throw new Error('Business changed before the export started.');
-      const {results,warnings,tables}=await collectBusinessData(businessId,(done,total)=>{if(button)button.textContent=`Exporting ${done}/${total}…`});
+      const {results,warnings,tables,tableStatus}=await collectBusinessData(businessId,(done,total)=>{if(button)button.textContent=`Exporting ${done}/${total}…`});
       if(state.business?.id!==businessId)throw new Error('Business changed while the export was being prepared. Please run it again.');
       const zip=new JSZip(),generatedAt=new Date().toISOString(),counts={};
       for(const [folder,folderTables] of Object.entries(BUSINESS_EXPORT_MANIFEST))for(const table of folderTables){const rows=results[table]||[];counts[table]=rows.length;zip.file(`${folder}/${table}.json`,JSON.stringify(rows,null,2));if(rows.length)zip.file(`${folder}/${table}.csv`,rowsToCsv(rows))}
       if(button)button.textContent='Adding documents…';
-      await addStoredFiles(zip,'03_Expenses_Suppliers/Documents','expense-documents',results.expense_attachments,'stored_path','original_filename',warnings);
-      await addStoredFiles(zip,'06_Payroll/Documents','payroll-documents',results.payroll_employee_documents,'storage_path','original_filename',warnings);
+      await addStoredFiles(zip,'03_Expenses_Suppliers/Documents','expense-documents',results.expense_attachments,'stored_path','original_filename',warnings,businessId);
+      await addStoredFiles(zip,'06_Payroll/Documents','payroll-documents',results.payroll_employee_documents,'storage_path','original_filename',warnings,businessId);
       // Support attachments are user-scoped in Storage. Include any the current signed-in user is authorised to download; preserve metadata and record a warning for the rest.
-      await addStoredFiles(zip,'14_Support/Attachments','support-attachments',(results.support_messages||[]).filter(x=>x.attachment_path),'attachment_path','attachment_name',warnings);
-      const manifest={export_version:'2.0',frindly_release:'61.102K',generated_at:generatedAt,business_id:businessId,business_name:businessName,format:'ZIP containing JSON, CSV and authorised stored documents',table_count:tables.length,record_counts:counts,warnings,security_note:'Passwords, authentication tokens, provider secrets and platform-only operational data are intentionally excluded.'};
+      await addStoredFiles(zip,'14_Support/Attachments','support-attachments',(results.support_messages||[]).filter(x=>x.attachment_path),'attachment_path','attachment_name',warnings,businessId);
+      if(state.business?.id!==businessId)throw new Error('Business changed while adding documents. Please run the export again.');
+      const manifest={export_version:'2.1',frindly_release:C.version||'unknown',generated_at:generatedAt,business_id:businessId,business_name:businessName,format:'ZIP containing JSON, CSV and authorised stored documents',consistency_note:'Records are paginated while this export runs. This portability export is not a point-in-time database backup. Export during a quiet period for reconciliation.',table_count:tables.length,record_counts:counts,warnings,security_note:'Passwords, authentication tokens, provider secrets and platform-only operational data are intentionally excluded.'};
+      manifest.complete=warnings.length===0;manifest.dataset_status=tableStatus;
       zip.file('export-manifest.json',JSON.stringify(manifest,null,2));
       zip.file('README.txt',[`Frindly Business Data Export`,`Business: ${businessName||businessId}`,`Generated: ${generatedAt}`,'','This package is a business-data portability export. It is separate from Accountant Centre/Xero exports.','Each exported dataset is provided as JSON and, when records exist, CSV. Uploaded expense and payroll documents are included where the signed-in user is authorised to access them.','Passwords, authentication tokens, payment gateway/provider secrets, platform diagnostics, usage telemetry and internal sequence counters are intentionally excluded.','',`Datasets: ${tables.length}`,`Warnings: ${warnings.length}`,warnings.length?'':'No export warnings.',...warnings.map(x=>`- ${x}`)].join('\r\n'));
       if(button)button.textContent='Building ZIP…';
       const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+      if(state.business?.id!==businessId)throw new Error('Business changed before the file was ready. Please run the export again.');
       const date=generatedAt.slice(0,10);downloadBlob(blob,`Frindly-Business-Data-${safeFileName(businessName)}-${date}.zip`);
       if(warnings.length)alert(`Business data exported with ${warnings.length} warning${warnings.length===1?'':'s'}. See README.txt and export-manifest.json inside the ZIP.`);
     }catch(e){alert('Could not export business data: '+(e instanceof Error?e.message:'Unknown export error'));}
@@ -1184,9 +1191,17 @@
     return {ok:true};
   }
 
-  async function saveBusinessSettings(s){
-    const clean={...stripInfra(s),_settingsBusinessId:state.business.id}; const {error}=await state.client.from('businesses').update({settings:clean,name:clean.company||clean.trading||state.business.name,address:clean.address||state.business.address,phone:clean.phone||state.business.phone,updated_at:new Date().toISOString()}).eq('id',state.business.id);
-    if(!error){state.business.settings=clean;writeBusinessSettingsCache(clean,state.business.id);return true} console.warn('Business settings cloud sync failed',error);return false;
+  async function saveBusinessSettings(s,{expectedRevision}={}){
+    const bid=state.business?.id,revision=expectedRevision===undefined?state.business?.updated_at:expectedRevision;
+    if(!bid||!revision){message('Reload Settings before saving.','error');return false}
+    const clean={...stripInfra(s),_settingsBusinessId:bid};
+    try{
+    const {data,error}=await state.client.rpc('v6221_save_business_settings',{p_business_id:bid,p_expected_updated_at:revision,p_settings:clean});
+    if(state.business?.id!==bid)return false;
+    if(error){console.warn('Business settings save failed',error);message(error.message||'Settings could not be saved.','error');return false}
+    if(!data||data.id!==bid||!data.updated_at){message('Settings save could not be verified. Reload before continuing.','error');return false}
+    Object.assign(state.business,data);writeBusinessSettingsCache(data.settings,bid);return true;
+    }catch(error){if(state.business?.id===bid)message(error?.message||'Settings could not be saved. Please retry.','error');return false}
   }
 
   let billingReadyBusiness='',billingLoading=false,billingPrice=null,billingDuplicateSubscriptions=[],billingScheduledChange=null;
@@ -2269,7 +2284,7 @@ ${businessName}`,'');
   async function bindAfterAppLoad(){
     if(q('adminNav')) q('adminNav').onclick=openAdminPortal;
     if(q('adminBackToApp'))q('adminBackToApp').onclick=closeAdminPortal;
-    if(q('saveSettings')) q('saveSettings').addEventListener('click',()=>setTimeout(()=>saveBusinessSettings(appSettings()),100));
+    // The Settings button awaits its single server-confirmed save in app.js.
     if(q('scheduleNav')){const access=await getScheduleAccess();q('scheduleNav').dataset.entitlementBlocked=access.entitled?'0':'1';q('scheduleNav').hidden=!access.allowed;window.Schedule?.setAccess?.(access);}
     if(q('jobCostingNav')){const entitled=state.profile?.is_super_admin||await hasModule('job_costing');q('jobCostingNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('core');q('jobCostingNav').hidden=!allowed;if(allowed)window.JobCosting?.init?.()}
     if(q('expensesNav')){const entitled=state.profile?.is_super_admin||await hasModule('expenses');q('expensesNav').dataset.entitlementBlocked=entitled?'0':'1';const allowed=entitled&&roleCanRead('expenses');q('expensesNav').hidden=!allowed;if(allowed)window.Expenses?.init?.()}
