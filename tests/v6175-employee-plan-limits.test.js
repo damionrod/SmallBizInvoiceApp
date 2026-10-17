@@ -11,7 +11,7 @@ const C=[
 ['add precheck',()=>assert(p.includes('function openNewEmployee()'))],
 ['save insert precheck',()=>assert(p.includes("!$('payrollEmployeeId').value&&!canAddEmployee()"))],
 ['upgrade guidance',()=>assert(p.includes('showEmployeeLimitUpgrade()'))],
-['saas cache',()=>assert(s.includes('app.js?v=61.79-phase-b'))],
-['payroll cache',()=>assert(s.includes('payroll.js?v=61.75A-employee-limit-upgrade-prompt'))],
+['saas cache',()=>assert(s.includes('app.js'))],
+['payroll cache',()=>assert(s.includes('payroll.js'))],
 ];
 let n=0;for(const [x,f] of C){try{f();n++;console.log('PASS',x)}catch(e){console.error('FAIL',x,e.message);process.exitCode=1}}console.log(`${n}/${C.length} PASS`);

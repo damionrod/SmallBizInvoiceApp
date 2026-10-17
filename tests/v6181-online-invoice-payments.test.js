@@ -27,7 +27,7 @@ assert('Connect uses Accounts v2 and full dashboard onboarding', config.includes
 assert('direct charge is scoped to the connected account', payments.includes("'Stripe-Account': String(record.settings.stripe_account_id)") && payments.includes("form.set('mode', 'payment')"));
 assert('webhook settles through the atomic database function', webhook.includes('v6181_record_online_invoice_payment') && webhook.includes('checkout.session.async_payment_succeeded'));
 assert('invoice email adds Pay Now only when setup is active', email.includes('Pay Now') && email.includes('connect_status === \'active\'') && email.includes('invoice_payment_links'));
-assert('settings exposes fee and partial-payment controls', html.includes('id="onlinePaymentsSettingsNav"') && saas.includes('id="invoicePaymentFeeMode"') && saas.includes('id="invoicePaymentPartial"'));
+assert('settings exposes fee and partial-payment controls', html.includes('id="centralPaymentsSettings"') && saas.includes("movePanelChildren('payments','centralPaymentsSettings')") && saas.includes('id="invoicePaymentFeeMode"') && saas.includes('id="invoicePaymentPartial"'));
 assert('invoice-payments function handles browser CORS preflight', payments.includes('PAYMENT_CORS') && /PAYMENT_CORS,/.test(payments) && saas.includes('Stripe payment setup timed out'));
 assert('Superadmin gets a separate monitoring page', html.includes('data-admin-view="invoice-payments"') && html.includes('id="adminInvoicePaymentRows"') && saas.includes('renderAdminInvoicePayments'));
 assert('frontend entitlement fails closed when module is globally inactive', saas.includes('modules!inner(slug,is_active)') && saas.includes('module?.is_active!==true') && saas.includes("'invoice_payments'"));

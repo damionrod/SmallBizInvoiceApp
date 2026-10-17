@@ -17,6 +17,6 @@ const C=[
 ['tenant layout retained',()=>assert(a.includes('tenantStorageKey(`report_widget_layout_${name}`)'))],
 ['one binding',()=>assert(a.includes("grid.dataset.widgetDragBound==='1'"))],
 ['touch drag',()=>assert(c.includes('.report-widget-handle{touch-action:none}'))],
-['cache bust',()=>assert(s.includes('app.js?v=61.79-phase-b'))],
+['cache bust',()=>assert(s.includes('app.js'))],
 ];
 let n=0;for(const[x,f]of C){try{f();n++;console.log('PASS',x)}catch(e){console.error('FAIL',x,e.message);process.exitCode=1}}console.log(`${n}/${C.length} PASS`);

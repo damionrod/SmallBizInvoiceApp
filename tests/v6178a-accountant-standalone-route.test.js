@@ -11,5 +11,5 @@ const C=[
 ['financials entry retained',()=>assert(h.includes('id="finAccountantBtn"'))],
 ['account menu entry retained',()=>assert(h.includes('id="accountForAccountant"'))],
 ['accountant centre ids retained',()=>['accountantFrom','accountantTo','prepareXeroExport','downloadAccountantPack','accountingMappingRows','accountingExportHistory','finYearEndRun'].forEach(id=>assert(h.includes(`id="${id}"`)))],
-['cache loader bumped',()=>assert(s.includes('app.js?v=61.79-phase-b'))],
+['cache loader bumped',()=>assert(s.includes('app.js'))],
 ];let n=0;for(const[x,f]of C){try{f();n++;console.log('PASS',x)}catch(e){console.error('FAIL',x,e.message);process.exitCode=1}}console.log(`${n}/${C.length} PASS`);

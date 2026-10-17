@@ -25,8 +25,10 @@ test('new fortnightly run asks before following an old Thursday schedule instead
   assert.equal($('prConfiguredPaydayDate').value,'2026-10-19');
   context.resolvePaydayChoice('2026-10-19');
   assert.equal($('prPayDate').value,'2026-10-19');
-  assert.equal($('prStart').value,'2026-09-12');
-  assert.equal($('prEnd').value,'2026-09-25');
+  assert.equal($('prStart').value,'2026-09-28');
+  assert.equal($('prEnd').value,'2026-10-11');
+  // Payday choice must not silently rewrite the earnings period.
+  assert.notEqual($('prPayDate').value,$('prEnd').value);
 });
 test('choosing the old payday defers the transition and a saved run keeps its own pay date',()=>{
   const {context,state,$}=fixtures([{pay_frequency:'fortnightly',pay_date:'2026-10-01'}]);

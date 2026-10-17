@@ -14,6 +14,7 @@ ok(!/function startConversation\(\)\{if\(!speechCtor\(\)\)/.test(helper), 'legac
 ok(/natural conversation unavailable; legacy robotic voice was not used/.test(helper), 'legacy fallback is explicit and disabled');
 ok(/finlo-live-voice-session/.test(helper), 'natural conversation uses the Live Voice Edge Function');
 ok(/model:'gpt-live-1'/.test(helper), 'natural conversation diagnostic model is present');
-ok(/Start natural voice conversation/.test(index), 'UI identifies the natural conversation action');
+ok(/id="finloHelperLiveStart"[^>]*aria-label="Start voice chat"/.test(index), 'UI exposes the named Live Voice entry point');
+ok(/q\('finloHelperLiveStart'\)\?\.addEventListener|q\('finloHelperLiveStart'\)\.onclick|startLiveVoice/.test(helper), 'Live Voice handler remains available');
 
 console.log('Finlo Helper conversational voice regression checks PASS');

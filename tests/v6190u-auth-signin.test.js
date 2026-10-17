@@ -28,7 +28,7 @@ function harness(fail=false){
   const context={state,q,C:{supabaseUrl:'https://example.supabase.co',supabaseKey:'public'},
     window:{supabase:{createClient:()=>({auth})}},document:{body:{classList:{add(){}}},querySelectorAll:()=>[]},
     location:{reload:()=>{reloads++}},setTimeout,console:{error:()=>{}},
-    loadSignupPlans:async()=>{},prepareInviteMode:async()=>{},switchAuthTab:()=>{},
+    bindPublicSite:()=>{},renderPublicPlansFeatures:async()=>{},withStartupTimeout:p=>p,recoverStartupFailure:()=>{},loadSignupPlans:async()=>{},prepareInviteMode:async()=>{},switchAuthTab:()=>{},
     message:(msg)=>messages.push(msg),syncGoogleAuthButtons:()=>{},enter:async()=>{entries++;await unlocked;state.loadedApp=true}
   };
   const initSource=source.slice(source.indexOf('  async function init(){'),source.indexOf('  function switchAuthTab('));
@@ -44,7 +44,7 @@ test('successful sign-in completes after listener returns and enters the account
   await new Promise(resolve=>setTimeout(resolve,10));
   assert.equal(h.entries,1);
   assert.equal(h.state.loadedApp,true);
-  assert.equal(h.messages.at(-1),'Logging in…');
+  assert.equal(h.messages.at(-1),'Loading your account…');
   assert.equal(h.reloads,0);
 });
 test('failed sign-in displays the auth error instead of leaving Logging in on screen',async()=>{

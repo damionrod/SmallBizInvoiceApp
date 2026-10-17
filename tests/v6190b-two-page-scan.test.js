@@ -11,8 +11,8 @@ function extract(name,next){const from=expenses.indexOf(`  function ${name}(`);c
 test('uploads and camera captures wait for one explicit batch scan',()=>{
  const code=extract('queueInvoiceScan','renderPendingFiles');
  assert.doesNotMatch(code,/queueInvoiceScan\(\)\s*}/);
- assert.match(code,/Ready to scan\. Add another page if needed, or tap Scan now\./);
- assert.match(code,/All pages are ready\. Tap Scan all pages when you have finished adding files\./);
+ assert.match(code,/Image secured\. Add another page if needed, or tap Scan now\./);
+ assert.match(code,/All pages are secured\. Tap Scan all pages when you have finished adding files\./);
  assert.match(expenses,/expAiRescan'\)\)\$\('expAiRescan'\)\.onclick=.*scanExpenseFile\(\[\.\.\.state\.pendingFiles\]\)/);
  assert.match(expenses,/kind!==['"]ready['"]/);
 });

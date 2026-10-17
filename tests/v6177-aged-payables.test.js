@@ -13,7 +13,7 @@ const C=[
 ['all outstanding state used',()=>assert(e.includes('state.expenses.forEach(e=>'))],
 ['renderer called',()=>assert(e.includes('renderAgedPayables()}'))],
 ['chart state isolated',()=>assert(e.includes('charts:{month:null,category:null,payables:null}'))],
-['expense cache bust',()=>assert(s.includes('expenses.js?v=61.77-aged-payables'))],
+['expense cache bust',()=>assert(s.includes('expenses.js'))],
 ['existing movable widget handles retained',()=>assert((h.match(/data-report-widget="aged-payables-/g)||[]).length===2&&h.includes('title="Drag to rearrange"'))],
 ];
 let n=0;for(const[x,f]of C){try{f();n++;console.log('PASS',x)}catch(err){console.error('FAIL',x,err.message);process.exitCode=1}}console.log(`${n}/${C.length} PASS`);

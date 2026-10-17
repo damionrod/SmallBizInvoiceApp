@@ -2,7 +2,7 @@ const fs=require('fs'),assert=require('assert');
 const h=fs.readFileSync('public/index.html','utf8'),a=fs.readFileSync('public/app.js','utf8'),f=fs.readFileSync('public/financials.js','utf8'),s=fs.readFileSync('public/saas.js','utf8'),c=fs.readFileSync('public/styles.css','utf8');
 const C=[
 ['five primary financial choices',()=>['overview','pnl','cashflow','gst','budget'].forEach(x=>assert(h.includes(`data-fin-tab="${x}"`)))],
-['financial primary labels',()=>['Summary','Profit &amp; Loss','Money In &amp; Out','GST','Budget'].forEach(x=>assert(h.includes(`>${x}</button>`)))],
+['financial primary labels',()=>['Estimated Summary','Accounting P&amp;L','Money In &amp; Out','GST','Budget'].forEach(x=>assert(h.includes(`>${x}</button>`)))],
 ['four more financial reports',()=>['balance','cashbook','ledger','trial'].forEach(x=>assert(h.includes(`data-fin-tab="${x}"`)))],
 ['more reports accessible control',()=>{assert(h.includes('id="finMoreReports"'));assert(h.includes('aria-expanded="false"'));assert(f.includes("addEventListener('toggle'"))}],
 ['five primary reports',()=>['performance','sales','expenses','jobs','payroll'].forEach(x=>assert(h.includes(`data-report-tab="${x}"`)))],
@@ -16,7 +16,7 @@ const C=[
 ['expenses by job moved once',()=>{assert.strictEqual((h.match(/data-report-widget="expense-job"/g)||[]).length,1);assert(h.indexOf('data-report-widget="expense-job"')>h.indexOf('id="report-panel-jobs"'))}],
 ['jobs routes to existing job costing',()=>assert(a.includes("window.JobCosting?.showTab?.('saved')"))],
 ['module entitlement hiding retained and extended',()=>{assert(a.includes("expenseBtn.hidden=!expenseAllowed"));assert(a.includes("payrollBtn.hidden=!payrollAllowed"));assert(a.includes("jobsBtn.hidden=!jobsAllowed"))}],
-['important export controls retained',()=>['finPnlCsv','finLedgerCsv','finTrialCsv','finCashBookCsv','finGstCsv','finGstExcel','finGstPdf','finBudgetCsv','reportExportCsv','expenseExportCsv','payrollReportCsv','downloadAccountantPack'].forEach(id=>assert(h.includes(`id="${id}"`)))],
+['important export controls retained',()=>['finPnlCsv','finLedgerCsv','finTrialCsv','finCashBookCsv','finGstCsv','finGstPdf','finBudgetCsv','reportExportCsv','expenseExportCsv','payrollReportCsv','downloadAccountantPack'].forEach(id=>assert(h.includes(`id="${id}"`)))],
 ['widget dragging retained',()=>{assert(a.includes("grid.addEventListener('pointerdown'"));assert(a.includes('saveReportWidgetOrder(grid)'));assert(h.includes('data-report-layout="performance"'));assert(h.includes('data-report-layout="jobs"'))}],
 ['mobile nav no hover dependency',()=>{assert(c.includes('@media(max-width:760px)'));assert(c.includes('.report-module-tabs{display:grid;grid-template-columns:1fr 1fr'));assert(c.includes('min-height:44px'))}],
 ['business switch resets report nav',()=>assert(a.includes("if(lastReportBusinessId!==bid){activeReportTab='performance';lastReportBusinessId=bid}"))],

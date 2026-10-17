@@ -47,8 +47,10 @@ function harness(stripeSubscription = subscription()) {
       stripe_customer_id: null, stripe_subscription_id: null, trial_ends_at: '2026-10-07T00:00:00.000Z',
       invoice_limit_override: 77,
     }, { business_id: 'other_business', plan_id: 'other_plan', status: 'active' }],
-    invoice_payment_transactions: [{ id: 'transaction_fixture', status: 'pending' }],
+    plans:[{id:planId,stripe_price_id:'price_fixture',stripe_annual_price_id:'price_annual_fixture'}],
+    invoice_payment_transactions: [{ id: 'transaction_fixture', status: 'pending',stripe_account_id:'acct_fixture',gross_amount:25.49,currency:'nzd' }],
   };
+  const auditCalls=[],auditEvents=new Map();let eventSequence=0;
   const db = {
     from(table) {
       assert.ok(rows[table], `Unexpected table: ${table}`);
@@ -68,13 +70,19 @@ function harness(stripeSubscription = subscription()) {
               writes.push({ table, patch: structuredClone(patch) });
               rows[table].filter(row => filters.every(f => f(row))).forEach(row => Object.assign(row, structuredClone(patch)));
             }
-            return { error: null };
+            return { data:rows[table].filter(row=>filters.every(f=>f(row))),error: null };
           }).then(resolve, reject);
         },
       };
       return builder;
     },
     async rpc(name, args) {
+      if(name==='v61111_begin_stripe_webhook_event'){
+        auditCalls.push({name,args:structuredClone(args)});const prior=auditEvents.get(args.p_event_id);
+        if(prior==='completed'||prior==='processing')return{data:{process:false},error:null};
+        auditEvents.set(args.p_event_id,'processing');return{data:{process:true},error:null};
+      }
+      if(name==='v61111_finish_stripe_webhook_event'){auditCalls.push({name,args:structuredClone(args)});auditEvents.set(args.p_event_id,args.p_status);return{error:null};}
       rpcCalls.push({ name, args: structuredClone(args) });
       assert.ok(['v6151_process_referral_event', 'v6181_record_online_invoice_payment'].includes(name));
       return { error: null };
@@ -112,11 +120,15 @@ function harness(stripeSubscription = subscription()) {
       }));
     },
   });
+  for(const file of ['_shared/email-sender.ts','_shared/subscription-billing.ts']){
+    const dependency=fs.readFileSync(path.join(root,'supabase/functions',file),'utf8').replace(/^import[^\n]*\n/gm,'').replace(/^export\s+/gm,'');
+    vm.runInContext(stripTypeScriptTypes(dependency),context,{filename:file});
+  }
   vm.runInContext(stripTypeScriptTypes(source.replace(/^import[^\n]*\n/gm, '')), context);
   return {
-    rows, writes, rpcCalls, retrievals, network, state,
-    async send(type, object, { signature = 'fixture-valid', account } = {}) {
-      event = { id: 'evt_fixture', type, data: { object }, created: start, account };
+    rows, writes, rpcCalls, retrievals, network, state, auditCalls,auditEvents,
+    async send(type, object, { signature = 'fixture-valid', account, eventId } = {}) {
+      event = { id:eventId||`evt_fixture_${++eventSequence}`, type, data: { object }, created: start, account };
       const headers = signature === null ? {} : { 'stripe-signature': signature };
       const response = await handler(new Request('https://example.test/webhook', { method: 'POST', headers, body: '{}' }));
       return { status: response.status, body: await response.text() };
@@ -199,17 +211,19 @@ test('database failures are returned for Stripe retry instead of acknowledging a
 
 test('repeated checkout events update the same subscription without duplicate records', async () => {
   const app = harness();
-  for (let attempt = 0; attempt < 2; attempt++) assert.equal((await app.send('checkout.session.completed', checkout())).status, 200);
+  for (let attempt = 0; attempt < 2; attempt++) assert.equal((await app.send('checkout.session.completed', checkout(),{eventId:'evt_fixture_replay'})).status, 200);
   assert.equal(app.rows.subscriptions.length, 2);
   assert.equal(app.rows.subscriptions.filter(row => row.business_id === businessId).length, 1);
   assert.equal(app.rows.subscriptions[0].stripe_subscription_id, subscriptionId);
+  assert.equal(app.auditCalls.filter(c=>c.name==='v61111_finish_stripe_webhook_event').length,1);
+  assert.equal(app.auditEvents.get('evt_fixture_replay'),'completed');
 });
 
 test('connected invoice payments still use the existing settlement function and do not change subscriptions', async () => {
   const app = harness();
   const before = structuredClone(app.rows.subscriptions);
   const result = await app.send('checkout.session.completed', checkout({
-    mode: 'payment', subscription: null, amount_total: 2549, payment_intent: 'pi_fixture',
+    mode: 'payment', subscription: null, amount_total: 2549, currency:'nzd',payment_intent: 'pi_fixture',
     metadata: { business_id: businessId, payment_transaction_id: 'transaction_fixture' },
   }), { account: 'acct_fixture' });
   assert.equal(result.status, 200, result.body);
@@ -231,4 +245,15 @@ test('missing and invalid signatures still reject events before subscription upd
   assert.equal(app.writes.length, 0);
   assert.equal(app.retrievals.length, 0);
   assert.equal(app.rpcCalls.length, 0);
+});
+
+for(const [label,txPatch,sessionPatch,account] of [
+ ['account',{}, {},'acct_other'],['amount',{}, {amount_total:2548},'acct_fixture'],
+ ['currency',{}, {currency:'aud'},'acct_fixture'],['session',{stripe_checkout_session_id:'cs_other'}, {},'acct_fixture'],
+ ['intent',{stripe_payment_intent_id:'pi_other'}, {},'acct_fixture']
+])test(`connected payments reject a mismatched ${label} before settlement`,async()=>{
+ const app=harness();Object.assign(app.rows.invoice_payment_transactions[0],txPatch);
+ const result=await app.send('checkout.session.completed',checkout({mode:'payment',subscription:null,amount_total:2549,currency:'nzd',payment_intent:'pi_fixture',metadata:{business_id:businessId,payment_transaction_id:'transaction_fixture'},...sessionPatch}),{account});
+ assert.equal(result.status,500);assert.match(result.body,/mismatch/);assert.equal(app.rpcCalls.length,0);assert.equal(app.writes.length,0);assert.equal(app.network.length,0);
+ assert.equal([...app.auditEvents.values()][0],'failed');
 });

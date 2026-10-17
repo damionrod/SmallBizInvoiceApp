@@ -11,6 +11,7 @@ async function saveWithCustomer(formAddress,customerAddress,wasEdit){
  let saved,recurring;
  const window={SAAS:{canCreateInvoice:async()=>({ok:true}),refreshUsage:()=>{}}};
  const context={window,currentId:invoice.id,selectedCustomerId:customer.id,validate:()=>true,payload:()=>({...invoice}),
+  ensureInvoiceTaxRuntimeReady:async()=>{}, // Tax readiness has separate effective-date regression coverage.
   ensureInvoiceCustomer:async()=>customer,billingContact:()=>null,
   persistInvoice:async(p,isEdit)=>{saved={...p,isEdit};return{id:p.id||'new-invoice',...p}},
   syncRecurringRule:async x=>{recurring=x},console};

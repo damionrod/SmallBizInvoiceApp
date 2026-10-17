@@ -27,7 +27,7 @@ function fixture(t, mutate) {
   fs.copyFileSync(path.join(root, 'scripts/build-market.cjs'), path.join(temp, 'scripts/build-market.cjs'));
   fs.writeFileSync(path.join(temp, 'public/app-config.js'), configSource);
   fs.writeFileSync(path.join(temp, 'public/frontend-quality.css'), '');
-  fs.writeFileSync(path.join(temp, 'public/index.html'), '<!doctype html><title>Test</title>');
+  fs.writeFileSync(path.join(temp, 'public/index.html'), '<!doctype html><html><head><title>Test</title></head><body></body></html>');
   if (mutate) mutate(temp);
   return temp;
 }

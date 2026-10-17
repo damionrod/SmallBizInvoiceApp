@@ -9,11 +9,11 @@ const payroll=read('public/payroll.js');
 const config=read('public/app-config.js');
 
 assert.ok(fs.existsSync(root+'/public/frindly-logo.png'),'Frindly logo asset is bundled');
-assert.ok(config.includes("appName: 'Frindly'"),'app config uses Frindly');
-assert.ok(index.includes('<title>Frindly</title>'),'browser title uses Frindly');
-assert.ok(index.includes('id="frindlyBrandLink"')&&index.includes('src="frindly-logo.png"'),'header includes linked Frindly logo');
-assert.ok(index.includes('id="expensesNav"')&&index.includes('>Expenses</button>'),'Expenses nav label');
-assert.ok(index.includes('id="bankReconciliationNav"')&&index.includes('>Banking</button>'),'Banking nav label');
+assert.ok(config.includes("appName: 'Frindly Market'"),'app config uses Frindly');
+assert.ok(index.includes('<title>Frindly Market · Test environment</title>'),'browser title uses Frindly');
+assert.ok(index.includes('id="frindlyBrandLink"')&&/src="frindly-nav-logo\.png\?v=/.test(index),'header includes linked Frindly logo');
+assert.ok(index.includes('id="expensesNav"')&&index.includes('>Expenses</span></button>'),'Expenses nav label');
+assert.ok(index.includes('id="bankReconciliationNav"')&&index.includes('>Banking</span></button>'),'Banking nav label');
 assert.ok(index.includes('<h1>Bank Reconciliation</h1>'),'Banking page heading remains Bank Reconciliation');
 assert.strictEqual((index.match(/data-report-tab="expenses"/g)||[]).length,1,'one Expense Reports tab registration');
 assert.ok(index.includes('id="expenseReportTab"')&&index.includes('>Expense Reports</button>'),'Expense Reports label is present');

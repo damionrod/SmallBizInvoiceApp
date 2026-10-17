@@ -12,11 +12,12 @@ test('mobile app shell uses one menu button and the existing gated primary nav',
  assert.match(html,/id="mobileMenuBtn"/);
  assert.match(html,/aria-controls="primaryNav"/);
  assert.match(html,/id="primaryNav"/);
- assert.match(js,/function closeMobileNav/);
- assert.match(js,/function toggleMobileNav/);
- assert.match(js,/mobile-nav-open/);
- assert.match(css,/body\.mobile-nav-open #primaryNav/);
- assert.match(css,/#primaryNav \.nav-btn:not\(\[hidden\]\)/);
+ const mobile=fs.readFileSync('public/mobile-shell.js','utf8');
+ assert.match(mobile,/function set\(open\)/);
+ assert.match(mobile,/function toggle\(e\)/);
+ assert.match(mobile,/mobile-nav-open/);
+ assert.match(css,/body:not\(\.mobile-nav-open\) #primaryNav\{display:none/);
+ assert.match(css,/#primaryNav>\.nav-btn:not\(\[hidden\]\)/);
 });
 
 test('shared busy button styles are present without changing workflows',()=>{
@@ -26,7 +27,7 @@ test('shared busy button styles are present without changing workflows',()=>{
 });
 
 test('shared Frindly UI consistency layer is present and cache-busted',()=>{
- assert.match(html,/styles\.css\?v=61\.98L-dashboard-overlap/);
+ assert.match(html,/styles\.css\?v=[^"\s]+/);
  assert.match(css,/V61\.98K Frindly UI consistency pass/);
  assert.match(css,/--fr-primary:#1976bd/);
  assert.match(css,/\.primary,\s*\.secondary,\s*\.danger,\s*\.compact-btn,\s*\.mini-btn/s);

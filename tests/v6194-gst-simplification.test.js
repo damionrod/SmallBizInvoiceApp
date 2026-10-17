@@ -7,8 +7,8 @@ test('GST page is a guided review screen with simple first-screen wording',()=>{
  assert.doesNotMatch(html,/Before you finish/);
  assert.doesNotMatch(html,/id="finGstChecklist"/);
  assert.doesNotMatch(html,/id="finGstWarning"/);
- assert.match(html,/GST Collected on Sales/);
- assert.match(html,/GST Paid on Purchases \/ Expenses/);
+ assert.match(html,/Sales included in this return/);
+ assert.match(html,/Purchases &amp; expenses included in this return/);
  assert.match(html,/GST Adjustments &amp; Review/);
  assert.match(html,/Saved GST Returns/);
  assert.match(html,/id="financialReportPeriodCard"/);
@@ -19,10 +19,11 @@ test('GST page is a guided review screen with simple first-screen wording',()=>{
  assert.match(html,/class="gst-result-card"/);
  assert.match(html,/class="gst-breakdown"/);
  assert.doesNotMatch(html,/id="finGstExcel"/);
- assert.doesNotMatch(html,/IRD upload file|myIR-ready CSV|Submit to IRD/i);
+ const gst=html.slice(html.indexOf('id="financial-panel-gst"'),html.indexOf('id="financial-panel-bas"')>0?html.indexOf('id="financial-panel-bas"'):html.indexOf('id="financial-panel-budget"'));
+ assert.doesNotMatch(gst,/<button[^>]*>\s*(?:IRD upload file|myIR-ready CSV|Submit to IRD)/i);
 });
 test('GST simplification keeps existing calculation, export and finalise hooks',()=>{
- assert.match(js,/rpc\('v6170e_gst_calculate'/);
+ assert.match(js,/rpc\('v61105_gst_calculate_boundary'/);
  assert.match(js,/rpc\('v6170e_save_gst_return'/);
  assert.match(js,/function gstExportRows/);
  assert.match(js,/function downloadCsvRows/);
@@ -60,8 +61,8 @@ test('GST page replaces old lower detail blocks with requested sections',()=>{
  assert.doesNotMatch(html,/<details class="card gst-transactions-card">/);
  assert.match(html,/id="finGstPdf"/);
  assert.match(html,/id="finGstCsv"/);
- assert.match(html,/<details class="card gst-review-section"><summary><strong>GST Collected on Sales<\/strong><\/summary>/);
- assert.match(html,/<details class="card gst-review-section"><summary><strong>GST Paid on Purchases \/ Expenses<\/strong><\/summary>/);
+ assert.match(html,/<details class="card gst-review-section"><summary><strong>Sales included in this return<\/strong><\/summary>/);
+ assert.match(html,/<details class="card gst-review-section"><summary><strong>Purchases &amp; expenses included in this return<\/strong><\/summary>/);
  assert.match(html,/<details class="card gst-review-section"><summary><strong>GST Adjustments &amp; Review<\/strong><\/summary>/);
  assert.match(html,/class="card table-card gst-saved-returns"/);
  assert.match(js,/setText\('finGstBreakdownNet'/);

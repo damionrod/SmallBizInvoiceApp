@@ -77,6 +77,7 @@ function harness({ existing = true } = {}) {
   const admin = {
     from: query,
     async rpc(name, args) {
+      if (name === 'v61111_check_edge_rate_limit') return {data:{allowed:true},error:null};
       if (name === 'v6181_invoice_payments_enabled') {
         assert.equal(args.p_business_id, businessId);
         return { data: state.enabled, error: null };
@@ -150,7 +151,7 @@ function harness({ existing = true } = {}) {
     },
   });
 
-  for (const file of ['_shared/payment-config.ts', '_shared/invoice-payments.ts', 'invoice-payments/index.ts']) {
+  for (const file of ['_shared/email-sender.ts', '_shared/payment-config.ts', '_shared/invoice-payments.ts', 'invoice-payments/index.ts']) {
     const source = fs.readFileSync(path.join(root, 'supabase/functions', file), 'utf8')
       .replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];?\s*/gm, '')
       .replace(/^export\s+/gm, '');
@@ -234,7 +235,7 @@ test('CORS, authentication, owner permissions, and module gating are unchanged',
   const app = harness();
   const cors = await app.request('', {}, 'OPTIONS');
   assert.equal(cors.status, 200);
-  assert.equal(cors.headers.get('Access-Control-Allow-Origin'), '*');
+  assert.equal(cors.headers.get('Access-Control-Allow-Origin'), 'https://app.example.test');
   app.state.signedIn = false;
   assert.equal((await app.request('status')).status, 401);
   app.state.signedIn = true;

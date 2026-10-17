@@ -83,5 +83,7 @@ test('accountant centre exposes manual ledger posting with confirmation',()=>{
   assert.match(html,/Post Accounting Ledger/);
   assert.match(js,/rpc\('v6192_post_operational_ledger'/);
   assert.match(js,/confirm\(`Post accounting journals/);
-  assert.match(js,/Already posted source records are skipped|Posted \$\{num\(x\.posted\)\} journals/);
+  assert.match(html,/Already posted source records are skipped/);
+  assert.match(js,/num\(x\.posted\)\+num\(c\.posted\)/);
+  assert.match(js,/v61105_ledger_reconciliation/);
 });

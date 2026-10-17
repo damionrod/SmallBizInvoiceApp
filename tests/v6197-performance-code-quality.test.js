@@ -81,7 +81,7 @@ function payrollHarness({leaveInputs=[]}={}){
   });
   const window={
     __payrollLoaded:0,
-    SAAS:{state:{business:{id:'biz-1'},user:{id:'user-1'}},client:()=>({from:makeBuilder})},
+    SAAS:{state:{business:{id:'biz-1'},user:{id:'user-1'}},client:()=>({from:makeBuilder,rpc:async(name,args)=>{calls.push({op:'rpc',name,args});return {data:{ok:true},error:rpcError}}})},
     FinloCore:{format:{money:()=>'$0.00'},ui:{toast(){}}},
     toast(){},
     addEventListener(){}
@@ -131,11 +131,11 @@ test('employee save batches leave balances and skips empty leave-balance arrays'
   assert.equal(noLeave.calls.filter(c=>c.op==='upsert'&&c.table==='payroll_employee_leave').length,0);
 });
 
-function bankHarness(allocations){
+function bankHarness(allocations,{rpcError=null}={}){
   let source=fs.readFileSync(path.join(root,'public/bank-reconciliation.js'),'utf8');
   source=source
     .replace("toast('Reconciliation undone');loadHistory()","toast('Reconciliation undone');window.__loadHistoryCalled=(window.__loadHistoryCalled||0)+1")
-    .replace('window.BankReconciliation={init,onShow,refresh:loadQueue,openImport};','window.__bankTest={state,undoReconciliation};window.BankReconciliation={init,onShow,refresh:loadQueue,openImport};');
+    .replace('window.BankReconciliation={','window.__bankTest={state,undoReconciliation};window.BankReconciliation={');
   const calls=[];
   const makeBuilder=table=>({
     table,
@@ -149,36 +149,44 @@ function bankHarness(allocations){
   });
   const window={
     __loadHistoryCalled:0,
-    SAAS:{state:{business:{id:'biz-1',settings:{}},user:{id:'user-1'}},client:()=>({from:makeBuilder})},
+    FrindlyDialogs:{confirm:async()=>true,prompt:async()=> 'Test undo reason'},
+    SAAS:{state:{business:{id:'biz-1',settings:{}},user:{id:'user-1'}},client:()=>({from:makeBuilder,rpc:async(name,args)=>{calls.push({op:'rpc',name,args});return {data:{ok:true},error:rpcError}}})},
     FinloCore:{format:{money:()=>'$0.00'},ui:{toast(){}}},
     refreshInvoiceList(){},Expenses:{refresh(){}}
   };
+  const coreWindow={};vm.runInNewContext(fs.readFileSync(path.join(root,'public/finlo-core.js'),'utf8'),{window:coreWindow,document:{}});window.FinloCore.context=coreWindow.FinloCore.context;
   const document={getElementById:()=>makeElement('x'),querySelectorAll:()=>[],createElement:tag=>makeElement(tag),body:makeElement('body')};
   vm.runInNewContext(source,{window,document,console,Date,Intl,setTimeout,clearTimeout,confirm:()=>true,prompt:()=>'',alert(){}});
   return {api:window.__bankTest,calls,window};
 }
 
-test('bank undo batches payment deletes and handles single and zero IDs',async()=>{
-  const many=bankHarness([
-    {customer_payment_id:'cp-1'},
-    {customer_payment_id:'cp-2'},
-    {expense_payment_id:'ep-1'},
-    {created_expense:true,expense_id:'ex-1'}
-  ]);
-  await many.api.undoReconciliation('tx-1');
-  assert.deepEqual(many.calls.filter(c=>c.op==='in').map(c=>[c.table,c.column,c.values]),[
-    ['customer_payments','id',['cp-1','cp-2']],
-    ['expense_payments','id',['ep-1']],
-    ['expenses','id',['ex-1']]
-  ]);
+test('bank undo keeps protected expense and grouped operations in their atomic server paths',async()=>{
+ const cases=[
+  [{created_expense:true,expense_id:'ex-1'},'v61106i_undo_created_expense_bank_reconciliation'],
+  [{allocation_type:'expense',expense_payment_id:'ep-1'},'v61128_undo_expense_bank_match'],
+  [{reconciliation_group_id:'group-1',customer_payment_id:'cp-1'},'v6203_undo_reconciliation_group']
+ ];
+ for(const [allocation,rpc]of cases){
+  const fixture=bankHarness([allocation]);
+  assert.equal(await fixture.api.undoReconciliation('tx-1',{skipReload:true}),true);
+  assert.equal(fixture.calls.filter(c=>c.op==='rpc').length,1);
+  assert.equal(fixture.calls.find(c=>c.op==='rpc').name,rpc);
+  assert.equal(fixture.calls.some(c=>['delete','update'].includes(c.op)),false);
+ }
+});
 
-  const single=bankHarness([{customer_payment_id:'cp-only'}]);
-  await single.api.undoReconciliation('tx-2');
-  assert.deepEqual(single.calls.filter(c=>c.op==='in').map(c=>[c.table,c.values]),[['customer_payments',['cp-only']]]);
+test('legacy bank undo uses one business-scoped server transaction instead of browser writes',async()=>{
+ const fixture=bankHarness([{customer_payment_id:'cp-1'},{customer_payment_id:'cp-2'}]);
+ assert.equal(await fixture.api.undoReconciliation('tx-1',{skipReload:true}),true);
+ const calls=fixture.calls.filter(c=>c.op==='rpc');assert.equal(calls.length,1);
+ assert.equal(calls[0].name,'v6222_undo_legacy_bank_transaction');assert.equal(calls[0].args.p_business_id,'biz-1');assert.equal(calls[0].args.p_bank_transaction_id,'tx-1');
+ assert.equal(fixture.calls.some(c=>['delete','update','in'].includes(c.op)),false);
+});
 
-  const none=bankHarness([]);
-  await none.api.undoReconciliation('tx-3');
-  assert.equal(none.calls.filter(c=>c.op==='in'&&['customer_payments','expense_payments','expenses'].includes(c.table)).length,0);
+test('server rejection of legacy bank undo never falls back to partial browser deletes',async()=>{
+ const fixture=bankHarness([{customer_payment_id:'cp-1'}],{rpcError:{message:'Closed accounting period'}});
+ assert.equal(await fixture.api.undoReconciliation('tx-1',{skipReload:true}),false);
+ assert.equal(fixture.calls.some(c=>['delete','update','in'].includes(c.op)),false);
 });
 
 test('FinloCore loader appends scripts in parallel, waits for all loads and rejects failures',async()=>{

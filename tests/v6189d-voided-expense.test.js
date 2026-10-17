@@ -35,6 +35,9 @@ test('voided bills remain visible as history without payable actions or totals',
   assert.equal(window.__test.statusOf(voided), 'voided');
   assert.equal(window.__test.supplierCreditAdjustedOutstanding(voided), 0);
   assert.equal(window.__test.isActiveExpense(voided), false);
+  assert.doesNotMatch(node('expenseRows').innerHTML, /EXP-V/);
+  node('expenseStatusFilter').value='all';
+  window.__test.renderBills();
   assert.match(node('expenseRows').innerHTML, /EXP-V[\s\S]*Voided/);
   assert.doesNotMatch(node('expenseRows').innerHTML.match(/EXP-V[\s\S]*?<\/tr>/)?.[0] || '', /data-exp-(pay|edit|archive|rec)=/);
   assert.match(node('expenseRows').innerHTML, /EXP-A/);
