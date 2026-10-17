@@ -17,8 +17,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24.19.0'
-      - name: Frontend syntax and focused hardening checks
-        run: node scripts/check-release.cjs
+      - name: Frontend syntax and full offline regression suite
+        run: node scripts/check-release.cjs --full
       - name: Market isolation checks
         run: node --test tests/market-isolation.test.cjs
       - name: Build for the Market site
