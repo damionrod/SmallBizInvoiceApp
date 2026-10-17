@@ -37,40 +37,15 @@ async function disconnectLiveFeed(providerId,id){const provider=LIVE_FEED_PROVID
 async function audit(txid,action,details={}){try{await client().from('bank_reconciliation_audit').insert({business_id:businessId(),bank_transaction_id:txid,action,details,created_by:userId()})}catch(e){console.warn('Bank audit log failed',e)}}
 async function rollbackCreated(created=[]){for(const x of [...created].reverse()){try{if(x.type==='customer_payment')await client().from('customer_payments').delete().eq('id',x.id);if(x.type==='expense_payment')await client().from('expense_payments').delete().eq('id',x.id);if(x.type==='expense')await client().from('expenses').delete().eq('id',x.id)}catch(e){console.error('Compensating rollback failed',e)}}}
 function switchTab(tab){document.querySelectorAll('[data-bank-tab]').forEach(b=>b.classList.toggle('active',b.dataset.bankTab===tab));document.querySelectorAll('[data-bank-panel]').forEach(p=>p.classList.toggle('active',p.dataset.bankPanel===tab));if(tab==='reconcile')loadQueue();if(tab==='import')renderLiveBankFeeds();if(tab==='reconciled')loadHistory();if(tab==='settings')Promise.all([loadAccounts(),loadSettings(),loadRules()])}
-async function syncSetupBankAccounts(){
-  const sb=client(),bid=businessId(),src=business()?.settings||{},configured=Array.isArray(src.bankAccounts)?src.bankAccounts:[];
-  if(!sb||!bid||!configured.length)return;
-  const clean=v=>String(v||'').trim(), key=v=>clean(v).toLowerCase().replace(/[^a-z0-9]/g,'');
-  const wanted=configured.map((b,i)=>({name:clean(b?.name)||`Bank account ${i+1}`,account_number:clean(b?.account),is_default:!!b?.isDefault})).filter(b=>b.account_number);
-  if(!wanted.length)return;
-  const {data,error}=await sb.from('bank_accounts').select('id,name,account_number,currency,is_default,archived').eq('business_id',bid);
-  if(error){console.warn('Setup bank account sync skipped:',error.message);return}
-  const existing=data||[];let defaultId=null;
-  for(const b of wanted){
-    const accountKey=key(b.account_number),nameKey=key(b.name);
-    let match=(accountKey&&existing.find(x=>key(x.account_number)===accountKey))||existing.find(x=>!accountKey&&key(x.name)===nameKey);
-    const row={business_id:bid,name:b.name,account_number:b.account_number||null,currency:String(src.currency||'NZD').toUpperCase().slice(0,3),archived:false,updated_by:userId()||null,updated_at:new Date().toISOString()};
-    if(match){
-      const changed=match.name!==row.name||clean(match.account_number)!==clean(row.account_number)||match.archived===true||String(match.currency||'NZD')!==row.currency;
-      if(changed){const u=await sb.from('bank_accounts').update(row).eq('id',match.id);if(u.error){console.warn('Setup bank account sync update skipped:',u.error.message);continue}}
-      if(b.is_default)defaultId=match.id;
-    }else{
-      const ins=await sb.from('bank_accounts').insert({...row,is_default:false,created_by:userId()||null}).select('id,name,account_number,currency,is_default,archived').single();
-      if(ins.error){console.warn('Setup bank account sync insert skipped:',ins.error.message);continue}
-      match=ins.data;existing.push(match);if(b.is_default)defaultId=match.id;
-    }
-  }
-  if(defaultId){
-    const currentDefault=existing.find(x=>x.is_default===true)?.id||null;
-    if(String(currentDefault||'')!==String(defaultId)){
-      const off=await sb.from('bank_accounts').update({is_default:false,updated_by:userId()||null,updated_at:new Date().toISOString()}).eq('business_id',bid).eq('is_default',true);
-      if(off.error){console.warn('Setup bank default sync skipped:',off.error.message);return}
-      const on=await sb.from('bank_accounts').update({is_default:true,updated_by:userId()||null,updated_at:new Date().toISOString()}).eq('id',defaultId).eq('business_id',bid);
-      if(on.error)console.warn('Setup bank default sync skipped:',on.error.message);
-    }
-  }
+// Account reads must never import settings, change defaults, or restore archived accounts.
+async function loadAccounts(){
+  const sb=client(),bid=businessId();
+  if(!sb||!bid){state.accounts=[];fillAccountPickers();renderAccounts();return}
+  const {data,error}=await sb.from('bank_accounts').select('*').eq('business_id',bid).or('archived.eq.false,archived.is.null').order('is_default',{ascending:false}).order('name');
+  if(businessId()!==bid)return;
+  if(error)return toast(error.message);
+  state.accounts=data||[];fillAccountPickers();renderAccounts();
 }
-async function loadAccounts(){const sb=client();if(!sb)return;await syncSetupBankAccounts();const {data,error}=await sb.from('bank_accounts').select('*').eq('business_id',businessId()).or('archived.eq.false,archived.is.null').order('is_default',{ascending:false}).order('name');if(error)return toast(error.message);state.accounts=data||[];fillAccountPickers();renderAccounts()}
 function fillAccountPickers(){for(const id of ['brAccountFilter','brImportAccount']){const el=$(id);if(!el)continue;const current=el.value,first=id==='brAccountFilter'?'<option value="">All accounts</option>':'';el.innerHTML=first+state.accounts.map(a=>`<option value="${a.id}">${esc(a.name)}${a.account_number?' · '+esc(a.account_number):''}</option>`).join('');if([...el.options].some(o=>o.value===current))el.value=current}}
 function renderAccounts(){const root=$('brAccountsList');if(!root)return;root.innerHTML=state.accounts.map(a=>`<div class="bank-setting-row"><div><strong>${esc(a.name)}</strong><small>${esc(a.bank_name||'')}${a.account_number?' · '+esc(a.account_number):''} · ${esc(a.currency||'NZD')}</small></div><div class="row-actions">${a.is_default?'<span class="badge">Default</span>':`<button class="secondary compact-btn" data-br-default="${a.id}">Set default</button>`}<button class="secondary compact-btn" data-br-edit-account="${a.id}">Edit</button><button class="danger compact-btn" data-br-archive-account="${a.id}">Archive</button></div></div>`).join('')||'<p class="hint">No bank accounts yet. Add one before importing transactions.</p>';root.querySelectorAll('[data-br-default]').forEach(b=>b.onclick=()=>setDefaultAccount(b.dataset.brDefault));root.querySelectorAll('[data-br-edit-account]').forEach(b=>b.onclick=()=>editAccount(b.dataset.brEditAccount));root.querySelectorAll('[data-br-archive-account]').forEach(b=>b.onclick=()=>archiveAccount(b.dataset.brArchiveAccount))}
 async function addAccount(existing=null){

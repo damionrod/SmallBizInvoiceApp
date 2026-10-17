@@ -59,6 +59,7 @@
     updateTotals();
   }
   async function load() {
+    if (config.environment === 'market' && config.outboundServicesEnabled !== true) return showMessage('Payments are disabled in this test environment. No payment will be taken.', 'info');
     if (!token) return showMessage('This payment link is missing its secure token. Please ask the business to send the invoice again.');
     if (params.get('status') === 'cancelled') showMessage('Payment cancelled. No payment was taken.', 'info');
     if (params.get('status') === 'success') showMessage('Payment submitted. Stripe is confirming it now; this page will refresh shortly.', 'success');

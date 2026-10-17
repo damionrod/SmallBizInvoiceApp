@@ -432,7 +432,7 @@
     }
     if(!state.loadedApp){
       setStartupStage('loading application modules');
-      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=62.19-payment-action-polish','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.124-email-activity','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZW-advanced-filters','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.124-payslip-email','financials.js?v=61.123-ird-connect','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-import-core.js?v=62.01-bnz-csv-identity','bank-reconciliation.js?v=62.01-bnz-csv-identity','community.js?v=61.106-community-module']);
+      await window.FinloCore.loader.loadScriptsSequentially(['draft-protection.js?v=61.102L-login-reliability','app.js?v=62.20-rc1-hardening','compliance-reminders.js?v=61.107F-compliance-reminders','schedule.js?v=61.107F-compliance-reminders','dashboard.js?v=61.107F-compliance-reminders','job-costing.js?v=61.124-email-activity','job-profitability.js?v=61.102L-login-reliability','expenses.js?v=61.107ZW-advanced-filters','purchase-review.js?v=61.105-phase4-nz-expenses','payroll-nz-holidays.js?v=61.102L-login-reliability','payroll-nz-statutory-leave.js?v=61.102L-login-reliability','payroll-nz-public-holidays.js?v=61.102L-login-reliability','payroll-nz-final-pay.js?v=61.102L-login-reliability','payroll-nz-tax.js?v=61.102L-login-reliability','payroll.js?v=61.124-payslip-email','financials.js?v=61.123-ird-connect','accountant-centre.js?v=61.105-phase13j-exception-resolution','bank-import-core.js?v=62.01-bnz-csv-identity','bank-reconciliation.js?v=62.20-rc1-hardening','community.js?v=61.106-community-module']);
       setStartupStage('initialising application');
       await bindAfterAppLoad();
       state.loadedApp=true; sessionStorage.removeItem(STARTUP_RECOVERY_KEY); setStartupStage('ready');
@@ -638,7 +638,7 @@
   function setupCentralSettingsIA(){
     const move=(id,target)=>{const el=q(id),dest=q(target);if(el&&dest&&el.parentElement!==dest)dest.appendChild(el)};
     const movePanelChildren=(panelName,target)=>{const panel=document.querySelector(`[data-settings-panel="${panelName}"]`),dest=q(target);if(panel&&dest){[...panel.children].forEach(el=>dest.appendChild(el))}};
-    ['accountProfileName','accountBusinessName'].forEach(()=>{});
+
     move('accountModal','accountModalParking');
     const modal=q('accountModal'), account=q('centralAccountSettings'), users=q('centralUserSettings'), subscription=q('centralSubscriptionSettings'), job=q('centralJobSettings');
     if(modal&&account){['account-profile-card','account-email-card','account-preferences-card'].forEach(cls=>{const el=modal.querySelector('.'+cls);if(el)account.appendChild(el)})}
@@ -1197,7 +1197,7 @@
       (sub.status==='trialing'&&!!sub.trial_ends_at&&new Date(sub.trial_ends_at).getTime()<=Date.now());
   }
   function billingDateText(value){const d=new Date(value);return value&&Number.isFinite(d.getTime())?d.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'}):'—'}
-  function billingReturnTarget(){return /^https?:$/.test(location.protocol)?location.origin+location.pathname:'https://frindly.co.nz/'}
+  function billingReturnTarget(){return /^https?:$/.test(location.protocol)?location.origin+location.pathname:'https://frindly-market.netlify.app/'}
   function renderSubscriptionSummary(){
     const sub=state.subscription;if(!sub)return;
     const owner=state.accessRole==='owner',canCancel=['owner','bookkeeper'].includes(state.accessRole);
