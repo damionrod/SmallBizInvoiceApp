@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "scope": "static HTML and recognized dynamic-loader edges; globals, CSS imports and backend callers require separate analysis",
+  "entrypoints": [
+    "index.html",
+    "pay.html"
+  ],
+  "edges": [
+    {
+      "from": "index.html",
+      "to": "styles-core.css",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "styles.css",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "frontend-quality.css",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "frindly-dialogs.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "mobile-shell.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "app-config.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "finlo-core.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "market-environment.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "referrals.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "data-access.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "saas.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "stock-equipment.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "onboarding.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "finlo-helper.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "import-migration.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "support-console.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "support-inbox.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "support-center.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "community.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "starting-balances.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "tax-overview.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "business-planning.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "index.html",
+      "to": "advanced-business-features.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "pay.html",
+      "to": "styles-core.css",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "pay.html",
+      "to": "styles.css",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "pay.html",
+      "to": "app-config.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "pay.html",
+      "to": "finlo-core.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "pay.html",
+      "to": "pay.js",
+      "type": "html",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "draft-protection.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "app.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "compliance-reminders.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "schedule.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "dashboard.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "job-costing.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "job-profitability.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "expenses.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "purchase-review.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "payroll-nz-holidays.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "payroll-nz-statutory-leave.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "payroll-nz-public-holidays.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "payroll-nz-final-pay.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "payroll-nz-tax.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "payroll.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "financials.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "accountant-centre.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "bank-import-core.js",
+      "type": "dynamic-loader",
+      "exists": true
+    },
+    {
+      "from": "saas.js",
+      "to": "bank-reconciliation.js",
+      "type": "dynamic-loader",
+      "exists": true
+    }
+  ],
+  "rootPairs": [
+    {
+      "name": "accountant-centre.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "app-config.js",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "app.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "bank-reconciliation.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "dashboard.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "draft-protection.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "expenses.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "financials.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "finlo-core.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "finlo-helper.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "frontend-quality.css",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "import-migration.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "index.html",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "job-costing.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "job-profitability.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "mobile-shell.js",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "onboarding.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "pay.html",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "pay.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "payroll-nz-final-pay.js",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "payroll-nz-holidays.js",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "payroll-nz-public-holidays.js",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "payroll-nz-statutory-leave.js",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "payroll-nz-tax.js",
+      "identical": true,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "payroll.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "purchase-review.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "referrals.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "saas.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "schedule.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "stock-equipment.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "styles-core.css",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "styles.css",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    },
+    {
+      "name": "support-console.js",
+      "identical": false,
+      "action": "retain until non-Market consumers and packaging paths are verified"
+    }
+  ],
+  "notDirectlyReferenced": [],
+  "warning": "Not directly referenced does not mean unused. No files or database objects are deleted by this inventory."
+}
