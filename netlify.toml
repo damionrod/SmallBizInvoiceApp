@@ -2,6 +2,9 @@
   command = "node scripts/build-market.cjs"
   publish = "dist-market"
 
+[functions]
+  directory = "ops/market/netlify-functions-disabled"
+
 [[headers]]
   for = "/*.js"
   [headers.values]
