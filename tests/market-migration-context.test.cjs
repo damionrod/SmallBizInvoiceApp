@@ -45,14 +45,15 @@ test('an old business form cannot start analysis after switching businesses',asy
 
 test('repeated confirmation clicks submit one atomic commit',async()=>{
  const h=harness();await h.window.ImportMigration.open();h.api.state.batch='batch-1';h.api.state.detail={batch:{id:'batch-1'},records:[]};const response=deferred();h.setRpc(()=>response.promise);
- const pending=h.api.confirmImport();await h.api.confirmImport();assert.equal(h.calls.filter(c=>c.name==='v6215_confirm_import').length,1);
+ const pending=h.api.confirmImport();await h.api.confirmImport();assert.equal(h.calls.filter(c=>c.name==='v6225_confirm_import_review').length,1);
  response.resolve({data:{batch:{id:'batch-1',status:'completed'},events:[]},error:null});await pending;assert.match(h.node('importMigrationContent').innerHTML,/Migration completed/);
 });
-test('a business change while saving decisions stops before the import commit',async()=>{
- const h=harness();await h.window.ImportMigration.open();h.api.state.batch='batch-1';h.api.state.detail={batch:{id:'batch-1'},records:[{id:'r1',duplicate_action:'create'},{id:'r2',duplicate_action:'create'}]};
+test('a business change during atomic confirmation never displays the old business result',async()=>{
+ const h=harness();await h.window.ImportMigration.open();h.api.state.batch='batch-1';h.api.state.detail={batch:{id:'batch-1',updated_at:'revision-a'},records:[{id:'r1',duplicate_action:'create'},{id:'r2',duplicate_action:'create'}]};
  h.document.querySelectorAll=selector=>selector==='[data-import-record]'?['r1','r2'].map(id=>({dataset:{importRecord:id},querySelector:()=>({value:'skip'})})):[];
- h.setRpc(async()=>{h.window.SAAS.state.business.id='business-b';return {data:{},error:null};});
- await h.api.confirmImport();assert.equal(h.calls.filter(c=>c.name==='v6215_set_record_action').length,1);assert.equal(h.calls.filter(c=>c.name==='v6215_confirm_import').length,0);
+ h.setRpc(async()=>{h.window.SAAS.state.business.id='business-b';return {data:{batch:{id:'batch-1',status:'completed'},events:[]},error:null};});
+ await h.api.confirmImport();assert.equal(h.calls.filter(c=>c.name==='v6215_set_record_action').length,0);
+ const calls=h.calls.filter(c=>c.name==='v6225_confirm_import_review');assert.equal(calls.length,1);assert.equal(calls[0].args.p_expected_updated_at,'revision-a');assert.equal(calls[0].args.p_decisions.length,2);assert.doesNotMatch(h.node('importMigrationContent').innerHTML,/Migration completed/);
 });
 test('an analysis response with inconsistent batch detail is rejected',async()=>{
  const h=harness();await h.window.ImportMigration.open();h.node('importFile').files=[new Blob(['a,b'])];h.setResponse({batch:{id:'unexpected-batch'}});const pending=h.api.analyse();h.pending.resolve({data:{batch_id:'batch-1'},error:null});await pending;

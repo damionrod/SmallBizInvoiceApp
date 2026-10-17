@@ -38,14 +38,15 @@ for(const file of ['ops/market/functions/import-migration-analyse/index.ts','sup
   await assert.rejects(h.api.requireImportAccess({rpc:async()=>({data:true,error:{message:'denied'}})},'business-a',['employees']),/permission/);
   await assert.rejects(h.api.requireImportAccess({rpc:async()=>({data:null})},'business-a',['employees']),/permission/);
  });
- test(`${file}: analysis alone never turns a later record into an imported duplicate`,async()=>{
-  const h=harness(file),seenFilters=[];
-  const old=[{canonical_hash:'analysed-hash',validation_status:'ready'},{canonical_hash:'imported-hash',validation_status:'imported',imported_record_id:'target'}];
-  const admin={from:table=>({select(){const filters=[];return {eq(k,v){filters.push([k,v]);seenFilters.push([k,v]);return this;},neq(){return this;},in(){return Promise.resolve({data:old.filter(row=>filters.every(([k,v])=>k==='business_id'||row[k]===v))});}};},insert(rows){return{select:async()=>({data:rows.map((r,i)=>({id:'r'+i,canonical_hash:r.canonical_hash}))})};}})};
-  const records=['analysed-hash','imported-hash'].map(hash=>({canonical_hash:hash,member_ids:[],duplicate_status:'new',duplicate_action:'create',validation_status:'ready',validation_messages:[]}));
+ test(`${file}: initial staging preserves row links without relying on a truncated insert response`,async()=>{
+  const h=harness(file),writes=[];
+  const admin={from:table=>({insert:async rows=>{writes.push({table,rows});return{error:null}}})};
+  const records=Array.from({length:1001},(_,i)=>({canonical_hash:'same-hash',member_ids:['row-'+i],duplicate_status:'new',duplicate_action:'create',validation_status:'ready',validation_messages:[]}));
   await h.api.storeRecords(admin,'batch-a','business-a','sheet-a',records);
-  assert.equal(records[0].duplicate_action,'create');assert.equal(records[1].duplicate_action,'skip');
-  assert.ok(seenFilters.some(([k,v])=>k==='validation_status'&&v==='imported'));
+  assert.equal(writes.length,2);assert.equal(writes[0].rows.length,1001);assert.equal(writes[1].rows.length,1001);
+  assert.equal(new Set(writes[0].rows.map(r=>r.id)).size,1001);
+  for(let i=0;i<1001;i++)assert.equal(writes[1].rows[i].import_record_id,writes[0].rows[i].id);
+  assert.ok(records.every(r=>r.duplicate_action==='create'));
  });
 }
 
