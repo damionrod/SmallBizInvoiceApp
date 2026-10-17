@@ -50,7 +50,12 @@ const daysBetween = (from: string, to: string) => {
   return Math.floor((b - a) / 86400000);
 };
 
+const secureEqual = (a: string, b: string) => { const x = new TextEncoder().encode(a); const y = new TextEncoder().encode(b); let diff = x.length ^ y.length; for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0); return diff === 0; };
 Deno.serve(async (req) => {
+  if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
+  const expected = Deno.env.get("INVOICE_REMINDER_WORKER_SECRET") || "";
+  const provided = req.headers.get("x-frindly-worker-secret") || "";
+  if (expected.length < 32 || !provided || !secureEqual(expected, provided)) return json(req, { error: "Unauthorized" }, 401);
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
