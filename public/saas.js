@@ -1052,7 +1052,6 @@
       const phone=q('accountBusinessPhone')?.value.trim()||'';
       const address=q('accountBusinessAddress')?.value.trim()||'';
       if(!await saveBusinessSettings({...state.business.settings,company:name,phone,address}))return;
-      window.invoiceAppHelpers?.updateSettings?.({company:name,phone,address});
       if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Business');
     }
     setupAccountUI();applyRoleAccessUI();q('accountModal')?.classList.remove('open');
@@ -1065,12 +1064,12 @@
     if(senderEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail))return alert('Please enter a valid reply-to email address.');
     const helperName=String(q('accountHelperName')?.value||'').trim().replace(/\s+/g,' ').slice(0,30);
     const nextSettings={...(state.business.settings||{}),outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id};
-    if(helperName)nextSettings.helperNameOverride=helperName;else delete nextSettings.helperNameOverride;
+    nextSettings.helperNameOverride=helperName||null;
     const buttons=[q('saveAccountPreferences'),q('saveAccountEmail')].filter(Boolean);buttons.forEach(btn=>{btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='Saving…'});
     let saved=false;
     try{saved=await saveBusinessSettings(nextSettings)}finally{buttons.forEach(btn=>{btn.disabled=false;btn.textContent=btn.dataset.oldText||'Save'})}
     if(!saved)return;
-    window.invoiceAppHelpers?.updateSettings?.({outboundEmail:senderEmail,currency,_settingsBusinessId:state.business.id});window.invoiceAppHelpers?.resetInvoiceTaxRuntime?.();
+    window.invoiceAppHelpers?.resetInvoiceTaxRuntime?.();
     await window.FinloHelper?.refresh?.();
     if(q('accountHelperNameHint'))q('accountHelperNameHint').textContent=`Leave blank to use the platform default: ${window.FinloHelper?.getDefaultName?.()||'Frindly'}.`;
     alert('Business preferences saved.');
@@ -1200,7 +1199,9 @@
     if(state.business?.id!==bid)return false;
     if(error){console.warn('Business settings save failed',error);message(error.message||'Settings could not be saved.','error');return false}
     if(!data||data.id!==bid||!data.updated_at){message('Settings save could not be verified. Reload before continuing.','error');return false}
-    Object.assign(state.business,data);writeBusinessSettingsCache(data.settings,bid);return true;
+    Object.assign(state.business,data);writeBusinessSettingsCache(data.settings,bid);
+    try{window.invoiceAppHelpers?.updateSettings?.(data.settings)}catch(renderError){console.warn('Saved settings need a UI refresh',renderError);message('Settings saved. Reload to refresh the form.','warning')}
+    return true;
     }catch(error){if(state.business?.id===bid)message(error?.message||'Settings could not be saved. Please retry.','error');return false}
   }
 

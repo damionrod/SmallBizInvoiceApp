@@ -132,7 +132,7 @@
     if(!canBusinessWrite())return toast('Only owners and admins can change late-fee settings.');
     const next={...(business()?.settings||{}),latePaymentFees:{enabled:!!$('lateFeeEnabled').checked,daysAfterDue:num($('lateFeeDays').value),feeType:$('lateFeeType').value,feeAmount:num($('lateFeeAmount').value),label:$('lateFeeLabel').value.trim()||'Late payment fee'}};
     if(!await window.SAAS.saveBusinessSettings(next))return;
-    window.SAAS.state.business.settings={...window.SAAS.state.business.settings}; window.invoiceAppHelpers?.updateSettings?.(next); toast('Late-fee settings saved.');
+    toast('Late-fee settings saved.');
   }
 
   function injectFinancialPanels(){
