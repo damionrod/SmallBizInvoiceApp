@@ -1,0 +1,52 @@
+-- All fixture changes, including master switch, are rolled back.
+DO $test$
+DECLARE u uuid; b uuid:=gen_random_uuid(); r jsonb; rev bigint; cid uuid; denied boolean; n bigint;
+BEGIN
+ IF public.frindly_market_environment_status()->>'project_ref'<>'smvvevrtjqkflyqkyape' THEN RAISE EXCEPTION 'Not Market'; END IF;
+ SELECT id INTO u FROM auth.users a WHERE NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=a.id) LIMIT 1;
+ IF u IS NULL THEN RAISE EXCEPTION 'Missing fixture user'; END IF;
+ BEGIN
+  INSERT INTO public.businesses(id,name) VALUES(b,'Promotion rollback fixture');
+  INSERT INTO public.profiles(id,business_id,active_business_id,full_name,role,is_super_admin) VALUES(u,b,b,'Promotion fixture','owner',false);
+  PERFORM set_config('request.jwt.claim.sub',u::text,true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',u,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  denied:=false;BEGIN PERFORM public.v6224_subscription_promotions();EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Nonadmin can manage offers'; END IF;
+  SELECT count(*) INTO n FROM public.subscription_promotion_settings;IF n<>0 THEN RAISE EXCEPTION 'Settings leaked'; END IF;
+  SELECT count(*) INTO n FROM public.subscription_promotion_codes;IF n<>0 THEN RAISE EXCEPTION 'Codes leaked'; END IF;
+  SELECT count(*) INTO n FROM public.subscription_promotion_audit;IF n<>0 THEN RAISE EXCEPTION 'Audit leaked'; END IF;
+  denied:=false;BEGIN INSERT INTO public.subscription_promotion_codes(code,percent_off,duration,billing_interval,created_by) VALUES('BYPASS',100,'forever','both',u);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Direct code write permitted'; END IF;
+  EXECUTE 'RESET ROLE';UPDATE public.profiles SET is_super_admin=true WHERE id=u;
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  r:=public.v6224_subscription_promotions();rev:=(r->>'revision')::bigint;
+  r:=public.v6224_subscription_promotions('create','{"code":" test20 ","percent_off":20,"duration":"once","billing_interval":"both"}',rev);
+  SELECT id INTO cid FROM public.subscription_promotion_codes WHERE code='TEST20';
+  IF cid IS NULL OR (SELECT enabled FROM public.subscription_promotion_codes WHERE id=cid) THEN RAISE EXCEPTION 'Creation defaults invalid';END IF;
+  denied:=false;BEGIN PERFORM public.v6224_subscription_promotions('set_global','{"enabled":true}',rev);EXCEPTION WHEN serialization_failure THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Stale revision accepted'; END IF;
+  rev:=(r->>'revision')::bigint;
+  r:=public.v6224_subscription_promotions('set_enabled',jsonb_build_object('id',cid,'enabled',true),rev);rev:=(r->>'revision')::bigint;
+  r:=public.v6224_subscription_promotions('set_global','{"enabled":true}',rev);rev:=(r->>'revision')::bigint;
+  IF NOT public.v6224_subscription_promotions_available() THEN RAISE EXCEPTION 'Master switch missing'; END IF;
+  denied:=false;BEGIN PERFORM public.v6224_subscription_promotions('create','{"code":"TEST20","percent_off":50,"duration":"forever","billing_interval":"annual"}',rev);EXCEPTION WHEN unique_violation THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Code reused'; END IF;
+  denied:=false;BEGIN PERFORM public.v6224_subscription_promotions('create','{"code":"INVALID","percent_off":101,"duration":"once","billing_interval":"both"}',rev);EXCEPTION WHEN check_violation THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Invalid percentage accepted'; END IF;
+  denied:=false;BEGIN PERFORM public.v6224_subscription_promotions('create','{"code":"EXPIRED","percent_off":20,"duration":"once","billing_interval":"both","expires_at":"2020-01-01T00:00:00Z"}',rev);EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Expired offer accepted'; END IF;
+  denied:=false;BEGIN UPDATE public.subscription_promotion_codes SET percent_off=100 WHERE id=cid;EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Terms editable directly'; END IF;
+  r:=public.v6224_subscription_promotions('set_global','{"enabled":false}',rev);
+  IF public.v6224_subscription_promotions_available() THEN RAISE EXCEPTION 'Master off ineffective'; END IF;
+  SELECT count(*) INTO n FROM public.subscription_promotion_audit WHERE actor_id=u;IF n<>4 THEN RAISE EXCEPTION 'Incorrect atomic audit count %',n; END IF;
+  IF (SELECT percent_off FROM public.subscription_promotion_codes WHERE id=cid)<>20 THEN RAISE EXCEPTION 'Terms changed'; END IF;
+  EXECUTE 'RESET ROLE';
+  IF has_function_privilege('anon','public.v6224_subscription_promotions(text,jsonb,bigint)','execute') THEN RAISE EXCEPTION 'Anonymous administration'; END IF;
+  IF NOT has_function_privilege('anon','public.v6224_subscription_promotions_available()','execute') THEN RAISE EXCEPTION 'Public capability unavailable'; END IF;
+  RAISE SQLSTATE 'PZ001' USING MESSAGE='Rollback all offer fixtures';
+ EXCEPTION WHEN SQLSTATE 'PZ001' THEN NULL;
+ END;
+END;$test$;
+SELECT jsonb_build_object('passed',true,'fixture_rows_rolled_back',true,'checks',18) AS promotion_checks;
