@@ -207,7 +207,7 @@
       selectedBillingInterval=selectedSignupBillingInterval();
       if(!selectedPlan){message('Choose a subscription plan first.','error');return}
       if(!state.inviteToken&&!q('signupBusiness')?.value.trim()){message('Enter your business name before signing up with Google.','error');q('signupBusiness')?.focus();return}
-      if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({planSlug:selectedPlan,billingInterval:selectedBillingInterval});
+      if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({planSlug:selectedPlan,billingInterval:selectedBillingInterval,promoCode:q('signupPromoCode')?.value?.trim()||''});
     }
     const btn=q(isSignup?'googleSignupBtn':'googleLoginBtn'),old=btn?.textContent;
     if(btn){btn.disabled=true;btn.textContent='Opening Google…'}
@@ -325,11 +325,11 @@
       // collection is the safe client-side signal Supabase exposes for this case.
       if(data?.user && Array.isArray(data.user.identities) && data.user.identities.length===0){existingAccountMessage(email);return}
       if(data.session){
-        if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({userId:data.user?.id||'',email,planSlug:selectedPlan,billingInterval:selectedBillingInterval});
+        if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({userId:data.user?.id||'',email,planSlug:selectedPlan,billingInterval:selectedBillingInterval,promoCode:q('signupPromoCode')?.value?.trim()||''});
         message(state.inviteToken?'Account created. Joining the invited business…':(selectedPlan==='trial'?'Account created. Loading your business…':'Account created. Opening secure payment…'),'success');
         await enterOnce(data.session);
       } else {
-        if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({email,planSlug:selectedPlan,billingInterval:selectedBillingInterval});
+        if(selectedPlan!=='trial'&&!state.inviteToken)setPendingSignupCheckout({email,planSlug:selectedPlan,billingInterval:selectedBillingInterval,promoCode:q('signupPromoCode')?.value?.trim()||''});
         message(state.inviteToken?'Account created for the invited business. Check your email to confirm your address, then log in.':(selectedPlan==='trial'?'Account created. Check your email to confirm your address, then log in.':'Account created. Confirm your email, then log in to continue to secure Stripe payment.'),'success');
       }
     };
@@ -352,6 +352,7 @@
   function signupBillingInterval(){return q('signupBillingInterval')?.value==='annual'?'annual':'monthly'}
 
   async function loadSignupPlans(){
+    void loadPromotionEntry('signupPromoField','signupPromoCode');
     const input=q('signupPlan'),grid=q('signupPlanGrid'); if(!input||!grid||!state.client)return;
     const [{data:plans,error},checkoutReady]=await Promise.all([
       state.client.from('plans').select('id,slug,name,description,monthly_price,annual_price,annual_saving_message,invoice_limit,employee_limit,is_public,sort_order,stripe_price_id,stripe_annual_price_id').order('sort_order'),
@@ -574,7 +575,7 @@
     if(sub?.plans?.slug===slug && ['active','trialing'].includes(sub.status) && sub.stripe_subscription_id){clearPendingSignupCheckout();return false}
     if(sub?.plans?.slug===slug && sub.status==='active'){clearPendingSignupCheckout();return false}
     clearPendingSignupCheckout();
-    const result=await startCheckout(slug,null,{silent:true,billingInterval:interval});
+    const result=await startCheckout(slug,null,{silent:true,billingInterval:interval,promoCode:pending.promoCode||''});
     return result===true;
   }
 
@@ -1404,6 +1405,8 @@
 
   async function showPlans(){
     if(state.accessRole!=='owner')return alert('Only the Business Owner can change the subscription plan.');
+    if(q('subscriptionPromoCode'))q('subscriptionPromoCode').value='';
+    void loadPromotionEntry('subscriptionPromoField','subscriptionPromoCode');
     const [{data:plans},checkoutReady]=await Promise.all([
       state.client.from('plans').select('*').eq('is_public',true).order('sort_order'),
       getCheckoutAvailability(true)
@@ -1458,7 +1461,7 @@
         </div>
       </div>`;
     }).join('');
-    root.querySelectorAll('[data-choose-plan]:not([disabled])').forEach(b=>b.onclick=()=>startCheckout(b.dataset.choosePlan,b,{billingInterval:b.dataset.billingInterval}));
+    root.querySelectorAll('[data-choose-plan]:not([disabled])').forEach(b=>b.onclick=()=>startCheckout(b.dataset.choosePlan,b,{billingInterval:b.dataset.billingInterval,promoCode:q('subscriptionPromoCode')?.value||''}));
     q('planModal').classList.add('open');
   }
 
@@ -1473,7 +1476,7 @@
     if(btn){btn.disabled=true;btn.textContent='Checking price…'}
     const billingInterval=opts.billingInterval==='annual'?'annual':'monthly';
     try{
-      const data=await planBillingAction({planSlug:slug,billingInterval,returnUrl:billingReturnTarget(),action:'start'});
+      const data=await planBillingAction({planSlug:slug,billingInterval,returnUrl:billingReturnTarget(),action:'start',promoCode:opts.promoCode||''});
       if(data?.url){location.href=data.url;return true}
       const change=data?.change;
       if(!change)throw new Error('Stripe did not provide a plan change preview.');
@@ -1689,11 +1692,65 @@
     alert(`Stripe connection successful${data?.account_name?' — '+data.account_name:''}.`);
   }
 
+  let promotionViewSequence=0,adminPromotionState=null,adminPromotionBusy=false;
+  async function loadPromotionEntry(fieldId,inputId){
+    const field=q(fieldId),client=state.client;if(!field||!client)return;
+    field.hidden=true;
+    try{
+      const {data,error}=await client.rpc('v6224_subscription_promotions_available');
+      if(client!==state.client)return;
+      field.hidden=!!error||data!==true;
+      if(field.hidden&&q(inputId))q(inputId).value='';
+    }catch{field.hidden=true;if(q(inputId))q(inputId).value='';}
+  }
+  async function renderAdminPromotions(action='list',payload={}){
+    if(!state.profile?.is_super_admin||adminPromotionBusy)return;
+    const client=state.client,user=state.user,business=state.business,sequence=++promotionViewSequence;
+    const current=()=>sequence===promotionViewSequence&&client===state.client&&user===state.user&&business===state.business&&state.profile?.is_super_admin;
+    const status=q('adminPromoMessage'),rows=q('adminPromoRows');if(!rows||!status)return;
+    adminPromotionBusy=true;
+    q('adminPromoForm').onsubmit=e=>e.preventDefault();
+    for(const el of document.querySelectorAll('#adminPromoPanel button'))el.disabled=true;
+    status.textContent=action==='list'?'Loading offers…':'Saving offer settings…';
+    try{
+      const {data,error}=await client.rpc('v6224_subscription_promotions',{p_action:action,p_payload:payload,p_expected_revision:action==='list'?null:adminPromotionState?.revision??null});
+      if(!current())return;
+      if(error)throw error;
+      adminPromotionState=data;
+      q('adminPromoGlobal').textContent=data.enabled?'Disable all promo codes':'Enable promo codes';
+      q('adminPromoGlobal').onclick=()=>renderAdminPromotions('set_global',{enabled:!adminPromotionState.enabled});
+      rows.innerHTML=(data.codes||[]).map(c=>{
+        const expired=!!c.expires_at&&Date.parse(c.expires_at)<=Date.now(),expires=c.expires_at?new Date(c.expires_at).toLocaleString():'No expiry';
+        return `<tr><td>${escapeHtml(c.code)}</td><td>${Number(c.percent_off)}%</td><td>${c.billing_interval==='both'?'Monthly and annual':c.billing_interval==='annual'?'Annual':'Monthly'}</td><td>${c.duration==='forever'?'Ongoing renewals':'First payment'}</td><td>${escapeHtml(expires)}</td><td>${expired?'Expired':c.enabled?(data.enabled?'Enabled':'Paused by master switch'):'Disabled'}</td><td><button type="button" class="secondary compact-btn" data-promotion-id="${escapeHtml(c.id)}" ${expired?'disabled':''}>${c.enabled?'Disable':'Enable'}</button></td></tr>`;
+      }).join('')||'<tr><td colspan="7">No promo codes yet.</td></tr>';
+      rows.querySelectorAll('[data-promotion-id]').forEach(btn=>btn.onclick=()=>{const c=adminPromotionState.codes.find(x=>x.id===btn.dataset.promotionId);if(c)void renderAdminPromotions('set_enabled',{id:c.id,enabled:!c.enabled});});
+      q('adminPromoReload').onclick=()=>renderAdminPromotions();
+      q('adminPromoForm').onsubmit=e=>{
+        e.preventDefault();if(adminPromotionBusy)return;
+        const expiry=q('adminPromoExpiry').value;
+        void renderAdminPromotions('create',{code:q('adminPromoCode').value.trim(),percent_off:Number(q('adminPromoPercent').value),billing_interval:q('adminPromoInterval').value,duration:q('adminPromoDuration').value,expires_at:expiry?new Date(expiry).toISOString():null});
+      };
+      if(action==='create')q('adminPromoForm').reset();
+      status.textContent=action==='create'?'Code created disabled. Review its terms, then enable it.':data.enabled?'Promo codes are enabled for new subscription checkouts.':'Promo codes are switched off.';
+    }catch(error){
+      if(current()){adminPromotionState=null;status.textContent=error?.message||'Could not load offer settings. Reload to try again.';q('adminPromoReload').onclick=()=>renderAdminPromotions();}
+    }finally{
+      adminPromotionBusy=false;
+      if(current()){
+        q('adminPromoReload').disabled=false;
+        q('adminPromoCreate').disabled=!adminPromotionState;
+        q('adminPromoGlobal').disabled=!adminPromotionState;
+        rows.querySelectorAll('[data-promotion-id]').forEach(btn=>{const c=adminPromotionState?.codes?.find(x=>x.id===btn.dataset.promotionId);btn.disabled=!c||(!!c.expires_at&&Date.parse(c.expires_at)<=Date.now());});
+      }
+    }
+  }
+
   let adminSubscriptionBillingRows=[];
   const adminBillingMoney=(cents,currency='nzd')=>new Intl.NumberFormat('en-NZ',{style:'currency',currency:String(currency||'nzd').toUpperCase()}).format(Number(cents||0)/100);
   const adminBillingDate=seconds=>seconds?new Date(Number(seconds)*1000).toLocaleDateString('en-NZ',{day:'numeric',month:'short',year:'numeric'}):'—';
   async function renderAdminSubscriptionBilling(){
     if(!state.profile?.is_super_admin)return;
+    void renderAdminPromotions();
     const root=q('adminSubRows');if(root)root.innerHTML='<tr><td colspan="8">Loading Stripe subscription data…</td></tr>';
     const {data,error}=await state.client.functions.invoke('admin-subscription-billing',{body:{action:'overview'}});
     if(error||data?.error){if(root)root.innerHTML=`<tr><td colspan="8">${escapeHtml(data?.error||error?.message||'Billing data is unavailable.')}</td></tr>`;return}
