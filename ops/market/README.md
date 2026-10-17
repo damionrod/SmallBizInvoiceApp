@@ -99,7 +99,7 @@ Before publication, set/review the isolated Supabase Auth Site URL and permitted
 
 The available Netlify connector can create and protect the site, but does not expose repository linking or first publication. The user has approved the browser fallback for those remaining steps. The existing Netlify account still needs to be signed in within the shared browser; an external browser session does not authenticate it.
 
-The user explicitly approved uploading the prepared branch, schema records, configuration and rollback sources to damionrod/SmallBizInvoiceApp. The CLI has no GitHub credentials and the connected GitHub integration lacks write permission. Upload is therefore proceeding through the verified damionrod browser session, using only market/frindly-market and commits that skip automatic Netlify builds. Verify the final remote file hashes before connecting or publishing the Market site. Main and Dev are outside this deployment scope.
+The user explicitly approved uploading the prepared branch, schema records, configuration and rollback sources to damionrod/SmallBizInvoiceApp. The CLI has no GitHub credentials and the connected GitHub integration lacks write permission. The complete source was uploaded through the verified damionrod browser session, using only market/frindly-market and commits that skip automatic Netlify builds. The full GitHub tree matched the checked local source exactly (application commit 03d77d9e484c6564f087d487d1d85ab6961af7f3, tree 317d07aa238a5cbc514977d50b07a91aafdaf037). The Frindly Market isolation GitHub Actions run 39022231319 passed. Main and the live Netlify deploy were verified unchanged. Main and Dev are outside this deployment scope.
 
 ## Bootstrap and future work
 

@@ -21,7 +21,7 @@
     "name": "frindly-market",
     "teamLoginRequired": true,
     "published": false,
-    "repositoryConnection": "pending existing-account Netlify login and browser configuration",
+    "repositoryConnection": "awaiting existing-account access, repository connection verification and first deployment",
     "legacyNetlifyScheduledHandlers": "excluded by an explicit empty functions directory"
   },
   "verification": {
@@ -29,7 +29,9 @@
     "focusedHardeningTestsPassed": 30,
     "sqlChecksPassed": 11,
     "frontendSyntaxFilesPassed": 36,
-    "legacyFailuresUnchanged": 39
+    "legacyFailuresUnchanged": 39,
+    "githubIsolationWorkflow": "passed",
+    "githubIsolationRunId": 39022231319
   },
   "outboundServices": {
     "documentEmails": "blocked on server",
@@ -41,16 +43,17 @@
     "productionCronAndProviderSecrets": "not copied"
   },
   "pending": [
-    "Finish the approved branch upload and verify its tree against the local checked source",
     "Connect the Market Netlify project to that branch through the browser",
     "Set test Auth site/redirect URLs to the Market site",
     "Publish and run authenticated desktop/mobile browser checks",
     "Continue targeted hardening; existing test failures and security advisories remain"
   ],
   "sourcePublication": {
-    "status": "approved_upload_in_progress",
+    "status": "published_and_verified",
     "repository": "damionrod/SmallBizInvoiceApp",
     "branch": "market/frindly-market",
-    "reason": "User authorised GitHub publication and browser setup; upload is proceeding through the verified repository-owner browser session."
+    "reason": "Complete GitHub tree matched the checked local source exactly; the Frindly Market isolation GitHub Actions run passed.",
+    "verifiedApplicationCommit": "03d77d9e484c6564f087d487d1d85ab6961af7f3",
+    "verifiedApplicationTree": "317d07aa238a5cbc514977d50b07a91aafdaf037"
   }
 }
