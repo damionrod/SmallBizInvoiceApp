@@ -1,5 +1,6 @@
 [build]
-  publish = "public"
+  command = "node scripts/build-market.cjs"
+  publish = "dist-market"
 
 [[headers]]
   for = "/*.js"

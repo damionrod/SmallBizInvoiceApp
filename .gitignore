@@ -1,0 +1,6 @@
+.netlify/
+.env
+.env.*
+dist-market/
+ops-private/
+supabase/.temp/

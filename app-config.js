@@ -1,9 +1,19 @@
-// Public browser configuration. The Supabase publishable key is intentionally safe to ship to browsers.
-window.APP_CONFIG = {
-  appName: 'Frindly',
-  supabaseUrl: 'https://oxsbzytwbphagcbilxud.supabase.co',
-  supabaseKey: 'sb_publishable_cwPJV4Skg8cjgC6UzKM3xg_O1q5dztU',
+// This branch is reserved for the isolated Frindly Market environment.
+window.APP_CONFIG = Object.freeze({
+  appName: 'Frindly Market',
+  version: 'v62.20-market-foundation',
+  environment: 'market',
+  projectRef: 'smvvevrtjqkflyqkyape',
+  supabaseUrl: 'https://smvvevrtjqkflyqkyape.supabase.co',
+  supabaseKey: 'sb_publishable_S2bA1UlzgrY3sDOpcao_9A_aWAh0fXR',
   defaultTrialDays: 14,
-  stripeEnabled: true,
-  googleOAuthEnabled: false
-};
+  stripeEnabled: false,
+  googleOAuthEnabled: false,
+  outboundServicesEnabled: false,
+  features: Object.freeze({
+    expenseWorkflowV6203: true,
+    expenseDuplicateWorkflowV6204: true,
+    groupedBankReconciliationV6203: true,
+    financialImportV2: false
+  })
+});

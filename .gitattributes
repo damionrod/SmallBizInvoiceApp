@@ -1,0 +1,2 @@
+# Preserve original function-body whitespace in test-only schema snapshots.
+ops/market/bootstrap/*.sql whitespace=-blank-at-eol
