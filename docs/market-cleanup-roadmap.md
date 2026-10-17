@@ -52,7 +52,7 @@ Before any Market publication, compare the complete source tree with the remote 
 
 Netlify team protection currently prevents authenticated browser acceptance in the shared session. Do not remove protection or claim visual acceptance without completing that check. External provider setup, tax/payroll review and real-device acceptance remain explicit release dependencies.
 
-## Current local verification checkpoint
+## Historical pre-v62.22 local checkpoint
 
 - Focused gate: 106/106 pass, including isolation, generated assets and payment mismatch cases.
 - Full offline suite: 205 tests; 190 pass, 15 fail. These unresolved tests remain enabled and block a claim of full acceptance.
@@ -66,3 +66,16 @@ The original 39 failures have been resolved without excluding tests. The full of
 Implemented: runtime hash/order ownership; duplicate Community removal; stale-business/view and repeated-submit migration protection; business-currency import formatting; preservation of mapping choices; starting-balance context protection; atomic legacy bank undo with rollback fixtures; narrow helper security boundaries. Removed only the two unloaded public CSS copies whose exact rules already exist in the active stylesheet.
 
 The two v62.22 database migrations are applied only to Market and their fixture data is rolled back. Frontend publication and authenticated acceptance must be recorded separately. Product rows 8–17 above remain explicitly open wherever their completion gates have not been met; this checkpoint is not a claim that every roadmap feature is built.
+
+
+## v62.23 migration safety checkpoint
+
+Applied only to Market: 20261017212154 (domain permissions), 20261017212723 (financial conflicts and nine-type sheet constraint), 20261017212844 (raw source-file scope). Rollback fixtures run with authenticated roles and leave no fixture businesses, documents, or employees. The older preview, history and commit RPCs use the same boundary as the current importer; restrictive policies also protect direct table reads. Raw source files belong to their uploader, with owner/admin oversight, because unexpected CSV columns cannot be classified reliably as harmless.
+
+Fixed the `paid` substring test that also matched `unpaid` and `partially paid`, the outstanding-only settlement calculation, cancelled-history fabricated paid amount, and the duplicate check that treated an earlier analysis as a completed import. Native invoice, expense and quote number collisions now stop atomically instead of silently linking the wrong document. Existing financial documents are never replaced. Source amounts and currency are checked server-side.
+
+The schema test exposed that `import_sheets` still rejected quotes, stock, equipment and payroll history. The allowed-type constraint now includes all nine supported types and retains the previous `unknown` value. No old type or financial evidence was deleted.
+
+**Conversion is still incomplete.** A rollback fixture proved the legacy expense insert trigger overwrites a part-paid opening balance; both invoice and expense payment refreshers derive paid totals only from Frindly payment rows. A complete correction requires an immutable source opening-paid authority used consistently by payment guards, recalculation, credits/refunds, reports and conversion posting. Creating synthetic historic payments or changing only the first displayed balance would be incorrect. Part-paid opening records now show a warning, and the server rejects native confirmation; the user can choose historical reference. Starting-balance posting remains disabled. Existing imported documents were not rewritten.
+
+Full offline gate: 233/233 passed. Browser acceptance remains gated by Netlify team login. Leave/self-service, optional approvals and the remaining product roadmap are not marked complete by this migration checkpoint.
