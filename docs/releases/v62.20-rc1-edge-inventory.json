@@ -1,0 +1,258 @@
+[
+  {
+    "slug": "send-invoice",
+    "inventory_version": 19,
+    "snapshot_version": 19,
+    "verify_jwt": false,
+    "repository_entrypoint": "matches",
+    "sha256": "373653747c9100392a5881d6e809332969b45e554b37ec1e80d3cf7e3f596988"
+  },
+  {
+    "slug": "send-quote",
+    "inventory_version": 19,
+    "snapshot_version": 19,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "df054eeab95b46793521931f086e0bc576358bf60a7e5a102ee2997e49e3ea89"
+  },
+  {
+    "slug": "create-checkout",
+    "inventory_version": 15,
+    "snapshot_version": 15,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "74918196779fe9f8b4ef5be697d1a5b5fa4a2c6a1f006c561aa378809c782fee"
+  },
+  {
+    "slug": "create-portal",
+    "inventory_version": 12,
+    "snapshot_version": 12,
+    "verify_jwt": true,
+    "repository_entrypoint": "differs",
+    "sha256": "7428b2d208c2232b7af4478391b7c417f3e37aec2dcfb440720e256732eca74c"
+  },
+  {
+    "slug": "stripe-webhook",
+    "inventory_version": 24,
+    "snapshot_version": 24,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "e681f7971bfcc6b14e740bd72062e6c6feca1fc6691ad4391b964a9c7f11a419"
+  },
+  {
+    "slug": "test-payment-provider",
+    "inventory_version": 5,
+    "snapshot_version": 5,
+    "verify_jwt": false,
+    "repository_entrypoint": "matches",
+    "sha256": "03d019d4b43043386a831e157f7e22c24a6fee912f61549f18c690d8d04630e7"
+  },
+  {
+    "slug": "send-payslip",
+    "inventory_version": 11,
+    "snapshot_version": 11,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "86643b4cc9c2e27da57babb7eac8b0261da083ef88c74eebbde686cd15e243a2"
+  },
+  {
+    "slug": "delete-business",
+    "inventory_version": 4,
+    "snapshot_version": 4,
+    "verify_jwt": true,
+    "repository_entrypoint": "missing",
+    "sha256": "8db85a1e924e22a968e3c9cdffd980a1e774bb65f238f1ce4b2420853e9bf9d6"
+  },
+  {
+    "slug": "business-invite",
+    "inventory_version": 9,
+    "snapshot_version": 9,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "5154ef02481b9b78a9cc42a6e1f915689ee2e36e5444d3e65e60c6b177fdde81"
+  },
+  {
+    "slug": "referral-invite",
+    "inventory_version": 10,
+    "snapshot_version": 10,
+    "verify_jwt": true,
+    "repository_entrypoint": "differs",
+    "sha256": "601882a97a10cdb00c7a016adc15ad966fbbc6c38ff948eb119e8fc270a9e4f3"
+  },
+  {
+    "slug": "scan-expense-document",
+    "inventory_version": 15,
+    "snapshot_version": 15,
+    "verify_jwt": true,
+    "repository_entrypoint": "differs",
+    "sha256": "07657c11ff88ec69e5697f58deed9af6f4413ea1eca5ccfe0359ba8995c8973f"
+  },
+  {
+    "slug": "check-payroll-compliance-sources",
+    "inventory_version": 5,
+    "snapshot_version": 5,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "61178d548527930ad56f12942b8c43cace5eff6dcdb38cda973f5dd3b8b262d7"
+  },
+  {
+    "slug": "check-business-tax-compliance-sources",
+    "inventory_version": 3,
+    "snapshot_version": 3,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "59a43c41edf938f08009fd97a96d99bdb5a25f170c737410952d4cae6612ab8b"
+  },
+  {
+    "slug": "finlo-helper",
+    "inventory_version": 12,
+    "snapshot_version": 12,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "178f1cd2da36cbff3849429a1c3f788974e612af7b1be28c60268997eaf13826"
+  },
+  {
+    "slug": "import-migration-analyse",
+    "inventory_version": 6,
+    "snapshot_version": 6,
+    "verify_jwt": true,
+    "repository_entrypoint": "matches",
+    "sha256": "f164704a4e14ac1810533cc2699b45f2e45de75f817ddfffb76f8057d2a4cf61"
+  },
+  {
+    "slug": "finlo-live-voice-session",
+    "inventory_version": 13,
+    "snapshot_version": 13,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "978a0762fa544a1bb2de8ca5528fa9742285c0771f570ce231d7a1d0ceb15ef1"
+  },
+  {
+    "slug": "finlo-live-voice-end",
+    "inventory_version": 4,
+    "snapshot_version": 4,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "b8335585e1db905c47d6c042fb1f2281f24e0c42d148cbd8862e0fa4b2fbb1b8"
+  },
+  {
+    "slug": "invoice-payments",
+    "inventory_version": 9,
+    "snapshot_version": 9,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "d241b7ef7974de1414750c24adb4969ea9ed88a09c6f0a430c715ceb31a849e6"
+  },
+  {
+    "slug": "support-console",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": true,
+    "repository_entrypoint": "missing",
+    "sha256": "9d331a24077d6b37c2e8f7943d9d4964ba02576e8e4923af7aeae4910d371877"
+  },
+  {
+    "slug": "support-notification",
+    "inventory_version": 3,
+    "snapshot_version": 3,
+    "verify_jwt": true,
+    "repository_entrypoint": "differs",
+    "sha256": "11256459232a2ff03b651ddfa6e4f402ce2036c6445fb47e34f7e9229d1039e5"
+  },
+  {
+    "slug": "frindly-edge-gateway-test",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": true,
+    "repository_entrypoint": "missing",
+    "sha256": "824a2ebd73092891c6e8cdba05ab1cd5bef6fe7be57748b4a42b0f5b8aba7337"
+  },
+  {
+    "slug": "frindly-edge-gateway-test-no-jwt",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": false,
+    "repository_entrypoint": "missing",
+    "sha256": "5c7b6fe1218cb0405aedb23651d76a3e5cf4db605a9665ee0bb843786e1c1a7b"
+  },
+  {
+    "slug": "one-time-avatar-migration",
+    "inventory_version": 3,
+    "snapshot_version": 3,
+    "verify_jwt": true,
+    "repository_entrypoint": "missing",
+    "sha256": "75218569cb2664ddd0ce3dc0324c6347b96f034fd49122f6170cb53581a0f15a"
+  },
+  {
+    "slug": "public-contact",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": false,
+    "repository_entrypoint": "missing",
+    "sha256": "119d72ff54785606dafce76a38147d7215e98e748b1d1c3be46ec26b347f18c1"
+  },
+  {
+    "slug": "subscription-lifecycle-notifications",
+    "inventory_version": 3,
+    "snapshot_version": 3,
+    "verify_jwt": false,
+    "repository_entrypoint": "missing",
+    "sha256": "71db02235d93aa10cfcf44da6ef7bb3030a881b0adf3d27b2cbcac15fc35898e"
+  },
+  {
+    "slug": "billing-history",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": true,
+    "repository_entrypoint": "missing",
+    "sha256": "a9e6424b7e1c4b182114360108112d4199d9b12ca003835357742c89e474c312"
+  },
+  {
+    "slug": "admin-subscription-billing",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": true,
+    "repository_entrypoint": "missing",
+    "sha256": "47538048f22c4a58bcfe49f897e3f5c0b7e46fc0e07b9d582ecb5cda5aa37106"
+  },
+  {
+    "slug": "blinkpay-bank-feeds",
+    "inventory_version": 6,
+    "snapshot_version": 6,
+    "verify_jwt": false,
+    "repository_entrypoint": "differs",
+    "sha256": "d29e880207d5a1ab0a2ee2f9c714694c368c7d3c261c382105e28187db79c0fa"
+  },
+  {
+    "slug": "akahu-bank-feeds",
+    "inventory_version": 3,
+    "snapshot_version": 3,
+    "verify_jwt": false,
+    "repository_entrypoint": "matches",
+    "sha256": "51d9fbe1a966582f8ab567d1d943136b816fb7a42ce8f17ba06dc0164f3de008"
+  },
+  {
+    "slug": "invoice-reminder-worker",
+    "inventory_version": 3,
+    "snapshot_version": 3,
+    "verify_jwt": false,
+    "repository_entrypoint": "matches",
+    "sha256": "4a40fc6a49d28166c22890df00a8bcca96504c491ca4c8ce05eb2d808dc0333f"
+  },
+  {
+    "slug": "send-purchase-order",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": true,
+    "repository_entrypoint": "differs",
+    "sha256": "5b381654aa933947de9a4f4c874ddd83d8aa9cfde0b45b0d68d253c04c75fd60"
+  },
+  {
+    "slug": "frindly-expense-assessment-readonly",
+    "inventory_version": 2,
+    "snapshot_version": 2,
+    "verify_jwt": true,
+    "repository_entrypoint": "missing",
+    "sha256": "00ea47756338405df4004918b32a70bc7e8d673952b5915f361cf9e256c90429"
+  }
+]
