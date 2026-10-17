@@ -28,6 +28,7 @@ BEGIN
   result:=public.v6215_import_get(batch);
   IF jsonb_array_length(result->'records')<>1 THEN RAISE EXCEPTION 'Owner preview missing';END IF;
   IF public.v6223_import_type_access(other_bid,'employees',true) OR public.v6223_import_type_access(bid,'unexpected',true) THEN RAISE EXCEPTION 'Unknown or foreign type accepted';END IF;
+  denied:=false;BEGIN PERFORM public.v6215_confirm_import(peer_batch);EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Empty Smart Migration confirmation accepted';END IF;
   EXECUTE 'RESET ROLE';
   UPDATE public.business_memberships SET role='staff' WHERE id=member_id;
   EXECUTE 'SET LOCAL ROLE authenticated';
@@ -46,6 +47,9 @@ BEGIN
   denied:=false;BEGIN PERFORM public.v6215_confirm_import(batch);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'New commit bypass';END IF;
   denied:=false;BEGIN PERFORM public.v6171b_confirm_import(batch,'skip');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Old commit bypass';END IF;
   denied:=false;BEGIN PERFORM public.v6215_set_record_action(rec,'skip');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Record action bypass';END IF;
+  -- The old route must not falsely complete a newer logical-record batch.
+  denied:=false;BEGIN PERFORM public.v6171b_confirm_import(customer_batch,'skip');EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;
+  IF NOT denied THEN RAISE EXCEPTION 'Old route finished a Smart Migration batch';END IF;
   -- Ordinary permitted customer migration still succeeds, and retries do not duplicate it.
   result:=public.v6215_confirm_import(customer_batch);
   IF result->'batch'->>'status'<>'completed' THEN RAISE EXCEPTION 'Customer commit failed';END IF;
