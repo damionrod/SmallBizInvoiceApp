@@ -68,7 +68,7 @@ function uniqueMapping(candidates:MappingCandidate[],type:string){
 async function headerSignature(headers:string[]){return sha(canonical(headers.map(key)))}
 function profileColumns(mapping:unknown){const m=mapping&&typeof mapping==="object"?mapping as Record<string,unknown>:{};return(m.columns&&typeof m.columns==="object"?m.columns:m) as Record<string,string>}
 async function loadMappingProfile(admin:any,bid:string,adapter:string,type:string,headers:string[]){const signature=await headerSignature(headers),{data}=await admin.from("import_mapping_profiles").select("mapping").eq("business_id",bid).eq("source_adapter",adapter).eq("record_type",type).eq("header_signature",signature).maybeSingle();return{signature,mapping:data?.mapping?profileColumns(data.mapping):null}}
-async function saveMappingProfile(admin:any,bid:string,userId:string,adapter:string,type:string,headers:string[],mapping:Record<string,string>){const signature=await headerSignature(headers),{error}=await admin.from("import_mapping_profiles").upsert({business_id:bid,source_adapter:adapter,record_type:type,header_signature:signature,mapping:{version:"v62.18",columns:mapping},confirmed_by:userId,updated_at:new Date().toISOString()},{onConflict:"business_id,source_adapter,record_type,header_signature"});if(error)throw error}
+
 async function optionalAiCandidates(type:string,profiles:ColumnProfile[],enabled:boolean):Promise<MappingCandidate[]>{
   const apiKey="",model="";if(!enabled||!apiKey||!model)return[];
   const unresolved=profiles.map(p=>({header:p.header,numeric_ratio:round(p.numeric_ratio),date_ratio:round(p.date_ratio),negative_ratio:round(p.negative_ratio),zero_ratio:round(p.zero_ratio),unique_ratio:round(p.unique_ratio)}));
@@ -149,8 +149,14 @@ async function buildRecords(type:string,adapter:string,rows:RawRow[],mapping:Rec
 }
 
 async function storeRecords(admin:any,batchId:string,bid:string,sheetId:string,records:LogicalRecord[]){
-  const hashes=records.map(x=>x.canonical_hash);if(hashes.length){const {data:old}=await admin.from("import_records").select("canonical_hash,imported_record_id").eq("business_id",bid).neq("batch_id",batchId).eq("validation_status","imported").in("canonical_hash",hashes);const seen=new Map((old||[]).map((x:any)=>[x.canonical_hash,x]));for(const r of records)if(seen.has(r.canonical_hash)){r.duplicate_status="exact";r.duplicate_action="skip";r.validation_status=r.validation_status==="rejected"?"rejected":"warning";r.validation_messages.push("This logical record was imported previously and will be skipped unless you choose another safe action.")}}
-  const rows=records.map(({member_ids,...r})=>({...r,batch_id:batchId,sheet_id:sheetId,business_id:bid}));const {data:inserted,error}=await admin.from("import_records").insert(rows).select("id,canonical_hash");if(error)throw error;const byHash=new Map((inserted||[]).map((x:any)=>[x.canonical_hash,x.id])),members=[];for(const r of records)for(const rowId of r.member_ids)members.push({business_id:bid,batch_id:batchId,import_record_id:byHash.get(r.canonical_hash),import_row_id:rowId,member_role:"source"});if(members.length){const {error:e}=await admin.from("import_record_members").insert(members);if(e)throw e}}
+  // Initial analysis only stages data. Duplicate decisions belong to the atomic
+  // review RPC, so an earlier analysis cannot masquerade as a completed import.
+  const rows=records.map(({member_ids,...r})=>({...r,id:crypto.randomUUID(),batch_id:batchId,sheet_id:sheetId,business_id:bid}));
+  if(!rows.length)return;
+  const {error}=await admin.from("import_records").insert(rows);if(error)throw error;
+  const members=records.flatMap((r,i)=>r.member_ids.map(rowId=>({business_id:bid,batch_id:batchId,import_record_id:rows[i].id,import_row_id:rowId,member_role:"source"})));
+  if(members.length){const {error:e}=await admin.from("import_record_members").insert(members);if(e)throw e;}
+}
 
 // Check with the signed-in client before the service client reads or writes import evidence.
 class ImportAccessError extends Error {}
@@ -168,15 +174,27 @@ Deno.serve(async(req:Request)=>{
     const contentType=req.headers.get("content-type")||"";
     if(contentType.includes("application/json")){
       const body=await req.json();if(body.action!=="remap")return json({error:"Unknown import action."},400);const batchId=clean(body.batch_id);await requireImportAccess(client,bid,(body.sheets||[]).map((s:any)=>clean(s.record_type)),batchId);const {data:batch,error:bErr}=await admin.from("import_batches").select("*").eq("id",batchId).eq("business_id",bid).single();if(bErr||!["analysed","reviewed"].includes(batch.status))return json({error:"Import batch is not available for remapping."},409);
+      if(!body.expected_updated_at)return json({error:"Reload this import before rebuilding its review."},409);
+      if(body.expected_updated_at!==batch.updated_at)return json({error:"This import changed in another session. Reopen its latest review."},409);
+      const prepared=[];
       for(const change of body.sheets||[]){
         const sheetId=clean(change.id),recordType=clean(change.record_type),requestedMapping=Object.fromEntries((change.mapping||[]).filter((x:any)=>x.target&&x.target!=="skip").map((x:any)=>[x.source,x.target]));if(!fields[recordType])throw new Error("Unsupported record type.");
-        const {data:sheet,error:sErr}=await admin.from("import_sheets").select("*").eq("id",sheetId).eq("batch_id",batchId).single();if(sErr)throw sErr;const adapter=sheet.source_adapter||"generic_file",mapping=normalizeMapping(recordType,adapter,requestedMapping,sheet.headers||[]);
-        const existing=(await admin.from("import_records").select("id").eq("sheet_id",sheetId)).data||[],existingIds=existing.map((x:any)=>x.id);if(existingIds.length)await admin.from("import_record_members").delete().eq("batch_id",batchId).in("import_record_id",existingIds);await admin.from("import_records").delete().eq("sheet_id",sheetId);
-        await admin.from("import_mappings").update({confirmed_target:null,confirmed_by:null,confirmed_at:null}).eq("sheet_id",sheetId);for(const [source,target] of Object.entries(mapping))await admin.from("import_mappings").update({confirmed_target:target,confirmed_by:user.id,confirmed_at:new Date().toISOString()}).eq("sheet_id",sheetId).eq("source_column",source);
-        const {data:raw,error:rErr}=await admin.from("import_rows").select("id,source_row_number,source_data").eq("sheet_id",sheetId).order("source_row_number");if(rErr)throw rErr;const records=await buildRecords(recordType,adapter,raw||[],mapping,clean(body.cutover_date)||batch.cutover_date);
-        await admin.from("import_sheets").update({detected_record_type:recordType}).eq("id",sheetId);await storeRecords(admin,batchId,bid,sheetId,records);await saveMappingProfile(admin,bid,user.id,adapter,recordType,sheet.headers||[],mapping)
+        const {data:sheet,error:sErr}=await admin.from("import_sheets").select("*").eq("id",sheetId).eq("batch_id",batchId).eq("business_id",bid).single();if(sErr)throw new Error(sErr.message);
+        const adapter=sheet.source_adapter||"generic_file",mapping=normalizeMapping(recordType,adapter,requestedMapping,sheet.headers||[]),raw=[];
+        for(let offset=0;;offset+=1000){
+          const {data:page,error:rErr}=await admin.from("import_rows").select("id,source_row_number,source_data").eq("sheet_id",sheetId).eq("batch_id",batchId).eq("business_id",bid).order("source_row_number").order("id").range(offset,offset+999);
+          if(rErr)throw new Error(rErr.message);raw.push(...(page||[]));
+          if(raw.length>Number(cfg.max_rows))throw new Error("This import exceeds the configured row limit.");
+          if((page||[]).length<1000)break;
+        }
+        const records=await buildRecords(recordType,adapter,raw,mapping,clean(body.cutover_date)||batch.cutover_date);
+        prepared.push({id:sheetId,record_type:recordType,mapping,header_signature:await headerSignature(sheet.headers||[]),records});
       }
-      const {data:counts}=await admin.from("import_records").select("validation_status").eq("batch_id",batchId);await admin.from("import_batches").update({cutover_date:clean(body.cutover_date)||batch.cutover_date,migration_mode:clean(body.mode)||"continue_today",mapping_version:"v62.18",status:"reviewed",valid_rows:(counts||[]).filter((x:any)=>x.validation_status==="ready").length,warning_rows:(counts||[]).filter((x:any)=>x.validation_status==="warning").length,rejected_rows:(counts||[]).filter((x:any)=>x.validation_status==="rejected").length,updated_at:new Date().toISOString()}).eq("id",batchId);const {data,error}=await client.rpc("v6215_import_get",{p_batch:batchId});if(error)throw error;return json(data);
+      // No service-role mutations: mapping, records, memberships, profiles and
+      // counters are replaced together under the signed-in user's batch lock.
+      const {data,error}=await client.rpc("v6225_replace_import_review",{p_batch:batchId,p_expected_updated_at:body.expected_updated_at,p_cutover:clean(body.cutover_date)||batch.cutover_date,p_mode:clean(body.mode)||"continue_today",p_sheets:prepared});
+      if(error)return json({error:error.message||"Could not save the import review."},error.code==="42501"?403:["40001","55000"].includes(error.code)?409:400);
+      return json(data);
     }
     const form=await req.formData(),file=form.get("file");if(!(file instanceof File))return json({error:"Choose a CSV or XLSX file."},400);const ext=(file.name.split(".").pop()||"").toLowerCase();if(!["csv","xlsx"].includes(ext))return json({error:"Frindly supports CSV and XLSX files."},400);if(file.size>Number(cfg.max_upload_bytes))return json({error:"This file is larger than the configured upload limit."},413);const bytes=new Uint8Array(await file.arrayBuffer());if(ext==="xlsx"&&!(bytes[0]===80&&bytes[1]===75))return json({error:"The file is not a valid Excel workbook."},400);if(ext==="csv"&&bytes.slice(0,4096).some(x=>x===0))return json({error:"This CSV contains unexpected binary content."},400);
     const digest=await sha(bytes),{data:dupe}=await admin.from("import_batches").select("id,status").eq("business_id",bid).eq("file_sha256",digest).in("status",["analysed","reviewed","completed"]).order("created_at",{ascending:false}).limit(1).maybeSingle();if(dupe){await requireImportAccess(client,bid,[],dupe.id);return json({duplicate:true,batch_id:dupe.id,status:dupe.status,message:"This exact file has already been analysed for this business."})}
@@ -190,8 +208,11 @@ Deno.serve(async(req:Request)=>{
       const initialMapping=normalizeMapping(p.type,p.adapter,selected.mapping,p.headers);
       const {data:sheet,error:sErr}=await admin.from("import_sheets").insert({batch_id:batch.id,business_id:bid,sheet_index:p.index,sheet_name:p.name,source_adapter:p.adapter,detected_record_type:p.type,row_count:p.rows.length,headers:p.headers,sample_rows:sample}).select().single();if(sErr)throw sErr;
       const maps=p.headers.map((h:string)=>{const info=selected.meta[h],forced=p.adapter==="zoho_invoice"&&initialMapping[h]&&!info;return{batch_id:batch.id,sheet_id:sheet.id,business_id:bid,source_column:h,suggested_target:initialMapping[h]||null,confidence:initialMapping[h]?(forced?1:info?.confidence||.9):0,suggestion_source:initialMapping[h]?(forced?"zoho_invoice_adapter":info?.source_kind||"deterministic"):"unresolved"}});const {error:mErr}=await admin.from("import_mappings").insert(maps);if(mErr)throw mErr;
-      const rawRows=[];for(let i=0;i<p.rows.length;i++){const source_data=Object.fromEntries(p.headers.map((h:string,j:number)=>[h,clean(p.rows[i][j])])),source_hash=await sha(canonical({sheet:p.name,data:source_data}));rawRows.push({batch_id:batch.id,sheet_id:sheet.id,business_id:bid,source_row_number:i+2,source_hash,source_data,record_type:p.type})}const {data:inserted,error:rErr}=await admin.from("import_rows").insert(rawRows).select("id,source_row_number,source_data");if(rErr)throw rErr;const records=await buildRecords(p.type,p.adapter,inserted||[],initialMapping,cutover);await storeRecords(admin,batch.id,bid,sheet.id,records)
+      const rawRows=[];for(let i=0;i<p.rows.length;i++){const source_data=Object.fromEntries(p.headers.map((h:string,j:number)=>[h,clean(p.rows[i][j])])),source_hash=await sha(canonical({sheet:p.name,data:source_data}));rawRows.push({id:crypto.randomUUID(),batch_id:batch.id,sheet_id:sheet.id,business_id:bid,source_row_number:i+2,source_hash,source_data,record_type:p.type})}const {error:rErr}=await admin.from("import_rows").insert(rawRows);if(rErr)throw rErr;const records=await buildRecords(p.type,p.adapter,rawRows,initialMapping,cutover);await storeRecords(admin,batch.id,bid,sheet.id,records)
     }
-    const {data:counts}=await admin.from("import_records").select("validation_status").eq("batch_id",batch.id);await admin.from("import_batches").update({status:"analysed",valid_rows:(counts||[]).filter((x:any)=>x.validation_status==="ready").length,warning_rows:(counts||[]).filter((x:any)=>x.validation_status==="warning").length,rejected_rows:(counts||[]).filter((x:any)=>x.validation_status==="rejected").length,updated_at:new Date().toISOString()}).eq("id",batch.id);return json({batch_id:batch.id,total_rows:totalRows,records:(counts||[]).length,sheets:parsed.length,source_adapter:adapter});
+    const counts:Record<string,number>={};
+    for(const status of ["ready","warning","rejected"]){const {count,error}=await admin.from("import_records").select("id",{count:"exact",head:true}).eq("batch_id",batch.id).eq("validation_status",status);if(error)throw error;counts[status]=count||0;}
+    const {error:finishError}=await admin.from("import_batches").update({status:"analysed",valid_rows:counts.ready,warning_rows:counts.warning,rejected_rows:counts.rejected,updated_at:new Date().toISOString()}).eq("id",batch.id);if(finishError)throw finishError;
+    return json({batch_id:batch.id,total_rows:totalRows,records:counts.ready+counts.warning+counts.rejected,sheets:parsed.length,source_adapter:adapter});
   }catch(e){if(e instanceof ImportAccessError)return json({error:e.message},403);console.error("Smart migration analysis failed",e);return json({error:e instanceof Error?e.message:"Import analysis failed."},500)}
 });
