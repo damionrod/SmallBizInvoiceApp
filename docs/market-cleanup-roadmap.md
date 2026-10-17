@@ -81,3 +81,11 @@ The schema test exposed that `import_sheets` still rejected quotes, stock, equip
 Full offline gate: 233/233 passed. Browser acceptance remains gated by Netlify team login. Leave/self-service, optional approvals and the remaining product roadmap are not marked complete by this migration checkpoint.
 
 The old row importer now refuses newer logical-record batches, and Smart Migration refuses a batch with no logical records. This removes the overlapping confirmation path that could falsely complete a batch without importing it. Existing completed/history reads are preserved.
+
+## v62.24 subscription promotion checkpoint
+
+Implemented the requested optional subscription promo-code controls in the canonical Market UI and server source: immutable percentage offers, monthly/annual eligibility, first payment/ongoing duration, expiry, per-code controls and a master switch. Database permissions, revision checks and audit are applied only to Market. Controls default off and fixture records are rolled back. Existing referral rewards do not stack; invoice payments and existing subscription plan-change paths remain separate.
+
+Full offline validation: 257/257 passed. Hosted Stripe checkout is **not activated** in Market: real sandbox checkout/webhook/renewal and authenticated visual acceptance are still release gates. Previously issued discounted payment pages have a disclosed 31-minute validity window after disabling an offer; existing accepted discounts continue. See `docs/v62.24-market-subscription-promotions.md` for the exact supported scope and validation limits.
+
+Next core work remains the shared opening-paid authority and controlled starting-balance conversion; the existing part-paid native-import guard stays in place until that complete accounting path is verified. Leave/self-service, approvals and commercial acceptance remain open. No unrelated legacy files were deleted in this increment.
