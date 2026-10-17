@@ -10,7 +10,7 @@ BEGIN
   INSERT INTO public.profiles(id,business_id,active_business_id,full_name,role,is_super_admin) VALUES(u,bid,bid,'Atomic fixture','owner',false);
   INSERT INTO public.business_memberships(business_id,user_id,role,status) VALUES(bid,u,'owner','active');
   INSERT INTO public.subscriptions(business_id,plan_id,status,current_period_end,trial_ends_at) VALUES(bid,plan,'trialing',now()+interval '30 days',now()+interval '30 days');
-  INSERT INTO public.import_batches(id,business_id,user_id,filename,source_type,file_sha256,status,total_rows) VALUES(batch,bid,u,'atomic.csv','csv',batch::text,'analysed',2) RETURNING updated_at INTO rev;
+  INSERT INTO public.import_batches(id,business_id,user_id,filename,source_type,file_sha256,status,total_rows,mapping_version) VALUES(batch,bid,u,'atomic.csv','csv',batch::text,'analysed',2,'v62.25-staging') RETURNING updated_at INTO rev;
   INSERT INTO public.import_sheets(id,batch_id,business_id,sheet_index,sheet_name,detected_record_type,headers,row_count) VALUES(s1,batch,bid,0,'One','customers','["Name"]',1),(s2,batch,bid,1,'Two','customers','["Name"]',1);
   INSERT INTO public.import_rows(id,batch_id,sheet_id,business_id,source_row_number,source_hash,source_data,record_type) VALUES(raw1,batch,s1,bid,2,'one','{"Name":"One"}','customers'),(raw2,batch,s2,bid,2,'two','{"Name":"Two"}','customers');
   INSERT INTO public.import_mappings(batch_id,sheet_id,business_id,source_column,suggested_target) VALUES(batch,s1,bid,'Name','name'),(batch,s2,bid,'Name','name');
@@ -24,6 +24,8 @@ BEGIN
   denied:=false;BEGIN PERFORM public.v6225_replace_import_review(batch,rev,'2026-10-01','continue_today',payload);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Foreign caller remapped review';END IF;
   denied:=false;BEGIN PERFORM public.v6225_confirm_import_review(batch,rev,'[]');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Foreign caller confirmed review';END IF;
   PERFORM set_config('request.jwt.claim.sub',u::text,true);
+  denied:=false;BEGIN PERFORM public.v6215_confirm_import(batch);EXCEPTION WHEN invalid_parameter_value THEN denied:=SQLERRM LIKE '%Build the review%';END;IF NOT denied THEN RAISE EXCEPTION 'Unreviewed staging bypassed old confirmation';END IF;
+  denied:=false;BEGIN PERFORM public.v6225_confirm_import_review(batch,rev,'[]');EXCEPTION WHEN invalid_parameter_value THEN denied:=SQLERRM LIKE '%Build the review%';END;IF NOT denied THEN RAISE EXCEPTION 'Unreviewed staging bypassed atomic confirmation';END IF;
   bad:=jsonb_set(payload,'{1,records,0,member_ids}',jsonb_build_array(raw1));denied:=false;
   BEGIN PERFORM public.v6225_replace_import_review(batch,rev,'2026-10-01','continue_today',bad);EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;
   IF NOT denied THEN RAISE EXCEPTION 'Cross-sheet evidence accepted';END IF;
