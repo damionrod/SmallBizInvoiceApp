@@ -1193,6 +1193,7 @@
   async function saveBusinessSettings(s,{expectedRevision}={}){
     const bid=state.business?.id,revision=expectedRevision===undefined?state.business?.updated_at:expectedRevision;
     if(!bid||!revision){message('Reload Settings before saving.','error');return false}
+    if(s?._settingsBusinessId&&s._settingsBusinessId!==bid){message('Settings belong to another business. Reopen Settings before saving.','error');return false}
     const clean={...stripInfra(s),_settingsBusinessId:bid};
     try{
     const {data,error}=await state.client.rpc('v6221_save_business_settings',{p_business_id:bid,p_expected_updated_at:revision,p_settings:clean});
