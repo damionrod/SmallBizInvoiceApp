@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getStripeConfig, randomIntegrationSuffix, stripeHeaders } from "../_shared/payment-config.ts";
 import { activeBillingSubscriptions, billingRequest, billingSubscription, pendingPlanChange } from "../_shared/subscription-billing.ts";
 import { refereeCheckoutDiscount } from "../_shared/referral-checkout.ts";
+import { normaliseSubscriptionCode, subscriptionPromotion, subscriptionPromotionCoupon } from "../_shared/subscription-promotions.ts";
 import { corsHeaders, clientIp, enforceRateLimit } from "../_shared/email-sender.ts";
 
 const cors=corsHeaders();
@@ -54,7 +55,9 @@ Deno.serve(async(req)=>{
     if(roleError||billingRole!=='owner')return out({error:'Only the Business Owner can manage billing'},403);
 
     const {data:profile}=await client.from('profiles').select('email').eq('id',user.id).maybeSingle();
-    const {planSlug,billingInterval='monthly',returnUrl,action='start',quote}=await req.json();
+    const {planSlug,billingInterval='monthly',returnUrl,action='start',quote,promoCode}=await req.json();
+    const promotionCode=normaliseSubscriptionCode(promoCode);
+    if(promotionCode&&action!=='start')return out({error:'Promo codes apply when starting a new subscription checkout.'},400);
     if(!['start','preview','confirm','undo'].includes(action))return out({error:'Unknown plan change action.'},400);
     const interval=billingInterval==='annual'?'annual':'monthly';
     const safeReturnUrl=action==='start'?validateReturnUrl(returnUrl,req):'';
@@ -106,6 +109,7 @@ Deno.serve(async(req)=>{
       stage='opening the existing subscription';
       const existing=await billingSubscription(stripe,sub,businessId);
       if(!['canceled','incomplete_expired'].includes(existing.status)){
+        if(promotionCode)return out({error:'Promo codes apply to new subscription checkouts. Remove the code to review a change to your existing plan.'},409);
         if(existing.cancel_at_period_end||existing.cancel_at)throw new Error('Choose Keep subscription before changing your plan.');
         if(!['active','trialing'].includes(existing.status))throw new Error('Resolve the outstanding subscription payment in Subscription & Billing before changing your plan.');
         if(existing.status==='trialing')throw new Error('A Stripe trial is still running. Contact support to change this plan without ending the trial early.');
@@ -220,6 +224,21 @@ Deno.serve(async(req)=>{
     // Apply the welcome benefit to this subscription's first Checkout. Only a
     // recorded referral, its immutable campaign version, and first purchase qualify.
     const reward=await refereeCheckoutDiscount(admin,stripe,businessId,plan,interval,priceData);
+    let promotion:any=null;
+    if(promotionCode){
+      if(reward)return out({error:'Your referral welcome reward already applies. Remove the promo code to use that reward; offers cannot be combined.'},409);
+      stage='checking the subscription promo code';
+      promotion=await subscriptionPromotion(admin,promotionCode,interval);
+      const couponId=await subscriptionPromotionCoupon(stripe,promotion,priceData,new URL(url).hostname.split('.')[0]);
+      // Recheck after provider latency: disabling an offer must prevent a new
+      // session from being created using an earlier page/configuration snapshot.
+      await subscriptionPromotion(admin,promotionCode,interval);
+      f.set('discounts[0][coupon]',couponId);
+      f.set('payment_method_collection','always');
+      f.set('expires_at',String(Math.floor(Date.now()/1000)+31*60));
+      f.set('metadata[subscription_promotion_id]',promotion.id);
+      f.set('subscription_data[metadata][subscription_promotion_id]',promotion.id);
+    }
     if(reward){
       f.set('discounts[0][coupon]',reward.couponId);
       f.set('payment_method_collection','always');
@@ -237,6 +256,13 @@ Deno.serve(async(req)=>{
     });
     const d=await r.json();
     if(!r.ok)throw new Error(d?.error?.message||'Unable to open checkout');
+    if(promotion){
+      try{await subscriptionPromotion(admin,promotionCode,interval);}
+      catch(error){
+        await billingRequest(stripe,`checkout/sessions/${encodeURIComponent(d.id)}/expire`,new URLSearchParams());
+        throw error;
+      }
+    }
     return out({url:d.url});
   }catch(e){
     const error=e instanceof Error?e.message:'Checkout failed';
