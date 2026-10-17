@@ -114,7 +114,7 @@ test('payroll settings save batches pay items, leave types and document types wi
   assert.equal(upserts.find(c=>c.table==='payroll_pay_items').options.onConflict,'id');
 });
 
-test('employee save batches leave balances and skips empty leave-balance arrays',async()=>{
+test('employee details save never overwrites separately managed leave balances',async()=>{
   const leaveInputs=[
     {dataset:{leaveId:'annual'},value:'12.5'},
     {dataset:{leaveId:'sick'},value:'4'}
@@ -122,9 +122,7 @@ test('employee save batches leave balances and skips empty leave-balance arrays'
   const withLeave=payrollHarness({leaveInputs});
   await withLeave.api.saveEmployee();
   const leaveUpserts=withLeave.calls.filter(c=>c.op==='upsert'&&c.table==='payroll_employee_leave');
-  assert.equal(leaveUpserts.length,1);
-  assert.equal(leaveUpserts[0].options.onConflict,'employee_id,leave_type_id');
-  assert.equal(JSON.stringify(leaveUpserts[0].rows.map(r=>[r.employee_id,r.leave_type_id,r.balance_hours])),JSON.stringify([['emp-1','annual',12.5],['emp-1','sick',4]]));
+  assert.equal(leaveUpserts.length,0);
 
   const noLeave=payrollHarness({leaveInputs:[]});
   await noLeave.api.saveEmployee();

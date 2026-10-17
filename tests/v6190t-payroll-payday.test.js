@@ -8,8 +8,8 @@ const source=fs.readFileSync(path.join(__dirname,'../public/payroll.js'),'utf8')
 const form=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
 function fixtures(runs=[]){
   const elements={};const $=id=>elements[id]??=(id==='prPaydayChange'?{hidden:true}:{value:'',textContent:'',hidden:false});
-  const state={settings:{default_pay_frequency:'fortnightly',default_pay_day:1},runs,runCalc:[],runSelectedIds:[],runExpandedIds:[],paydayConflict:null,calculatedRunKey:null};
-  const context={state,$,num:Number,today:()=> '2026-09-25',addDays:(date,amount)=>new Date(Date.parse(date+'T12:00:00Z')+amount*86400000).toISOString().slice(0,10),iso:s=>s,renderRunCalc:()=>{},bindRunActionHandlers:()=>{},loadRunCalc:()=>{},applyManual:(x,run)=>({...x,payDateUsed:run.pay_date}),currentRunDef:()=>({pay_frequency:$('prFrequency').value,period_start:$('prStart').value,period_end:$('prEnd').value,pay_date:$('prPayDate').value})};
+  const state={businessId:'business-a',settings:{default_pay_frequency:'fortnightly',default_pay_day:1},runs,runCalc:[],runSelectedIds:[],runExpandedIds:[],paydayConflict:null,calculatedRunKey:null};
+  const context={state,$,runFormEpoch:0,runSave:{busy:false,pending:null},biz:()=>({id:'business-a'}),window:{SAAS:{state:{user:{id:'user-a'}}}},num:Number,today:()=> '2026-09-25',addDays:(date,amount)=>new Date(Date.parse(date+'T12:00:00Z')+amount*86400000).toISOString().slice(0,10),iso:s=>s,renderRunCalc:()=>{},bindRunActionHandlers:()=>{},loadRunCalc:()=>{},applyManual:(x,run)=>({...x,payDateUsed:run.pay_date}),currentRunDef:()=>({pay_frequency:$('prFrequency').value,period_start:$('prStart').value,period_end:$('prEnd').value,pay_date:$('prPayDate').value})};
   const slice=source.slice(source.indexOf('  function nextConfiguredPayDate('),source.indexOf('  function openRun('));
   assert.ok(slice.startsWith('  function nextConfiguredPayDate('));
   vm.runInNewContext(slice,context);
@@ -48,7 +48,7 @@ test('a manually changed payday recomputes existing values; a changed period is 
   assert.equal(state.calculatedRunKey,context.runCalculationKey());
   $('prStart').value='2026-09-13';context.onRunDateChanged('prStart');
   assert.notEqual(state.calculatedRunKey,context.runCalculationKey());
-  const savePrefix=source.slice(source.indexOf('  async function saveRun(finalise=false){'),source.indexOf('    const payEmployees=selectedRunCalc();'))+'\n  }';
+  const savePrefix=source.slice(source.indexOf('  async function saveRun(finalise=false){'),source.indexOf('    const payEmployees=selectedRunCalc();'))+'\n    }finally{runSave.busy=false;}\n  }';
   const messages=[];context.toast=message=>messages.push(message);
   vm.runInNewContext(savePrefix,context);
   await context.saveRun();
