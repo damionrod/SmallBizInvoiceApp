@@ -11,7 +11,7 @@ function harness(){
  const context=vm.createContext({window,document,Intl,Date,Number,FormData,URLSearchParams,setTimeout,console});
  vm.runInContext(fs.readFileSync(path.join(root,'public/finlo-core.js'),'utf8'),context);
  let source=fs.readFileSync(path.join(root,'public/import-migration.js'),'utf8');
- source=source.replace(' window.ImportMigration={',' window.__test={state,analyse,confirmImport,close,renderResult,money};window.ImportMigration={');
+ source=source.replace(' window.ImportMigration={',' window.__test={state,analyse,confirmImport,close,renderResult,money,resumeImport};window.ImportMigration={');
  vm.runInContext(source,context);
  return {window,node,calls,pending,api:window.__test,setResponse:value=>{response=value;},setRpc:fn=>{rpcHandler=fn;},document};
 }
@@ -58,4 +58,10 @@ test('a business change during atomic confirmation never displays the old busine
 test('an analysis response with inconsistent batch detail is rejected',async()=>{
  const h=harness();await h.window.ImportMigration.open();h.node('importFile').files=[new Blob(['a,b'])];h.setResponse({batch:{id:'unexpected-batch'}});const pending=h.api.analyse();h.pending.resolve({data:{batch_id:'batch-1'},error:null});await pending;
  assert.equal(h.api.state.batch,null);assert.match(h.node('importMessage').textContent,/could not be verified/);assert.equal(h.node('importAnalyse').disabled,false);
+});
+
+test('reopening an analysed import requires Build review before confirmation',()=>{
+ const h=harness();h.api.state.detail={batch:{id:'batch-1',filename:'source.csv',status:'analysed'},records:[{id:'r1',validation_status:'ready',normalized_data:{}}],sheets:[],mappings:[]};
+ h.api.resumeImport();assert.match(h.node('importMigrationContent').innerHTML,/Check the column mapping/);assert.doesNotMatch(h.node('importMigrationContent').innerHTML,/Confirm selected import/);
+ h.api.state.detail.batch.status='reviewed';h.api.resumeImport();assert.match(h.node('importMigrationContent').innerHTML,/Confirm selected import/);
 });
