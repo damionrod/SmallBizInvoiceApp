@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { createHash } = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const project = 'smvvevrtjqkflyqkyape';
 const site = '2b57d35f-1627-4e0a-82f0-d1817966b606';
@@ -58,6 +59,29 @@ const headers = [
 fs.writeFileSync(path.join(output, '_headers'), headers);
 fs.writeFileSync(path.join(output, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
 fs.appendFileSync(path.join(output, 'frontend-quality.css'), '\n.market-environment-banner{padding:7px 16px;text-align:center;background:#38236b;color:#fff;font:600 12px/1.4 Lato,sans-serif;position:relative;z-index:10010}\n');
+// Hash final published bytes, including generated CSS, rather than hand-written release tags.
+const hash = bytes => createHash('sha256').update(bytes).digest('hex').slice(0, 16);
+const assets = Object.fromEntries(fs.readdirSync(output).sort()
+  .filter(name => /\.(?:js|css)$/.test(name))
+  .map(name => [name, hash(fs.readFileSync(path.join(output, name)))]));
+const assetManifest = 'window.FRINDLY_BUILD_ASSETS=Object.freeze(' + JSON.stringify(assets) + ');\n';
+fs.writeFileSync(path.join(output, 'runtime-assets.js'), assetManifest);
+for (const name of fs.readdirSync(output).filter(name => /\.html$/.test(name))) {
+  const file = path.join(output, name);
+  let html = fs.readFileSync(file, 'utf8');
+  if (!/<head(?:\s[^>]*)?>/i.test(html)) fail('Missing document head in ' + name);
+  html = html.replace(/((?:src|href)=["'])([^"']+)(["'])/g, (match, before, url, after) => {
+    const [pathname, fragment] = url.split('#', 2);
+    const key = pathname.split('?')[0].replace(/^\.\//, '').replace(/^\//, '');
+    if (!assets[key]) return match;
+    const [base, query = ''] = pathname.split('?', 2);
+    const params = new URLSearchParams(query);
+    params.set('v', assets[key]);
+    return before + base + '?' + params.toString() + (fragment === undefined ? '' : '#' + fragment) + after;
+  });
+  html = html.replace(/<head(?:\s[^>]*)?>/i, head => head + '\n<script src="runtime-assets.js?v=' + hash(assetManifest) + '"></script>');
+  fs.writeFileSync(file, html);
+}
 fs.writeFileSync(path.join(output, 'market-build.json'), JSON.stringify({
   environment: 'market', projectRef: project, siteId: site,
   version: c.version, outboundServicesEnabled: false,
