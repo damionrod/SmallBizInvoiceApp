@@ -1,0 +1,68 @@
+# Frindly Market cleanup and completion roadmap
+
+Updated 18 October 2026. Implementation is confined to `market/frindly-market` and the isolated Market services. This is an execution register, not a statement that every feature is complete or commercially certified.
+
+## Ownership and release rules
+
+- Publish `public/` through `scripts/build-market.cjs`; root legacy copies are not a second runtime source. Retain them until every consumer, packaging script and deployment path has been traced.
+- Business profile owns company identity. Tax settings own GST/ABN and effective dates. Banking owns bank accounts. Invoice settings display references to these authorities. Use the server-confirmed revision-checked saves already introduced in v62.21.
+- Keep existing ledger, invoice/expense payments, import audit, role and statutory-history models. Extend their owners rather than introducing parallel models.
+- Keep applied migrations and policies. Old-looking SQL is deployment history, not disposable source. Restrictive policies depend on the remaining permissive policies.
+- Release one bounded change at a time. Record source commit, deployed backend migration versions, test evidence and rollback. Never merge or deploy to Main as part of this work.
+
+## Delivery register
+
+| Order | Work | Current evidence | Completion gate |
+| --- | --- | --- | --- |
+| 1 | Isolated baseline | Market site/database separated; outbound integrations blocked; live untouched | Repeat tenant, role, storage and service isolation checks after each backend change |
+| 2 | Reliable runtime loading | Build now hashes final JS/CSS bytes; runtime loader preserves execution order; duplicate Community load removed locally | Loader and build regressions pass; exact-source Market deploy and authenticated smoke test |
+| 3 | Test baseline recovery | Four outdated behavioral harnesses repaired; five payment mismatch cases added; historical asset assertions being migrated to the current loader contract | Every remaining failure explained and resolved with meaningful coverage; no exclusions to obtain a green result |
+| 4 | Settings and shared service consolidation | v62.21 canonical profile, banking and tax save paths; export pagination and context guards | Inventory all remaining writers and route them through the existing authorities; stale, denied and business-switch checks |
+| 5 | Permissions, payments and communications | Payment replay/account/amount/currency/session/intent regressions covered offline | Revocation, expiry, storage access and refund/concurrency checks; safe delivery/retry semantics; no real provider calls in Market |
+| 6 | Access recovery and MFA | Existing authentication retained | Recovery/support procedure and enrollment/unenrollment tests before enforcement; avoid locking out existing users |
+| 7 | Tax & IRD visibility | Existing read-only overview and bounded income-tax estimate | NZ accountant acceptance of supported entity/basis/balance-date cases; unavailable values stay unknown; file preparation distinct from confirmed filing |
+| 8 | Migration completion | Existing nine-type Smart Migration Centre and starting-balance review reused; starting-balance posting deliberately disabled | Reconciled sample conversion, idempotent commit, duplicate review, cross-business rejection, document-to-ledger-to-bank totals; atomic rollback |
+| 9 | Opening balances and accountant handoff | Exact-cent balanced review and cutover checks available | Accountant-reviewed posting contract, no duplicated opening documents/postings, AR/AP/bank/assets/owner/tax reconciliation; dated IR10 mappings and reconciled pack |
+| 10 | Leave and employee access | Existing payroll/statutory engines retained | Trace existing request/entitlement tables first; one leave-entry path; own-record isolation; approval and payrun consistency; holiday/final-pay regression cases |
+| 11 | Optional payrun approval | Planned extension to existing payrun lifecycle | Maker/reviewer rules and immutable approval evidence; changes invalidate approval; no silent payroll recalculation |
+| 12 | Practice dashboard | Demand-led extension | Reuse current memberships; no cross-client data leakage; drill-down totals match existing reports |
+| 13 | Receipt intake | Existing upload/scan flow retained | Durable inbound queue, deduplication and attachment authorization; provider/domain setup and delivery tests before enabling email intake |
+| 14 | Asset depreciation | Extend existing stock/equipment ownership | Accountant-reviewed dates, disposals and adjustment history; reconciled reports; no replacement asset register |
+| 15 | Contractor/owner workflows | Scope and existing-table review required | Verified jurisdiction rules, dated calculations and professional acceptance before automated statutory results |
+| 16 | PWA/native, public API/webhooks, POS, Peppol, full tax worksheets | Separate product/integration projects from the review | Defined supported commercial scope, provider/platform prerequisites, policy review, security and support readiness; no placeholder advertised as complete |
+| 17 | Commercial acceptance | Not yet complete | Full regression pass, authenticated desktop/mobile/keyboard/200% zoom review, backup-and-storage restore rehearsal, monitoring/incident ownership and accountant/payroll sign-off |
+
+## Removal evidence
+
+Completed locally in this cleanup:
+
+- Removed Community from the dynamic module list because `public/index.html` already loads it. The second evaluation could reset module-local initialization state.
+- Removed the redundant Community entitlement/init block in `bindAfterAppLoad`; the immediately called `refreshEntitlements` retains the canonical permission check, active-view redirect and initialization.
+- Removed manual dynamic-module version strings. The loader resolves generated content hashes; local development falls back to the configured release version.
+
+Do not yet remove root/public file pairs, old CSS blocks, database objects, AU functionality or historical tests. Each needs caller/dependency evidence and relevant behavioral coverage. File age and naming are insufficient evidence.
+
+## Acceptance and rollback
+
+Use `node scripts/check-release.cjs` for the focused offline gate and `node scripts/check-release.cjs --full` for the full offline gate. Authenticated HTTP/RLS tests are separately scoped to Market. A passing focused gate is not a full-suite pass.
+
+The generated `dist-market/runtime-assets.js` maps final published bytes. It is a build output, not another manually maintained configuration file. Build isolation guards and CSP remain mandatory. Runtime loading retains concurrent fetches with ordered classic-script execution.
+
+Before any Market publication, compare the complete source tree with the remote branch, run the relevant database rollback fixtures for any SQL change, verify the deploy commit, and confirm Main/live identifiers remain unchanged. Restore the previous Market deploy for frontend rollback. For database changes use a reviewed compensating migration; never erase applied history.
+
+Netlify team protection currently prevents authenticated browser acceptance in the shared session. Do not remove protection or claim visual acceptance without completing that check. External provider setup, tax/payroll review and real-device acceptance remain explicit release dependencies.
+
+## Current local verification checkpoint
+
+- Focused gate: 106/106 pass, including isolation, generated assets and payment mismatch cases.
+- Full offline suite: 205 tests; 190 pass, 15 fail. These unresolved tests remain enabled and block a claim of full acceptance.
+- Static runtime inventory: 47 recognized local asset edges, no missing targets; 35 root/public pairs retained for consumer review. See `docs/releases/market-runtime-inventory.json`, reproducible with `node scripts/inventory-runtime.cjs`.
+- Current cleanup has not been deployed. No SQL was applied during this increment. Main and the live services were not modified.
+
+## v62.22 execution checkpoint
+
+The original 39 failures have been resolved without excluding tests. The full offline suite is now 217/217 passing, including actual execution of the formerly incomplete Schedule async harness. Market CI now runs that full gate.
+
+Implemented: runtime hash/order ownership; duplicate Community removal; stale-business/view and repeated-submit migration protection; business-currency import formatting; preservation of mapping choices; starting-balance context protection; atomic legacy bank undo with rollback fixtures; narrow helper security boundaries. Removed only the two unloaded public CSS copies whose exact rules already exist in the active stylesheet.
+
+The two v62.22 database migrations are applied only to Market and their fixture data is rolled back. Frontend publication and authenticated acceptance must be recorded separately. Product rows 8–17 above remain explicitly open wherever their completion gates have not been met; this checkpoint is not a claim that every roadmap feature is built.
