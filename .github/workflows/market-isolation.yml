@@ -1,0 +1,27 @@
+name: Frindly Market isolation
+on:
+  push:
+    branches:
+      - market/frindly-market
+  pull_request:
+    branches:
+      - market/frindly-market
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.19.0'
+      - name: Frontend syntax and focused hardening checks
+        run: node scripts/check-release.cjs
+      - name: Market isolation checks
+        run: node --test tests/market-isolation.test.cjs
+      - name: Build for the Market site
+        env:
+          SITE_ID: 2b57d35f-1627-4e0a-82f0-d1817966b606
+        run: node scripts/build-market.cjs
