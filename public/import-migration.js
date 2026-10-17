@@ -51,7 +51,7 @@
   if(state.busy)return;const button=$('importReview'),message=$('importReviewMessage'),guard=guardView(),batch=state.batch;state.busy=true;button.disabled=true;message.textContent='Grouping records and validating totals…';
   try{
    guard();const sheets=[...document.querySelectorAll('[data-sheet]')].map(el=>({id:el.dataset.sheet,record_type:el.querySelector('[data-sheet-type]').value,mapping:[...el.querySelectorAll('[data-map-source]')].map(s=>({source:s.dataset.mapSource,target:s.value}))}));
-   const{data,error}=await client().functions.invoke('import-migration-analyse',{body:{action:'remap',batch_id:batch,sheets,cutover_date:$('reviewCutover').value,mode:$('reviewMode').value}});guard();if(error)throw error;if(data?.error)throw new Error(data.error);
+   const{data,error}=await client().functions.invoke('import-migration-analyse',{body:{action:'remap',batch_id:batch,expected_updated_at:state.detail.batch.updated_at,sheets,cutover_date:$('reviewCutover').value,mode:$('reviewMode').value}});guard();if(error)throw error;if(data?.error)throw new Error(data.error);
    if(data?.batch?.id!==batch)throw new Error('The import review returned a different batch. Reopen import history.');state.detail=data;renderPreview();
   }catch(e){reportError(e,message,button,guard);}
  }
@@ -64,8 +64,8 @@
   if(state.busy)return;const button=$('confirmImport'),message=$('confirmMessage'),guard=guardView(),batch=state.batch;state.busy=true;button.disabled=true;message.textContent='Saving your reviewed records safely…';
   try{
    guard();const decisions=[...document.querySelectorAll('[data-import-record]')].map(el=>({record:(state.detail.records||[]).find(x=>x.id===el.dataset.importRecord),action:el.querySelector('[data-record-action]')?.value}));
-   for(const {record,action} of decisions){guard();if(record&&action&&action!==record.duplicate_action)await rpc('v6215_set_record_action',{p_record:record.id,p_action:action},guard);}
-   const detail=await rpc('v6215_confirm_import',{p_batch:batch},guard);
+   const changes=decisions.filter(({record,action})=>record&&action&&action!==record.duplicate_action).map(({record,action})=>({id:record.id,action}));
+   const detail=await rpc('v6225_confirm_import_review',{p_batch:batch,p_expected_updated_at:state.detail.batch.updated_at,p_decisions:changes},guard);
    if(detail?.batch?.id!==batch)throw new Error('The import returned a different batch. Review import history before retrying.');state.detail=detail;renderResult();
   }catch(e){reportError(e,message,button,guard);}
  }
