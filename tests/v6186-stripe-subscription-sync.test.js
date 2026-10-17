@@ -175,6 +175,16 @@ test('current subscription creation, renewal, cancellation and payment statuses 
   }
 });
 
+test('a fully discounted subscription checkout retains signed-webhook activation and renewal handling',async()=>{
+  const app=harness();
+  const result=await app.send('checkout.session.completed',checkout({payment_status:'no_payment_required',amount_total:0,metadata:{business_id:businessId,plan_id:planId,billing_interval:'annual',subscription_promotion_id:'offer_fixture'}}));
+  assert.equal(result.status,200,result.body);
+  assert.equal(app.rows.subscriptions[0].status,'active');
+  assert.equal(app.rows.subscriptions[0].billing_interval,'annual');
+  assert.equal(app.rows.subscriptions[0].stripe_subscription_id,subscriptionId);
+  assert.ok(app.writes.every(x=>x.table==='subscriptions'));
+});
+
 test('older Stripe snapshots with subscription-level dates still work', async () => {
   const sub = subscription({ items: { data: [] }, current_period_start: start, current_period_end: end });
   const app = harness(sub);

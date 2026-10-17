@@ -12,7 +12,7 @@ const C=[
 ['upgrade button',()=>assert(s.includes("primaryLabel='Upgrade plan'"))],
 ['not now button',()=>assert(s.includes('>Not now</button>'))],
 ['upgrade opens plans',()=>assert(s.includes("modal.classList.remove('open');showPlans()"))],
-['existing checkout unchanged',()=>assert(s.includes("startCheckout(b.dataset.choosePlan,b,{billingInterval:b.dataset.billingInterval})"))],
+['existing checkout unchanged',()=>assert(s.includes("startCheckout(b.dataset.choosePlan,b,{billingInterval:b.dataset.billingInterval,promoCode:q('subscriptionPromoCode')?.value||''})"))],
 ['prompt css isolated',()=>assert(c.includes('#planUpgradePrompt .plan-upgrade-prompt-card'))],
 ['mobile prompt',()=>assert(c.includes('@media(max-width:520px)'))],
 ];

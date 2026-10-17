@@ -4,7 +4,7 @@ const checks=[
 ['no billing tabs',()=>assert(!h.includes('planBillingMonthly')&&!h.includes('planBillingAnnual'))],
 ['monthly retained',()=>assert(j.includes('data-billing-interval="monthly"'))],
 ['annual retained',()=>assert(j.includes('data-billing-interval="annual"'))],
-['same checkout path',()=>assert(j.includes("startCheckout(b.dataset.choosePlan,b,{billingInterval:b.dataset.billingInterval})"))],
+['same checkout path',()=>assert(j.includes("startCheckout(b.dataset.choosePlan,b,{billingInterval:b.dataset.billingInterval,promoCode:q('subscriptionPromoCode')?.value||''})"))],
 ['annual yearly charge',()=>assert(j.includes('/ year</small>'))],
 ['monthly equivalent',()=>assert(j.includes('/month equivalent'))],
 ['saving visible',()=>assert(j.includes('pricing-save-pill'))],
