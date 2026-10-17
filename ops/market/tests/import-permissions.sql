@@ -1,0 +1,71 @@
+-- Market only. Every fixture is rolled back; exercises authenticated RPC and table access.
+DO $test$
+DECLARE
+ u uuid; other_u uuid; bid uuid:=gen_random_uuid(); other_bid uuid:=gen_random_uuid(); plan uuid; member_id uuid;
+ batch uuid:=gen_random_uuid(); sheet uuid:=gen_random_uuid(); rec uuid:=gen_random_uuid();
+ peer_batch uuid:=gen_random_uuid(); customer_batch uuid:=gen_random_uuid(); customer_sheet uuid:=gen_random_uuid(); customer_rec uuid:=gen_random_uuid();
+ denied boolean; n bigint; result jsonb;
+BEGIN
+ IF public.frindly_market_environment_status()->>'project_ref' IS DISTINCT FROM 'smvvevrtjqkflyqkyape' THEN RAISE EXCEPTION 'Market only';END IF;
+ SELECT id INTO u FROM auth.users a WHERE NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=a.id) ORDER BY id LIMIT 1;
+ SELECT id INTO other_u FROM auth.users a WHERE a.id<>u AND NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=a.id) ORDER BY id LIMIT 1;
+ SELECT id INTO plan FROM public.plans ORDER BY cardinality(included_modules) DESC NULLS LAST LIMIT 1;
+ IF u IS NULL OR other_u IS NULL OR plan IS NULL THEN RAISE EXCEPTION 'Fixture prerequisites missing';END IF;
+ BEGIN
+  INSERT INTO public.businesses(id,name) VALUES(bid,'Market import boundary fixture'),(other_bid,'Market other import boundary fixture');
+  INSERT INTO public.profiles(id,business_id,active_business_id,full_name,role,is_super_admin) VALUES(u,bid,bid,'Import fixture','owner',false),(other_u,other_bid,other_bid,'Other fixture','owner',false);
+  INSERT INTO public.business_memberships(business_id,user_id,role,status) VALUES(bid,u,'owner','active') RETURNING id INTO member_id;
+  INSERT INTO public.business_memberships(business_id,user_id,role,status) VALUES(other_bid,other_u,'owner','active');
+  INSERT INTO public.subscriptions(business_id,plan_id,status,current_period_end,trial_ends_at) VALUES(bid,plan,'trialing',now()+interval '30 days',now()+interval '30 days');
+  INSERT INTO public.import_batches(id,business_id,user_id,filename,source_type,file_sha256,status) VALUES(batch,bid,u,'payroll-fixture.csv','csv',batch::text,'analysed'),(customer_batch,bid,u,'customers-fixture.csv','csv',customer_batch::text,'analysed');
+  INSERT INTO public.import_sheets(id,batch_id,business_id,sheet_index,sheet_name,detected_record_type,headers,sample_rows,row_count) VALUES(sheet,batch,bid,0,'employees','employees','["First name","Bank account"]','[{"First name":"Fixture","Bank account":"PRIVATE-TEST"}]',1),(customer_sheet,customer_batch,bid,0,'customers','customers','["Name"]','[]',1);
+  INSERT INTO public.import_records(id,batch_id,sheet_id,business_id,record_type,group_key,canonical_hash,display_label,normalized_data,commit_mode) VALUES(rec,batch,sheet,bid,'employees','fixture',rec::text,'Fixture employee','{"first_name":"Fixture","bank_account_number":"PRIVATE-TEST"}','native_employee'),(customer_rec,customer_batch,customer_sheet,bid,'customers','fixture',customer_rec::text,'Fixture customer','{"name":"Unique import boundary fixture"}','native_master');
+  INSERT INTO public.import_batches(id,business_id,user_id,filename,source_type,file_sha256,status) VALUES(peer_batch,bid,other_u,'peer-raw-file.csv','csv',peer_batch::text,'analysed');
+  PERFORM set_config('request.jwt.claim.sub',u::text,true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',u::text,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  IF NOT public.v6223_import_batch_access(batch,false) OR NOT public.v6223_import_batch_access(batch,true) THEN RAISE EXCEPTION 'Owner denied';END IF;
+  result:=public.v6215_import_get(batch);
+  IF jsonb_array_length(result->'records')<>1 THEN RAISE EXCEPTION 'Owner preview missing';END IF;
+  IF public.v6223_import_type_access(other_bid,'employees',true) OR public.v6223_import_type_access(bid,'unexpected',true) THEN RAISE EXCEPTION 'Unknown or foreign type accepted';END IF;
+  EXECUTE 'RESET ROLE';
+  UPDATE public.business_memberships SET role='staff' WHERE id=member_id;
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  IF public.v6223_import_type_access(bid,'employees',false) OR public.v6223_import_type_access(bid,'employees',true) OR public.v6223_import_type_access(bid,'expenses',true) THEN RAISE EXCEPTION 'Core permission escalated';END IF;
+  IF public.v6223_import_batch_access(batch,false) OR public.v6223_import_batch_access(batch,true) THEN RAISE EXCEPTION 'Payroll batch exposed';END IF;
+  IF public.v6223_import_batch_access(peer_batch,false) OR public.v6223_import_batch_access(peer_batch,true) THEN RAISE EXCEPTION 'Another uploader raw file exposed';END IF;
+  SELECT count(*) INTO n FROM public.import_sheets WHERE id=sheet;
+  IF n<>0 THEN RAISE EXCEPTION 'Raw payroll sample exposed through direct SELECT';END IF;
+  SELECT count(*) INTO n FROM public.import_records WHERE id=rec;
+  IF n<>0 THEN RAISE EXCEPTION 'Payroll record exposed through direct SELECT';END IF;
+  SELECT count(*) INTO n FROM public.import_batches WHERE id=batch;
+  IF n<>0 THEN RAISE EXCEPTION 'Payroll batch exposed through direct SELECT';END IF;
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(public.v6171b_import_history()) x WHERE x->>'id'=batch::text) THEN RAISE EXCEPTION 'Payroll history exposed';END IF;
+  denied:=false;BEGIN PERFORM public.v6215_import_get(batch);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'New preview bypass';END IF;
+  denied:=false;BEGIN PERFORM public.v6171b_import_get(batch);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Old preview bypass';END IF;
+  denied:=false;BEGIN PERFORM public.v6215_confirm_import(batch);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'New commit bypass';END IF;
+  denied:=false;BEGIN PERFORM public.v6171b_confirm_import(batch,'skip');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Old commit bypass';END IF;
+  denied:=false;BEGIN PERFORM public.v6215_set_record_action(rec,'skip');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Record action bypass';END IF;
+  -- Ordinary permitted customer migration still succeeds, and retries do not duplicate it.
+  result:=public.v6215_confirm_import(customer_batch);
+  IF result->'batch'->>'status'<>'completed' THEN RAISE EXCEPTION 'Customer commit failed';END IF;
+  result:=public.v6215_confirm_import(customer_batch);
+  SELECT count(*) INTO n FROM public.customers WHERE business_id=bid AND name='Unique import boundary fixture';
+  IF n<>1 THEN RAISE EXCEPTION 'Customer retry duplicated';END IF;
+  EXECUTE 'RESET ROLE';
+  IF (SELECT status FROM public.import_batches WHERE id=batch)<>'analysed' OR EXISTS(SELECT 1 FROM public.payroll_employees WHERE business_id=bid) THEN RAISE EXCEPTION 'Denied import left writes';END IF;
+  INSERT INTO public.business_member_access_overrides(business_id,membership_id,area,can_read,can_write) VALUES(bid,member_id,'payroll',true,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  IF NOT public.v6223_import_batch_access(batch,true) THEN RAISE EXCEPTION 'Explicit payroll permission ignored';END IF;
+  result:=public.v6215_import_get(batch);
+  EXECUTE 'RESET ROLE';
+  UPDATE public.business_member_access_overrides SET can_write=false,can_read=false WHERE membership_id=member_id AND area='payroll';
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  IF public.v6223_import_batch_access(batch,false) OR public.v6223_import_batch_access(batch,true) THEN RAISE EXCEPTION 'Revoked permission retained';END IF;
+  EXECUTE 'RESET ROLE';
+  RAISE EXCEPTION USING ERRCODE='P6223',MESSAGE='Market import boundary fixtures passed';
+ EXCEPTION WHEN SQLSTATE 'P6223' THEN NULL;
+ END;
+ IF EXISTS(SELECT 1 FROM public.businesses WHERE id IN(bid,other_bid)) THEN RAISE EXCEPTION 'Fixture leaked';END IF;
+ RAISE NOTICE 'Market import boundary fixtures passed; every fixture rolled back';
+END$test$;
