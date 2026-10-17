@@ -46,9 +46,32 @@
     if(cell||row.length){row.push(cell);rows.push(row)}
     return rows;
   };
+  const createGuard=(read,{isCurrent=()=>true,message='Your account or business changed. Reopen this screen.'}={})=>{
+    const initial={...read()},keys=Object.keys(initial);
+    return ()=>{
+      const current=read();
+      if(!isCurrent()||Object.keys(current).length!==keys.length||keys.some(key=>!Object.is(initial[key],current[key]))){
+        const error=new Error(message);error.code='FRINDLY_STALE_CONTEXT';throw error;
+      }
+      return true;
+    };
+  };
+  const assetUrl=src=>{
+    const value=String(src);
+    if(/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value))return value;
+    const [pathname,fragment]=value.split('#',2),name=pathname.split('?')[0].replace(/^\.\//,'').replace(/^\//,'');
+    const version=window.FRINDLY_BUILD_ASSETS?.[name]||window.APP_CONFIG?.version;
+    if(!version||! /\.(?:js|css)$/.test(name))return value;
+    const [base,query='']=pathname.split('?',2),params=new URLSearchParams(query);
+    params.set('v',version);
+    return base+'?'+params.toString()+(fragment===undefined?'':'#'+fragment);
+  };
   const loadScript=(src)=>new Promise((resolve,reject)=>{
     const script=document.createElement('script');
-    script.src=src;
+    // Classic scripts fetch concurrently but execute in insertion order.
+    // https://html.spec.whatwg.org/multipage/scripting.html
+    script.async=false;
+    script.src=assetUrl(src);
     script.onload=()=>resolve(script);
     script.onerror=()=>reject(new Error(`Unable to load ${src}`));
     document.body.appendChild(script);
@@ -58,11 +81,12 @@
   };
   Object.freeze(window.FinloCore={
     dom:Object.freeze({byId}),
+    context:Object.freeze({createGuard}),
     value:Object.freeze({num}),
     format:Object.freeze({money}),
     text:Object.freeze({escapeHtml}),
     ui:Object.freeze({toast}),
     csv:Object.freeze({csvCell,rowsToCsv,downloadCsvRows,parseCsv,downloadBlob}),
-    loader:Object.freeze({loadScript,loadScriptsSequentially})
+    loader:Object.freeze({assetUrl,loadScript,loadScriptsSequentially})
   });
 })();
