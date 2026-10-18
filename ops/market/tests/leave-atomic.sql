@@ -43,8 +43,8 @@ BEGIN
   EXECUTE 'SET LOCAL ROLE authenticated';
   denied:=false;BEGIN PERFORM public.v6226_apply_leave_hours(emp,gen_random_uuid(),payload);EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Hours writer changed statutory entitlement';END IF;
   IF (SELECT statutory_quantity FROM public.payroll_employee_leave WHERE employee_id=emp AND leave_type_id=lt)<>3 THEN RAISE EXCEPTION 'Statutory quantity changed';END IF;
-  -- Existing statutory transaction writer remains available and is not recast as hours.
-  INSERT INTO public.payroll_leave_transactions(business_id,employee_id,leave_type_id,transaction_type,hours,statutory_quantity,statutory_unit,statutory_leave_code) VALUES(bid,emp,lt,'taken',8,1,'days','sick_leave');
+  -- v62.30 routes supported confirmed statutory entries through their complete bundle.
+  denied:=false;BEGIN INSERT INTO public.payroll_leave_transactions(business_id,employee_id,leave_type_id,transaction_type,hours,statutory_quantity,statutory_unit,statutory_leave_code) VALUES(bid,emp,lt,'taken',8,1,'days','sick_leave');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Old split statutory writer allowed';END IF;
   EXECUTE 'RESET ROLE';
   IF has_function_privilege('anon','public.v6226_apply_leave_hours(uuid,uuid,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'Anonymous hours API';END IF;
   RAISE EXCEPTION USING ERRCODE='P6226',MESSAGE='Rollback leave fixtures';
