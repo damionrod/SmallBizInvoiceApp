@@ -1,0 +1,40 @@
+DO $test$
+DECLARE owner_id uuid;worker uuid;other_worker uuid;bid uuid:=gen_random_uuid();plan uuid;emp uuid:=gen_random_uuid();link uuid;run_id uuid;slip uuid;email text;r jsonb;denied boolean;rev bigint;entry jsonb;payload jsonb;
+BEGIN
+ IF public.frindly_market_environment_status()->>'project_ref' IS DISTINCT FROM 'smvvevrtjqkflyqkyape' THEN RAISE EXCEPTION 'Market only';END IF;
+ SELECT id INTO owner_id FROM auth.users a WHERE email_confirmed_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=a.id) ORDER BY id LIMIT 1;
+ SELECT id,a.email INTO worker,email FROM auth.users a WHERE email_confirmed_at IS NOT NULL AND id<>owner_id ORDER BY id LIMIT 1;
+ SELECT id INTO other_worker FROM auth.users a WHERE email_confirmed_at IS NOT NULL AND id NOT IN(owner_id,worker) ORDER BY id LIMIT 1;
+ SELECT id INTO plan FROM public.plans WHERE 'payroll'=ANY(included_modules) ORDER BY cardinality(included_modules) DESC NULLS LAST LIMIT 1;
+ IF owner_id IS NULL OR worker IS NULL OR other_worker IS NULL OR plan IS NULL THEN RAISE EXCEPTION 'Fixture prerequisites missing';END IF;
+ BEGIN
+  INSERT INTO public.businesses(id,name) VALUES(bid,'Market employee payslip fixture');
+  INSERT INTO public.profiles(id,business_id,active_business_id,full_name,role,is_super_admin) VALUES(owner_id,bid,bid,'Payslip owner fixture','owner',false);
+  INSERT INTO public.business_memberships(business_id,user_id,role,status) VALUES(bid,owner_id,'owner','active');
+  INSERT INTO public.subscriptions(business_id,plan_id,status,current_period_end,trial_ends_at) VALUES(bid,plan,'trialing',now()+interval '30 days',now()+interval '30 days');
+  INSERT INTO public.payroll_employees(id,business_id,employee_number,first_name,last_name) VALUES(emp,bid,'PAY-1','Pay','Viewer');
+  INSERT INTO public.accounting_periods(business_id,period_start,period_end,financial_year,status) VALUES(bid,'2026-04-01','2027-03-31',2027,'open');
+  PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  r:=public.v6229_set_employee_portal_link(emp,email,true,NULL);link:=(r->>'id')::uuid;rev:=(r->>'revision')::bigint;
+  IF (r->>'active')::boolean IS NOT TRUE THEN RAISE EXCEPTION 'New link did not start active';END IF;
+  EXECUTE 'RESET ROLE';IF (SELECT payslips_enabled FROM public.payroll_employee_portal_links WHERE id=link) THEN RAISE EXCEPTION 'New link did not start leave-only';END IF;
+  PERFORM set_config('request.jwt.claim.sub',worker::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',worker,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  denied:=false;BEGIN PERFORM public.v6231_employee_payslips(link,NULL,0);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Disabled payslip access read succeeded';END IF;EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  r:=public.v6231_set_employee_payslip_access(link,true,rev);rev:=(r->>'revision')::bigint;IF r->>'payslips_enabled'<>'true' THEN RAISE EXCEPTION 'Payslip enable failed';END IF;
+  denied:=false;BEGIN PERFORM public.v6231_set_employee_payslip_access(link,false,rev-1);EXCEPTION WHEN serialization_failure THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Stale payslip toggle accepted';END IF;
+  entry:=jsonb_build_object('employee_id',emp,'employee_snapshot',jsonb_build_object('name','Pay Viewer','employee_number','PAY-1'),'hours',10,'rate',10,'ordinary_earnings',100,'holiday_pay',0,'allowances',0,'reimbursements',0,'gross_pay',100,'paye',20,'kiwisaver_employee',0,'student_loan',0,'other_deductions',0,'total_deductions',20,'net_pay',80,'kiwisaver_employer_gross',0,'esct',0,'employer_contributions',0,'total_employment_cost',100,'calculation_snapshot',jsonb_build_object('p7_tax',jsonb_build_object('status','calculated')));
+  payload:=jsonb_build_object('run',jsonb_build_object('pay_run_number','RUN-FINAL','pay_frequency','fortnightly','period_start','2026-09-01','period_end','2026-09-14','pay_date','2026-09-16','country_code','NZ','currency','NZD','rules_snapshot','{}'::jsonb,'gross_pay',100,'total_deductions',20,'net_pay',80,'employer_contributions',0,'total_employment_cost',100),'employees',jsonb_build_array(jsonb_build_object('employee',entry,'lines','[]'::jsonb,'payslip',jsonb_build_object('number','PS-FINAL','data',jsonb_build_object('business',jsonb_build_object('name','Fixture'),'employee',jsonb_build_object('id',emp,'name','Pay Viewer','number','PAY-1','ird_number','secret'),'run',jsonb_build_object('number','RUN-FINAL','period_start','2026-09-01','period_end','2026-09-14','pay_date','2026-09-16'),'pay',jsonb_build_object('gross',100,'paye',20,'net',80,'total_employment_cost',999,'adjustments','[]'::jsonb,'work_details','[]'::jsonb),'currency','NZD','bank_account','secret')))),'financial',jsonb_build_array(jsonb_build_object('type','wage_expense','amount',100),jsonb_build_object('type','paye_payable','amount',20),jsonb_build_object('type','net_wages_payable','amount',80),jsonb_build_object('type','total_employment_cost','amount',100)),'finalise',true);
+  r:=public.v6226_save_pay_run(gen_random_uuid(),NULL,NULL,payload);IF r->'run'->>'status'<>'finalised' THEN RAISE EXCEPTION 'Fixture pay run did not finalise';END IF;run_id:=(r->'run'->>'id')::uuid;SELECT id INTO slip FROM public.payroll_payslips WHERE pay_run_id=run_id;EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub',worker::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',worker,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  r:=public.v6231_employee_payslips(link,NULL,0);IF r->>'total'<>'1' OR r::text NOT LIKE '%PS-FINAL%' THEN RAISE EXCEPTION 'Finalised-only list failed: %',r;END IF;
+  r:=public.v6231_employee_payslips(link,slip,0);IF r#>>'{payslip,pay,net}'<>'80' OR r::text LIKE '%ird_number%' OR r::text LIKE '%bank_account%' OR r::text LIKE '%total_employment_cost%' OR r::text LIKE '%secret%' THEN RAISE EXCEPTION 'Detail projection exposed unsafe data: %',r;END IF;
+  IF EXISTS(SELECT 1 FROM public.payroll_payslips WHERE id=slip) THEN RAISE EXCEPTION 'Raw payslip row visible';END IF;EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub',other_worker::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',other_worker,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';denied:=false;BEGIN PERFORM public.v6231_employee_payslips(link,NULL,0);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Other account read employee payslips';END IF;EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';r:=public.v6229_set_employee_portal_link(emp,email,false,rev);EXECUTE 'RESET ROLE';IF (SELECT payslips_enabled FROM public.payroll_employee_portal_links WHERE id=link) THEN RAISE EXCEPTION 'Revocation retained payslip consent';END IF;
+  IF has_function_privilege('anon','public.v6231_employee_payslips(uuid,uuid,integer)','EXECUTE') OR has_function_privilege('anon','public.v6231_set_employee_payslip_access(uuid,boolean,bigint)','EXECUTE') THEN RAISE EXCEPTION 'Anon payslip APIs open';END IF;
+  RAISE EXCEPTION USING ERRCODE='P6231',MESSAGE='Rollback employee payslip fixture';
+ EXCEPTION WHEN SQLSTATE 'P6231' THEN NULL;END;
+ IF EXISTS(SELECT 1 FROM public.businesses WHERE id=bid) OR EXISTS(SELECT 1 FROM public.payroll_employee_portal_links WHERE id=link) THEN RAISE EXCEPTION 'Payslip fixture leaked';END IF;
+ RAISE NOTICE 'Employee payslip fixture passed; all data rolled back';
+END;$test$;
