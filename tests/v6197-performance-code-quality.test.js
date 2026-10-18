@@ -16,12 +16,12 @@ function makeElement(id,overrides={}){
   };
 }
 
-function payrollHarness({leaveInputs=[]}={}){
+function payrollHarness({leaveInputs=[],rpcError=null}={}){
   let source=fs.readFileSync(path.join(root,'public/payroll.js'),'utf8');
   source=source
     .replace("await load();toast(id?'Employee updated':'Employee added')","window.__payrollLoaded=(window.__payrollLoaded||0)+1;toast(id?'Employee updated':'Employee added')")
-    .replace("state.settingsDirty=false;$('payrollSettingsStatus').textContent='Saved';await load();toast('Payroll settings saved');","state.settingsDirty=false;$('payrollSettingsStatus').textContent='Saved';window.__payrollLoaded=(window.__payrollLoaded||0)+1;toast('Payroll settings saved');")
-    .replace('window.Payroll={init,onShow','window.__payrollTest={state,savePayrollSettings,saveEmployee};window.Payroll={init,onShow');
+    .replace("await load();guard();toast('Payroll settings saved');","window.__payrollLoaded=(window.__payrollLoaded||0)+1;guard();toast('Payroll settings saved');")
+    .replace('window.Payroll={init,onShow','window.__payrollTest={state,settingsSave,savePayrollSettings,saveEmployee};window.Payroll={init,onShow');
 
   const calls=[];
   const elements=new Map();
@@ -81,7 +81,7 @@ function payrollHarness({leaveInputs=[]}={}){
   });
   const window={
     __payrollLoaded:0,
-    SAAS:{state:{business:{id:'biz-1'},user:{id:'user-1'}},client:()=>({from:makeBuilder,rpc:async(name,args)=>{calls.push({op:'rpc',name,args});return {data:{ok:true},error:rpcError}}})},
+    SAAS:{state:{business:{id:'biz-1'},user:{id:'user-1'}},client:()=>({from:makeBuilder,rpc:async(name,args)=>{calls.push({op:'rpc',name,args});return {data:{settings:{business_id:'biz-1',updated_at:'saved-revision'}},error:rpcError}}})},
     FinloCore:{format:{money:()=>'$0.00'},ui:{toast(){}}},
     toast(){},
     addEventListener(){}
@@ -89,29 +89,25 @@ function payrollHarness({leaveInputs=[]}={}){
   const document={getElementById:byId,querySelector:q,querySelectorAll:()=>[],createElement:tag=>makeElement(tag)};
   vm.runInNewContext(source,{window,document,localStorage:{getItem:()=>null},console,Date,Intl,setTimeout,clearTimeout,confirm:()=>true,prompt:()=>'',alert(){}});
   const api=window.__payrollTest;
-  api.state.businessId='biz-1';
-  api.state.settings={country_code:'AU',currency:'NZD'};
+  api.state.businessId='biz-1';api.settingsSave.formBusinessId='biz-1';api.settingsSave.formRevision='loaded-revision';
+  api.state.settings={country_code:'AU',currency:'NZD',updated_at:'loaded-revision'};
   api.state.payItems=[{id:'pay-existing'},{id:'new-pay'}];
   api.state.leaveTypes=[{id:'leave-existing'},{id:'new-leave'}];
   api.state.docTypes=[{id:'doc-existing'},{id:'new-doc'}];
   return {api,calls,window};
 }
 
-test('payroll settings save batches pay items, leave types and document types with mixed IDs',async()=>{
+test('payroll settings save sends all existing item IDs in one atomic revision-checked command',async()=>{
   const {api,calls}=payrollHarness();
   await api.savePayrollSettings();
-  const upserts=calls.filter(c=>c.op==='upsert');
-  assert.deepEqual(upserts.map(c=>c.table),['payroll_settings','payroll_pay_items','payroll_leave_types','payroll_document_types']);
-  const payRows=upserts.find(c=>c.table==='payroll_pay_items').rows;
-  assert.equal(payRows.length,2);
-  assert.deepEqual(payRows.map(r=>r.id),['pay-existing','new-pay']);
-  assert.equal(payRows[1].name,'Mileage');
-  assert.equal(payRows[1].taxable,false);
-  const leaveRows=upserts.find(c=>c.table==='payroll_leave_types').rows;
-  assert.deepEqual(leaveRows.map(r=>[r.id,r.name,r.paid]),[['leave-existing','Annual holidays',true],['new-leave','Alt holiday',false]]);
-  const docRows=upserts.find(c=>c.table==='payroll_document_types').rows;
-  assert.deepEqual(docRows.map(r=>[r.id,r.name,r.required]),[['doc-existing','Agreement',true],['new-doc','Licence',false]]);
-  assert.equal(upserts.find(c=>c.table==='payroll_pay_items').options.onConflict,'id');
+  assert.equal(calls.filter(c=>['upsert','update','insert'].includes(c.op)).length,0);
+  const writes=calls.filter(c=>c.name==='v6227_save_payroll_settings');assert.equal(writes.length,1);
+  const args=JSON.parse(JSON.stringify(writes[0].args));assert.equal(args.p_expected_updated_at,'loaded-revision');
+  assert.deepEqual(args.p_pay_items.map(r=>r.id),['pay-existing','new-pay']);assert.equal(args.p_pay_items[1].name,'Mileage');assert.equal(args.p_pay_items[1].taxable,false);
+  assert.deepEqual(args.p_leave_types.map(r=>[r.id,r.name,r.paid]),[['leave-existing','Annual holidays',true],['new-leave','Alt holiday',false]]);
+  assert.deepEqual(args.p_document_types.map(r=>[r.id,r.name,r.required]),[['doc-existing','Agreement',true],['new-doc','Licence',false]]);
+  assert.equal(args.p_values.business_id,undefined);assert.equal(args.p_values.updated_at,undefined);
+
 });
 
 test('employee details save never overwrites separately managed leave balances',async()=>{
@@ -148,7 +144,7 @@ function bankHarness(allocations,{rpcError=null}={}){
   const window={
     __loadHistoryCalled:0,
     FrindlyDialogs:{confirm:async()=>true,prompt:async()=> 'Test undo reason'},
-    SAAS:{state:{business:{id:'biz-1',settings:{}},user:{id:'user-1'}},client:()=>({from:makeBuilder,rpc:async(name,args)=>{calls.push({op:'rpc',name,args});return {data:{ok:true},error:rpcError}}})},
+    SAAS:{state:{business:{id:'biz-1',settings:{}},user:{id:'user-1'}},client:()=>({from:makeBuilder,rpc:async(name,args)=>{calls.push({op:'rpc',name,args});return {data:{settings:{business_id:'biz-1',updated_at:'saved-revision'}},error:rpcError}}})},
     FinloCore:{format:{money:()=>'$0.00'},ui:{toast(){}}},
     refreshInvoiceList(){},Expenses:{refresh(){}}
   };
