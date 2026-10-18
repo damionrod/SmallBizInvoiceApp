@@ -1,0 +1,80 @@
+DO $test$
+DECLARE owner_id uuid;worker uuid;other_worker uuid;bid uuid:=gen_random_uuid();foreign_bid uuid:=gen_random_uuid();plan uuid;emp uuid:=gen_random_uuid();emp2 uuid:=gen_random_uuid();lt uuid:=gen_random_uuid();link uuid;link2 uuid;req uuid:=gen_random_uuid();second_req uuid:=gen_random_uuid();third_req uuid:=gen_random_uuid();self_emp uuid:=gen_random_uuid();self_link uuid;self_req uuid:=gen_random_uuid();op uuid:=gen_random_uuid();r jsonb;values jsonb;denied boolean;tx_count bigint;calc_count bigint;balance_count bigint;email text;email2 text;
+BEGIN
+ IF public.frindly_market_environment_status()->>'project_ref' IS DISTINCT FROM 'smvvevrtjqkflyqkyape' THEN RAISE EXCEPTION 'Market only';END IF;
+ SELECT id INTO owner_id FROM auth.users a WHERE email_confirmed_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=a.id) ORDER BY id LIMIT 1;
+ SELECT id,a.email INTO worker,email FROM auth.users a WHERE email_confirmed_at IS NOT NULL AND id<>owner_id ORDER BY id LIMIT 1;
+ SELECT id,a.email INTO other_worker,email2 FROM auth.users a WHERE email_confirmed_at IS NOT NULL AND id NOT IN (owner_id,worker) ORDER BY id LIMIT 1;
+ SELECT id INTO plan FROM public.plans WHERE 'payroll'=ANY(included_modules) ORDER BY cardinality(included_modules) DESC NULLS LAST LIMIT 1;
+ IF owner_id IS NULL OR worker IS NULL OR other_worker IS NULL OR plan IS NULL THEN RAISE EXCEPTION 'Fixture prerequisites missing';END IF;
+ BEGIN
+  INSERT INTO public.businesses(id,name) VALUES(bid,'Market employee leave fixture'),(foreign_bid,'Market foreign leave fixture');
+  INSERT INTO public.profiles(id,business_id,active_business_id,full_name,role,is_super_admin) VALUES(owner_id,bid,bid,'Leave owner fixture','owner',false);
+  INSERT INTO public.business_memberships(business_id,user_id,role,status) VALUES(bid,owner_id,'owner','active');
+  INSERT INTO public.subscriptions(business_id,plan_id,status,current_period_end,trial_ends_at) VALUES(bid,plan,'trialing',now()+interval '30 days',now()+interval '30 days');
+  INSERT INTO public.payroll_employees(id,business_id,employee_number,first_name,last_name) VALUES(emp,bid,'REQ-1','Request','One'),(emp2,bid,'REQ-2','Request','Two');
+  INSERT INTO public.payroll_leave_types(id,business_id,name,paid) VALUES(lt,bid,'Annual leave fixture',true);
+  SELECT count(*) INTO tx_count FROM public.payroll_leave_transactions;SELECT count(*) INTO calc_count FROM public.payroll_statutory_leave_calculations;SELECT count(*) INTO balance_count FROM public.payroll_employee_leave;
+  PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  denied:=false;BEGIN PERFORM public.v6229_set_employee_portal_link(emp,'missing@fixture.invalid',true,NULL);EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Unknown account linked';END IF;
+  r:=public.v6229_set_employee_portal_link(emp,email,true,NULL);link:=(r->>'id')::uuid;
+  PERFORM public.v6229_set_employee_portal_link(emp,email,true,NULL); -- response-loss retry
+  r:=public.v6229_set_employee_portal_link(emp2,email2,true,NULL);link2:=(r->>'id')::uuid;
+  r:=public.v6229_leave_manager_read();IF jsonb_array_length(r->'employees')<>2 OR NOT (r->>'can_link')::boolean THEN RAISE EXCEPTION 'Manager view wrong';END IF;
+  EXECUTE 'RESET ROLE';PERFORM set_config('request.jwt.claim.sub',worker::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',worker,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  r:=public.v6229_employee_leave_read(link);IF r->>'selected'<>link::text OR jsonb_array_length(r->'leave_types')<>1 OR r::text LIKE '%bank_account%' OR r::text LIKE '%ird_number%' THEN RAISE EXCEPTION 'Own portal read wrong';END IF;
+  denied:=false;BEGIN PERFORM public.v6229_employee_leave_read(link2);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Other employee visible';END IF;
+  denied:=false;BEGIN PERFORM * FROM public.payroll_employee_portal_links;EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Raw links visible';END IF;
+  denied:=false;BEGIN INSERT INTO public.payroll_leave_requests(id,business_id,link_id,employee_id,requested_by,leave_type_id,leave_name,date_from,date_to,quantity,unit) VALUES(gen_random_uuid(),bid,link,emp,worker,lt,'Wrong','2026-11-01','2026-11-01',1,'days');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Raw request writer open';END IF;
+  values:=jsonb_build_object('leave_type_id',lt,'date_from','2026-11-01','date_to','2026-11-02','quantity','2','unit','days');
+  r:=public.v6229_leave_request_command(link,req,op,'create',NULL,values);IF r->>'status'<>'pending' THEN RAISE EXCEPTION 'Create failed';END IF;
+  IF public.v6229_leave_request_command(link,req,op,'create',NULL,values)<>r THEN RAISE EXCEPTION 'Retry did not replay';END IF;
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,req,op,'create',NULL,jsonb_set(values,'{quantity}','3'));EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Changed retry accepted';END IF;
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,gen_random_uuid(),gen_random_uuid(),'create',NULL,values);EXCEPTION WHEN unique_violation THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Overlapping request accepted';END IF;
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,gen_random_uuid(),gen_random_uuid(),'create',NULL,jsonb_set(values,'{quantity}','"NaN"'));EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'NaN accepted';END IF;
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,gen_random_uuid(),gen_random_uuid(),'create',NULL,jsonb_set(values,'{date_from}','"infinity"'));EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Infinite date accepted';END IF;
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,req,gen_random_uuid(),'approve',1,'{}');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Worker approved own request';END IF;
+  EXECUTE 'RESET ROLE';PERFORM set_config('request.jwt.claim.sub',other_worker::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',other_worker,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,req,gen_random_uuid(),'cancel',1,'{}');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Other employee cancelled request';END IF;
+  EXECUTE 'RESET ROLE';PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,req,gen_random_uuid(),'approve',9,'{}');EXCEPTION WHEN serialization_failure THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Stale approval accepted';END IF;
+  op:=gen_random_uuid();r:=public.v6229_leave_request_command(link,req,op,'approve',1,'{}');PERFORM public.v6229_leave_request_command(link,req,op,'approve',1,'{}');IF r->>'status'<>'approved' OR r->>'revision'<>'2' THEN RAISE EXCEPTION 'Approval failed';END IF;
+  EXECUTE 'RESET ROLE';
+  IF (SELECT count(*) FROM public.payroll_leave_transactions)<>tx_count OR (SELECT count(*) FROM public.payroll_statutory_leave_calculations)<>calc_count OR (SELECT count(*) FROM public.payroll_employee_leave)<>balance_count THEN RAISE EXCEPTION 'Request changed payroll accounting';END IF;
+  IF (SELECT count(*) FROM public.payroll_leave_requests WHERE id=req)<>1 OR (SELECT count(*) FROM public.payroll_audit_log WHERE entity_type='leave_request' AND entity_id=req)<>2 OR EXISTS(SELECT 1 FROM public.business_memberships WHERE business_id=bid AND user_id IN(worker,other_worker)) THEN RAISE EXCEPTION 'Duplicate history or implicit membership';END IF;
+  -- An employee can withdraw a pending request, and a declined/cancelled range can be requested again.
+  PERFORM set_config('request.jwt.claim.sub',worker::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',worker,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  values:=jsonb_set(jsonb_set(values,'{date_from}','"2026-12-10"'),'{date_to}','"2026-12-11"');
+  PERFORM public.v6229_leave_request_command(link,second_req,gen_random_uuid(),'create',NULL,values);
+  op:=gen_random_uuid();r:=public.v6229_leave_request_command(link,second_req,op,'cancel',1,'{}');PERFORM public.v6229_leave_request_command(link,second_req,op,'cancel',1,'{}');IF r->>'status'<>'cancelled' THEN RAISE EXCEPTION 'Cancel failed';END IF;
+  PERFORM public.v6229_leave_request_command(link,third_req,gen_random_uuid(),'create',NULL,values);
+  EXECUTE 'RESET ROLE';PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,third_req,gen_random_uuid(),'decline',1,'{}');EXCEPTION WHEN invalid_parameter_value THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Unexplained decline accepted';END IF;
+  r:=public.v6229_leave_request_command(link,third_req,gen_random_uuid(),'decline',1,'{"note":"Please choose another date"}');IF r->>'status'<>'declined' THEN RAISE EXCEPTION 'Decline failed';END IF;
+  EXECUTE 'RESET ROLE';
+  -- Payroll access does not permit a manager to approve their own employee request.
+  INSERT INTO public.payroll_employees(id,business_id,employee_number,first_name,last_name) VALUES(self_emp,bid,'REQ-3','Owner','Employee');
+  SELECT a.email INTO email2 FROM auth.users a WHERE a.id=owner_id;EXECUTE 'SET LOCAL ROLE authenticated';
+  r:=public.v6229_set_employee_portal_link(self_emp,email2,true,NULL);self_link:=(r->>'id')::uuid;
+  PERFORM public.v6229_leave_request_command(self_link,self_req,gen_random_uuid(),'create',NULL,values);
+  denied:=false;BEGIN PERFORM public.v6229_leave_request_command(self_link,self_req,gen_random_uuid(),'approve',1,'{}');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Manager approved own employee request';END IF;EXECUTE 'RESET ROLE';
+  -- Read-only override, cross-business manager context, revoked access, canceled subscription, inactive employee.
+  INSERT INTO public.business_member_access_overrides(business_id,membership_id,area,can_read,can_write) SELECT bid,id,'payroll',true,false FROM public.business_memberships WHERE business_id=bid AND user_id=owner_id;
+  EXECUTE 'SET LOCAL ROLE authenticated';denied:=false;BEGIN PERFORM public.v6229_set_employee_portal_link(emp,email,false,1);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Read-only caller managed access';END IF;EXECUTE 'RESET ROLE';
+  DELETE FROM public.business_member_access_overrides WHERE business_id=bid;
+  INSERT INTO public.business_memberships(business_id,user_id,role,status) VALUES(foreign_bid,owner_id,'owner','active');UPDATE public.profiles SET active_business_id=foreign_bid WHERE id=owner_id;
+  EXECUTE 'SET LOCAL ROLE authenticated';denied:=false;BEGIN PERFORM public.v6229_leave_request_command(link,req,gen_random_uuid(),'decline',2,'{"note":"Wrong business"}');EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Foreign manager accepted';END IF;EXECUTE 'RESET ROLE';
+  UPDATE public.profiles SET active_business_id=bid WHERE id=owner_id;
+  EXECUTE 'SET LOCAL ROLE authenticated';PERFORM public.v6229_set_employee_portal_link(emp,email,false,1);EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub',worker::text,true);PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',worker,'role','authenticated')::text,true);EXECUTE 'SET LOCAL ROLE authenticated';
+  denied:=false;BEGIN PERFORM public.v6229_employee_leave_read(link);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Revoked link remained usable';END IF;EXECUTE 'RESET ROLE';
+  UPDATE public.payroll_employee_portal_links SET active=true WHERE id=link;UPDATE public.payroll_employees SET employment_status='terminated' WHERE id=emp;
+  EXECUTE 'SET LOCAL ROLE authenticated';denied:=false;BEGIN PERFORM public.v6229_employee_leave_read(link);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Departed employee retained access';END IF;EXECUTE 'RESET ROLE';
+  UPDATE public.payroll_employees SET employment_status='active' WHERE id=emp;UPDATE public.subscriptions SET status='canceled' WHERE business_id=bid;
+  EXECUTE 'SET LOCAL ROLE authenticated';denied:=false;BEGIN PERFORM public.v6229_employee_leave_read(link);EXCEPTION WHEN insufficient_privilege THEN denied:=true;END;IF NOT denied THEN RAISE EXCEPTION 'Canceled module retained access';END IF;EXECUTE 'RESET ROLE';
+  IF has_function_privilege('anon','public.v6229_employee_leave_read(uuid,integer)','EXECUTE') OR has_function_privilege('authenticated','public.v6229_portal_business_active(uuid)','EXECUTE') THEN RAISE EXCEPTION 'Unsafe API grants';END IF;
+  RAISE EXCEPTION USING ERRCODE='P6229',MESSAGE='Rollback leave request fixture';
+ EXCEPTION WHEN SQLSTATE 'P6229' THEN NULL;END;
+ IF EXISTS(SELECT 1 FROM public.businesses WHERE id=bid) OR EXISTS(SELECT 1 FROM public.payroll_leave_request_operations WHERE id=op) THEN RAISE EXCEPTION 'Leave fixture leaked';END IF;
+ RAISE NOTICE 'Employee leave request fixture passed; all data rolled back';
+END;$test$;
