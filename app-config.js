@@ -1,7 +1,7 @@
 // This branch is reserved for the isolated Frindly Market environment.
 window.APP_CONFIG = Object.freeze({
   appName: 'Frindly Market',
-  version: 'v62.34-market-timesheet-decisions',
+  version: 'v62.35-market-statutory-corrections',
   environment: 'market',
   projectRef: 'smvvevrtjqkflyqkyape',
   supabaseUrl: 'https://smvvevrtjqkflyqkyape.supabase.co',
