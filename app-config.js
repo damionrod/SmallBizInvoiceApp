@@ -1,7 +1,7 @@
 // This branch is reserved for the isolated Frindly Market environment.
 window.APP_CONFIG = Object.freeze({
   appName: 'Frindly Market',
-  version: 'v62.26-market-payroll-save-review',
+  version: 'v62.27-market-settings-consistency',
   environment: 'market',
   projectRef: 'smvvevrtjqkflyqkyape',
   supabaseUrl: 'https://smvvevrtjqkflyqkyape.supabase.co',
