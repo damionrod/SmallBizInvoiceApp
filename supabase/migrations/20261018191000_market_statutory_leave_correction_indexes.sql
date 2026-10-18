@@ -1,0 +1,7 @@
+-- v62.35 Market: support foreign-key checks and operational lookup without exposing evidence rows.
+CREATE INDEX payroll_statutory_leave_correction_operations_actor_idx
+ ON public.payroll_statutory_leave_correction_operations(actor_id);
+CREATE INDEX payroll_statutory_leave_correction_operations_business_idx
+ ON public.payroll_statutory_leave_correction_operations(business_id);
+CREATE INDEX payroll_statutory_leave_correction_operations_calculation_idx
+ ON public.payroll_statutory_leave_correction_operations(calculation_id);
