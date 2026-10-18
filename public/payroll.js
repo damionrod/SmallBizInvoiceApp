@@ -520,7 +520,7 @@
       }
 
       for(const l of (x.manualLines||[])){
-        bundle.lines.push({business_id:state.businessId,pay_run_employee_id:pre.id,pay_item_id:l.pay_item_id||null,timesheet_id:l.timesheet_id||null,line_type:l.line_type,description:l.description||human(l.line_type),quantity:num(l.quantity)||1,rate:num(l.rate),amount:trunc2(l.amount),job_costing_id:l.job_costing_id||null,expense_category_id:l.expense_category_id||null,taxable:l.taxable!==false});
+        bundle.lines.push({business_id:state.businessId,pay_run_employee_id:pre.id,pay_item_id:l.pay_item_id||null,timesheet_id:l.timesheet_id||null,statutory_calculation_id:l.statutory_calculation_id||null,line_type:l.line_type,description:l.description||human(l.line_type),quantity:num(l.quantity)||1,rate:num(l.rate),amount:trunc2(l.amount),job_costing_id:l.job_costing_id||null,expense_category_id:l.expense_category_id||null,taxable:l.taxable!==false});
       }
 
       if(finalise){
