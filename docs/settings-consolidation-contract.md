@@ -66,3 +66,12 @@ Run shadow comparisons of reads before switching a consumer. Do not shadow-write
 ## Cleanup boundaries
 
 The CSS cascade, invoice post-render action wrapper, Settings DOM relocation, duplicate Community loading, voice paths, overlapping applied migrations, customer unique-index dependencies and old payroll fallback tables remain separate work items. Their appearance, names or current usage statistics do not prove that they are safe to remove. Preserve applied migration/audit history and avoid `DROP CASCADE` cleanup.
+
+
+## v62.27 implemented domain commands
+
+The canonical Payroll editor now reads its settings and three editable lists in one database snapshot through `v6227_get_payroll_settings`. `v6227_save_payroll_settings` updates the existing settings, pay-item, leave-type and document-type rows in one transaction with the loaded settings revision. It preserves fields outside the editor, including statutory leave codes and historical snapshots. List edits advance the same parent revision. Bulk saves cannot create arbitrary item IDs or move rows between businesses.
+
+`v6227_payroll_catalog_command` owns add/archive actions, with a request identifier, exact retry matching, business/permission checks and audit. Archived rows are retained. `v6227_save_bank_preferences` owns matching tolerance/confidence changes, with permission/module checks and a revision-checked audit transaction. The obsolete direct browser mutation grants for these five tables are revoked in Market. The default-seeding and business-creation database functions retain their existing privileged operation. Root legacy JavaScript remains retained and is not the Market runtime.
+
+This closes these two remaining editor save paths; it does not finish the entire settings inventory, resolve owner-confirmed historical GST conflicts, redesign employer IRD/GST fallback semantics, or consolidate provider/team settings.
