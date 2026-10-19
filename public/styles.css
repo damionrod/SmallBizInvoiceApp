@@ -8009,3 +8009,7 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 @media(max-width:390px){.pr-late-summary{grid-template-columns:1fr}.pr-late-summary>div:not(.pr-late-key){display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.pr-late-summary>div:not(.pr-late-key) span{margin:0}.pr-late-actions{grid-template-columns:1fr 1fr}}
 
 
+
+/* GST sales reconciliation: visual-only, scoped to the GST return. */
+#finGstSalesReconciliation .gst-reconciliation-total{font-weight:700;border-top:2px solid currentColor}
+#finGstSalesReconciliation .gst-transaction-table td:not(:first-child),#finGstSalesReconciliation .gst-transaction-table th:not(:first-child){text-align:right}

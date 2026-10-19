@@ -218,6 +218,27 @@ async function renderGst(){if(isAu())return renderBas();
     setGstWarning(warnings,!!evidenceIssues.length||c.reviewItems.some(x=>x.severity==='blocking'));
     renderMetric('finGstSalesEx',c.sales);renderMetric('finGstCollected',c.gstCollected);renderMetric('finGstPurchasesEx',c.purchaseEx);renderMetric('finGstPaid',c.gstPaid);if(q('finGstAdjustments'))renderMetric('finGstAdjustments',c.debitAdjustments-c.creditAdjustments);
     q('finGstNetLabel').textContent=c.gstNet>=0?'GST to Pay':'GST Refund';renderMetric('finGstNet',Math.abs(c.gstNet));
+    // Display-only explanation from the exact server evidence used by the GST return.
+    // Never recalculate, replace or persist the authoritative filing figures here.
+    const reconPanel=q('finGstSalesReconciliation');
+    if(reconPanel){
+      const invoiceRows=c.invoices.filter(x=>x.source_type==='invoice');
+      const creditRows=c.invoices.filter(x=>x.source_type==='customer_credit_note');
+      const otherRows=c.invoices.filter(x=>x.source_type!=='invoice'&&x.source_type!=='customer_credit_note');
+      const sumField=(rows,key)=>Math.round(rows.reduce((total,item)=>total+num(item[key]),0)*100)/100;
+      const gross=sumField(invoiceRows,'total'),grossGst=sumField(invoiceRows,'gst');
+      const credit=sumField(creditRows,'total'),creditGst=sumField(creditRows,'gst');
+      const other=sumField(otherRows,'total'),otherGst=sumField(otherRows,'gst');
+      const net=Math.round((gross+credit+other)*100)/100;
+      const netGst=Math.round((grossGst+creditGst+otherGst)*100)/100;
+      const rows=[['Issued invoices ('+invoiceRows.length+')',gross,grossGst],['Less customer credit notes ('+creditRows.length+')',credit,creditGst]];
+      if(otherRows.length)rows.push(['Other sales adjustments ('+otherRows.length+')',other,otherGst]);
+      rows.push(['Net sales included in GST return',net,netGst]);
+      q('finGstSalesReconciliationRows').innerHTML=rows.map((r,i)=>`<tr${i===rows.length-1?' class="gst-reconciliation-total"':''}><td>${esc(r[0])}</td><td>${money(r[1])}</td><td>${money(r[2])}</td></tr>`).join('');
+      const difference=Math.abs(netGst-num(c.gstCollected));
+      q('finGstReconciliationNote').textContent=`Period: ${c.from} to ${c.to}. Credit notes are shown as deductions. ${difference>0.011?'Review: source-item GST does not equal the reported GST collected.':'The source-item GST reconciles to the reported GST collected.'}`;
+      reconPanel.hidden=false;
+    }
     q('finGstSalesRows').innerHTML=c.invoices.length?c.invoices.map(x=>`<tr><td>${esc(x.invoice_date)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.customer_name||'-')}</td><td>${money(x.total)}</td><td>${money(x.gst)}</td></tr>`).join(''):'<tr><td colspan="5">No sales GST evidence in this period.</td></tr>';
     q('finGstExpenseRows').innerHTML=c.expenses.length?c.expenses.map(x=>`<tr><td>${esc(x.invoice_date)}</td><td>${esc(x.supplier_name||'-')}</td><td>${esc(x.expense_number)}</td><td>${money(x.total_amount)}</td><td>${money(x.gst_amount)}</td></tr>`).join(''):'<tr><td colspan="5">No purchase GST evidence in this period.</td></tr>';
     if(q('finGstAdjustmentRows'))q('finGstAdjustmentRows').innerHTML=c.adjustments.length?c.adjustments.map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(human(x.type))}</td><td>${money((x.direction==='credit'?-1:1)*num(x.gst_amount))}</td><td>${esc(x.reason||x.reference||'')}</td></tr>`).join(''):'<tr><td colspan="4">No GST adjustments.</td></tr>';

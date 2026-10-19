@@ -340,6 +340,12 @@
           <div class="gst-breakdown"><div><span>GST collected from customers</span><strong id="finGstCollected">—</strong></div><div><span>GST paid on expenses</span><strong id="finGstPaid">—</strong></div><div><span id="finGstBreakdownNetLabel">GST to pay / refund</span><strong id="finGstBreakdownNet">—</strong></div></div>
           <p class="gst-filing-note">Due date: <strong id="finGstDue">—</strong> · Filing basis: <strong id="finGstBasis">—</strong> · Filing frequency: <strong id="finGstFrequency">—</strong></p>
         </div>
+        <section class="card gst-review-section" id="finGstSalesReconciliation" aria-labelledby="finGstReconciliationTitle" hidden>
+          <h3 id="finGstReconciliationTitle">How your GST sales total is calculated</h3>
+          <p class="hint">Issued invoices and customer credit notes for the selected GST period. Credit notes reduce taxable sales; they do not delete the original invoices.</p>
+          <div class="table-scroll"><table class="gst-transaction-table"><thead><tr><th>Sales reconciliation</th><th>Sales incl. GST</th><th>GST</th></tr></thead><tbody id="finGstSalesReconciliationRows"></tbody></table></div>
+          <p class="hint" id="finGstReconciliationNote"></p>
+        </section>
         <section class="card gst-ird-card" aria-labelledby="finGstIrdTitle">
           <div class="gst-ird-head"><div><span class="eyebrow">IRD filing worksheet</span><h3 id="finGstIrdTitle">Figures to enter in myIR</h3><p>Follow these boxes in order when completing your New Zealand GST return.</p></div><span class="gst-ird-badge">GST101A</span></div>
           <div class="gst-ird-group"><h4>Sales and income</h4><div id="finGstIrdSales" class="gst-ird-rows"></div></div>
