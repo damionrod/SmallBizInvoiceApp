@@ -1,17 +1,17 @@
+-- v62.19P: Paid invoice bank evidence support; does not create customer payments or accounting journals.
 -- Isolated historical-paid invoice bank matching. Never creates customer payments or reposts GST.
 create or replace function public.v6219l_paid_migration_candidates()
 returns table(invoice_id uuid, unmatched_amount numeric)
 language sql stable security definer set search_path=public
 as $$
  select i.id,round(greatest(0,least(i.total,coalesce(i.amount_paid,0))-coalesce(a.allocated,0)),2)
- from public.migration_invoice_links l
- join public.invoices i on i.id=l.invoice_id and i.business_id=l.business_id
+ from public.invoices i
  left join lateral (
    select sum(bra.amount) allocated from public.bank_reconciliation_allocations bra
-   where bra.business_id=l.business_id and bra.invoice_id=l.invoice_id
+   where bra.business_id=i.business_id and bra.invoice_id=i.id
  ) a on true
- where l.business_id=public.current_business_id()
-   and public.v6147_can_read_area(l.business_id,'bank')
+ where i.business_id=public.current_business_id()
+   and public.v6147_can_read_area(i.business_id,'bank')
    and i.lifecycle_state='issued' and coalesce(i.amount_paid,0)>0
    and not exists(select 1 from public.customer_payments cp where cp.business_id=l.business_id and cp.invoice_id=l.invoice_id)
    and least(i.total,coalesce(i.amount_paid,0))>coalesce(a.allocated,0)+0.005;
@@ -37,8 +37,8 @@ begin
  if abs(v_tx.amount-p_amount)>0.005 then raise exception 'Bank deposit must match the allocation amount';end if;
  select * into v_inv from public.invoices where id=p_invoice_id and business_id=v_bid for update;
  if not found or v_inv.lifecycle_state<>'issued' then raise exception 'Invoice is not an issued invoice';end if;
- if not exists(select 1 from public.migration_invoice_links where invoice_id=p_invoice_id and business_id=v_bid) then
-   raise exception 'This route is only for migrated historical invoices';end if;
+ -- Historical paid invoices without customer payment rows are eligible,
+ -- whether imported through the migration centre or earlier legacy routes.
  if exists(select 1 from public.customer_payments where business_id=v_bid and invoice_id=p_invoice_id) then
    raise exception 'Invoice already has recorded payments; use the standard payment matching route';end if;
  select upper(coalesce(nullif(trim(b.settings->>'currency'),''),'NZD')) into v_currency
@@ -51,7 +51,7 @@ begin
    raise exception 'Matching would exceed the imported paid amount';end if;
  insert into public.bank_reconciliation_allocations
  (business_id,bank_transaction_id,allocation_type,amount,invoice_id,note,created_by)
- values(v_bid,v_tx.id,'invoice',p_amount,p_invoice_id,'Historical paid invoice: bank evidence only; no additional customer payment',auth.uid());
+ values(v_bid,v_tx.id,'invoice',p_amount,p_invoice_id,'Previously paid invoice: bank evidence only; no additional customer payment',auth.uid());
  update public.bank_transactions set status='reconciled',reconciliation_type='invoice',reconciled_at=now(),
  reconciled_by=auth.uid(),updated_by=auth.uid(),updated_at=now()
  where id=v_tx.id and business_id=v_bid and status='unreconciled';
