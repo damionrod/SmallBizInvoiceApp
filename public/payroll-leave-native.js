@@ -61,11 +61,25 @@ document.addEventListener('click',async e=>{
    try{const result=await rpc('frindly_leave_payroll_review',{p_pay_run_id:runId});if(bid()!==activeBusiness)return;
      const rows=Array.isArray(result?.requests)?result.requests:[];
      out.innerHTML='<p>'+rows.length+' approved leave request(s) overlap this pay run. No financial records changed.</p>'+
-       (rows.length?'<ul>'+rows.map(x=>'<li>'+esc(x.from)+' – '+esc(x.to)+' · '+esc(x.quantity)+' '+esc(x.unit)+' · '+esc(x.employment_type||'Employment type not set')+' · '+(x.existing_leave_transaction||x.already_in_pay_run?'<strong>Possible duplicate: inspect existing leave transaction</strong>':'Statutory entitlement and pay need confirmation')+'</li>').join('')+'</ul>':'<p>No approved leave requiring review in this pay run.</p>');
+       (rows.length?'<ul>'+rows.map(x=>'<li>'+esc(x.from)+' – '+esc(x.to)+' · '+esc(x.quantity)+' '+esc(x.unit)+' · '+esc(x.employment_type||'Employment type not set')+' · '+(x.existing_leave_transaction||x.already_in_pay_run?'<strong>Possible duplicate: inspect existing leave transaction</strong>':'Statutory entitlement and pay need confirmation')+' <button type="button" data-leave-preflight="'+esc(x.request_id)+'">Check payroll readiness</button><span id="leavePreflight-'+esc(x.request_id)+'"></span></li>').join('')+'</ul>':'<p>No approved leave requiring review in this pay run.</p>');
    }catch(error){out.textContent='Review unavailable: '+(error.message||'Permission denied')}
    return;
  }
 
+ const preflight=e.target.closest('[data-leave-preflight]');
+ if(preflight){
+   const requestId=preflight.dataset.leavePreflight,runId=el('leaveReviewRun')?.value;
+   const output=el('leavePreflight-'+requestId);
+   if(!runId||!output||bid()!==activeBusiness)return;
+   output.textContent=' Checking…';
+   try{
+     const data=await rpc('frindly_leave_payroll_preflight',{p_pay_run_id:runId,p_leave_request_id:requestId});
+     if(bid()!==activeBusiness||el('leaveReviewRun')?.value!==runId)return;
+     output.textContent=' '+(data?.existing_link_count?'Prior processing found; reconciliation required. ':'')+
+       'Not ready for automatic posting: '+(Array.isArray(data?.requires_confirmation)?data.requires_confirmation.join(', '):'manual statutory and payroll verification required')+'.';
+   }catch(error){output.textContent=' Readiness check failed: '+(error.message||'Permission denied')}
+   return;
+ }
  if(e.target.closest('[data-payroll-tab="leave"]')){setTimeout(load,0);return}
  const btn=e.target.closest('[data-leave-action]');if(!btn||!panel()?.classList.contains('active'))return;
  const action=btn.dataset.leaveAction,id=btn.dataset.id;
