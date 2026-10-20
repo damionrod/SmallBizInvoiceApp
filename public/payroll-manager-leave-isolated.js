@@ -77,8 +77,9 @@ function mount(target,{client}={}){
  const calcHeading=node('h2',{},'Phase 19 — actual NZ tax engine availability (read-only)'),calcList=node('div',{class:'calc-list'});
  const mappingHeading=node('h2',{},'Phase 20 — payroll mapping (read-only)'),mappingList=node('div',{class:'mapping-list'});
  const periodHeading=node('h2',{},'Phase 21 — hypothetical fortnightly period coverage'),periodList=node('div',{class:'period-list'});
+ const splitHeading=node('h2',{},'Phases 22–23 — isolated period split and fixture checks'),splitList=node('div',{class:'split-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,mappingHeading,mappingList,periodHeading,periodList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,mappingHeading,mappingList,periodHeading,periodList,splitHeading,splitList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
@@ -561,6 +562,37 @@ function mount(target,{client}={}){
    periodList.append(card);
   }
  }
+ async function loadSplitFixture(){
+  splitList.replaceChildren();
+  const {data,error}=await client.rpc('v6262_manager_leave_split_fixture_readonly');
+  if(destroyed)return;
+  if(error){splitList.append(node('p',{},'Fixture check unavailable: '+error.message));return;}
+  splitList.append(node('p',{},'FICTIONAL Monday–Friday roster and 12 October 2026 fortnightly anchor. These are NOT verified employee entitlements or payroll periods. No posting.'));
+  const rows=data||[];
+  const seen=new Set();
+  let unique=true;
+  const totals=new Map();
+  for(const item of rows){
+   if(seen.has(item.duplicate_key))unique=false;
+   seen.add(item.duplicate_key);
+   const key=item.approval_id;
+   if(!totals.has(key))totals.set(key,{sum:0,requested:Number(item.requested_quantity),periods:0,working:0});
+   const t=totals.get(key);
+   t.sum+=Number(item.provisional_quantity||0);t.periods++;t.working+=Number(item.fixture_weekdays||0);
+   const card=node('div',{class:'draft-card'});
+   card.append(node('strong',{},item.leave_type+' — '+item.period_start+' to '+item.period_end));
+   for(const line of [
+    'Fixture working days in period: '+item.fixture_weekdays+' / '+item.total_fixture_weekdays,
+    'Provisional allocated quantity: '+(item.provisional_quantity??'unknown')+' '+item.requested_unit+' (not payable)',
+    'Duplicate fixture key: '+item.duplicate_key,
+    'Actual roster, entitlement, statutory rate and pay calendar: NOT VERIFIED',
+    'Payroll posting: BLOCKED'
+   ])card.append(node('p',{},line));
+   splitList.append(card);
+  }
+  const conserved=[...totals.values()].every(t=>t.working>0&&Math.abs(t.sum-t.requested)<0.00011*Math.max(1,t.periods));
+  splitList.prepend(node('p',{},'Fixture checks: '+(unique?'PASS':'FAIL')+' unique approval/period keys; '+(conserved?'PASS':'FAIL')+' provisional quantity conservation. '+totals.size+' approved requests, '+rows.length+' period segments. These do not certify payroll posting.'));
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -602,7 +634,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -632,7 +664,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
