@@ -9,6 +9,11 @@ button{padding:10px 16px;background:#6035a5;color:white;border:0;border-radius:7
 button:disabled{opacity:.5}#status{white-space:pre-wrap}small{color:#555}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+if(!window.supabase?.createClient){
+ document.write('<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\\/script>');
+}
+</script>
 <script src="./payroll-manager-leave-isolated.js"></script>
 </head><body><main>
 <h1>Leave drafts — isolated testing</h1>
@@ -35,7 +40,8 @@ $('connect').addEventListener('submit',async ev=>{
  ev.preventDefault();
  const btn=$('connectBtn');btn.disabled=true;status.textContent='Signing in…';
  try{
-   if(!window.supabase?.createClient||!window.FrindlyManagerLeaveDrafts?.mount)throw Error('Required scripts unavailable');
+   if(!window.supabase?.createClient)throw Error('Supabase library failed to load from both CDNs. Check network/ad blocker and refresh.');
+   if(!window.FrindlyManagerLeaveDrafts?.mount)throw Error('Isolated Leave Management script failed to load. Refresh this test page.');
    client=window.supabase.createClient(URL,$('key').value.trim(),{
      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}
    });
