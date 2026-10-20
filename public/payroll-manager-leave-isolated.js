@@ -67,15 +67,16 @@ function mount(target,{client}={}){
  const frameworkHeading=node('h2',{},'Synthetic earnings and statutory framework (Phases 16–17)'),frameworkList=node('div',{class:'framework-list'});
  const stageHeading=node('h2',{},'Phase 18 — blocked payroll integration staging'),stageList=node('div',{class:'stage-list'});
  const gateHeading=node('h2',{},'Phase 19 — integration safety audit (read-only)'),gateList=node('div',{class:'gate-list'});
+ const syntheticPayrollHeading=node('h2',{},'Phase 19 — synthetic payroll reconciliation'),syntheticPayrollList=node('div',{class:'synthetic-payroll-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
    notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
-   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();
+   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();
    window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
@@ -307,6 +308,25 @@ function mount(target,{client}={}){
    gateList.append(item);
   }
  }
+ async function loadSyntheticPayrollReconciliation(){
+  const {data,error}=await client.rpc('v6253_manager_leave_synthetic_payroll_reconciliation');
+  if(destroyed)return;
+  syntheticPayrollList.replaceChildren();
+  if(error){syntheticPayrollList.append(node('p',{},'Synthetic reconciliation unavailable: '+error.message));return;}
+  syntheticPayrollList.append(node('p',{},'INVENTED PAYROLL DATA ONLY. These checks do not validate IRD PAYE rates or statutory leave pay. No actual payroll posting.'));
+  for(const x of (Array.isArray(data)?data:[])){
+   const item=node('div',{class:'draft-item'});
+   item.append(node('strong',{},x.employee+' — '+x.leave_type));
+   item.append(node('p',{},'Synthetic period: '+x.period_start+' to '+x.period_end));
+   item.append(node('p',{},'Hypothetical gross: NZD '+x.gross+'; deductions: NZD '+x.deductions+'; net: NZD '+x.net));
+   item.append(node('p',{},'Hypothetical opening balance: '+x.opening_balance+' days; closing: '+x.closing_balance+' days'));
+   const tests=Array.isArray(x.tests)?x.tests:[];
+   item.append(node('p',{},tests.filter(v=>v.passed).length+' of '+tests.length+' synthetic reconciliation checks passed.'));
+   for(const v of tests)item.append(node('p',{},(v.passed?'PASS: ':'FAIL: ')+v.name));
+   item.append(node('p',{},'Actual payroll and statutory verification: BLOCKED.'));
+   syntheticPayrollList.append(item);
+  }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -348,7 +368,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -378,7 +398,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
