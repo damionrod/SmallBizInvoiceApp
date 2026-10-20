@@ -16,7 +16,7 @@ function draw(){
  '<label>From<input name="from" type="date" required></label><label>To<input name="to" type="date" required></label>'+
  '<label>Quantity<input name="quantity" type="number" min="0.01" max="10000" step="0.01" required></label>'+
  '<label>Unit<select name="unit"><option value="days">Days</option><option value="hours">Hours</option><option value="weeks">Weeks</option></select></label>'+
- '<button class="primary" type="submit" '+(!people.length||!types.length?'disabled':'')+'>Save draft</button></form></section>'+
+ '<button class="primary" type="submit" '+(!people.length||!types.length?'disabled':'')+'>Save draft</button> <button class="primary" type="submit" name="leaveIntent" value="approve" '+(!people.length||!types.length?'disabled':'')+'>Create and approve</button></form></section>'+
  '<section><h3>Requests ('+requests.length+')</h3>'+(requests.length?requests.map(r=>'<div class="card" style="padding:12px;margin-bottom:8px"><strong>'+esc(r.employee)+'</strong> · '+esc(r.status)+
  '<p>'+esc(r.leave_type)+' · '+esc(r.date_from)+' – '+esc(r.date_to)+' · '+esc(r.quantity)+' '+esc(r.unit)+'</p>'+
  (r.status==='draft'?'<button type="button" data-leave-action="submit" data-id="'+esc(r.id)+'">Submit</button>':'')+
@@ -47,8 +47,9 @@ document.addEventListener('submit',e=>{
  if(e.target.id!=='leaveCreate')return;e.preventDefault();
  const d=new FormData(e.target),from=String(d.get('from')||''),to=String(d.get('to')||''),qty=Number(d.get('quantity'));
  if(!from||!to||to<from||!Number.isFinite(qty)||qty<=0){note('Invalid dates or quantity');return}
- if(!confirm('Save leave draft? No payroll records will be changed.'))return;
- run('frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:to,p_quantity:qty,p_unit:d.get('unit')},'Draft saved');
+ const approve=e.submitter?.value==='approve';
+ if(!confirm(approve?'Create and approve this leave request? This does not post to payroll.':'Save leave draft? No payroll records will be changed.'))return;
+ run(approve?'frindly_leave_request_create_and_approve':'frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:to,p_quantity:qty,p_unit:d.get('unit')},approve?'Leave approved':'Draft saved');
 });
 document.addEventListener('click',e=>{
  if(e.target.closest('[data-payroll-tab="leave"]')){setTimeout(load,0);return}
