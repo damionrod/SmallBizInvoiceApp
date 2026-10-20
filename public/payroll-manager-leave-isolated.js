@@ -63,8 +63,9 @@ function mount(target,{client}={}){
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
+   notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
    await loadDrafts();await loadApprovals();
-   notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' in isolated testing. Payroll unchanged.';
+   window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
    const {data,error}=await client.rpc('v6239_manager_leave_approvals_read');
