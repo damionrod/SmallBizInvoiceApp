@@ -260,7 +260,20 @@
 
     <section id="view-payroll" class="view">
       <div class="page-head"><div><h1>Payroll</h1><p>Manage employees, timesheets and payroll.</p></div><button class="primary" id="payrollAddEmployee">+ Add Employee</button></div>
-      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button><button class="module-tab" data-payroll-tab="newrun">New Pay Run</button><button class="module-tab" data-payroll-tab="settings">Settings</button></div>
+      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="leave">Leave Management</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button><button class="module-tab" data-payroll-tab="newrun">New Pay Run</button><button class="module-tab" data-payroll-tab="settings">Settings</button></div>
+
+      <div class="payroll-panel" id="payroll-panel-leave">
+        <div class="card" style="padding:16px">
+          <h2 style="margin:0 0 6px">Leave Management</h2>
+          <p style="margin:0 0 14px;color:var(--muted,#64748b)">Development preview only. The isolated leave workflows are not connected to live payroll or employee balances.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0">
+            <div class="card" style="padding:14px"><strong>Leave Requests</strong><p style="margin:8px 0 0;color:var(--muted,#64748b)">Create, submit and review leave requests.</p></div>
+            <div class="card" style="padding:14px"><strong>Approvals</strong><p style="margin:8px 0 0;color:var(--muted,#64748b)">Review and decide pending requests.</p></div>
+            <div class="card" style="padding:14px"><strong>Team Calendar</strong><p style="margin:8px 0 0;color:var(--muted,#64748b)">View approved leave dates.</p></div>
+          </div>
+          <p style="color:var(--muted,#64748b)">The customer-facing integration is not yet enabled. No second login is shown; actions remain disabled until Frindly session and role permissions are safely connected.</p>
+        </div>
+      </div>
 
       <div class="payroll-panel active" id="payroll-panel-employees">
         <div class="summary-grid payroll-mini-summary payroll-summary-grid"><div class="metric"><span>Active Employees</span><strong id="payrollActiveCount">0</strong></div><div class="metric"><span>Next Pay Date</span><strong id="payrollNextPayDate">—</strong></div><div class="metric"><span>Timesheets Awaiting Approval</span><strong id="payrollAwaitingCount">0</strong></div></div>
