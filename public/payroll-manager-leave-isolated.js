@@ -61,15 +61,16 @@ function mount(target,{client}={}){
  const reconciliationHeading=node('h2',{},'Payroll reconciliation (read-only)'),reconciliationList=node('div',{class:'reconciliation-list'});
  const fixtureHeading=node('h2',{},'Hypothetical payroll test data (isolated)'),fixtureList=node('div',{class:'fixture-list'});
  const calculationHeading=node('h2',{},'Simulated statutory calculation tests'),calculationList=node('div',{class:'calculation-list'});
+ const checksHeading=node('h2',{},'Automated scenario checks (isolated)'),checksList=node('div',{class:'checks-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
    notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
-   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();
+   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();
    window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
@@ -195,6 +196,22 @@ function mount(target,{client}={}){
      calculationList.append(item);
    }
  }
+ async function loadAutomatedChecks(){
+   const {data,error}=await client.rpc('v6246_manager_leave_automated_checks');
+   if(destroyed)return;
+   checksList.replaceChildren();
+   if(error){checksList.append(node('p',{},'Scenario checks unavailable: '+error.message));return;}
+   const checks=Array.isArray(data)?data:[];
+   checksList.append(node('p',{},'SIMULATED CHECKS ONLY. These do not certify statutory pay or authorise payroll posting.'));
+   checksList.append(node('p',{},checks.filter(x=>x.passed).length+' of '+checks.length+' scenario checks passed.'));
+   for(const x of checks){
+     const item=node('div',{class:'draft-item'});
+     item.append(node('strong',{},(x.passed?'PASS — ':'FAIL — ')+x.name));
+     item.append(node('p',{},x.note));
+     if(!x.passed)item.append(node('p',{},'Expected: '+x.expected+'; actual: '+x.actual));
+     checksList.append(item);
+   }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -236,7 +253,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -266,7 +283,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
