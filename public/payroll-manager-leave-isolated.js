@@ -58,15 +58,16 @@ function mount(target,{client}={}){
  const approvalHeading=node('h2',{},'Leave approvals'),approvalList=node('div',{class:'approval-list'});
  const previewHeading=node('h2',{},'Payroll impact preview (read-only)'),previewList=node('div',{class:'preview-list'});
  const validationHeading=node('h2',{},'Pre-payroll validation (read-only)'),validationList=node('div',{class:'validation-list'});
+ const reconciliationHeading=node('h2',{},'Payroll reconciliation (read-only)'),reconciliationList=node('div',{class:'reconciliation-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
    notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
-   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();
+   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();
    window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
@@ -138,6 +139,27 @@ function mount(target,{client}={}){
      validationList.append(item);
    }
  }
+ async function loadReconciliation(){
+   const {data,error}=await client.rpc('v6243_manager_leave_reconciliation_preview');
+   if(destroyed)return;
+   reconciliationList.replaceChildren();
+   if(error){reconciliationList.append(node('p',{},'Reconciliation unavailable: '+error.message));return;}
+   const rows=Array.isArray(data)?data:[];
+   reconciliationList.append(node('p',{},'Diagnostic only. Matching records do not establish correct statutory pay or authorise payroll posting.'));
+   if(!rows.length){reconciliationList.append(node('p',{},'No approved leave to reconcile.'));return;}
+   for(const x of rows){
+     const item=node('div',{class:'draft-item'});
+     item.append(node('strong',{},x.employee+' — '+x.leave_type));
+     item.append(node('p',{},x.date_from+' to '+x.date_to));
+     item.append(node('p',{},'Recorded leave balance (hours): '+(x.balance_hours==null?'not available':x.balance_hours)));
+     item.append(node('p',{},'Statutory entitlement records: '+x.statutory_entitlement_records));
+     item.append(node('p',{},'Overlapping payroll periods: '+x.payroll_period_matches));
+     item.append(node('p',{},'Historical employee payroll records: '+x.payroll_employee_history_records));
+     item.append(node('p',{},'Existing leave transactions in date range: '+x.existing_leave_transactions));
+     item.append(node('p',{},'Payroll posting: BLOCKED — requires calculation and duplicate-posting verification.'));
+     reconciliationList.append(item);
+   }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -179,7 +201,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -209,7 +231,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
