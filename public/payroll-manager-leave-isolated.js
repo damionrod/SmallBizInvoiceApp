@@ -74,15 +74,16 @@ function mount(target,{client}={}){
  const negativeHeading=node('h2',{},'Phase 19 — negative-path safeguards (read-only)'),negativeList=node('div',{class:'negative-list'});
  const rollbackHeading=node('h2',{},'Phase 19 — temporary transaction rollback tests'),rollbackList=node('div',{class:'rollback-list'});
  const taxHeading=node('h2',{},'Phase 19 — real NZ payroll rule readiness (read-only)'),taxList=node('div',{class:'tax-list'});
+ const calcHeading=node('h2',{},'Phase 19 — actual NZ tax engine availability (read-only)'),calcList=node('div',{class:'calc-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
    notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
-   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();
+   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();
    window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
@@ -425,6 +426,15 @@ function mount(target,{client}={}){
    item.append(node('p',{},'Actual PAYE/KiwiSaver/ESCT calculation: NOT TESTED. Production readiness: BLOCKED.'));
    taxList.append(item);
   }
+ }
+ function loadActualEngineAvailability(){
+  calcList.replaceChildren();
+  const tax=window.FinloNZTax;
+  const holiday=window.FinloNZFinalPay;
+  calcList.append(node('p',{},'Actual production payroll.js delegates NZ tax to FinloNZTax.calculate() and statutory holiday pay to FinloNZFinalPay. This standalone page does not automatically load those modules.'));
+  calcList.append(node('p',{},'NZ tax engine available: '+(tax&&typeof tax.calculate==='function'?'YES':'NO — calculation cannot run in this isolated page')));
+  calcList.append(node('p',{},'Statutory final-pay engine available: '+(holiday&&typeof holiday.calculateFinalPay==='function'?'YES':'NO — statutory calculation cannot run in this isolated page')));
+  calcList.append(node('p',{},'No hypothetical formula was substituted. Actual PAYE, KiwiSaver, ESCT and statutory payment calculations: NOT EXECUTED. Posting BLOCKED.'));
  }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
