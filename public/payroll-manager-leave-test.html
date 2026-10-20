@@ -14,6 +14,12 @@ if(!window.supabase?.createClient){
  document.write('<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"><\\/script>');
 }
 </script>
+<!-- Existing calculation libraries loaded only in this standalone isolated test page. No payroll app or posting scripts. -->
+<script src="./payroll-nz-holidays.js"></script>
+<script src="./payroll-nz-statutory-leave.js"></script>
+<script src="./payroll-nz-public-holidays.js"></script>
+<script src="./payroll-nz-final-pay.js"></script>
+<script src="./payroll-nz-tax.js"></script>
 <script src="./payroll-manager-leave-isolated.js"></script>
 </head><body><main>
 <h1>Leave drafts — isolated testing</h1>
