@@ -114,7 +114,7 @@ function mount(target,{client}={}){
    event.preventDefault();
    if(save.disabled)return;
    const q=Number(qty.value);
-   if(!validDate(from.value)||!validDate(to.value)||to.value<from.value||!Number.isFinite(q)||q<=0||q>10000||!/^\\d+(?:\\.\\d{1,2})?$/.test(qty.value)){
+   if(!validDate(from.value)||!validDate(to.value)||to.value<from.value||!Number.isFinite(q)||q<=0||q>10000||!/^\d+(?:\.\d{1,2})?$/.test(qty.value)){
      notice.textContent='Enter valid dates and a positive quantity (up to two decimals).';return;
    }
    save.disabled=true;notice.textContent='Saving draft…';
