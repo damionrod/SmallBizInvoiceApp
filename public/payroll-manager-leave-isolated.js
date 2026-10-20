@@ -56,15 +56,16 @@ function mount(target,{client}={}){
  action.append(save,cancel);form.append(action);wrap.append(notice,form);
  const heading=node('h2',{},'Saved drafts'),draftList=node('div',{class:'draft-list'});
  const approvalHeading=node('h2',{},'Leave approvals'),approvalList=node('div',{class:'approval-list'});
+ const previewHeading=node('h2',{},'Payroll impact preview (read-only)'),previewList=node('div',{class:'preview-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
    notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
-   await loadDrafts();await loadApprovals();
+   await loadDrafts();await loadApprovals();await loadPreview();
    window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
@@ -93,6 +94,23 @@ function mount(target,{client}={}){
        }
      }
      approvalList.append(item);
+   }
+ }
+ async function loadPreview(){
+   const {data,error}=await client.rpc('v6240_manager_leave_payroll_preview');
+   if(destroyed)return;
+   previewList.replaceChildren();
+   if(error){previewList.append(node('p',{},'Unable to load preview: '+error.message));return;}
+   const rows=Array.isArray(data)?data:[];
+   previewList.append(node('p',{},'Estimates only. No leave balances, payroll calculations, payslips or transactions are changed.'));
+   if(!rows.length){previewList.append(node('p',{},'No approved leave to preview.'));return;}
+   for(const p of rows){
+     const item=node('div',{class:'draft-item'});
+     item.append(node('strong',{},p.employee+' — '+p.leave_type));
+     item.append(node('p',{},p.from+' to '+p.to+' · '+p.quantity+' '+p.unit));
+     item.append(node('p',{},p.estimated_hours==null?'Hours: cannot estimate':'Estimated hours: '+p.estimated_hours));
+     item.append(node('p',{},p.review_note));
+     previewList.append(item);
    }
  }
  async function loadHistory(){
@@ -136,7 +154,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
