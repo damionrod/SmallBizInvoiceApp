@@ -78,8 +78,9 @@ function mount(target,{client}={}){
  const mappingHeading=node('h2',{},'Phase 20 — payroll mapping (read-only)'),mappingList=node('div',{class:'mapping-list'});
  const periodHeading=node('h2',{},'Phase 21 — hypothetical fortnightly period coverage'),periodList=node('div',{class:'period-list'});
  const splitHeading=node('h2',{},'Phases 22–23 — isolated period split and fixture checks'),splitList=node('div',{class:'split-list'});
+ const evidenceHeading=node('h2',{},'Phase 24 — actual entitlement evidence (read-only)'),evidenceList=node('div',{class:'evidence-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,mappingHeading,mappingList,periodHeading,periodList,splitHeading,splitList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,mappingHeading,mappingList,periodHeading,periodList,splitHeading,splitList,evidenceHeading,evidenceList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
@@ -593,6 +594,26 @@ function mount(target,{client}={}){
   const conserved=[...totals.values()].every(t=>t.working>0&&Math.abs(t.sum-t.requested)<0.00011*Math.max(1,t.periods));
   splitList.prepend(node('p',{},'Fixture checks: '+(unique?'PASS':'FAIL')+' unique approval/period keys; '+(conserved?'PASS':'FAIL')+' provisional quantity conservation. '+totals.size+' approved requests, '+rows.length+' period segments. These do not certify payroll posting.'));
  }
+ async function loadEntitlementEvidence(){
+  evidenceList.replaceChildren();
+  const {data,error}=await client.rpc('v6263_manager_leave_entitlement_evidence_readonly');
+  if(destroyed)return;
+  if(error){evidenceList.append(node('p',{},'Entitlement audit unavailable: '+error.message));return;}
+  evidenceList.append(node('p',{},'Existing isolated statutory records only. Record counts are not proof of legal entitlement or accurate pay. No writes or posting.'));
+  for(const item of data||[]){
+   const card=node('div',{class:'draft-card'});
+   card.append(node('strong',{},item.leave_type+' — '+item.leave_from+' to '+item.leave_to));
+   for(const line of [
+    'Annual entitlement periods: '+item.annual_entitlement_period_records+'; with work-pattern and week evidence: '+item.annual_entitlement_evidence_records,
+    'Statutory entitlement records: '+item.statutory_entitlement_records,
+    'Available alternative holiday records: '+item.alternative_holiday_available_records,
+    'Hypothetical weekly earnings rows (NOT real pay history): '+item.synthetic_weekly_earnings_records,
+    'Actual roster verified: NO; statutory pay verified: '+(item.statutory_pay_verified?'YES':'NO'),
+    'Production readiness: BLOCKED'
+   ])card.append(node('p',{},line));
+   evidenceList.append(card);
+  }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -634,7 +655,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadEntitlementEvidence();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -664,7 +685,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadEntitlementEvidence();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
