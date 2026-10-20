@@ -25,7 +25,7 @@ function node(tag,attrs={},text){
  if(text!==undefined)el.textContent=String(text);
  return el;
 }
-function validDate(s){return /^\\d{4}-\\d{2}-\\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))}
+function validDate(s){return /^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T12:00:00Z'))}
 function mount(target,{client}={}){
  if(!target||typeof target.appendChild!=='function')throw Error('Mount target required');
  if(!client||typeof client.rpc!=='function')throw Error('Supabase client required');
