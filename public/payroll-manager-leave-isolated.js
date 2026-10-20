@@ -55,10 +55,45 @@ function mount(target,{client}={}){
  const cancel=node('button',{type:'button'},'Cancel edit');cancel.hidden=true;cancel.style.marginLeft='8px';
  action.append(save,cancel);form.append(action);wrap.append(notice,form);
  const heading=node('h2',{},'Saved drafts'),draftList=node('div',{class:'draft-list'});
+ const approvalHeading=node('h2',{},'Leave approvals'),approvalList=node('div',{class:'approval-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
+ async function approvalAction(draftId,action){
+   const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
+   if(error)throw error;
+   await loadDrafts();await loadApprovals();
+   notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' in isolated testing. Payroll unchanged.';
+ }
+ async function loadApprovals(){
+   const {data,error}=await client.rpc('v6239_manager_leave_approvals_read');
+   if(destroyed)return;
+   approvalList.replaceChildren();
+   if(error){approvalList.append(node('p',{},'Unable to load approvals: '+error.message));return;}
+   const rows=Array.isArray(data)?data:[];
+   if(!rows.length){approvalList.append(node('p',{},'No submitted requests yet.'));return;}
+   for(const a of rows){
+     const item=node('div',{class:'draft-item'});
+     item.append(node('strong',{},a.employee+' — '+a.leave_type+' · '+a.status));
+     item.append(node('p',{},a.date_from+' to '+a.date_to+' · '+a.quantity+' '+a.unit));
+     if(a.status==='pending'){
+       for(const [action,label] of [['approve','Approve'],['decline','Decline']]){
+         const btn=node('button',{type:'button'},label);btn.style.marginRight='8px';
+         btn.addEventListener('click',async()=>{
+           if(save.disabled||btn.disabled)return;
+           if(!window.confirm(label+' this leave request?'))return;
+           save.disabled=true;btn.disabled=true;
+           try{await approvalAction(a.draft_id,action);}
+           catch(err){notice.textContent=label+' failed: '+(err.message||'Unknown error');btn.disabled=false;}
+           finally{save.disabled=false;}
+         });
+         item.append(btn);
+       }
+     }
+     approvalList.append(item);
+   }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -100,9 +135,18 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadHistory();}finally{save.disabled=false;}
      });
-     item.append(edit,del);draftList.append(item);
+     const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
+     submit.addEventListener('click',async()=>{
+       if(save.disabled||submit.disabled)return;
+       if(!window.confirm('Submit this draft? It will be locked against edits and deletion.'))return;
+       save.disabled=true;submit.disabled=true;
+       try{await approvalAction(d.id,'submit');if(editing===d.id)cancel.click();}
+       catch(err){notice.textContent='Submission failed: '+(err.message||'Unknown error');submit.disabled=false;}
+       finally{save.disabled=false;}
+     });
+     item.append(edit,del,submit);draftList.append(item);
    }
  }
 
@@ -121,7 +165,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
@@ -139,7 +183,7 @@ function mount(target,{client}={}){
      });
      if(error)throw error;
      notice.textContent='Leave draft saved in isolated testing. No payroll balances were changed.';
-     cancel.click();await loadDrafts();await loadHistory();
+     cancel.click();await loadDrafts();await loadApprovals();await loadHistory();
    }catch(err){notice.textContent='Draft not saved: '+(err.message||'Access denied');}
    finally{if(!destroyed)save.disabled=false;}
  });
