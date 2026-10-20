@@ -486,6 +486,32 @@ function mount(target,{client}={}){
    }
   }
   calcList.append(node('p',{},'Combined safety checks passed: '+passed+'/5. These do not independently verify IRD rates, legal entitlements, final pay, payslips or payroll accounting. Production readiness: BLOCKED.'));
+  calcList.append(node('h3',{},'Isolated payroll integration regression gate'));
+  calcList.append(node('p',{},'Fictional inputs, existing engines, no database writes. A PASS means this particular assertion held, not that statutory compliance is certified.'));
+  const checks=[];
+  const add=(name,ok,detail)=>checks.push({name,ok:ok===true,detail:detail||''});
+  if(taxReady){
+   const base={countryCode:'NZ',payDate:'2026-10-23',frequency:'weekly',taxCode:'M SL',taxableEarnings:1200,studentLoan:true,status:'enrolled',employeeRate:.035,employerRate:.035,kiwisaverGross:1200,esctThresholdAmount:62400};
+   const safe=(input)=>{try{return tax.calculate(input)}catch(e){return {status:'error',reasons:[{code:String(e.message||e)}]}}};
+   const first=safe(base),repeat=safe(base);
+   add('Repeat calculation is deterministic',first.status==='calculated'&&JSON.stringify(first)===JSON.stringify(repeat));
+   add('Missing tax code is rejected',safe({...base,taxCode:''}).status!=='calculated');
+   add('Unsupported pay frequency is rejected',safe({...base,frequency:'daily'}).status!=='calculated');
+   add('Unsupported tax code is rejected',safe({...base,taxCode:'INVALID'}).status!=='calculated');
+   add('Unsupported KiwiSaver rate is rejected',safe({...base,employeeRate:.01}).status!=='calculated');
+   add('Gross-to-net identity holds',first.status==='calculated'&&Math.abs((1200-Number(first.paye)-Number(first.studentLoan)-Number(first.kiwisaverEmployee))+Number(first.paye)+Number(first.studentLoan)+Number(first.kiwisaverEmployee)-1200)<.001);
+   add('ESCT does not reduce employee net directly',first.status==='calculated'&&Number(first.esct)>=0&&Number(first.kiwisaverEmployerGross)>=Number(first.esct));
+  }else add('Actual NZ tax engine available',false);
+  for(const [label,engine,method,input] of [
+   ['Annual leave missing evidence',window.FinloNZHolidays,'calculate',{countryCode:'NZ',holidayStart:'2026-10-21'}],
+   ['Sick leave missing evidence',window.FinloNZStatutoryLeave,'calculateStatutoryLeave',{countryCode:'NZ',leaveCode:'sick_leave',date:'2026-10-29',statutoryDays:1}],
+   ['Final pay missing evidence',window.FinloNZFinalPay,'calculateFinalPay',{countryCode:'NZ',employmentStart:'2026-01-01',terminationDate:'2026-11-09'}]
+  ]){
+   try{const out=engine?.[method]?.(input);add(label+' rejected',!!out&&out.status!=='calculated')}catch(e){add(label+' rejected',false,String(e.message||e))}
+  }
+  add('Real posting deliberately unavailable in test page',typeof window.recordPayrollLeave==='undefined'&&typeof window.savePayrollRun==='undefined','Browser-scope check only; not a security certification');
+  for(const c of checks)calcList.append(node('p',{},(c.ok?'PASS':'FAIL')+' — '+c.name+(c.detail?' · '+c.detail:'')));
+  calcList.append(node('p',{},checks.filter(x=>x.ok).length+'/'+checks.length+' regression assertions passed. Independent IRD comparison: NOT DONE. Authenticated payroll integration, permissions, payslips, accounting and rollback: NOT TESTED. Production readiness: BLOCKED.'));
   calcList.append(node('p',{},'Hypothetical inputs only: weekly gross NZD 1200, M SL tax code, enrolled KiwiSaver 3.5%, ESCT threshold NZD 62400. NOT independently verified against IRD; not an approved statutory pay result.'));
   calcList.append(node('p',{},'No actual employee data, payroll run, leave balance, payslip or accounting transaction was changed. Posting BLOCKED.'));
  }
