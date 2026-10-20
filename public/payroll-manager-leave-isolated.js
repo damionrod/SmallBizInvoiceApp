@@ -63,6 +63,7 @@ function mount(target,{client}={}){
    draftList.replaceChildren();
    if(error){draftList.append(node('p',{},'Unable to load drafts: '+error.message));return;}
    const drafts=Array.isArray(data)?data:[];
+   heading.textContent='Saved drafts ('+drafts.length+')';
    if(!drafts.length){draftList.append(node('p',{},'No saved drafts yet.'));return;}
    for(const d of drafts){
      const item=node('div',{class:'draft-item'});
@@ -78,13 +79,14 @@ function mount(target,{client}={}){
      const del=node('button',{type:'button'},'Delete');
      del.style.marginLeft='8px';
      del.addEventListener('click',async()=>{
+       if(del.disabled||save.disabled)return;
        if(!window.confirm('Permanently delete this draft? This cannot be undone.'))return;
-       edit.disabled=true;del.disabled=true;
+       edit.disabled=true;del.disabled=true;save.disabled=true;
        const {error}=await client.rpc('v6237_manager_leave_draft_delete',{p_id:d.id});
-       if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;return;}
+       if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       await loadDrafts();
+       try{await loadDrafts();}finally{save.disabled=false;}
      });
      item.append(edit,del);draftList.append(item);
    }
@@ -112,7 +114,7 @@ function mount(target,{client}={}){
    event.preventDefault();
    if(save.disabled)return;
    const q=Number(qty.value);
-   if(!validDate(from.value)||!validDate(to.value)||to.value<from.value||!Number.isFinite(q)||q<=0||q>10000||Math.round(q*100)!==q*100){
+   if(!validDate(from.value)||!validDate(to.value)||to.value<from.value||!Number.isFinite(q)||q<=0||q>10000||!/^\\d+(?:\\.\\d{1,2})?$/.test(qty.value)){
      notice.textContent='Enter valid dates and a positive quantity (up to two decimals).';return;
    }
    save.disabled=true;notice.textContent='Saving draft…';
