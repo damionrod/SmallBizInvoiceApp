@@ -431,10 +431,26 @@ function mount(target,{client}={}){
   calcList.replaceChildren();
   const tax=window.FinloNZTax;
   const holiday=window.FinloNZFinalPay;
-  calcList.append(node('p',{},'Actual production payroll.js delegates NZ tax to FinloNZTax.calculate() and statutory holiday pay to FinloNZFinalPay. This standalone page does not automatically load those modules.'));
-  calcList.append(node('p',{},'NZ tax engine available: '+(tax&&typeof tax.calculate==='function'?'YES':'NO — calculation cannot run in this isolated page')));
-  calcList.append(node('p',{},'Statutory final-pay engine available: '+(holiday&&typeof holiday.calculateFinalPay==='function'?'YES':'NO — statutory calculation cannot run in this isolated page')));
-  calcList.append(node('p',{},'No hypothetical formula was substituted. Actual PAYE, KiwiSaver, ESCT and statutory payment calculations: NOT EXECUTED. Posting BLOCKED.'));
+  const taxReady=!!(tax&&typeof tax.calculate==='function');
+  const holidayReady=!!(holiday&&typeof holiday.calculateFinalPay==='function');
+  calcList.append(node('p',{},'Existing NZ calculation libraries loaded only on this standalone test page. No payroll posting code is loaded.'));
+  calcList.append(node('p',{},'NZ tax engine available: '+(taxReady?'YES':'NO')));
+  calcList.append(node('p',{},'Statutory final-pay engine available: '+(holidayReady?'YES':'NO')));
+  if(taxReady){
+   try{
+    const sample=tax.calculate({countryCode:'NZ',payDate:'2026-10-23',frequency:'weekly',taxCode:'M SL',taxableEarnings:1200,studentLoan:true,status:'enrolled',employeeRate:0.035,employerRate:0.035,kiwisaverGross:1200,esctThresholdAmount:62400});
+    calcList.append(node('p',{},'Hypothetical engine smoke test: '+(sample.status==='calculated'?'CALCULATED':'NEEDS REVIEW — '+(sample.reasons||[]).map(v=>v.code).join(', '))));
+    if(sample.status==='calculated'){
+     for(const [label,key] of [['PAYE','paye'],['Student loan','studentLoan'],['KiwiSaver employee','kiwisaverEmployee'],['KiwiSaver employer gross','kiwisaverEmployerGross'],['ESCT','esct']]){
+      calcList.append(node('p',{},'Engine output — '+label+': NZD '+Number(sample[key]||0).toFixed(2)));
+     }
+     const net=1200-Number(sample.paye||0)-Number(sample.studentLoan||0)-Number(sample.kiwisaverEmployee||0);
+     calcList.append(node('p',{},'Illustrative net after these deductions: NZD '+net.toFixed(2)));
+    }
+   }catch(err){calcList.append(node('p',{},'Hypothetical calculation failed: '+(err.message||'Unknown error')));}
+  }
+  calcList.append(node('p',{},'Hypothetical inputs only: weekly gross NZD 1200, M SL tax code, enrolled KiwiSaver 3.5%, ESCT threshold NZD 62400. NOT independently verified against IRD; not an approved statutory pay result.'));
+  calcList.append(node('p',{},'No actual employee data, payroll run, leave balance, payslip or accounting transaction was changed. Posting BLOCKED.'));
  }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
