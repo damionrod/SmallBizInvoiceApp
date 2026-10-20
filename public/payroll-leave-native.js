@@ -13,9 +13,10 @@ function draw(){
  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px"><section class="card" style="padding:14px"><h3>Create leave draft</h3>'+
  '<form id="leaveCreate"><label>Employee<select name="employee" required><option value="">Select</option>'+options(people)+'</select></label>'+
  '<label>Leave type<select name="type" required><option value="">Select</option>'+options(types.map(x=>({id:x.id,label:x.name})))+'</select></label>'+
- '<label>From<input name="from" type="date" required></label><label>To<input name="to" type="date" required></label>'+
- '<label>Quantity<input name="quantity" type="number" min="0.01" max="10000" step="0.01" required></label>'+
- '<label>Unit<select name="unit"><option value="days">Days</option><option value="hours">Hours</option><option value="weeks">Weeks</option></select></label>'+
+ '<fieldset style="border:1px solid #dbe2ef;border-radius:8px;padding:10px;margin:12px 0"><legend>Leave duration</legend><label><input type="radio" name="leaveMode" value="days" checked> Whole working days</label> <label><input type="radio" name="leaveMode" value="hours"> Part day / hours</label></fieldset>'+
+ '<label>First leave date<input name="from" type="date" required></label><div id="leaveEndDate"><label>Last leave date<input name="to" type="date" required></label><small>Weekends are excluded from the working-day count. Check the employee roster for other non-working days and holidays.</small></div>'+
+ '<div id="leaveHoursField" style="display:none"><label>Hours of leave<input name="hours" type="number" min="0.01" max="24" step="0.25" disabled></label><small>Enter the actual leave hours for this date.</small></div>'+
+ '<p id="leaveDurationPreview" role="status" aria-live="polite">Choose leave dates to calculate the duration.</p>'+
  '<button class="primary" type="submit" '+(!people.length||!types.length?'disabled':'')+'>Save draft</button> <button class="primary" type="submit" name="leaveIntent" value="approve" '+(!people.length||!types.length?'disabled':'')+'>Create and approve</button></form></section>'+
  '<section><h3>Requests ('+requests.length+')</h3>'+(requests.length?requests.map(r=>'<div class="card" style="padding:12px;margin-bottom:8px"><strong>'+esc(r.employee)+'</strong> · '+esc(r.status)+
  '<p>'+esc(r.leave_type)+' · '+esc(r.date_from)+' – '+esc(r.date_to)+' · '+esc(r.quantity)+' '+esc(r.unit)+'</p>'+
@@ -45,13 +46,35 @@ async function run(name,args,success){
  try{await rpc(name,args);busy=false;await load();note(success)}
  catch(e){note('Action failed: '+(e.message||'Permission denied'))}finally{busy=false}
 }
+function countWeekdays(from,to){
+ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(from)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(to)||to<from)return 0;
+ const start=new Date(from+'T12:00:00Z'),end=new Date(to+'T12:00:00Z');
+ if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return 0;
+ const span=Math.round((end-start)/86400000);
+ if(span>366)return 0;
+ let days=0;for(let i=0;i<=span;i++){const dow=new Date(start.getTime()+i*86400000).getUTCDay();if(dow!==0&&dow!==6)days++}return days;
+}
+function updateDuration(){
+ const form=el('leaveCreate');if(!form)return;
+ const mode=form.querySelector('input[name="leaveMode"]:checked')?.value||'days';
+ const from=form.elements.from.value,to=form.elements.to.value,hours=Number(form.elements.hours.value);
+ const end=el('leaveEndDate'),hourField=el('leaveHoursField'),preview=el('leaveDurationPreview');
+ if(end)end.style.display=mode==='days'?'':'none';
+ if(hourField)hourField.style.display=mode==='hours'?'':'none';
+ form.elements.to.disabled=mode==='hours';form.elements.to.required=mode==='days';
+ form.elements.hours.disabled=mode!=='hours';form.elements.hours.required=mode==='hours';
+ if(preview)preview.textContent=mode==='days'?(from&&to?(countWeekdays(from,to)+' weekday(s) selected. Confirm actual working days against the roster; public holidays are not automatically excluded.'):'Select the first and last leave date.'):(from&&hours>0?hours+' hours on '+from:'Select a date and enter the hours of leave.');
+}
+document.addEventListener('change',e=>{if(e.target.closest('#leaveCreate'))updateDuration()});
+document.addEventListener('input',e=>{if(e.target.closest('#leaveCreate'))updateDuration()});
 document.addEventListener('submit',e=>{
  if(e.target.id!=='leaveCreate')return;e.preventDefault();
- const d=new FormData(e.target),from=String(d.get('from')||''),to=String(d.get('to')||''),qty=Number(d.get('quantity'));
- if(!from||!to||to<from||!Number.isFinite(qty)||qty<=0){note('Invalid dates or quantity');return}
+ const d=new FormData(e.target),mode=String(d.get('leaveMode')||'days'),from=String(d.get('from')||''),to=mode==='hours'?from:String(d.get('to')||'');
+ const qty=mode==='hours'?Number(d.get('hours')):countWeekdays(from,to),unit=mode==='hours'?'hours':'days';
+ if(!from||!to||to<from||!Number.isFinite(qty)||qty<=0||(mode==='hours'&&qty>24)){note('Invalid leave date or duration. Check working days and hours.');return}
  const approve=e.submitter?.value==='approve';
- if(!confirm(approve?'Create and approve this leave request? This does not post to payroll.':'Save leave draft? No payroll records will be changed.'))return;
- run(approve?'frindly_leave_request_create_and_approve':'frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:to,p_quantity:qty,p_unit:d.get('unit')},approve?'Leave approved':'Draft saved');
+ if(!confirm('Request '+qty+' '+unit+' for '+from+(to!==from?' to '+to:'')+'? Confirm actual roster days, holidays and entitlement. '+(approve?'Create and approve?':'Save draft?')+' No payroll records will be changed.'))return;
+ run(approve?'frindly_leave_request_create_and_approve':'frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:to,p_quantity:qty,p_unit:unit},approve?'Leave approved':'Draft saved');
 });
 document.addEventListener('click',async e=>{
  if(e.target.closest('#leaveReviewButton')){
