@@ -449,6 +449,43 @@ function mount(target,{client}={}){
     }
    }catch(err){calcList.append(node('p',{},'Hypothetical calculation failed: '+(err.message||'Unknown error')));}
   }
+  calcList.append(node('h3',{},'Combined isolated statutory and payroll safety checks'));
+  calcList.append(node('p',{},'Actual existing engines; fictional incomplete inputs and arithmetic consistency checks only. No statutory payment certification or posting.'));
+  const probes=[
+   ['Annual holiday: incomplete OWP/AWE evidence',window.FinloNZHolidays,'calculate',{countryCode:'NZ',holidayStart:'2026-10-21'}],
+   ['Sick leave: incomplete otherwise-working-day and entitlement evidence',window.FinloNZStatutoryLeave,'calculateStatutoryLeave',{countryCode:'NZ',leaveCode:'sick_leave',date:'2026-10-29',statutoryDays:1}],
+   ['Alternative holiday final pay: missing termination entitlement evidence',window.FinloNZFinalPay,'calculateFinalPay',{countryCode:'NZ',employmentStart:'2026-01-01',terminationDate:'2026-11-09'}]
+  ];
+  let passed=0;
+  for(const [name,engine,method,input] of probes){
+   try{
+    if(typeof engine?.[method]!=='function')throw Error('Engine unavailable');
+    const result=engine[method](input);
+    const safe=!!result&&result.status!=='calculated';
+    if(safe)passed++;
+    const reasons=(result?.reasons||[]).slice(0,3).map(x=>x.code||String(x)).join(', ');
+    calcList.append(node('p',{},(safe?'PASS':'FAIL')+' — '+name+'; status: '+String(result?.status||'missing')+(reasons?'; '+reasons:'')));
+   }catch(e){calcList.append(node('p',{},'ERROR — '+name+': '+String(e.message||e)));}
+  }
+  if(taxReady){
+   const round=n=>Math.round((n+Number.EPSILON)*100)/100;
+   const scenarios=[
+    {name:'M SL with KiwiSaver',taxCode:'M SL',studentLoan:true,status:'enrolled',employeeRate:0.035,employerRate:0.035},
+    {name:'M without student loan or KiwiSaver',taxCode:'M',studentLoan:false,status:'not_enrolled',employeeRate:0,employerRate:0}
+   ];
+   for(const scenario of scenarios){
+    try{
+     const gross=1200;
+     const r=tax.calculate({countryCode:'NZ',payDate:'2026-10-23',frequency:'weekly',taxableEarnings:gross,kiwisaverGross:gross,esctThresholdAmount:62400,...scenario});
+     const deductions=round(Number(r.paye||0)+Number(r.studentLoan||0)+Number(r.kiwisaverEmployee||0));
+     const net=round(gross-deductions);
+     const balanced=r.status==='calculated'&&[r.paye,r.studentLoan,r.kiwisaverEmployee,r.kiwisaverEmployerGross,r.esct,net].every(x=>Number.isFinite(Number(x)))&&net>=0&&round(net+deductions)===gross;
+     if(balanced)passed++;
+     calcList.append(node('p',{},(balanced?'PASS':'FAIL')+' — '+scenario.name+' gross/deductions/net reconcile: gross NZD '+gross.toFixed(2)+', deductions NZD '+deductions.toFixed(2)+', net NZD '+net.toFixed(2)));
+    }catch(e){calcList.append(node('p',{},'ERROR — '+scenario.name+': '+String(e.message||e)));}
+   }
+  }
+  calcList.append(node('p',{},'Combined safety checks passed: '+passed+'/5. These do not independently verify IRD rates, legal entitlements, final pay, payslips or payroll accounting. Production readiness: BLOCKED.'));
   calcList.append(node('p',{},'Hypothetical inputs only: weekly gross NZD 1200, M SL tax code, enrolled KiwiSaver 3.5%, ESCT threshold NZD 62400. NOT independently verified against IRD; not an approved statutory pay result.'));
   calcList.append(node('p',{},'No actual employee data, payroll run, leave balance, payslip or accounting transaction was changed. Posting BLOCKED.'));
  }
