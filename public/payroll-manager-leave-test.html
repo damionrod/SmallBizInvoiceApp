@@ -41,6 +41,8 @@ $('connect').addEventListener('submit',async ev=>{
    });
    const {error}=await client.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
    if(error)throw error;
+   const context=await client.rpc('current_business_id');
+   if(context.error||!context.data)throw Error('No active business in isolated payroll testing. Sign in to the isolated Frindly app and select a business before using this screen.');
    $('password').value='';$('key').value='';
    $('loginPanel').hidden=true;$('draftRoot').hidden=false;$('logout').hidden=false;
    view=window.FrindlyManagerLeaveDrafts.mount($('draftRoot'),{client});
