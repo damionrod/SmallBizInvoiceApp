@@ -75,8 +75,9 @@ function mount(target,{client}={}){
  const rollbackHeading=node('h2',{},'Phase 19 — temporary transaction rollback tests'),rollbackList=node('div',{class:'rollback-list'});
  const taxHeading=node('h2',{},'Phase 19 — real NZ payroll rule readiness (read-only)'),taxList=node('div',{class:'tax-list'});
  const calcHeading=node('h2',{},'Phase 19 — actual NZ tax engine availability (read-only)'),calcList=node('div',{class:'calc-list'});
+ const mappingHeading=node('h2',{},'Phase 20 — payroll mapping (read-only)'),mappingList=node('div',{class:'mapping-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,mappingHeading,mappingList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
@@ -515,6 +516,29 @@ function mount(target,{client}={}){
   calcList.append(node('p',{},'Hypothetical inputs only: weekly gross NZD 1200, M SL tax code, enrolled KiwiSaver 3.5%, ESCT threshold NZD 62400. NOT independently verified against IRD; not an approved statutory pay result.'));
   calcList.append(node('p',{},'No actual employee data, payroll run, leave balance, payslip or accounting transaction was changed. Posting BLOCKED.'));
  }
+ async function loadPayrollMapping(){
+  mappingList.replaceChildren();
+  const result=await client.rpc('v6260_manager_leave_payroll_mapping_readonly');
+  if(destroyed)return;
+  if(result.error){mappingList.append(node('p',{},'Mapping unavailable: '+result.error.message));return;}
+  mappingList.append(node('p',{},'Read-only inspection of isolated records. No payroll or accounting records are changed.'));
+  for(const item of result.data||[]){
+   const card=node('div',{class:'draft-card'});
+   card.append(node('strong',{},item.employee+' — '+item.leave_type));
+   const lines=[
+    item.from+' to '+item.to+' · '+item.requested_quantity+' '+item.requested_unit,
+    'Matching pay periods: '+item.matching_payroll_periods+'; employee pay rows: '+item.matching_employee_pay_rows,
+    'Existing leave transactions: '+item.existing_leave_transactions,
+    'Balance hours: '+(item.real_balance_hours??'not available'),
+    'Standard weekly hours: '+(item.standard_weekly_hours??'not available'),
+    'Statutory verified: '+(item.statutory_verified?'YES':'NO')+'; posting enabled: '+(item.posting_enabled?'YES':'NO'),
+    'Real payroll integration: BLOCKED'
+   ];
+   for(const line of lines)card.append(node('p',{},line));
+   mappingList.append(card);
+  }
+  if(!(result.data||[]).length)mappingList.append(node('p',{},'No approved staging records found.'));
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -556,7 +580,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -586,7 +610,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
