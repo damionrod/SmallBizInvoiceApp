@@ -128,6 +128,12 @@ function mount(target,{client}={}){
      item.append(node('p',{},v.date_from+' to '+v.date_to));
      item.append(node('p',{},v.overlap_count>0?'Warning: overlaps '+v.overlap_count+' other approved request(s).':'No overlap with other approved requests.'));
      item.append(node('p',{},v.schedule_missing?'Working schedule incomplete.':'Working schedule present.'));
+     const kind=String(v.leave_type||'').toLowerCase();
+     const guidance=kind.includes('annual')?'Annual leave: compare ordinary weekly pay and average weekly earnings; use the higher amount.'
+       :kind.includes('sick')||kind.includes('alternative')?'Verify otherwise-working days and relevant daily pay, or average daily pay where permitted.'
+       :'Review applicable leave rules and employment agreement.';
+     item.append(node('p',{},'NZ statutory review: '+guidance));
+     item.append(node('p',{},'Entitlements, earnings history, pay-period matching and duplicate posting: not verified.'));
      item.append(node('p',{},'Payroll posting: BLOCKED — statutory and duplicate-posting checks still required.'));
      validationList.append(item);
    }
