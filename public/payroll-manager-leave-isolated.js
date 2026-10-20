@@ -63,15 +63,16 @@ function mount(target,{client}={}){
  const calculationHeading=node('h2',{},'Simulated statutory calculation tests'),calculationList=node('div',{class:'calculation-list'});
  const checksHeading=node('h2',{},'Automated scenario checks (isolated)'),checksList=node('div',{class:'checks-list'});
  const transactionHeading=node('h2',{},'Transaction safeguards (temporary simulation)'),transactionList=node('div',{class:'transaction-list'});
+ const readinessHeading=node('h2',{},'Payroll integration readiness (read-only)'),readinessList=node('div',{class:'readiness-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
    notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
-   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();
+   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();
    window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
@@ -229,6 +230,25 @@ function mount(target,{client}={}){
      transactionList.append(item);
    }
  }
+ async function loadIntegrationReadiness(){
+   const {data,error}=await client.rpc('v6249_manager_leave_integration_readiness');
+   if(destroyed)return;
+   readinessList.replaceChildren();
+   if(error){readinessList.append(node('p',{},'Integration readiness unavailable: '+error.message));return;}
+   readinessList.append(node('p',{},'READ-ONLY MAPPING. This does not change pay runs, payslips, balances, leave transactions or accounting.'));
+   const rows=Array.isArray(data)?data:[];
+   if(!rows.length){readinessList.append(node('p',{},'No approved leave requests to review.'));return;}
+   for(const x of rows){
+     const item=node('div',{class:'draft-item'});
+     item.append(node('strong',{},x.employee+' — '+x.leave_type));
+     item.append(node('p',{},x.from+' to '+x.to+' · '+x.quantity+' '+x.unit));
+     item.append(node('p',{},'Matching pay runs: '+x.pay_run_matches+'; employee payroll records: '+x.employee_pay_records+'; pay lines: '+x.pay_lines));
+     item.append(node('p',{},'Existing leave transactions in range: '+x.leave_transactions+'; balance record: '+(x.leave_balance_present?'present':'missing')));
+     item.append(node('p',{},'Pending: statutory pay rate, entitlement, payslip, accounting and idempotent posting verification.'));
+     item.append(node('p',{},'Payroll integration: BLOCKED — read-only.'));
+     readinessList.append(item);
+   }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -270,7 +290,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -300,7 +320,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
