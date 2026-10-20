@@ -260,7 +260,15 @@
 
     <section id="view-payroll" class="view">
       <div class="page-head"><div><h1>Payroll</h1><p>Manage employees, timesheets and payroll.</p></div><button class="primary" id="payrollAddEmployee">+ Add Employee</button></div>
-      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button><button class="module-tab" data-payroll-tab="newrun">New Pay Run</button><button class="module-tab" data-payroll-tab="settings">Settings</button></div>
+      <div class="module-tabs payroll-module-tabs" id="payrollTabs"><button class="module-tab active" data-payroll-tab="employees">Employees</button><button class="module-tab" data-payroll-tab="timesheets">Timesheets</button><button class="module-tab" data-payroll-tab="leave">Leave Management</button><button class="module-tab" data-payroll-tab="runs">Pay Runs</button><button class="module-tab" data-payroll-tab="newrun">New Pay Run</button><button class="module-tab" data-payroll-tab="settings">Settings</button></div>
+
+      <div class="payroll-panel" id="payroll-panel-leave">
+        <div class="card" style="padding:16px">
+          <h2 style="margin:0 0 6px">Leave Management</h2>
+          <p style="margin:0 0 14px;color:var(--muted,#64748b)">Development preview only. Leave requests are held in the isolated test database; payroll posting remains disabled.</p>
+          <iframe title="Isolated Leave Management development preview" src="./payroll-manager-leave-preview.html" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:780px;min-height:65vh;border:1px solid #e2e8f0;border-radius:12px;background:#fff" ></iframe>
+        </div>
+      </div>
 
       <div class="payroll-panel active" id="payroll-panel-employees">
         <div class="summary-grid payroll-mini-summary payroll-summary-grid"><div class="metric"><span>Active Employees</span><strong id="payrollActiveCount">0</strong></div><div class="metric"><span>Next Pay Date</span><strong id="payrollNextPayDate">—</strong></div><div class="metric"><span>Timesheets Awaiting Approval</span><strong id="payrollAwaitingCount">0</strong></div></div>
