@@ -64,15 +64,16 @@ function mount(target,{client}={}){
  const checksHeading=node('h2',{},'Automated scenario checks (isolated)'),checksList=node('div',{class:'checks-list'});
  const transactionHeading=node('h2',{},'Transaction safeguards (temporary simulation)'),transactionList=node('div',{class:'transaction-list'});
  const readinessHeading=node('h2',{},'Payroll integration readiness (read-only)'),readinessList=node('div',{class:'readiness-list'});
+ const frameworkHeading=node('h2',{},'Synthetic earnings and statutory framework (Phases 16–17)'),frameworkList=node('div',{class:'framework-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
    const {error}=await client.rpc('v6239_manager_leave_approval_command',{p_draft_id:draftId,p_action:action});
    if(error)throw error;
    notice.textContent='Request '+(action==='submit'?'submitted':action==='approve'?'approved':'declined')+' successfully. Payroll unchanged.';
-   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();
+   await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();
    window.alert('Leave request '+(action==='submit'?'submitted for approval':action==='approve'?'approved':'declined')+' successfully.');
  }
  async function loadApprovals(){
@@ -249,6 +250,25 @@ function mount(target,{client}={}){
      readinessList.append(item);
    }
  }
+ async function loadStatutoryFramework(){
+  const {data,error}=await client.rpc('v6250_manager_leave_statutory_framework_preview');
+  if(destroyed)return;
+  frameworkList.replaceChildren();
+  if(error){frameworkList.append(node('p',{},'Framework unavailable: '+error.message));return;}
+  frameworkList.append(node('p',{},'SYNTHETIC EARNINGS ONLY. No actual earnings, statutory payment or payroll posting.'));
+  for(const x of (Array.isArray(data)?data:[])){
+   const item=node('div',{class:'draft-item'});
+   item.append(node('strong',{},x.employee+' — '+x.leave_type));
+   item.append(node('p',{},'Sample weeks: '+x.weeks_of_sample_earnings+'; invented gross earnings NZD '+x.sample_total_gross));
+   item.append(node('p',{},'Illustrative AWE NZD '+x.sample_awe_weekly+' per week.'));
+   if(x.illustrative_higher_weekly_rate!=null)item.append(node('p',{},'Illustrative OWP NZD '+x.illustrative_owp_weekly+'; higher weekly comparison NZD '+x.illustrative_higher_weekly_rate));
+   else item.append(node('p',{},'Illustrative RDP NZD '+x.illustrative_rdp_daily+' per day; ADP NZD '+x.illustrative_adp_daily+' per day.'));
+   item.append(node('p',{},'Sample entitlement '+x.sample_entitlement_days+' days; sufficiency: '+(x.sample_balance_sufficient?'yes':'not established')));
+   item.append(node('p',{},x.caveat));
+   item.append(node('p',{},'Statutory verification PENDING. Payroll posting BLOCKED.'));
+   frameworkList.append(item);
+  }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -290,7 +310,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -320,7 +340,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
