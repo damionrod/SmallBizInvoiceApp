@@ -18,6 +18,7 @@ const css=`
 .fr-leave .wide{grid-column:1/-1}
 .fr-leave .notice{margin:10px 0;font-size:.9rem;white-space:pre-wrap}
  .fr-leave .draft-item{border:1px solid #d9dce4;border-radius:9px;padding:12px;margin:10px 0} .fr-leave .draft-item p{margin:6px 0 10px} 
+ .fr-leave .history-entry{border-bottom:1px solid #e2e4ea;padding:7px 0;margin:0;font-size:.9rem}
 @media(max-width:600px){.fr-leave form{grid-template-columns:minmax(0,1fr)}}
 `;
 function node(tag,attrs={},text){
@@ -54,9 +55,22 @@ function mount(target,{client}={}){
  const cancel=node('button',{type:'button'},'Cancel edit');cancel.hidden=true;cancel.style.marginLeft='8px';
  action.append(save,cancel);form.append(action);wrap.append(notice,form);
  const heading=node('h2',{},'Saved drafts'),draftList=node('div',{class:'draft-list'});
- wrap.append(heading,draftList);target.append(wrap);
+ const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
+ wrap.append(heading,draftList,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
+ async function loadHistory(){
+   const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
+   if(destroyed)return;
+   historyList.replaceChildren();
+   if(error){historyList.append(node('p',{},'Unable to load activity: '+error.message));return;}
+   const rows=Array.isArray(data)?data:[];
+   if(!rows.length){historyList.append(node('p',{},'No draft activity yet.'));return;}
+   for(const a of rows){
+     const entry=node('p',{class:'history-entry'},(a.action==='create'?'Created':a.action==='update'?'Edited':'Deleted')+' draft · '+new Date(a.created_at).toLocaleString());
+     historyList.append(entry);
+   }
+ }
  async function loadDrafts(){
    const {data,error}=await client.rpc('v6237_manager_leave_drafts_read');
    if(destroyed)return;
@@ -86,7 +100,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadHistory();}finally{save.disabled=false;}
      });
      item.append(edit,del);draftList.append(item);
    }
@@ -107,7 +121,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();
+     await loadDrafts();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
@@ -125,7 +139,7 @@ function mount(target,{client}={}){
      });
      if(error)throw error;
      notice.textContent='Leave draft saved in isolated testing. No payroll balances were changed.';
-     cancel.click();await loadDrafts();
+     cancel.click();await loadDrafts();await loadHistory();
    }catch(err){notice.textContent='Draft not saved: '+(err.message||'Access denied');}
    finally{if(!destroyed)save.disabled=false;}
  });
