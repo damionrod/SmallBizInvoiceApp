@@ -265,13 +265,8 @@
       <div class="payroll-panel" id="payroll-panel-leave">
         <div class="card" style="padding:16px">
           <h2 style="margin:0 0 6px">Leave Management</h2>
-          <p style="margin:0 0 14px;color:var(--muted,#64748b)">Development preview only. The isolated leave workflows are not connected to live payroll or employee balances.</p>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0">
-            <div class="card" style="padding:14px"><strong>Leave Requests</strong><p style="margin:8px 0 0;color:var(--muted,#64748b)">Create, submit and review leave requests.</p></div>
-            <div class="card" style="padding:14px"><strong>Approvals</strong><p style="margin:8px 0 0;color:var(--muted,#64748b)">Review and decide pending requests.</p></div>
-            <div class="card" style="padding:14px"><strong>Team Calendar</strong><p style="margin:8px 0 0;color:var(--muted,#64748b)">View approved leave dates.</p></div>
-          </div>
-          <p style="color:var(--muted,#64748b)">The customer-facing integration is not yet enabled. No second login is shown; actions remain disabled until Frindly session and role permissions are safely connected.</p>
+          <p style="color:var(--muted,#64748b)">Native Frindly preview · existing sign-in and selected business · read-only</p>
+          <div id="frindlyLeaveNative" aria-live="polite">Open this tab to load employee and leave-type information.</div>
         </div>
       </div>
 
@@ -1138,5 +1133,6 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <script src="support-center.js?v=61.102L-login-reliability"></script>
   <script src="community.js?v=61.107AAZ-community-v2"></script>
   <script src="advanced-business-features.js?v=61.117-safe-feature-gaps"></script>
+  <script src="payroll-leave-native.js?v=20261020-native-readonly"></script>
 </body>
 </html>
