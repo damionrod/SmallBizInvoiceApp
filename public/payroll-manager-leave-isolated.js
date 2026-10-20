@@ -81,8 +81,9 @@ function mount(target,{client}={}){
  const evidenceHeading=node('h2',{},'Phase 24 — actual entitlement evidence (read-only)'),evidenceList=node('div',{class:'evidence-list'});
  const phase25Heading=node('h2',{},'Phase 25 — isolated roster and entitlement readiness'),phase25List=node('div',{class:'phase25-list'});
  const phase26Heading=node('h2',{},'Phase 26 — manager evidence review drafts'),phase26List=node('div',{class:'phase26-list'});
+ const phase27Heading=node('h2',{},'Phase 27 — guided leave evidence (unverified)'),phase27List=node('div',{class:'phase27-list'});
  const historyHeading=node('h2',{},'Draft activity'),historyList=node('div',{class:'draft-history'});
- wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,mappingHeading,mappingList,periodHeading,periodList,splitHeading,splitList,evidenceHeading,evidenceList,phase25Heading,phase25List,phase26Heading,phase26List,historyHeading,historyList);target.append(wrap);
+ wrap.append(heading,draftList,approvalHeading,approvalList,previewHeading,previewList,validationHeading,validationList,reconciliationHeading,reconciliationList,fixtureHeading,fixtureList,calculationHeading,calculationList,checksHeading,checksList,transactionHeading,transactionList,readinessHeading,readinessList,frameworkHeading,frameworkList,stageHeading,stageList,gateHeading,gateList,syntheticPayrollHeading,syntheticPayrollList,contractHeading,contractList,engineHeading,engineList,prerequisiteHeading,prerequisiteList,negativeHeading,negativeList,rollbackHeading,rollbackList,taxHeading,taxList,calcHeading,calcList,mappingHeading,mappingList,periodHeading,periodList,splitHeading,splitList,evidenceHeading,evidenceList,phase25Heading,phase25List,phase26Heading,phase26List,phase27Heading,phase27List,historyHeading,historyList);target.append(wrap);
  let editing=null;
  cancel.addEventListener('click',()=>{editing=null;form.reset();save.textContent='Save draft';cancel.hidden=true;});
  async function approvalAction(draftId,action){
@@ -668,6 +669,69 @@ function mount(target,{client}={}){
    card.append(save,status);phase26List.append(card);
   }
  }
+ async function loadPhase27(){
+  phase27List.replaceChildren();
+  const [{data:approvals,error:approvalError},{data:entries,error:entryError}]=await Promise.all([
+   client.rpc('v6265_manager_leave_evidence_readonly'),
+   client.rpc('v6266_manager_leave_guided_read')
+  ]);
+  if(destroyed)return;
+  if(approvalError||entryError){phase27List.append(node('p',{},'Guided evidence unavailable: '+(approvalError||entryError).message));return;}
+  phase27List.append(node('p',{},'Optional structured test evidence. Values are NOT verified, do not change actual leave balances or payroll, and cannot enable posting. Use fictional values only.'));
+  const byId=new Map((entries||[]).map(x=>[x.approval_id,x]));
+  for(const approval of approvals||[]){
+   const item=byId.get(approval.approval_id)||{};
+   const card=node('div',{class:'draft-card'});
+   card.append(node('strong',{},approval.employee+' — '+approval.leave_type));
+   const days=node('div',{}),checks=[];
+   days.append(node('p',{},'Normal working weekdays (only select if supported by evidence):'));
+   for(const [num,name] of [[1,'Mon'],[2,'Tue'],[3,'Wed'],[4,'Thu'],[5,'Fri'],[6,'Sat'],[7,'Sun']]){
+    const label=node('label',{}),check=node('input',{type:'checkbox'});
+    check.checked=(item.working_weekdays||[]).includes(num);
+    label.style.marginRight='12px';label.append(check,document.createTextNode(' '+name));days.append(label);checks.push([num,check]);
+   }
+   card.append(days);
+   function field(label,type,value,placeholder){
+    const wrap=node('div',{}),lab=node('label',{},label),inp=node('input',{type});
+    inp.style.width='100%';inp.style.maxWidth='420px';inp.style.marginBottom='8px';
+    if(placeholder)inp.placeholder=placeholder;
+    inp.value=value==null?'':String(value);
+    wrap.append(lab,inp);card.append(wrap);return inp;
+   }
+   const hours=field('Hours per normal working day','number',item.hours_per_workday,'e.g. 8');
+   hours.min='0.01';hours.max='24';hours.step='0.25';
+   const start=field('Employment start date','date',item.employment_start_date);
+   const asof=field('Reported leave balance as at','date',item.entitlement_asof);
+   const balance=field('Reported available leave (days, not certified)','number',item.reported_available_days);
+   balance.min='0';balance.step='0.01';
+   const earningsStart=field('Earnings evidence period from','date',item.earnings_period_start);
+   const earningsEnd=field('Earnings evidence period to','date',item.earnings_period_end);
+   const gross=field('Reported gross earnings for this period (NZD)','number',item.reported_gross_earnings);
+   gross.min='0';gross.step='0.01';
+   const source=field('Evidence source / reference (no identity or bank details)','text',item.evidence_source,'e.g. fictional roster test');
+   source.maxLength=500;
+   const save=node('button',{type:'button'},'Save guided evidence draft');
+   const status=node('p',{},'Unverified draft — payroll posting BLOCKED.');
+   save.addEventListener('click',async()=>{
+    const weekdays=checks.filter(([,check])=>check.checked).map(([num])=>num);
+    const numberOrNull=el=>el.value.trim()===''?null:Number(el.value);
+    const h=numberOrNull(hours),b=numberOrNull(balance),g=numberOrNull(gross);
+    if([h,b,g].some(v=>v!==null&&!Number.isFinite(v))||(h!==null&&(h<=0||h>24))||(b!==null&&b<0)||(g!==null&&g<0)||(earningsStart.value&&earningsEnd.value&&earningsStart.value>earningsEnd.value)){
+     status.textContent='Please correct the hours, balance, earnings or date range.';return;
+    }
+    save.disabled=true;status.textContent='Saving guided draft…';
+    const {error}=await client.rpc('v6266_manager_leave_guided_save',{
+     p_approval:approval.approval_id,p_weekdays:weekdays,p_hours:h,p_start:start.value||null,
+     p_asof:asof.value||null,p_days:b,p_earn_start:earningsStart.value||null,
+     p_earn_end:earningsEnd.value||null,p_gross:g,p_source:source.value
+    });
+    if(destroyed)return;
+    status.textContent=error?'Could not save: '+error.message:'Guided evidence draft saved. NOT verified; payroll posting BLOCKED.';
+    save.disabled=false;
+   });
+   card.append(save,status);phase27List.append(card);
+  }
+ }
  async function loadHistory(){
    const {data,error}=await client.rpc('v6238_manager_leave_draft_history');
    if(destroyed)return;
@@ -709,7 +773,7 @@ function mount(target,{client}={}){
        if(error){notice.textContent='Delete failed: '+error.message;edit.disabled=false;del.disabled=false;save.disabled=false;return;}
        if(editing===d.id)cancel.click();
        notice.textContent='Draft deleted; audit entry retained.';
-       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadEntitlementEvidence();await loadPhase25();await loadPhase26();await loadHistory();}finally{save.disabled=false;}
+       try{await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadEntitlementEvidence();await loadPhase25();await loadPhase26();await loadPhase27();await loadHistory();}finally{save.disabled=false;}
      });
      const submit=node('button',{type:'button'},'Submit for approval');submit.style.marginLeft='8px';
      submit.addEventListener('click',async()=>{
@@ -739,7 +803,7 @@ function mount(target,{client}={}){
      for(const t of types)leave.append(node('option',{value:t.id},t.name));
      if(!employees.length||!types.length){notice.textContent='No eligible employees or leave types are available.';return;}
      form.hidden=false;notice.textContent='Draft only — this does not approve leave or change payroll balances.';
-     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadEntitlementEvidence();await loadPhase25();await loadPhase26();await loadHistory();
+     await loadDrafts();await loadApprovals();await loadPreview();await loadValidation();await loadReconciliation();await loadFixtures();await loadCalculationTests();await loadAutomatedChecks();await loadTransactionTests();await loadIntegrationReadiness();await loadStatutoryFramework();await loadIntegrationStage();await loadIntegrationGateAudit();await loadSyntheticPayrollReconciliation();await loadPayrollContractTests();await loadEngineCompatibility();await loadPrerequisiteFixtures();await loadNegativePathChecks();await loadRollbackTests();await loadTaxRuleReadiness();loadActualEngineAvailability();await loadPayrollMapping();await loadPeriodCoverage();await loadSplitFixture();await loadEntitlementEvidence();await loadPhase25();await loadPhase26();await loadPhase27();await loadHistory();
    }catch(err){if(!destroyed)notice.textContent='Unable to load leave form: '+(err.message||'Access denied');}
  }
  form.addEventListener('submit',async event=>{
