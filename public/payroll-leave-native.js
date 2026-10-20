@@ -2,7 +2,7 @@
 (()=>{'use strict';
 const el=id=>document.getElementById(id),client=()=>window.SAAS?.client?.(),bid=()=>window.SAAS?.state?.business?.id;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let activeBusiness=null,employees=[],types=[],requests=[],payRuns=[],busy=false;
+let activeBusiness=null,employees=[],types=[],requests=[],payRuns=[],busy=false,selectedDays=new Set(),calendarMonth=new Date().toISOString().slice(0,7);
 const panel=()=>el('payroll-panel-leave'),root=()=>el('frindlyLeaveNative');
 const note=s=>{if(el('leaveNotice'))el('leaveNotice').textContent=s};
 async function rpc(name,args){const {data,error}=await client().rpc(name,args||{});if(error)throw error;return data}
@@ -14,7 +14,7 @@ function draw(){
  '<form id="leaveCreate"><label>Employee<select name="employee" required><option value="">Select</option>'+options(people)+'</select></label>'+
  '<label>Leave type<select name="type" required><option value="">Select</option>'+options(types.map(x=>({id:x.id,label:x.name})))+'</select></label>'+
  '<fieldset style="border:1px solid #dbe2ef;border-radius:8px;padding:12px;margin:12px 0"><legend style="padding:0 6px">Leave duration</legend><div style="display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center"><label style="display:inline-flex;align-items:center;gap:8px;width:auto;margin:0;cursor:pointer;line-height:1.4"><input type="radio" name="leaveMode" value="days" checked style="width:17px;height:17px;margin:0;flex:0 0 17px;accent-color:#4169e1"> <span>Whole working days</span></label><label style="display:inline-flex;align-items:center;gap:8px;width:auto;margin:0;cursor:pointer;line-height:1.4"><input type="radio" name="leaveMode" value="hours" style="width:17px;height:17px;margin:0;flex:0 0 17px;accent-color:#4169e1"> <span>Part day / hours</span></label></div></fieldset>'+
- '<label>First leave date<input name="from" type="date" required></label><div id="leaveEndDate"><label>Last leave date<input name="to" type="date" required></label><small>Weekends are excluded from the working-day count. Check the employee roster for other non-working days and holidays.</small></div>'+
+ '<div id="leaveCalendarSection"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0"><strong>Select whole leave days</strong><button type="button" id="leaveClearDates">Clear</button></div><div id="leaveCalendar"></div><small>Select each day you need, including non-consecutive dates. Weekends cannot be selected; check public holidays and the employee roster.</small></div><div id="leaveHourlyDate" style="display:none"><label>Leave date<input name="from" type="date" disabled></label></div>'+
  '<div id="leaveHoursField" style="display:none"><label>Hours of leave<input name="hours" type="number" min="0.25" max="24" step="0.25" disabled></label><small>Enter the actual leave hours for this date.</small></div>'+
  '<p id="leaveDurationPreview" role="status" aria-live="polite">Choose leave dates to calculate the duration.</p>'+
  '<button class="primary" type="submit" '+(!people.length||!types.length?'disabled':'')+'>Save draft</button> <button class="primary" type="submit" name="leaveIntent" value="approve" '+(!people.length||!types.length?'disabled':'')+'>Create and approve</button></form></section>'+
@@ -37,7 +37,7 @@ async function load(){
  rpc('frindly_leave_requests_read'),
  client().from('payroll_pay_runs').select('id,pay_run_number,period_start,period_end,status').eq('business_id',b).order('period_start',{ascending:false}).limit(40)]);
  if(a.error)throw a.error;if(t.error)throw t.error;if(bid()!==b)return;
- activeBusiness=b;employees=(a.data||[]).filter(x=>['active','on_leave'].includes(x.employment_status));types=t.data||[];requests=Array.isArray(r)?r:[];payRuns=p.error?[]:(p.data||[]);draw();
+ activeBusiness=b;employees=(a.data||[]).filter(x=>['active','on_leave'].includes(x.employment_status));types=t.data||[];requests=Array.isArray(r)?r:[];payRuns=p.error?[]:(p.data||[]);draw();renderLeaveCalendar();updateDuration();
  }catch(e){if(bid()===b)root().textContent='Leave Management unavailable: '+(e.message||'Permission denied')}
 }
 async function run(name,args,success){
@@ -54,29 +54,55 @@ function countWeekdays(from,to){
  if(span>366)return 0;
  let days=0;for(let i=0;i<=span;i++){const dow=new Date(start.getTime()+i*86400000).getUTCDay();if(dow!==0&&dow!==6)days++}return days;
 }
+function renderLeaveCalendar(){
+ const host=el('leaveCalendar');if(!host)return;
+ const [y,m]=calendarMonth.split('-').map(Number),first=new Date(Date.UTC(y,m-1,1)),length=new Date(Date.UTC(y,m,0)).getUTCDate(),offset=(first.getUTCDay()+6)%7;
+ const monthLabel=first.toLocaleDateString('en-NZ',{month:'long',year:'numeric',timeZone:'UTC'});
+ let html='<div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0"><button type="button" data-calendar-move="-1" aria-label="Previous month">‹</button><strong>'+esc(monthLabel)+'</strong><button type="button" data-calendar-move="1" aria-label="Next month">›</button></div>'+
+ '<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center">';
+ for(const day of ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'])html+='<small>'+day+'</small>';
+ for(let i=0;i<offset;i++)html+='<span></span>';
+ for(let d=1;d<=length;d++){
+  const date=calendarMonth+'-'+String(d).padStart(2,'0'),dow=new Date(Date.UTC(y,m-1,d)).getUTCDay(),weekend=dow===0||dow===6,selected=selectedDays.has(date);
+  html+='<button type="button" data-calendar-day="'+date+'" '+(weekend?'disabled title="Weekend"':'aria-pressed="'+selected+'"')+
+   ' style="min-width:0;padding:9px 2px;border-radius:7px;border:1px solid '+(selected?'#4169e1':'#dbe2ef')+';background:'+(selected?'#4169e1':'transparent')+';color:'+(selected?'white':weekend?'#a9a9a9':'inherit')+';cursor:'+(weekend?'not-allowed':'pointer')+'">'+d+'</button>';
+ }
+ host.innerHTML=html+'</div>';
+}
 function updateDuration(){
  const form=el('leaveCreate');if(!form)return;
  const mode=form.querySelector('input[name="leaveMode"]:checked')?.value||'days';
- const from=form.elements.from.value,to=form.elements.to.value,hours=Number(form.elements.hours.value);
- const end=el('leaveEndDate'),hourField=el('leaveHoursField'),preview=el('leaveDurationPreview');
- if(end)end.style.display=mode==='days'?'':'none';
+ const from=form.elements.from.value,hours=Number(form.elements.hours.value);
+ const calendar=el('leaveCalendarSection'),hourDate=el('leaveHourlyDate'),hourField=el('leaveHoursField'),preview=el('leaveDurationPreview');
+ if(calendar)calendar.style.display=mode==='days'?'':'none';
+ if(hourDate)hourDate.style.display=mode==='hours'?'':'none';
  if(hourField)hourField.style.display=mode==='hours'?'':'none';
- form.elements.to.disabled=mode==='hours';form.elements.to.required=mode==='days';
+ form.elements.from.disabled=mode==='days';form.elements.from.required=mode==='hours';
  form.elements.hours.disabled=mode!=='hours';form.elements.hours.required=mode==='hours';
- if(preview)preview.textContent=mode==='days'?(from&&to?(countWeekdays(from,to)+' weekday(s) selected. Confirm actual working days against the roster; public holidays are not automatically excluded.'):'Select the first and last leave date.'):(from&&hours>0?hours+' hours on '+from:'Select a date and enter the hours of leave.');
+ if(preview)preview.textContent=mode==='days'?(selectedDays.size?selectedDays.size+' full working day(s) selected: '+[...selectedDays].sort().join(', ')+'. Confirm roster and public holidays.':'Select the dates you need on the calendar.'):(from&&hours>0?hours+' hours on '+from:'Select a date and enter the hours of leave.');
 }
 document.addEventListener('change',e=>{if(e.target.closest('#leaveCreate'))updateDuration()});
 document.addEventListener('input',e=>{if(e.target.closest('#leaveCreate'))updateDuration()});
 document.addEventListener('submit',e=>{
  if(e.target.id!=='leaveCreate')return;e.preventDefault();
- const d=new FormData(e.target),mode=String(d.get('leaveMode')||'days'),from=String(d.get('from')||''),to=mode==='hours'?from:String(d.get('to')||'');
- const qty=mode==='hours'?Number(d.get('hours')):countWeekdays(from,to),unit=mode==='hours'?'hours':'days';
- if(!from||!to||to<from||!Number.isFinite(qty)||qty<=0||(mode==='hours'&&qty>24)){note('Invalid leave date or duration. Check working days and hours.');return}
+ const d=new FormData(e.target),mode=String(d.get('leaveMode')||'days'),from=String(d.get('from')||''),qty=mode==='hours'?Number(d.get('hours')):selectedDays.size,unit=mode==='hours'?'hours':'days';
+ if(!Number.isFinite(qty)||qty<=0||(mode==='hours'&&(!from||qty>24))||(mode==='days'&&qty>31)){note('Select valid leave dates or hours (maximum 31 whole days).');return}
  const approve=e.submitter?.value==='approve';
- if(!confirm('Request '+qty+' '+unit+' for '+from+(to!==from?' to '+to:'')+'? Confirm actual roster days, holidays and entitlement. '+(approve?'Create and approve?':'Save draft?')+' No payroll records will be changed.'))return;
- run(approve?'frindly_leave_request_create_and_approve':'frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:to,p_quantity:qty,p_unit:unit},approve?'Leave approved':'Draft saved');
+ const dates=[...selectedDays].sort(),summary=mode==='days'?dates.join(', '):from+' ('+qty+' hours)';
+ if(!confirm('Request '+qty+' '+unit+' for '+summary+'? Confirm roster, public holidays and entitlement. '+(approve?'Create and approve?':'Save draft?')+' No payroll records will be changed.'))return;
+ if(mode==='days'){
+  run('frindly_leave_request_create_selected_days',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_dates:dates,p_approve:approve},approve?'Selected leave days approved':'Selected leave days saved');
+ }else{
+  run(approve?'frindly_leave_request_create_and_approve':'frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:from,p_quantity:qty,p_unit:unit},approve?'Hourly leave approved':'Hourly leave draft saved');
+ }
 });
 document.addEventListener('click',async e=>{
+ const move=e.target.closest('[data-calendar-move]');
+ if(move){const [y,m]=calendarMonth.split('-').map(Number);calendarMonth=new Date(Date.UTC(y,m-1+Number(move.dataset.calendarMove),1)).toISOString().slice(0,7);renderLeaveCalendar();return}
+ const day=e.target.closest('[data-calendar-day]');
+ if(day&&!day.disabled){const date=day.dataset.calendarDay;if(selectedDays.has(date))selectedDays.delete(date);else if(selectedDays.size<31)selectedDays.add(date);else{note('Maximum 31 dates per request');return}renderLeaveCalendar();updateDuration();return}
+ if(e.target.closest('#leaveClearDates')){selectedDays.clear();renderLeaveCalendar();updateDuration();return}
+
  if(e.target.closest('#leaveReviewButton')){
    const runId=el('leaveReviewRun')?.value,out=el('leaveReviewResult');if(!runId||!out){note('Select a pay run to review');return}
    if(bid()!==activeBusiness){note('Business changed. Reload Leave Management.');return}
