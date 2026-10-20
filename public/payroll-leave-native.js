@@ -47,7 +47,7 @@ async function run(name,args,success){
  catch(e){note('Action failed: '+(e.message||'Permission denied'))}finally{busy=false}
 }
 function countWeekdays(from,to){
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(from)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(to)||to<from)return 0;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||to<from)return 0;
  const start=new Date(from+'T12:00:00Z'),end=new Date(to+'T12:00:00Z');
  if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return 0;
  const span=Math.round((end-start)/86400000);
