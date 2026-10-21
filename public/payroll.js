@@ -586,6 +586,27 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     }
     return {attached};
   }
+  async function finaliseApprovedLeaveAtomically(payEmployees,runNo,snapshot,totals){
+    const run=currentRunDef(),employees=[];
+    for(const x of payEmployees){
+      const row={business_id:state.businessId,employee_id:x.employee.id,employee_snapshot:{employee_number:x.employee.employee_number,name:displayName(x.employee),job_title:x.employee.job_title,pay_type:x.employee.pay_type,pay_frequency:x.employee.pay_frequency,hourly_rate:x.employee.hourly_rate,annual_salary:x.employee.annual_salary,tax_code:x.employee.tax_code,kiwisaver_employee_rate:x.employee.kiwisaver_employee_rate,kiwisaver_employer_rate:x.employee.kiwisaver_employer_rate},hours:trunc2(x.hours),rate:x.rate,ordinary_earnings:trunc2(x.ordinary+x.overtime),holiday_pay:trunc2(x.holiday),allowances:trunc2(x.allowances),reimbursements:trunc2(x.reimbursements),gross_pay:trunc2(x.gross),paye:trunc2(x.paye),kiwisaver_employee:trunc2(x.kiwiEmp),student_loan:trunc2(x.student),other_deductions:trunc2(x.otherDeductions),total_deductions:trunc2(x.deductions),net_pay:trunc2(x.net),kiwisaver_employer_gross:trunc2(x.employerGross),esct:trunc2(x.esct),employer_contributions:trunc2(x.employerNet),total_employment_cost:trunc2(x.cost),calculation_snapshot:{ordinary_hours:x.ordinaryH,overtime_hours:x.overtimeH,holiday_method:x.employee.annual_holiday_method,tax_code:x.employee.tax_code,rules:snapshot,statutory_leave:(x.manualLines||[]).filter(l=>l.statutory_calculation_id).map(l=>({request_id:/^Annual leave request ([0-9a-f-]{36})$/i.exec(String(l.description||''))?.[1]||null,statutory_calculation_id:l.statutory_calculation_id,statutory_leave_code:l.statutory_leave_code,quantity:l.quantity,unit:'hours',payment_amount:trunc2(l.amount),amount:trunc2(l.amount)})),p6_payg:x.p6Payg?.status==='calculated'?x.p6Payg.snapshot:(x.p6Payg||null),p7_tax:x.p7Tax||null}};
+        const psData={business:{name:appSettings().trading||appSettings().company||biz().name,address:appSettings().address||'',phone:appSettings().phone||'',email:appSettings().email||''},employee:{id:x.employee.id,number:x.employee.employee_number,name:displayName(x.employee),email:x.employee.email},run:{number:runNo,period_start:run.period_start,period_end:run.period_end,pay_date:run.pay_date},pay:{hours:x.hours,rate:x.rate,ordinary:x.ordinary+x.overtime,holiday:x.holiday,allowances:x.allowances,reimbursements:x.reimbursements,gross:x.gross,paye:x.paye,kiwisaver_employee:x.kiwiEmp,student_loan:x.student,other_deductions:x.otherDeductions,net:x.net,kiwisaver_employer:x.employerNet,esct:x.esct,total_employment_cost:x.cost,adjustments:(x.manualLines||[]).map(l=>({type:l.line_type,description:l.description,amount:l.amount,taxable:l.taxable!==false})),work_details:(x.timesheets||[]).map(t=>{const j=state.jobs.find(j=>j.id===t.job_costing_id);return{date:t.work_date,job:t.job_costing_id?(j?(j.costing_number+' · '+(j.job_description||j.customer_name||'Job')):'Linked job'):'General / No Job',hours:num(t.total_hours),rate:x.employee.pay_type==='hourly'?num(x.employee.hourly_rate)*(t.pay_type==='overtime'?num(x.employee.overtime_multiplier||1.5):1):0,amount:x.employee.pay_type==='hourly'?trunc2(num(t.total_hours)*num(x.employee.hourly_rate)*(t.pay_type==='overtime'?num(x.employee.overtime_multiplier||1.5):1)):0,pay_type:t.pay_type||'ordinary'}})},currency:currency()};
+
+      const lines=[];
+      for(const t of (x.timesheets||[])){
+        const overtime=t.pay_type==='overtime';
+        const rate=num(x.employee.hourly_rate)*(overtime?num(x.employee.overtime_multiplier||1.5):1);
+        lines.push({timesheet_id:t.id,line_type:overtime?'overtime':'ordinary',description:overtime?'Overtime':'Ordinary Hours',quantity:num(t.total_hours),rate,amount:trunc2(num(t.total_hours)*rate),job_costing_id:t.job_costing_id||null,taxable:true});
+      }
+      for(const l of (x.manualLines||[]))lines.push({pay_item_id:l.pay_item_id||null,timesheet_id:l.timesheet_id||null,line_type:l.line_type,description:l.description||human(l.line_type),quantity:num(l.quantity)||1,rate:num(l.rate),amount:trunc2(l.amount),job_costing_id:l.job_costing_id||null,expense_category_id:l.expense_category_id||null,taxable:l.taxable!==false});
+      employees.push({...row,payslip_data:psData,lines});
+    }
+    const tx=[['wage_expense',totals.gross],['employer_contribution_expense',totals.emp],['reimbursement_expense',payEmployees.reduce((a,x)=>a+x.reimbursements,0)],['paye_payable',payEmployees.reduce((a,x)=>a+x.paye,0)],['kiwisaver_payable',payEmployees.reduce((a,x)=>a+x.kiwiEmp+x.employerNet,0)],['net_wages_payable',totals.net],['total_employment_cost',totals.cost]].filter(([,amount])=>num(amount)!==0).map(([transaction_type,amount])=>({transaction_type,amount:trunc2(amount)}));
+    const payload={...run,pay_run_number:runNo,rules_snapshot:snapshot,gross_pay:trunc2(totals.gross),total_deductions:trunc2(totals.ded),net_pay:trunc2(totals.net),employer_contributions:trunc2(totals.emp),total_employment_cost:trunc2(totals.cost),employees,financial_transactions:tx};
+    const {data,error}=await client().rpc('frindly_payroll_atomic_finalise_leave_v1',{p_payload:payload});
+    if(error||data?.finalised!==true)throw Error(error?.message||'Atomic annual leave finalisation was not confirmed');
+    return data;
+  }
   async function saveRun(finalise=false){
     if(state.paydayConflict&&!state.paydayConflict.resolved)return toast('Choose when the new usual payday takes effect before saving this pay run.');
     if(state.runCalc.length&&state.calculatedRunKey!==runCalculationKey())return toast('Pay period details changed. Select Load / Calculate before saving so the pay is recalculated.');
@@ -597,6 +618,25 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     const existingId=$('prId').value||null;
     const old=existingId?state.runs.find(r=>r.id===existingId):null;
     if(['finalised','reversed'].includes(old?.status))return toast('Finalised or reversed pay runs are locked.');
+    const approvedLeaveForSelection=(state.leaveRunPreview||[]).filter(d=>payEmployees.some(x=>x.employee.id===d.employee_id));
+    const useAtomicLeave=finalise&&!existingId&&state.businessId==='d2a97dc3-f1fd-405a-ad46-cff1466aa7d6'&&approvedLeaveForSelection.length>0;
+    if(useAtomicLeave){
+      if(state.leaveVerificationPending||state.leaveRunPreview.some(d=>d.error)||payEmployees.some(x=>x.syntheticTestOnly||x.manualLines?.some(l=>l.synthetic_test_only||String(l.description||'').includes('TEST ONLY'))))return toast('Cannot finalise: leave verification is incomplete or synthetic evidence is present.');
+      if(approvedLeaveForSelection.some(d=>!payEmployees.some(x=>(x.manualLines||[]).some(l=>l.description==='Annual leave request '+d.id&&l.statutory_calculation_id))))return toast('Cannot finalise: confirmed statutory annual leave calculation is missing.');
+      if(payEmployees.some(x=>x.statutoryUnresolved||x.p6NeedsConfirmation||x.p7NeedsConfirmation))return toast('Cannot finalise: statutory payroll evidence is incomplete.');
+      try{
+        const duplicate=await validateNoDuplicateFinalisedPay(payEmployees,currentRunDef(),null);
+        if(duplicate)return toast('Cannot finalise: '+duplicate);
+        const totals=payEmployees.reduce((z,x)=>({gross:z.gross+x.gross,ded:z.ded+x.deductions,net:z.net+x.net,emp:z.emp+x.employerGross,cost:z.cost+x.cost}),{gross:0,ded:0,net:0,emp:0,cost:0});
+        const runNo=await nextRunNo();
+        const snapshot={country:state.settings?.country_code||'NZ',pay_date:$('prPayDate').value,rules:activeRuleSnapshot($('prPayDate').value)};
+        const result=await finaliseApprovedLeaveAtomically(payEmployees,runNo,snapshot,totals);
+        await load();
+        if(!state.runs.some(r=>r.id===result.pay_run_id&&r.status==='finalised'))return toast('Payroll was committed but could not be reloaded. Refresh before trying again.');
+        initialiseRun();state.newRunInitialized=true;close('payrollRunModal');setTab('runs');
+        return toast('Pay run finalised atomically. Payslips are ready in Pay Runs.');
+      }catch(error){console.error('Atomic annual leave payroll failed',error);return toast('Payroll was not finalised: '+(error?.message||'Atomic save failed'));}
+    }
     if(state.leaveVerificationPending||state.leaveRunPreview.some(d=>d.error)||payEmployees.some(x=>x.syntheticTestOnly||x.manualLines?.some(l=>l.synthetic_test_only||/\bTEST ONLY\b/i.test(String(l.description||''))||l.statutory_calculation_id&&l.statutory_leave_code==='annual_holiday')||x.leaveEvidencePending)||state.leaveRunPreview.some(d=>payEmployees.some(x=>x.employee.id===d.employee_id)))return toast('Cannot save: approved annual leave requires verified statutory evidence and atomic payroll posting.');
     const unresolvedStatutory=payEmployees.filter(x=>x.statutoryUnresolved);if(unresolvedStatutory.length)return toast((finalise?'Cannot finalise: ':'Cannot save calculated payroll: ')+'Needs confirmation — '+unresolvedStatutory.map(x=>`${displayName(x.employee)}: ${(x.p6Payg?.reasons||x.p7Tax?.reasons||[]).map(r=>r.message).join('; ')||'Statutory payroll evidence is incomplete.'}`).join(' | '));
     if(finalise){
