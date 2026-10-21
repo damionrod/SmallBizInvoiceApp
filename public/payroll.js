@@ -62,7 +62,7 @@
   async function renderLeaveEvidenceReview(){
     const panel=$('payroll-panel-newrun');
     let host=$('frindlyLeaveEvidenceReview');
-    if(state.businessId!=='d2a97dc3-f1fd-405a-ad46-cff1466aa7d6'){host?.remove();return}
+    if(!state.businessId){host?.remove();return}
     if(!panel)return;
     if(!host){host=document.createElement('section');host.id='frindlyLeaveEvidenceReview';host.style.cssText='padding:16px;margin:12px 0;border:1px solid #ddd;border-radius:10px';panel.prepend(host)}
     host.innerHTML='<h3>Annual leave statutory evidence</h3><p>Approved leave requires documented payroll earnings and a verified statutory calculation. No payroll is posted here.</p><div id="frindlyLeaveEvidenceRows">Loading…</div>';
