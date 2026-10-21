@@ -559,6 +559,33 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     return null;
   }
 
+  // Annual-leave calculation attachment: only after a calculated pay run exists.
+  // Never attach synthetic or unconfirmed evidence, and never post leave from this helper.
+  async function attachConfirmedLeaveCalculations(runId,payEmployees){
+    if(state.businessId!=='d2a97dc3-f1fd-405a-ad46-cff1466aa7d6')return {attached:0};
+    const ids=new Set(payEmployees.map(x=>x.employee.id));
+    const requests=(state.leaveRunPreview||[]).filter(d=>ids.has(d.employee_id));
+    if(!requests.length)return {attached:0};
+    let attached=0;
+    for(const request of requests){
+      const candidates=(state.statutoryCalculations||[]).filter(c=>
+        c.employee_id===request.employee_id&&c.leave_type_id===request.leave_type_id&&
+        c.statutory_leave_code==='annual_holiday'&&c.confirmation_state==='confirmed'&&
+        (!c.pay_run_id||c.pay_run_id===runId)&&
+        c.relevant_from===request.date_from&&c.relevant_to===request.date_to&&
+        String(c.input_snapshot?.leave_request_id||'')===String(request.id)&&
+        c.input_snapshot?.synthetic_test_only!==true&&
+        c.input_snapshot?.engine_input?.synthetic_test_only!==true);
+      if(candidates.length!==1)throw Error('Exactly one confirmed statutory calculation is required for approved leave '+request.id);
+      if(candidates[0].pay_run_id===runId)continue;
+      const {data,error}=await client().rpc('frindly_leave_attach_confirmed_calculation_v1',{
+        p_pay_run_id:runId,p_request_id:request.id,p_calculation_id:candidates[0].id
+      });
+      if(error||data?.attached!==true)throw Error(error?.message||'Annual leave calculation could not be linked to payroll');
+      attached++;
+    }
+    return {attached};
+  }
   async function saveRun(finalise=false){
     if(state.paydayConflict&&!state.paydayConflict.resolved)return toast('Choose when the new usual payday takes effect before saving this pay run.');
     if(state.runCalc.length&&state.calculatedRunKey!==runCalculationKey())return toast('Pay period details changed. Select Load / Calculate before saving so the pay is recalculated.');
@@ -656,6 +683,13 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
         const payslipRes=await client().from('payroll_payslips').upsert({business_id:state.businessId,pay_run_id:run.id,pay_run_employee_id:pre.id,employee_id:x.employee.id,payslip_number:psNo,payslip_data:psData},{onConflict:'pay_run_employee_id'});
         if(payslipRes.error)return fail(`Generating payslip for ${displayName(x.employee)}`,payslipRes.error);
       }
+    }
+
+    // Keep attachment separate from finalisation. Existing safety gates still reject
+    // incomplete leave-inclusive payroll until the atomic save workflow is installed.
+    if(!finalise&&state.leaveRunPreview?.some(d=>payEmployees.some(x=>x.employee.id===d.employee_id))){
+      try{await attachConfirmedLeaveCalculations(run.id,payEmployees);}
+      catch(error){return fail('Linking confirmed annual leave calculations',error);}
     }
 
     if(finalise){
