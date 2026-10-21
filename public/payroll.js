@@ -422,16 +422,32 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
       // A request may span a period boundary or use a non-hour unit. Never estimate its value.
       const valid=calcRows.every(v=>v&&v.request.date_from>=run.period_start&&v.request.date_to<=run.period_end&&String(v.request.unit).toLowerCase().includes('hour')&&Number(v.request.quantity)>0);
       if(!valid||x.employee.pay_type!=='salary'||!['weekly','fortnightly'].includes(run.pay_frequency))continue;
-      const weeklyHours=Number(x.employee.hours_per_week||x.employee.ordinary_hours_per_week||x.employee.standard_hours_per_week);
-      if(!(weeklyHours>0))continue;
-      const periodHours=weeklyHours*(run.pay_frequency==='weekly'?1:2);
-      const leaveHours=calcRows.reduce((sum,v)=>sum+Number(v.request.quantity),0);
-      if(leaveHours>periodHours)continue;
-      const offset=Math.round(Number(x.ordinary)*leaveHours/periodHours*100)/100;
-      const leaveAmount=calcRows.reduce((sum,v)=>sum+Math.round(Number(v.calc.selected_amount)*Number(v.request.quantity)/weeklyHours*100)/100,0);
-      const lines=calcRows.map(v=>({line_type:'earning',description:'Annual leave request '+v.request.id,quantity:Number(v.request.quantity),rate:Number(v.calc.selected_amount)/weeklyHours,amount:Math.round(Number(v.calc.selected_amount)*Number(v.request.quantity)/weeklyHours*100)/100,taxable:true,statutory_calculation_id:v.calc.id,statutory_leave_code:'annual_holiday'}));
+      // Use server-owned salary and confirmed statutory rates. Never trust browser-derived salary offsets.
+      // Preview only: leaveEvidencePending remains true until atomic posting is implemented.
+      const previewRows=[];
+      for(const v of calcRows){
+        let preview;
+        try{
+          preview=await client().rpc('frindly_annual_leave_server_preview_v2',{
+            p_request_id:v.request.id,p_calculation_id:v.calc.id,
+            p_period_start:run.period_start,p_period_end:run.period_end
+          });
+        }catch(error){console.error('Annual leave server preview unavailable',error);previewRows.length=0;break;}
+        if(preview.error||preview.data?.ready!==true||preview.data?.posting_permitted!==false){
+          if(preview.error)console.error('Annual leave server preview failed',preview.error);
+          previewRows.length=0;break;
+        }
+        previewRows.push({request:v.request,calc:v.calc,preview:preview.data});
+      }
+      if(previewRows.length!==calcRows.length||state.businessId!==businessId||state.calculatedRunKey!==key)continue;
+      const leaveHours=previewRows.reduce((sum,v)=>sum+Number(v.preview.leave_hours),0);
+      const offset=Math.round(previewRows.reduce((sum,v)=>sum+Number(v.preview.ordinary_salary_offset),0)*100)/100;
+      const leaveAmount=Math.round(previewRows.reduce((sum,v)=>sum+Number(v.preview.leave_payment),0)*100)/100;
+      const weeklyHours=Number(x.employee.standard_weekly_hours||x.employee.hours_per_week);
+      if(!(weeklyHours>0)||!Number.isFinite(offset)||!Number.isFinite(leaveAmount))continue;
+      const lines=previewRows.map(v=>({line_type:'earning',description:'Annual leave request '+v.request.id,quantity:Number(v.preview.leave_hours),rate:Number(v.calc.selected_amount)/weeklyHours,amount:Number(v.preview.leave_payment),taxable:true,statutory_calculation_id:v.calc.id,statutory_leave_code:'annual_holiday'}));
       const adjusted=applyManual({...x,ordinary:Math.round((Number(x.ordinary)-offset)*100)/100,manualLines:[...(x.manualLines||[]),...lines]},run);
-      adjusted.leaveEvidencePending=true; // Posting is not yet atomic: never save/finalise.
+      adjusted.leaveEvidencePending=true; // Do not save or finalise until transactional posting exists.
       adjusted.annualLeaveBreakdown={hours:leaveHours,offset,leaveAmount,owp:calcRows[0].calc.owp_amount,awe:calcRows[0].calc.awe_amount};
       state.runCalc[state.runCalc.findIndex(y=>y.employee.id===x.employee.id)]=adjusted;
     }
