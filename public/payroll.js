@@ -379,48 +379,61 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     const businessId=state.businessId;
     state.leaveRunPreview=[];state.leavePreviewKey=key;
     if(!ids.length)return;
-    const {data,error}=await client().rpc('frindly_leave_payrun_approved_preview',{p_from:run.period_start,p_to:run.period_end,p_employee_ids:ids});
+    let data,error;
+    try{({data,error}=await client().rpc('frindly_leave_payrun_approved_preview',{p_from:run.period_start,p_to:run.period_end,p_employee_ids:ids}));}
+    catch(e){error=e}
     if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
-    if(error){state.leaveRunPreview=[{error:'Approved leave could not be loaded: '+error.message}];renderRunCalc();return}
-    state.leaveRunPreview=Array.isArray(data)?data:[{error:'Unexpected approved leave preview response'}];
-    state.robertSyntheticPreview=null;
-    renderRunCalc();
-    // Robert-only, read-only synthetic preview. Never merge into state.runCalc or saved payroll.
-    const robertId='a9511a03-136d-4eb7-8345-d32f64639307';
-    const robert=state.runCalc.find(x=>x.employee.id===robertId);
-    const leave=state.leaveRunPreview.filter(d=>d.employee_id===robertId&&['2026-10-07','2026-10-13'].includes(d.date_from)&&d.date_to===d.date_from);
-    if(!robert||!ids.includes(robertId)||!leave.length||!window.FinloNZHolidays?.calculate)return;
-    try{
-      const {data:fixture,error:fixtureError}=await client().rpc('frindly_robert_synthetic_holidays_engine_input',{p_holiday_start:leave[0].date_from});
-      if(fixtureError)throw fixtureError;
-      if(!fixture||fixture.synthetic_test_only!==true||fixture.posting_enabled!==false||fixture.confirmation_permitted!==false||fixture.employee_id!==robertId||fixture.aweEarnings?.length!==26)throw Error('Invalid synthetic test fixture');
-      const rules={owp_formula_divisor_weeks:4,awe_standard_divisor_weeks:52,awe_lookback_months:12,annual_holiday_payment_selection:'greater_of_owp_awe'};
-      const engine=window.FinloNZHolidays.calculate({...fixture,rules});
-      if(engine.status!=='calculated'||!Number.isFinite(engine.selected_amount))throw Error('Synthetic OWP/AWE calculation not available');
-      // Fixed, known test dates only; do not infer hours from unrelated leave types.
-      const hours=leave.reduce((n,d)=>n+(d.date_from==='2026-10-07'?8:4),0);
-      const ordinaryOffset=Math.round((num(robert.ordinary)/80)*hours*100)/100;
-      const leavePayment=leave.reduce((n,d)=>n+Math.round(engine.selected_amount*(d.date_from==='2026-10-07'?8:4)/40*100)/100,0);
-      const adjusted=applyManual({...robert,ordinary:Math.round((num(robert.ordinary)-ordinaryOffset)*100)/100,manualLines:[...(robert.manualLines||[]),{line_type:'earning',description:'Synthetic annual leave calculation (preview only)',amount:leavePayment,quantity:hours,rate:leavePayment/hours,taxable:true}]},run);
-      if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
-      state.robertSyntheticPreview={employee_id:robertId,owp:engine.owp_amount,awe:engine.awe_amount,hours,ordinaryOffset,leavePayment,gross:adjusted.gross,paye:adjusted.paye,net:adjusted.net,unresolved:adjusted.statutoryUnresolved};
-      renderRunCalc();
-    }catch(err){
-      if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
-      state.robertSyntheticPreview={employee_id:robertId,error:err.message||'Synthetic calculation failed'};
-      renderRunCalc();
+    if(error||!Array.isArray(data)){
+      state.leaveRunPreview=[{error:'Approved leave verification unavailable: '+(error?.message||'Unexpected response')}];
+      state.runCalc=state.runCalc.map(x=>({...x,statutoryUnresolved:true,leaveEvidencePending:true}));
+      renderRunCalc();renderQuickPayItems();return;
     }
+    state.leaveRunPreview=data;
+    if(!data.length){renderRunCalc();return}
+    // The authenticated preview contains approved requests, not proof of statutory earnings.
+    // Match only separately confirmed, non-synthetic statutory calculation records.
+    state.runCalc=state.runCalc.map(x=>{
+      if(!data.some(d=>d.employee_id===x.employee.id))return x;
+      return {...x,statutoryUnresolved:true,leaveEvidencePending:true};
+    });
+    const matches=state.statutoryCalculations||[];
+    for(const x of [...state.runCalc]){
+      const requests=data.filter(d=>d.employee_id===x.employee.id);
+      if(!requests.length)continue;
+      const calcRows=requests.map(d=>{
+        const eligible=matches.filter(c=>c.employee_id===x.employee.id&&c.statutory_leave_code==='annual_holiday'&&c.confirmation_state==='confirmed'&&!c.pay_run_id&&c.relevant_from===d.date_from&&c.relevant_to===d.date_to&&c.leave_type_id===d.leave_type_id&&String(c.input_snapshot?.leave_request_id||'')===String(d.id)&&c.input_snapshot?.synthetic_test_only!==true&&c.input_snapshot?.engine_input?.synthetic_test_only!==true&&Number.isFinite(Number(c.selected_amount))&&Number(c.selected_amount)>=Math.max(Number(c.owp_amount),Number(c.awe_amount)));
+        return eligible.length===1?{request:d,calc:eligible[0]}:null;
+      });
+      // A request may span a period boundary or use a non-hour unit. Never estimate its value.
+      const valid=calcRows.every(v=>v&&v.request.date_from>=run.period_start&&v.request.date_to<=run.period_end&&String(v.request.unit).toLowerCase().includes('hour')&&Number(v.request.quantity)>0);
+      if(!valid||x.employee.pay_type!=='salary'||!['weekly','fortnightly'].includes(run.pay_frequency))continue;
+      const weeklyHours=Number(x.employee.hours_per_week||x.employee.ordinary_hours_per_week||x.employee.standard_hours_per_week);
+      if(!(weeklyHours>0))continue;
+      const periodHours=weeklyHours*(run.pay_frequency==='weekly'?1:2);
+      const leaveHours=calcRows.reduce((sum,v)=>sum+Number(v.request.quantity),0);
+      if(leaveHours>periodHours)continue;
+      const offset=Math.round(Number(x.ordinary)*leaveHours/periodHours*100)/100;
+      const leaveAmount=calcRows.reduce((sum,v)=>sum+Math.round(Number(v.calc.selected_amount)*Number(v.request.quantity)/weeklyHours*100)/100,0);
+      const lines=calcRows.map(v=>({line_type:'earning',description:'Annual leave request '+v.request.id,quantity:Number(v.request.quantity),rate:Number(v.calc.selected_amount)/weeklyHours,amount:Math.round(Number(v.calc.selected_amount)*Number(v.request.quantity)/weeklyHours*100)/100,taxable:true,statutory_calculation_id:v.calc.id,statutory_leave_code:'annual_holiday'}));
+      const adjusted=applyManual({...x,ordinary:Math.round((Number(x.ordinary)-offset)*100)/100,manualLines:[...(x.manualLines||[]),...lines]},run);
+      adjusted.leaveEvidencePending=true; // Posting is not yet atomic: never save/finalise.
+      adjusted.statutoryUnresolved=true;
+      adjusted.annualLeaveBreakdown={hours:leaveHours,offset,leaveAmount,owp:calcRows[0].calc.owp_amount,awe:calcRows[0].calc.awe_amount};
+      state.runCalc[state.runCalc.findIndex(y=>y.employee.id===x.employee.id)]=adjusted;
+    }
+    renderRunCalc();renderQuickPayItems();
   }
   function leavePayPreviewHtml(employeeId){
     const requests=state.leaveRunPreview.filter(d=>d.employee_id===employeeId);
     const errors=state.leaveRunPreview.filter(d=>d.error);
     if(!requests.length&&!errors.length)return '';
-    const t=state.robertSyntheticPreview?.employee_id===employeeId?state.robertSyntheticPreview:null;
-    const synthetic=t?'<div class="payrun-statutory-warning"><strong>Robert synthetic test preview — NOT included in payroll</strong><small>'+(t.error?esc(t.error):'OWP '+money(t.owp)+' · AWE '+money(t.awe)+' · Leave '+t.hours+'h: '+money(t.leavePayment)+' · Salary offset −'+money(t.ordinaryOffset)+' · Adjusted gross '+money(t.gross)+(t.unresolved?' · PAYE needs confirmation':' · Recalculated PAYE '+money(t.paye)+' · Net '+money(t.net)))+'</small></div>':'';
-    return '<section style="margin-top:12px;border-top:1px solid #dbe2ef;padding-top:12px"><h4>Approved Leave · Payroll review</h4>'+synthetic+
+    const x=state.runCalc.find(v=>v.employee.id===employeeId);
+    const detail=x?.annualLeaveBreakdown;
+    return '<section style="margin-top:12px;border-top:1px solid #dbe2ef;padding-top:12px"><h4>Approved Leave · Payroll</h4>'+
       errors.map(d=>'<p class="payrun-statutory-warning">'+esc(d.error)+'</p>').join('')+
-      requests.map(d=>'<div class="payrun-detail-line"><span><strong>'+esc(d.leave_type_name)+'</strong><small>'+esc(d.date_from)+' – '+esc(d.date_to)+' · '+esc(d.quantity)+' '+esc(d.unit)+'</small></span><strong>Statutory calculation pending</strong></div>').join('')+
-      '<p class="hint">Approved leave is shown for review only. OWP/AWE, ordinary salary offset, PAYE and leave-balance posting are not yet included in this pay run. Finalisation is blocked until the financial integration is complete.</p></section>';
+      requests.map(d=>'<div class="payrun-detail-line"><span><strong>'+esc(d.leave_type_name)+'</strong><small>'+esc(d.date_from)+' – '+esc(d.date_to)+' · '+esc(d.quantity)+' '+esc(d.unit)+'</small></span><strong>'+(detail?'Calculated — posting pending':'Statutory evidence required')+'</strong></div>').join('')+
+      (detail?'<p class="hint">Salary offset '+money(detail.offset)+' · Annual leave '+money(detail.leaveAmount)+' · OWP '+money(detail.owp)+' · AWE '+money(detail.awe)+'</p>':'')+
+      '<p class="payrun-statutory-warning">Cannot save or finalise this pay run until verified statutory evidence and atomic leave posting are available. Synthetic earnings are never accepted as confirmed payroll evidence.</p></section>';
   }
   function calculateRun(){if(!$('prStart').value||!$('prEnd').value||!$('prPayDate').value)return toast('Pay period and pay date are required.');if($('prEnd').value<$('prStart').value)return toast('Pay period cannot end before start date.');const run={pay_frequency:$('prFrequency').value,period_start:$('prStart').value,period_end:$('prEnd').value,pay_date:$('prPayDate').value};const baseEligible=state.employees.filter(e=>!e.archived&&e.employment_status==='active'&&e.pay_frequency===run.pay_frequency&&(!e.start_date||e.start_date<=run.period_end)&&(!e.end_date||e.end_date>=run.period_start)),blocked=baseEligible.filter(e=>employeeBlockedByFinalisedPeriod(e,run)),eligible=baseEligible.filter(e=>!employeeBlockedByFinalisedPeriod(e,run));const previous=new Map(state.runCalc.map(x=>[x.employee.id,(x.manualLines||[]).filter(l=>!l.timesheet_id&&!l.statutory_calculation_id)]));state.runCalc=eligible.map(e=>{const fresh=applyStatutoryLeaveToDraft(calcEmployee(e,run),run),manual=previous.get(e.id)||[];return manual.length?applyManual({...fresh,manualLines:[...fresh.manualLines,...manual]},run):fresh});state.calculatedRunKey=runCalculationKey();state.runSelectedIds=eligible.map(e=>e.id);state.runExpandedIds=[];state.runLocked=false;state.leaveRunPreview=[];renderRunCalc();renderQuickPayItems();void loadApprovedLeavePreview(run,eligible.map(e=>e.id),state.calculatedRunKey);if(blocked.length&&!eligible.length)toast('Pay run already finalised. A finalised pay run already exists for this pay period. Please review the existing pay run or select a different pay period.');else if(blocked.length)toast(`${blocked.length} employee${blocked.length===1?' was':'s were'} excluded because this pay period was already finalised for them.`);else if(!eligible.length)toast('No active employees match this pay frequency.')}
   function renderRunCalc(locked=false){if(!$('prEmployeeRows'))return;state.runLocked=locked;const a=state.runCalc,selectedIds=new Set(state.runSelectedIds||[]),q=($('prEmployeeSearch')?.value||'').toLowerCase();const visible=a.filter(x=>!q||[displayName(x.employee),x.employee?.employee_number,x.employee?.job_title].join(' ').toLowerCase().includes(q));$('prEmployeeRows').innerHTML=visible.map(x=>{const i=a.indexOf(x),checked=selectedIds.has(x.employee.id),reimb=num(x.reimbursements)+num(x.taxFreeAllowances),earnings=num(x.ordinary)+num(x.overtime)+num(x.holiday)+num(x.extraEarnings),otherDed=num(x.student)+num(x.kiwiEmp)+num(x.otherDeductions);return `<tr class="${checked?'selected':''}"><td class="select-col"><input type="checkbox" data-pr-select="${x.employee.id}" ${checked?'checked':''} ${locked?'disabled':''}></td><td><strong>${esc(displayName(x.employee))}</strong><small>${esc(x.employee?.employee_number||x.employee?.tax_code||'')}</small></td><td>${num(x.hours).toFixed(2)}</td><td>${money(earnings)}</td><td>${money(x.taxableAllowances)}</td><td>${x.statutoryUnresolved?'Not calculated':money(x.paye)}</td><td><strong>${x.statutoryUnresolved?'Not calculated':money(num(x.deductions))}</strong><small>SL/Kiwi/other ${money(otherDed)}</small></td><td>${money(reimb)}</td><td><strong>${x.statutoryUnresolved?'Needs confirmation':money(employeeTotalToPay(x))}</strong></td></tr>`}).join('')||'<tr><td colspan="9">'+(a.length?'No employees match your search.':'Load employees to begin this pay run.')+'</td></tr>';
@@ -483,6 +496,7 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     const existingId=$('prId').value||null;
     const old=existingId?state.runs.find(r=>r.id===existingId):null;
     if(['finalised','reversed'].includes(old?.status))return toast('Finalised or reversed pay runs are locked.');
+    if(state.leaveRunPreview.some(d=>d.error)||payEmployees.some(x=>x.leaveEvidencePending)||state.leaveRunPreview.some(d=>payEmployees.some(x=>x.employee.id===d.employee_id)))return toast('Cannot save: approved annual leave requires verified statutory evidence and atomic payroll posting.');
     const unresolvedStatutory=payEmployees.filter(x=>x.statutoryUnresolved);if(unresolvedStatutory.length)return toast((finalise?'Cannot finalise: ':'Cannot save calculated payroll: ')+'Needs confirmation — '+unresolvedStatutory.map(x=>`${displayName(x.employee)}: ${(x.p6Payg?.reasons||x.p7Tax?.reasons||[]).map(r=>r.message).join('; ')||'Statutory payroll evidence is incomplete.'}`).join(' | '));
     if(finalise){
       // Fail closed using the authenticated, business-scoped approved-leave RPC.
