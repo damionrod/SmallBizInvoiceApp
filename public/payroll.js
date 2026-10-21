@@ -379,15 +379,10 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     const businessId=state.businessId;
     state.leaveRunPreview=[];state.leavePreviewKey=key;
     if(!ids.length)return;
-    const {data:drafts,error:de}=await client().from('payroll_manager_leave_drafts').select('id,employee_id,leave_type_id,date_from,date_to,quantity,unit').eq('business_id',businessId).in('employee_id',ids).lte('date_from',run.period_end).gte('date_to',run.period_start);
+    const {data,error}=await client().rpc('frindly_leave_payrun_approved_preview',{p_from:run.period_start,p_to:run.period_end,p_employee_ids:ids});
     if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
-    if(de){state.leaveRunPreview=[{error:'Approved leave could not be loaded: '+de.message}];renderRunCalc();return}
-    if(!drafts?.length){renderRunCalc();return}
-    const {data:approvals,error:ae}=await client().from('payroll_manager_leave_approvals_isolated').select('draft_id,status').eq('business_id',businessId).in('draft_id',drafts.map(d=>d.id));
-    if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
-    if(ae){state.leaveRunPreview=[{error:'Leave approvals could not be loaded: '+ae.message}];renderRunCalc();return}
-    const approved=new Set((approvals||[]).filter(a=>a.status==='approved').map(a=>a.draft_id));
-    state.leaveRunPreview=drafts.filter(d=>approved.has(d.id)).map(d=>({...d,leave_type_name:state.leaveTypes.find(t=>t.id===d.leave_type_id)?.name||'Leave'}));
+    if(error){state.leaveRunPreview=[{error:'Approved leave could not be loaded: '+error.message}];renderRunCalc();return}
+    state.leaveRunPreview=Array.isArray(data)?data:[{error:'Unexpected approved leave preview response'}];
     renderRunCalc();
   }
   function leavePayPreviewHtml(employeeId){
