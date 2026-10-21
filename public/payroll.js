@@ -457,22 +457,21 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     if(['finalised','reversed'].includes(old?.status))return toast('Finalised or reversed pay runs are locked.');
     const unresolvedStatutory=payEmployees.filter(x=>x.statutoryUnresolved);if(unresolvedStatutory.length)return toast((finalise?'Cannot finalise: ':'Cannot save calculated payroll: ')+'Needs confirmation — '+unresolvedStatutory.map(x=>`${displayName(x.employee)}: ${(x.p6Payg?.reasons||x.p7Tax?.reasons||[]).map(r=>r.message).join('; ')||'Statutory payroll evidence is incomplete.'}`).join(' | '));
     if(finalise){
+      // Fail closed using the authenticated, business-scoped approved-leave RPC.
+      // Never query protected leave-management tables directly from payroll.
       const ids=payEmployees.map(x=>x.employee.id);
       const run=currentRunDef();
-      const {data:leaveRequests,error:leaveError}=await client().from('payroll_manager_leave_drafts')
-        .select('id,employee_id,date_from,date_to,quantity,unit')
-        .eq('business_id',state.businessId).in('employee_id',ids)
-        .lte('date_from',run.period_end).gte('date_to',run.period_start);
-      if(leaveError)return toast('Cannot finalise: approved leave could not be verified. '+leaveError.message);
-      if(leaveRequests?.length){
-        const {data:approvals,error:approvalError}=await client().from('payroll_manager_leave_approvals_isolated')
-          .select('draft_id,status').eq('business_id',state.businessId)
-          .in('draft_id',leaveRequests.map(x=>x.id));
-        if(approvalError)return toast('Cannot finalise: leave approvals could not be verified. '+approvalError.message);
-        const approved=new Set((approvals||[]).filter(x=>x.status==='approved').map(x=>x.draft_id));
-        const affected=leaveRequests.filter(x=>approved.has(x.id));
-        if(affected.length)return toast('Cannot finalise: '+affected.length+' approved leave request(s) overlap this pay period. Statutory leave amounts and balance posting are not yet integrated. Review Leave Management before finalising.');
+      let check;
+      try{
+        check=await client().rpc('frindly_leave_payrun_approved_preview',{
+          p_from:run.period_start,p_to:run.period_end,p_employee_ids:ids
+        });
+      }catch(error){
+        return toast('Cannot finalise: approved leave verification failed. '+(error?.message||'Please retry.'));
       }
+      if(check.error)return toast('Cannot finalise: approved leave could not be verified. '+check.error.message);
+      if(!Array.isArray(check.data))return toast('Cannot finalise: unexpected approved leave verification response.');
+      if(check.data.length)return toast('Cannot finalise: '+check.data.length+' approved leave request(s) overlap this pay period. Statutory leave pay, salary offset and atomic leave posting must be confirmed before finalisation.');
     }
     if(finalise){
       const unresolvedP6=payEmployees.filter(x=>x.p6NeedsConfirmation);if(unresolvedP6.length)return toast('Cannot finalise: Needs confirmation — '+unresolvedP6.map(x=>`${displayName(x.employee)}: ${(x.p6Payg?.reasons||[]).map(r=>r.message).join('; ')||'NZ statutory PAYG evidence is incomplete.'}`).join(' | '));
