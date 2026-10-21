@@ -124,8 +124,14 @@ document.addEventListener('click',async e=>{
    try{
      const data=await rpc('frindly_leave_payroll_preflight',{p_pay_run_id:runId,p_leave_request_id:requestId});
      if(bid()!==activeBusiness||el('leaveReviewRun')?.value!==runId)return;
-     output.textContent=' '+(data?.existing_link_count?'Prior processing found; reconciliation required. ':'')+
-       'Not ready for automatic posting: '+(Array.isArray(data?.requires_confirmation)?data.requires_confirmation.join(', '):'manual statutory and payroll verification required')+'.';
+     const match=await rpc('frindly_leave_payroll_calculation_match',{p_pay_run_id:runId,p_leave_request_id:requestId});
+     if(bid()!==activeBusiness||el('leaveReviewRun')?.value!==runId)return;
+     const calculation=match?.confirmed_calculation_count===1?
+       ('Confirmed statutory calculation: '+(match.selected_method||'method unspecified')+', amount '+(match.selected_amount==null?'not supplied':Number(match.selected_amount).toFixed(2))+'. '):
+       (match?.confirmed_calculation_count>1?'Multiple statutory calculations need reconciliation. ':'No confirmed statutory calculation found. ');
+     output.textContent=' '+calculation+(match?.reason||'')+'. '+
+       (data?.existing_link_count?'Prior processing link found. ':'')+
+       'Posting remains disabled until ordinary-pay offset, tax, balance and duplicate checks pass.';
    }catch(error){output.textContent=' Readiness check failed: '+(error.message||'Permission denied')}
    return;
  }
