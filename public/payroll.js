@@ -383,13 +383,41 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
     if(error){state.leaveRunPreview=[{error:'Approved leave could not be loaded: '+error.message}];renderRunCalc();return}
     state.leaveRunPreview=Array.isArray(data)?data:[{error:'Unexpected approved leave preview response'}];
+    state.robertSyntheticPreview=null;
     renderRunCalc();
+    // Robert-only, read-only synthetic preview. Never merge into state.runCalc or saved payroll.
+    const robertId='a9511a03-136d-4eb7-8345-d32f64639307';
+    const robert=state.runCalc.find(x=>x.employee.id===robertId);
+    const leave=state.leaveRunPreview.filter(d=>d.employee_id===robertId&&['2026-10-07','2026-10-13'].includes(d.date_from)&&d.date_to===d.date_from);
+    if(!robert||!ids.includes(robertId)||!leave.length||!window.FinloNZHolidays?.calculate)return;
+    try{
+      const {data:fixture,error:fixtureError}=await client().rpc('frindly_robert_synthetic_holidays_engine_input',{p_holiday_start:leave[0].date_from});
+      if(fixtureError)throw fixtureError;
+      if(!fixture||fixture.synthetic_test_only!==true||fixture.posting_enabled!==false||fixture.confirmation_permitted!==false||fixture.employee_id!==robertId||fixture.aweEarnings?.length!==26)throw Error('Invalid synthetic test fixture');
+      const rules={owp_formula_divisor_weeks:4,awe_standard_divisor_weeks:52,awe_lookback_months:12,annual_holiday_payment_selection:'greater_of_owp_awe'};
+      const engine=window.FinloNZHolidays.calculate({...fixture,rules});
+      if(engine.status!=='calculated'||!Number.isFinite(engine.selected_amount))throw Error('Synthetic OWP/AWE calculation not available');
+      // Fixed, known test dates only; do not infer hours from unrelated leave types.
+      const hours=leave.reduce((n,d)=>n+(d.date_from==='2026-10-07'?8:4),0);
+      const ordinaryOffset=Math.round((num(robert.ordinary)/80)*hours*100)/100;
+      const leavePayment=leave.reduce((n,d)=>n+Math.round(engine.selected_amount*(d.date_from==='2026-10-07'?8:4)/40*100)/100,0);
+      const adjusted=applyManual({...robert,ordinary:Math.round((num(robert.ordinary)-ordinaryOffset)*100)/100,manualLines:[...(robert.manualLines||[]),{line_type:'earning',description:'Synthetic annual leave calculation (preview only)',amount:leavePayment,quantity:hours,rate:leavePayment/hours,taxable:true}]},run);
+      if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
+      state.robertSyntheticPreview={employee_id:robertId,owp:engine.owp_amount,awe:engine.awe_amount,hours,ordinaryOffset,leavePayment,gross:adjusted.gross,paye:adjusted.paye,net:adjusted.net,unresolved:adjusted.statutoryUnresolved};
+      renderRunCalc();
+    }catch(err){
+      if(state.businessId!==businessId||state.calculatedRunKey!==key)return;
+      state.robertSyntheticPreview={employee_id:robertId,error:err.message||'Synthetic calculation failed'};
+      renderRunCalc();
+    }
   }
   function leavePayPreviewHtml(employeeId){
     const requests=state.leaveRunPreview.filter(d=>d.employee_id===employeeId);
     const errors=state.leaveRunPreview.filter(d=>d.error);
     if(!requests.length&&!errors.length)return '';
-    return '<section style="margin-top:12px;border-top:1px solid #dbe2ef;padding-top:12px"><h4>Approved Leave · Payroll review</h4>'+
+    const t=state.robertSyntheticPreview?.employee_id===employeeId?state.robertSyntheticPreview:null;
+    const synthetic=t?'<div class="payrun-statutory-warning"><strong>Robert synthetic test preview — NOT included in payroll</strong><small>'+(t.error?esc(t.error):'OWP '+money(t.owp)+' · AWE '+money(t.awe)+' · Leave '+t.hours+'h: '+money(t.leavePayment)+' · Salary offset −'+money(t.ordinaryOffset)+' · Adjusted gross '+money(t.gross)+(t.unresolved?' · PAYE needs confirmation':' · Recalculated PAYE '+money(t.paye)+' · Net '+money(t.net)))+'</small></div>':'';
+    return '<section style="margin-top:12px;border-top:1px solid #dbe2ef;padding-top:12px"><h4>Approved Leave · Payroll review</h4>'+synthetic+
       errors.map(d=>'<p class="payrun-statutory-warning">'+esc(d.error)+'</p>').join('')+
       requests.map(d=>'<div class="payrun-detail-line"><span><strong>'+esc(d.leave_type_name)+'</strong><small>'+esc(d.date_from)+' – '+esc(d.date_to)+' · '+esc(d.quantity)+' '+esc(d.unit)+'</small></span><strong>Statutory calculation pending</strong></div>').join('')+
       '<p class="hint">Approved leave is shown for review only. OWP/AWE, ordinary salary offset, PAYE and leave-balance posting are not yet included in this pay run. Finalisation is blocked until the financial integration is complete.</p></section>';
