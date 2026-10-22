@@ -94,13 +94,13 @@
         if(data.awe_indicator_52_week_only!==null)info.push('Preliminary AWE indicator (subject to complete earnings and employment history): '+money(data.awe_indicator_52_week_only)+'/week');
         info.push('OWP includes regular pay components; AWE uses statutory gross earnings and the applicable employment-period divisor. Imported history, regular allowances and commissions must be verified before posting.');
         status.textContent=info.join(' · ');
-        const classification=await client().rpc('frindly_leave_earnings_classification_preview_v1',{p_request_id:request.id});
+        const classification=await client().rpc('frindly_leave_earnings_classification_preview_v2',{p_request_id:request.id});
         if(state.businessId!==businessId)return;
         const breakdown=document.createElement('p');
         if(classification.error){breakdown.textContent='Earnings classification unavailable: '+classification.error.message}
         else{
           const groups=classification.data?.categories||[];
-          breakdown.textContent='Earnings classification (preview): '+(groups.length?groups.map(g=>g.category.replaceAll('_',' ')+' '+money(g.amount)+' ('+g.line_count+' lines)').join(' · '):'No finalised earnings lines available')+'. All categories remain subject to statutory verification; no payroll is posted.';
+          breakdown.textContent='Statutory pay-item mapping audit: '+(groups.length?groups.map(g=>g.category.replaceAll('_',' ')+' '+money(g.amount)+' ('+g.line_count+' lines)').join(' · '):'No finalised earnings lines available')+'. Missing mappings require review. No statutory payment is certified or posted.';
         }
         details.appendChild(breakdown);
       });
