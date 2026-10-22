@@ -6,6 +6,9 @@ let activeBusiness=null,employees=[],types=[],requests=[],payRuns=[],busy=false,
 const panel=()=>el('payroll-panel-leave'),root=()=>el('frindlyLeaveNative');
 const note=s=>{if(el('leaveNotice'))el('leaveNotice').textContent=s};
 async function rpc(name,args){const {data,error}=await client().rpc(name,args||{});if(error)throw error;return data}
+function isAnnualType(id){const type=types.find(x=>x.id===id);return /annual|holiday/i.test(type?.name||'')}
+function isAdvanceFor(employeeId,typeId,date){const employee=employees.find(x=>x.id===employeeId);if(!employee?.start_date||!date||!isAnnualType(typeId))return false;const anniversary=new Date(employee.start_date+'T12:00:00Z');anniversary.setUTCFullYear(anniversary.getUTCFullYear()+1);return date<anniversary.toISOString().slice(0,10)}
+function isAdvanceRequest(r){return isAdvanceFor(r.employee_id,r.leave_type_id,r.date_from)}
 function draw(){
  const options=rows=>rows.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.label)+'</option>').join('');
  const people=employees.map(x=>({id:x.id,label:[x.preferred_name||x.first_name,x.last_name].filter(Boolean).join(' ')}));
@@ -16,12 +19,12 @@ function draw(){
  '<fieldset style="border:1px solid #dbe2ef;border-radius:8px;padding:12px;margin:12px 0"><legend style="padding:0 6px">Leave duration</legend><div style="display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center"><label style="display:inline-flex;align-items:center;gap:8px;width:auto;margin:0;cursor:pointer;line-height:1.4"><input type="radio" name="leaveMode" value="days" checked style="width:17px;height:17px;margin:0;flex:0 0 17px;accent-color:#4169e1"> <span>Whole working days</span></label><label style="display:inline-flex;align-items:center;gap:8px;width:auto;margin:0;cursor:pointer;line-height:1.4"><input type="radio" name="leaveMode" value="hours" style="width:17px;height:17px;margin:0;flex:0 0 17px;accent-color:#4169e1"> <span>Part day / hours</span></label></div></fieldset>'+
  '<div id="leaveCalendarSection"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0"><strong>Select whole leave days</strong><button type="button" id="leaveClearDates">Clear</button></div><div id="leaveCalendar"></div><small>Select each day you need, including non-consecutive dates. Weekends cannot be selected; check public holidays and the employee roster.</small></div><div id="leaveHourlyDate" style="display:none"><label>Leave date<input name="from" type="date" disabled></label></div>'+
  '<div id="leaveHoursField" style="display:none"><label>Hours of leave<input name="hours" type="number" min="0.25" max="24" step="0.25" disabled></label><small>Enter the actual leave hours for this date.</small></div>'+
- '<p id="leaveDurationPreview" role="status" aria-live="polite">Choose leave dates to calculate the duration.</p>'+
+ '<p id="leaveDurationPreview" role="status" aria-live="polite">Choose leave dates to calculate the duration.</p>'+ '<p id="leaveAdvanceCreateNote" role="status" style="font-size:12px"></p>'+
  '<button class="primary" type="submit" '+(!people.length||!types.length?'disabled':'')+'>Save draft</button> <button class="primary" type="submit" name="leaveIntent" value="approve" '+(!people.length||!types.length?'disabled':'')+'>Create and approve</button></form></section>'+
  '<section><h3>Requests ('+requests.length+')</h3>'+(requests.length?requests.map(r=>'<div class="card" style="padding:12px;margin-bottom:8px"><strong>'+esc(r.employee)+'</strong> · '+esc(r.status)+
  '<p>'+esc(r.leave_type)+' · '+esc(r.date_from)+' – '+esc(r.date_to)+' · '+esc(r.quantity)+' '+esc(r.unit)+'</p>'+
  (r.status==='draft'?'<button type="button" data-leave-action="submit" data-id="'+esc(r.id)+'">Submit</button>':'')+
- (r.status==='pending'?'<button type="button" data-leave-action="approve" data-id="'+esc(r.id)+'">Approve</button> <button type="button" data-leave-action="decline" data-id="'+esc(r.id)+'">Decline</button>':'')+'</div>').join(''):'No requests yet')+'</section></div>'+
+ (r.status==='pending'?(isAdvanceRequest(r)?'<label style="display:block;margin:8px 0"><input type="checkbox" data-advance-agree="'+esc(r.id)+'"> I confirm that the employer agrees to this annual leave being taken in advance.</label>':'')+'<button type="button" data-leave-action="approve" data-id="'+esc(r.id)+'">Approve</button> <button type="button" data-leave-action="decline" data-id="'+esc(r.id)+'">Decline</button>':'')+'</div>').join(''):'No requests yet')+'</section></div>'+
  '<section class="card" style="padding:14px;margin-top:14px"><h3>Payroll leave review</h3><p>Check approved leave against a pay run before processing. Review only — no pay, balances or statutory entitlements are changed.</p><label>Pay run<select id="leaveReviewRun"><option value="">Select a pay run</option>'+options(payRuns.map(x=>({id:x.id,label:(x.pay_run_number||'Pay run')+' · '+x.period_start+' – '+x.period_end+' ('+x.status+')'})))+'</select></label> <button type="button" id="leaveReviewButton">Review approved leave</button><div id="leaveReviewResult" role="status" aria-live="polite"></div></section>'+ 
  '<h3>Approved leave calendar</h3>'+(requests.filter(r=>r.status==='approved').sort((a,b)=>String(a.date_from).localeCompare(String(b.date_from))).map(r=>'<p>'+esc(r.date_from)+' – '+esc(r.date_to)+' · '+esc(r.employee)+'</p>').join('')||'<p>No approved dates yet</p>')+
  '<p id="leaveNotice" role="status" aria-live="polite"></p>';
@@ -32,7 +35,7 @@ async function load(){
  root().textContent='Loading Leave Management…';
  try{
  const [a,t,r,p]=await Promise.all([
- client().from('payroll_employees').select('id,first_name,last_name,preferred_name,employment_status').eq('business_id',b).eq('archived',false).order('last_name').limit(500),
+ client().from('payroll_employees').select('id,first_name,last_name,preferred_name,employment_status,start_date').eq('business_id',b).eq('archived',false).order('last_name').limit(500),
  client().from('payroll_leave_types').select('id,name').eq('business_id',b).eq('archived',false).order('name').limit(100),
  rpc('frindly_leave_requests_read'),
  client().from('payroll_pay_runs').select('id,pay_run_number,period_start,period_end,status').eq('business_id',b).order('period_start',{ascending:false}).limit(40)]);
@@ -89,6 +92,7 @@ document.addEventListener('submit',e=>{
  if(!Number.isFinite(qty)||qty<=0||(mode==='hours'&&(!from||qty>24))||(mode==='days'&&qty>31)){note('Select valid leave dates or hours (maximum 31 whole days).');return}
  const approve=e.submitter?.value==='approve';
  const dates=[...selectedDays].sort(),summary=mode==='days'?dates.join(', '):from+' ('+qty+' hours)';
+ if(approve&&isAdvanceFor(String(d.get('employee')),String(d.get('type')),mode==='days'?dates[0]:from)){note('Annual leave in advance: save the draft, submit it, then tick employer agreement when approving. No leave was approved.');return}
  if(!confirm('Request '+qty+' '+unit+' for '+summary+'? Confirm roster, public holidays and entitlement. '+(approve?'Create and approve?':'Save draft?')+' No payroll records will be changed.'))return;
  if(mode==='days'){
   run('frindly_leave_request_create_selected_days',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_dates:dates,p_approve:approve},approve?'Selected leave days approved':'Selected leave days saved');
@@ -139,8 +143,12 @@ document.addEventListener('click',async e=>{
  const btn=e.target.closest('[data-leave-action]');if(!btn||!panel()?.classList.contains('active'))return;
  const action=btn.dataset.leaveAction,id=btn.dataset.id;
  if(!['submit','approve','decline'].includes(action)||!requests.some(r=>r.id===id))return;
+ const request=requests.find(r=>r.id===id);
+ const isAdvance=action==='approve'&&isAdvanceRequest(request);
+ const agreement=isAdvance&&Boolean(document.querySelector('[data-advance-agree="'+id+'"]')?.checked);
+ if(isAdvance&&!agreement){note('Tick the employer agreement confirmation before approving annual leave in advance.');return}
  if(!confirm('Confirm '+action+'? This does not post to payroll.'))return;
- run('frindly_leave_request_action',{p_draft_id:id,p_action:action},'Request '+action+' completed');
+ run('frindly_leave_request_action_advance_v1',{p_draft_id:id,p_action:action,p_advance_confirmed:agreement},'Request '+action+' completed');
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&panel()?.classList.contains('active')&&bid()!==activeBusiness)load()});
 })();
