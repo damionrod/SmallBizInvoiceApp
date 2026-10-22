@@ -342,17 +342,21 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
   function populateTaxCodeOptions(selected=''){const el=$('peTaxCode');if(!el)return;let profiles=[];try{profiles=taxCodeProfiles(today())}catch{}const current=selected||el.value||profiles[0]?.code||'';el.innerHTML=profiles.map(x=>`<option value="${esc(x.code)}">${esc(x.label||x.code)}</option>`).join('');if(current&&profiles.some(x=>x.code===current))el.value=current}
   function payeFor(e,gross,frequency,payDate=today()){const pay=Math.floor(Math.max(0,gross)),ppy=paysPerYear(frequency),code=String(e.tax_code||'').toUpperCase().replace(/\s+/g,' ').trim(),profile=taxCodeProfile(code,payDate);if(!profile)throw new Error(`Tax code ${code||'(blank)'} is not configured for ${String(state.settings?.country_code||'').toUpperCase()} on ${payDate}.`);const acc=ruleNum('acc','earners_levy_rate',payDate,0)/100,accMax=ruleNum('acc','max_earnings',payDate,0),secondary=ruleJson('paye','secondary_rates',payDate,{});let paye=0;if(profile.mode==='secondary'){const key=profile.secondary_key||code;if(!Object.prototype.hasOwnProperty.call(secondary,key))throw new Error(`Secondary tax rate ${key} is not configured for ${payDate}.`);paye=pay*num(secondary[key])}else{const annual=pay*ppy,tax=annualIncomeTax(annual,payDate),levy=Math.min(annual,accMax)*acc,credit=profile.ietc?ietc(annual,payDate):0,weekly=trunc2((tax+levy-credit)/52);paye=weekly*52/ppy}paye=trunc2(paye);let student=0;const sl=!!e.student_loan||!!profile.student_loan;if(sl){const slRate=ruleNum('student_loan','standard_rate',payDate)/100,slThreshold=ruleNum('student_loan','annual_threshold',payDate);if(profile.student_loan_threshold!==false){const threshold=slThreshold/ppy;student=pay>threshold?trunc2((pay-threshold)*slRate):0}else student=trunc2(pay*slRate)}return{paye,student}}
   function salaryPeriod(e,f,run){
-    const history=state.salaryHistory.filter(x=>x.employee_id===e.id).sort((a,b)=>a.effective_from.localeCompare(b.effective_from));
-    if(!history.length||!run?.period_start||!run?.period_end)return num(e.annual_salary)/paysPerYear(f);
+    const frequencyPeriods=paysPerYear(f),annualSalary=num(e.annual_salary);
+    if(!run?.period_start||!run?.period_end)return annualSalary/frequencyPeriods;
     const start=new Date(run.period_start+'T12:00:00Z'),end=new Date(run.period_end+'T12:00:00Z');
     const total=Math.round((end-start)/86400000)+1;
     if(!Number.isFinite(total)||total<1||total>366)return NaN;
+    const history=state.salaryHistory.filter(x=>x.employee_id===e.id).sort((a,b)=>a.effective_from.localeCompare(b.effective_from));
     let amount=0;
     for(let i=0;i<total;i++){
       const day=new Date(start.getTime()+i*86400000).toISOString().slice(0,10);
-      const current=history.filter(h=>h.effective_from<=day).at(-1);
-      if(!current)return NaN;
-      amount+=num(current.annual_salary)/paysPerYear(f)/total;
+      // Pay salary only for dates within employment, including mid-period starts and finishes.
+      if((e.start_date&&day<e.start_date)||(e.end_date&&day>e.end_date))continue;
+      const current=history.length?history.filter(h=>h.effective_from<=day).at(-1):null;
+      // A missing historical salary rate must not silently use today's rate.
+      if(history.length&&!current)return NaN;
+      amount+=num(current?current.annual_salary:annualSalary)/frequencyPeriods/total;
     }
     return Math.round(amount*100)/100;
   }
