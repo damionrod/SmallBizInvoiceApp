@@ -114,6 +114,34 @@
         }
         advanceNote.style.cssText='font-size:12px;color:#805a18';
         details.appendChild(advanceNote);
+        if(!advance.error && advance.data?.requires_advance_agreement){
+          const agreement=await client().rpc('frindly_annual_leave_advance_agreement_status_v1',{p_request_id:request.id});
+          if(state.businessId!==businessId)return;
+          const panel=document.createElement('div');
+          const message=document.createElement('p');
+          if(agreement.error){message.textContent='Employer agreement status unavailable: '+agreement.error.message;panel.appendChild(message);}
+          else if(agreement.data?.confirmed){message.textContent='Employer advance-leave agreement recorded on '+new Date(agreement.data.confirmed_at).toLocaleString()+'. Statutory pay confirmation is still required.';panel.appendChild(message);}
+          else if(advance.data.approved){
+            const label=document.createElement('label');
+            const checkbox=document.createElement('input');checkbox.type='checkbox';
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(' I confirm the employer agrees to this annual leave being taken in advance.'));
+            panel.appendChild(label);
+            const button=document.createElement('button');button.type='button';button.textContent='Record employer agreement';button.disabled=true;
+            checkbox.addEventListener('change',()=>{button.disabled=!checkbox.checked});
+            panel.appendChild(button);panel.appendChild(message);
+            button.addEventListener('click',async()=>{
+              if(!checkbox.checked)return;
+              button.disabled=true;
+              const {data,error}=await client().rpc('frindly_annual_leave_advance_agreement_confirm_v1',{p_request_id:request.id,p_confirm:true});
+              if(state.businessId!==businessId)return;
+              if(error){message.textContent='Agreement not recorded: '+error.message;button.disabled=false;}
+              else{message.textContent='Employer agreement recorded on '+new Date(data.confirmed_at).toLocaleString()+'. Payroll posting remains subject to statutory calculation verification.';checkbox.disabled=true;button.textContent='Agreement recorded';}
+            });
+          }else{message.textContent='Approve this leave request before recording the employer agreement.';panel.appendChild(message);}
+          details.appendChild(panel);
+        }
+
 
         if(!classification.error){
           const flagged=classification.data?.items_requiring_review||[];
