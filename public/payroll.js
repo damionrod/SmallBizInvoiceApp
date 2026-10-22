@@ -103,6 +103,24 @@
           breakdown.textContent='Statutory pay-item mapping audit: '+(groups.length?groups.map(g=>g.category.replaceAll('_',' ')+' '+money(g.amount)+' ('+g.line_count+' lines)').join(' · '):'No finalised earnings lines available')+'. Missing mappings require review. No statutory payment is certified or posted.';
         }
         details.appendChild(breakdown);
+        if(!classification.error){
+          const flagged=classification.data?.items_requiring_review||[];
+          const note=document.createElement('p');
+          note.style.cssText='font-size:12px;color:#805a18';
+          note.textContent=flagged.length?flagged.length+' payroll line(s) have missing or unresolved pay-item mapping. Review pay-item statutory settings before attempting a statutory calculation.':'No unmapped payroll lines were identified in this preview. Conditional and needs-confirmation mappings still require review.';
+          details.appendChild(note);
+          if(flagged.length){
+            const list=document.createElement('details');
+            const summary=document.createElement('summary');summary.textContent='View lines needing review ('+flagged.length+')';list.appendChild(summary);
+            const ul=document.createElement('ul');
+            flagged.slice(0,30).forEach(item=>{
+              const li=document.createElement('li');
+              li.textContent=[item.period_end,item.description||item.line_type,money(item.amount),item.classification].join(' · ');
+              ul.appendChild(li);
+            });
+            list.appendChild(ul);details.appendChild(list);
+          }
+        }
       });
     });
 
