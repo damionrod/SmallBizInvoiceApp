@@ -103,6 +103,18 @@
           breakdown.textContent='Statutory pay-item mapping audit: '+(groups.length?groups.map(g=>g.category.replaceAll('_',' ')+' '+money(g.amount)+' ('+g.line_count+' lines)').join(' · '):'No finalised earnings lines available')+'. Missing mappings require review. No statutory payment is certified or posted.';
         }
         details.appendChild(breakdown);
+        const advance=await client().rpc('frindly_leave_advance_assessment_v1',{p_request_id:request.id});
+        if(state.businessId!==businessId)return;
+        const advanceNote=document.createElement('p');
+        if(advance.error){advanceNote.textContent='Advance leave assessment unavailable: '+advance.error.message;}
+        else if(advance.data?.requires_advance_agreement){
+          advanceNote.textContent='Annual leave in advance: employee has not reached the first entitlement anniversary ('+advance.data.first_entitlement_anniversary+'). Employer advance-leave agreement must be recorded and verified before payment. Preliminary AWE divisor: '+advance.data.awe_divisor_indicator+' weeks; this is NOT a certified calculation. Posting remains blocked.';
+        }else if(advance.data){
+          advanceNote.textContent='First entitlement anniversary: '+advance.data.first_entitlement_anniversary+'. Statutory earnings and entitlement must still be verified before posting.';
+        }
+        advanceNote.style.cssText='font-size:12px;color:#805a18';
+        details.appendChild(advanceNote);
+
         if(!classification.error){
           const flagged=classification.data?.items_requiring_review||[];
           const note=document.createElement('p');
