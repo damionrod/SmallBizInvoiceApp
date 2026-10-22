@@ -736,6 +736,11 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     const payEmployees=selectedRunCalc();
     if(!payEmployees.length)return toast('Select at least one employee for this pay run.');
 
+    // Fail closed for salaried statutory leave unless its ordinary-pay offset is verified.
+    // Check source lines as well as derived flags, which can be reset by manual recalculation.
+    if(payEmployees.some(x=>x.employee?.pay_type==='salary'&&(x.statutoryLeaveOffsetRequired||(x.manualLines||[]).some(l=>l.statutory_calculation_id&&['sick_leave','bereavement_leave','family_violence_leave'].includes(l.statutory_leave_code)&&!l.ordinary_salary_offset_verified))))
+      return toast('Cannot save or finalise: salaried statutory leave requires a verified ordinary-salary offset to prevent double payment.');
+
     const existingId=$('prId').value||null;
     const old=existingId?state.runs.find(r=>r.id===existingId):null;
     if(['finalised','reversed'].includes(old?.status))return toast('Finalised or reversed pay runs are locked.');
