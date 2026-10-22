@@ -65,30 +65,20 @@
     if(!state.businessId){host?.remove();return}
     if(!panel)return;
     if(!host){host=document.createElement('section');host.id='frindlyLeaveEvidenceReview';host.style.cssText='padding:16px;margin:12px 0;border:1px solid #ddd;border-radius:10px';panel.prepend(host)}
-    host.innerHTML='<h3>Annual leave statutory evidence</h3><p>Approved leave requires documented payroll earnings and a verified statutory calculation. No payroll is posted here.</p><div id="frindlyLeaveEvidenceRows">Loading…</div>';
+    host.innerHTML='<details><summary style="cursor:pointer;font-weight:600">Annual leave calculation review</summary><p>Frindly checks existing finalised payroll history. Incomplete or synthetic earnings cannot be posted.</p><div id="frindlyLeaveEvidenceRows">Loading…</div></details>';
     const c=client(),businessId=state.businessId;
     const {data:rows,error}=await c.rpc('frindly_leave_evidence_review_list_v1');
     if(state.businessId!==businessId)return;
     if(error){$('frindlyLeaveEvidenceRows').textContent='Evidence records unavailable: '+error.message;return}
     const root=$('frindlyLeaveEvidenceRows');
-    root.innerHTML=rows.map(r=>{
-      const calc={id:r.calculation_id,confirmation_state:r.confirmation_state,selected_amount:r.selected_amount};
+    root.innerHTML=(rows||[]).map(r=>{
       const employee=state.employees.find(e=>e.id===r.employee_id);
-      return '<details style="padding:9px 0;border-top:1px solid #ddd"><summary>'+esc(employee?displayName(employee):r.employee_id)+' · '+esc(r.date_from)+' to '+esc(r.date_to)+' · '+esc(calc?.confirmation_state||'Evidence missing')+'</summary><p>Supply employer-verified earnings evidence (JSON containing source_type, source_reference, 26 earnings_periods, OWP and AWE). Synthetic examples are not permitted.</p><textarea data-evidence-input="'+esc(r.id)+'" rows="5" style="width:100%;font-family:monospace" aria-label="Earnings evidence JSON"></textarea><div style="margin:8px 0"><button type="button" data-evidence-record="'+esc(r.id)+'">Record evidence</button> '+(calc?.confirmation_state==='needs_confirmation'?'<button type="button" data-evidence-confirm="'+esc(calc.id)+'">Validate and confirm</button>':'')+'</div><p data-evidence-status aria-live="polite">'+(calc?.confirmation_state==='confirmed'?'Confirmed weekly amount: '+esc(money(calc.selected_amount)):'')+'</p></details>'
+      const history=state.runEmployees.filter(x=>x.employee_id===r.employee_id&&state.runs.some(run=>run.id===x.pay_run_id&&run.status==='finalised'&&run.period_end<r.date_from));
+      const confirmed=r.confirmation_state==='confirmed';
+      const status=confirmed?'Confirmed statutory calculation':history.length<26?'Insufficient verified earnings history':'Statutory calculation requires verification';
+      const detail=confirmed?'Confirmed weekly amount: '+money(r.selected_amount):history.length<26?'Frindly found '+history.length+' finalised payroll record(s) before this leave date. The current fortnightly statutory evidence method requires 26 verified periods. No synthetic data will be used.':'Frindly found '+history.length+' finalised payroll records. Automatic statutory OWP/AWE verification is not yet available; payroll posting remains blocked until a verified calculation is confirmed.';
+      return '<details style="padding:9px 0;border-top:1px solid #ddd"><summary>'+esc(employee?displayName(employee):r.employee_id)+' · '+esc(r.date_from)+' to '+esc(r.date_to)+' · '+esc(status)+'</summary><p>'+esc(detail)+'</p><p style="font-size:12px;color:#667085">Read-only review. No leave balances, payroll or accounting records are changed.</p></details>';
     }).join('')||'<p>No approved leave requests.</p>';
-    root.querySelectorAll('[data-evidence-record]').forEach(button=>button.addEventListener('click',async()=>{
-      const wrap=button.closest('details'),status=wrap.querySelector('[data-evidence-status]');let evidence;
-      try{evidence=JSON.parse(wrap.querySelector('textarea').value)}catch(e){status.textContent='Invalid JSON. Please check the earnings evidence.';return}
-      if(!confirm('Record this evidence for review? No payroll will be posted.'))return;
-      button.disabled=true;
-      try{const result=await client().rpc('frindly_leave_record_evidence_v1',{p_request_id:button.dataset.evidenceRecord,p_evidence:evidence});if(result.error)throw result.error;status.textContent='Recorded: '+result.data.calculation_id;await renderLeaveEvidenceReview()}catch(e){status.textContent='Not recorded: '+e.message}finally{button.disabled=false}
-    }));
-    root.querySelectorAll('[data-evidence-confirm]').forEach(button=>button.addEventListener('click',async()=>{
-      const status=button.closest('details').querySelector('[data-evidence-status]');
-      if(!confirm('Recalculate and confirm this evidence? No payroll will be posted.'))return;
-      button.disabled=true;
-      try{const result=await client().rpc('frindly_leave_confirm_evidence_v2',{p_calculation_id:button.dataset.evidenceConfirm});if(result.error)throw result.error;status.textContent='Confirmed: '+money(result.data.selected_weekly);await renderLeaveEvidenceReview()}catch(e){status.textContent='Not confirmed: '+e.message}finally{button.disabled=false}
-    }));
   }
   function renderAll(){renderEmployees();renderTimesheets();renderRuns();renderSettings();renderReportSelectors();renderPayrollReport()}
   function summary(){const active=state.employees.filter(e=>e.employment_status==='active'&&!e.archived).length, awaiting=state.timesheets.filter(t=>t.status==='submitted').length;$('payrollActiveCount').textContent=active;$('payrollAwaitingCount').textContent=awaiting;const next=state.runs.find(r=>r.status!=='finalised'&&r.pay_date>=today())?.pay_date;$('payrollNextPayDate').textContent=next?iso(next):'—'}
