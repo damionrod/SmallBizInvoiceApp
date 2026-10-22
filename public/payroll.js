@@ -694,6 +694,10 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
       try{
         const duplicate=await validateNoDuplicateFinalisedPay(payEmployees,currentRunDef(),null);
         if(duplicate)return toast('Cannot finalise: '+duplicate);
+        const payDate=$('prPayDate').value;
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(payDate))return toast('Cannot finalise annual leave payroll: a valid pay date is required.');
+        const readiness=await client().rpc('frindly_payroll_period_ready',{p_business_id:state.businessId,p_pay_date:payDate});
+        if(readiness.error||readiness.data!==true)return toast('Cannot finalise annual leave payroll: an open accounting period and payroll access must be verified.');
         const totals=payEmployees.reduce((z,x)=>({gross:z.gross+x.gross,ded:z.ded+x.deductions,net:z.net+x.net,emp:z.emp+x.employerGross,cost:z.cost+x.cost}),{gross:0,ded:0,net:0,emp:0,cost:0});
         const runNo=await nextRunNo();
         const snapshot={country:state.settings?.country_code||'NZ',pay_date:$('prPayDate').value,rules:activeRuleSnapshot($('prPayDate').value)};
