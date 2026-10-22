@@ -79,6 +79,24 @@
       const detail=confirmed?'Confirmed weekly amount: '+money(r.selected_amount):history.length<26?'Frindly found '+history.length+' finalised payroll record(s) before this leave date. The current fortnightly statutory evidence method requires 26 verified periods. No synthetic data will be used.':'Frindly found '+history.length+' finalised payroll records. Automatic statutory OWP/AWE verification is not yet available; payroll posting remains blocked until a verified calculation is confirmed.';
       return '<details style="padding:9px 0;border-top:1px solid #ddd"><summary>'+esc(employee?displayName(employee):r.employee_id)+' · '+esc(r.date_from)+' to '+esc(r.date_to)+' · '+esc(status)+'</summary><p>'+esc(detail)+'</p><p style="font-size:12px;color:#667085">Read-only review. No leave balances, payroll or accounting records are changed.</p></details>';
     }).join('')||'<p>No approved leave requests.</p>';
+    root.querySelectorAll('details').forEach((details,index)=>{
+      details.addEventListener('toggle',async()=>{
+        if(!details.open||details.dataset.historyLoaded==='true')return;
+        const request=(rows||[])[index];if(!request)return;
+        details.dataset.historyLoaded='true';
+        const status=document.createElement('p');status.textContent='Checking finalised payroll history…';details.appendChild(status);
+        const {data,error}=await client().rpc('frindly_leave_history_assessment_v1',{p_request_id:request.id});
+        if(state.businessId!==businessId)return;
+        if(error){status.textContent='Unable to assess payroll history: '+error.message;details.dataset.historyLoaded='false';return}
+        const info=['Finalised periods: '+data.finalised_period_count,'Unclassified gross pay: '+money(data.gross_pay_total_unclassified)];
+        if(data.overlapping_periods_detected)info.push('Overlapping pay periods require review');
+        if(data.salary_based_owp_indicator!==null)info.push('Salary-only OWP indicator: '+money(data.salary_based_owp_indicator)+'/week');
+        if(data.awe_indicator_52_week_only!==null)info.push('Preliminary AWE indicator: '+money(data.awe_indicator_52_week_only)+'/week');
+        info.push('Indicative only — earnings classification and statutory verification are required before posting.');
+        status.textContent=info.join(' · ');
+      });
+    });
+
   }
   function renderAll(){renderEmployees();renderTimesheets();renderRuns();renderSettings();renderReportSelectors();renderPayrollReport()}
   function summary(){const active=state.employees.filter(e=>e.employment_status==='active'&&!e.archived).length, awaiting=state.timesheets.filter(t=>t.status==='submitted').length;$('payrollActiveCount').textContent=active;$('payrollAwaitingCount').textContent=awaiting;const next=state.runs.find(r=>r.status!=='finalised'&&r.pay_date>=today())?.pay_date;$('payrollNextPayDate').textContent=next?iso(next):'—'}
