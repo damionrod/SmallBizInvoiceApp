@@ -67,19 +67,12 @@
     if(!host){host=document.createElement('section');host.id='frindlyLeaveEvidenceReview';host.style.cssText='padding:16px;margin:12px 0;border:1px solid #ddd;border-radius:10px';panel.prepend(host)}
     host.innerHTML='<h3>Annual leave statutory evidence</h3><p>Approved leave requires documented payroll earnings and a verified statutory calculation. No payroll is posted here.</p><div id="frindlyLeaveEvidenceRows">Loading…</div>';
     const c=client(),businessId=state.businessId;
-    const [req,approvals,calcs]=await Promise.all([
-      c.from('payroll_manager_leave_drafts').select('id,employee_id,date_from,date_to,quantity,unit').eq('business_id',businessId).order('date_from',{ascending:false}).limit(40),
-      c.from('payroll_manager_leave_approvals_isolated').select('draft_id,status').eq('business_id',businessId).eq('status','approved'),
-      c.from('payroll_statutory_leave_calculations').select('id,confirmation_state,input_snapshot,selected_amount').eq('business_id',businessId).order('created_at',{ascending:false})
-    ]);
+    const {data:rows,error}=await c.rpc('frindly_leave_evidence_review_list_v1');
     if(state.businessId!==businessId)return;
-    const err=req.error||approvals.error||calcs.error;
-    if(err){$('frindlyLeaveEvidenceRows').textContent='Evidence records unavailable: '+err.message;return}
-    const approved=new Set((approvals.data||[]).map(a=>a.draft_id));
-    const rows=(req.data||[]).filter(r=>approved.has(r.id));
+    if(error){$('frindlyLeaveEvidenceRows').textContent='Evidence records unavailable: '+error.message;return}
     const root=$('frindlyLeaveEvidenceRows');
     root.innerHTML=rows.map(r=>{
-      const calc=(calcs.data||[]).find(c=>c.input_snapshot?.leave_request_id===r.id);
+      const calc={id:r.calculation_id,confirmation_state:r.confirmation_state,selected_amount:r.selected_amount};
       const employee=state.employees.find(e=>e.id===r.employee_id);
       return '<details style="padding:9px 0;border-top:1px solid #ddd"><summary>'+esc(employee?displayName(employee):r.employee_id)+' · '+esc(r.date_from)+' to '+esc(r.date_to)+' · '+esc(calc?.confirmation_state||'Evidence missing')+'</summary><p>Supply employer-verified earnings evidence (JSON containing source_type, source_reference, 26 earnings_periods, OWP and AWE). Synthetic examples are not permitted.</p><textarea data-evidence-input="'+esc(r.id)+'" rows="5" style="width:100%;font-family:monospace" aria-label="Earnings evidence JSON"></textarea><div style="margin:8px 0"><button type="button" data-evidence-record="'+esc(r.id)+'">Record evidence</button> '+(calc?.confirmation_state==='needs_confirmation'?'<button type="button" data-evidence-confirm="'+esc(calc.id)+'">Validate and confirm</button>':'')+'</div><p data-evidence-status aria-live="polite">'+(calc?.confirmation_state==='confirmed'?'Confirmed weekly amount: '+esc(money(calc.selected_amount)):'')+'</p></details>'
     }).join('')||'<p>No approved leave requests.</p>';
