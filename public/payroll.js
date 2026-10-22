@@ -689,7 +689,7 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     const useAtomicLeave=finalise&&!existingId&&state.businessId==='d2a97dc3-f1fd-405a-ad46-cff1466aa7d6'&&approvedLeaveForSelection.length>0;
     if(useAtomicLeave){
       if(state.leaveVerificationPending||state.leaveRunPreview.some(d=>d.error)||payEmployees.some(x=>x.syntheticTestOnly||x.manualLines?.some(l=>l.synthetic_test_only||String(l.description||'').includes('TEST ONLY'))))return toast('Cannot finalise: leave verification is incomplete or synthetic evidence is present.');
-      if(approvedLeaveForSelection.some(d=>!payEmployees.some(x=>(x.manualLines||[]).some(l=>l.description==='Annual leave request '+d.id&&l.statutory_calculation_id))))return toast('Cannot finalise: confirmed statutory annual leave calculation is missing.');
+      if(approvedLeaveForSelection.some(d=>!payEmployees.some(x=>(x.manualLines||[]).some(l=>l.description==='Annual leave request '+d.id&&l.statutory_calculation_id))))return toast('Cannot finalise annual leave: no confirmed OWP/AWE calculation is attached. Open Annual leave calculation review, verify the employee earnings evidence, and confirm the statutory calculation before retrying. No payroll was posted.');
       if(payEmployees.some(x=>x.statutoryUnresolved||x.p6NeedsConfirmation||x.p7NeedsConfirmation))return toast('Cannot finalise: statutory payroll evidence is incomplete.');
       try{
         const duplicate=await validateNoDuplicateFinalisedPay(payEmployees,currentRunDef(),null);
