@@ -8031,3 +8031,4 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 /* GST sales reconciliation: visual-only, scoped to the GST return. */
 #finGstSalesReconciliation .gst-reconciliation-total{font-weight:700;border-top:2px solid currentColor}
 #finGstSalesReconciliation .gst-transaction-table td:not(:first-child),#finGstSalesReconciliation .gst-transaction-table th:not(:first-child){text-align:right}
+.payroll-leave-modal{max-width:760px!important;max-height:88vh;overflow:auto}.payroll-leave-modal .card{margin:14px 0}.payroll-leave-modal table{width:100%;border-collapse:collapse}.payroll-leave-modal th,.payroll-leave-modal td{padding:9px;border-bottom:1px solid #e4ebf0;text-align:left}.payroll-leave-modal td:nth-child(2){text-align:right}
