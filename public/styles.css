@@ -1612,6 +1612,24 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   cursor:progress;
   opacity:.86;
 }
+.payrun-footer-actions button.is-loading{
+  cursor:progress;
+  opacity:.86;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.payrun-footer-actions button.is-loading::before{
+  content:"";
+  width:14px;
+  height:14px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  animation:payroll-spin .7s linear infinite;
+}
+@keyframes payroll-spin{to{transform:rotate(360deg)}}
 .payroll-email-button.is-success{
   background:#178a4f!important;
   border-color:#178a4f!important;
