@@ -47,13 +47,13 @@ async function run(name,args,success){
  if(busy)return;if(bid()!==activeBusiness){await load();return}
  busy=true;note('Saving…');
  try{await rpc(name,args);busy=false;await load();note(success)}
- catch(e){note('Action failed: '+(e.message||'Permission denied'))}finally{busy=false}
+ catch(e){const message=e?.message||'Permission denied';note('Action failed: '+message);window.setTimeout(()=>window.alert('Leave action failed: '+message),0)}finally{busy=false}
 }
 async function createAndApprove(args,success){
  if(busy)return;if(bid()!==activeBusiness){await load();return}
  busy=true;note('Saving…');
  try{const created=await rpc('frindly_leave_request_create',args);await rpc('frindly_leave_request_action',{p_draft_id:created?.id,p_action:'submit'});await rpc('frindly_leave_request_action',{p_draft_id:created?.id,p_action:'approve'});await load();note(success)}
- catch(e){note('Action failed: '+(e.message||'Permission denied'))}finally{busy=false}
+ catch(e){const message=e?.message||'Permission denied';note('Action failed: '+message);window.setTimeout(()=>window.alert('Leave action failed: '+message),0)}finally{busy=false}
 }
 function countWeekdays(from,to){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||to<from)return 0;
