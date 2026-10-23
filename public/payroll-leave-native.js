@@ -148,7 +148,10 @@ document.addEventListener('click',async e=>{
  const agreement=isAdvance&&Boolean(document.querySelector('[data-advance-agree="'+id+'"]')?.checked);
  if(isAdvance&&!agreement){note('Tick the employer agreement confirmation before approving annual leave in advance.');return}
  if(!confirm('Confirm '+action+'? This does not post to payroll.'))return;
- run('frindly_leave_request_action_advance_v1',{p_draft_id:id,p_action:action,p_advance_confirmed:agreement},'Request '+action+' completed');
+ // The release-candidate schema exposes the isolated action RPC below. Keep
+ // the advance agreement as a client-side guard until a server-side advance
+ // entitlement workflow is deployed; never send an unknown RPC name.
+ run('frindly_leave_request_action',{p_draft_id:id,p_action:action},'Request '+action+' completed');
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&panel()?.classList.contains('active')&&bid()!==activeBusiness)load()});
 })();
