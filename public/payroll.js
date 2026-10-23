@@ -553,7 +553,7 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
         return eligible.length===1?{request:d,calc:eligible[0]}:null;
       });
       // A request may span a period boundary or use a non-hour unit. Never estimate its value.
-      const valid=calcRows.every(v=>v&&v.request.date_from>=run.period_start&&v.request.date_to<=run.period_end&&String(v.request.unit).toLowerCase().includes('hour')&&Number(v.request.quantity)>0);
+      const valid=calcRows.every(v=>v&&v.request.date_from>=run.period_start&&v.request.date_to<=run.period_end&&['hour','hours','day','days'].includes(String(v.request.unit||'').toLowerCase())&&Number(v.request.quantity)>0);
       if(!valid||x.employee.pay_type!=='salary'||!['weekly','fortnightly'].includes(run.pay_frequency)){if(state.businessId==='d2a97dc3-f1fd-405a-ad46-cff1466aa7d6'&&!valid)state.leaveRunPreview=[...state.leaveRunPreview,{employee_id:x.employee.id,error:'Annual leave cannot be included in payroll yet: each approved request needs a confirmed, non-synthetic OWP/AWE calculation covering this pay period. No pay run or leave balance has been changed.'}];continue;}
       // Use server-owned salary and confirmed statutory rates. Never trust browser-derived salary offsets.
       // Preview only: leaveEvidencePending remains true until atomic posting is implemented.
