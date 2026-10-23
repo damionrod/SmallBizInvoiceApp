@@ -49,6 +49,12 @@ async function run(name,args,success){
  try{await rpc(name,args);busy=false;await load();note(success)}
  catch(e){note('Action failed: '+(e.message||'Permission denied'))}finally{busy=false}
 }
+async function createAndApprove(args,success){
+ if(busy)return;if(bid()!==activeBusiness){await load();return}
+ busy=true;note('Saving…');
+ try{const created=await rpc('frindly_leave_request_create',args);await rpc('frindly_leave_request_action',{p_draft_id:created?.id,p_action:'submit'});await rpc('frindly_leave_request_action',{p_draft_id:created?.id,p_action:'approve'});await load();note(success)}
+ catch(e){note('Action failed: '+(e.message||'Permission denied'))}finally{busy=false}
+}
 function countWeekdays(from,to){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||to<from)return 0;
  const start=new Date(from+'T12:00:00Z'),end=new Date(to+'T12:00:00Z');
@@ -95,9 +101,15 @@ document.addEventListener('submit',e=>{
  if(approve&&isAdvanceFor(String(d.get('employee')),String(d.get('type')),mode==='days'?dates[0]:from)){note('Annual leave in advance: save the draft, submit it, then tick employer agreement when approving. No leave was approved.');return}
  if(!confirm('Request '+qty+' '+unit+' for '+summary+'? Confirm roster, public holidays and entitlement. '+(approve?'Create and approve?':'Save draft?')+' No payroll records will be changed.'))return;
  if(mode==='days'){
-  run('frindly_leave_request_create_selected_days',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_dates:dates,p_approve:approve},approve?'Selected leave days approved':'Selected leave days saved');
+  if(approve){
+   if(dates.length!==1){note('Create and approve currently supports one whole working day at a time. Save a multi-day request as a draft.');return}
+   createAndApprove({p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:dates[0],p_to:dates[0],p_quantity:1,p_unit:'days'},'Leave approved');
+  }else if(dates.every((date,i)=>i===0||(new Date(date+'T12:00:00Z')-new Date(dates[i-1]+'T12:00:00Z'))===86400000)){
+   run('frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:dates[0],p_to:dates[dates.length-1],p_quantity:dates.length,p_unit:'days'},'Leave draft saved');
+  }else note('Select consecutive dates for one draft, or save each non-consecutive day separately.');
  }else{
-  run(approve?'frindly_leave_request_create_and_approve':'frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:from,p_quantity:qty,p_unit:unit},approve?'Hourly leave approved':'Hourly leave draft saved');
+  if(approve)createAndApprove({p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:from,p_quantity:qty,p_unit:unit},'Leave approved');
+  else run('frindly_leave_request_create',{p_employee:d.get('employee'),p_leave_type:d.get('type'),p_from:from,p_to:from,p_quantity:qty,p_unit:unit},'Hourly leave draft saved');
  }
 });
 document.addEventListener('click',async e=>{
