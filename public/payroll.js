@@ -94,6 +94,12 @@
         if(data.awe_indicator_52_week_only!==null)info.push('Preliminary AWE indicator (subject to complete earnings and employment history): '+money(data.awe_indicator_52_week_only)+'/week');
         info.push('OWP includes regular pay components; AWE uses statutory gross earnings and the applicable employment-period divisor. Imported history, regular allowances and commissions must be verified before posting.');
         status.textContent=info.join(' · ');
+        if(request.confirmation_state!=='confirmed'){
+          const confirmButton=document.createElement('button');confirmButton.type='button';confirmButton.textContent='Confirm OWP/AWE calculation';confirmButton.className='primary';
+          confirmButton.addEventListener('click',async()=>{
+            const owp=Number(window.prompt('Confirmed weekly OWP amount (NZD):',''));const awe=Number(window.prompt('Confirmed weekly AWE amount (NZD):',''));if(!Number.isFinite(owp)||!Number.isFinite(awe)||owp<0||awe<0){window.alert('Enter valid non-negative OWP and AWE amounts.');return}const method=(window.prompt('Use which method? Enter OWP or AWE:','AWE')||'').toLowerCase();if(!['owp','awe'].includes(method)){window.alert('Enter OWP or AWE.');return}const selected=Math.max(owp,awe);confirmButton.disabled=true;const result=await client().rpc('frindly_leave_confirm_annual_calculation_v1',{p_request_id:request.id,p_owp_amount:owp,p_awe_amount:awe,p_selected_method:method,p_selected_amount:selected,p_notes:'Confirmed by authorised payroll manager'});if(result.error){status.textContent='Confirmation failed: '+result.error.message;confirmButton.disabled=false;return}status.textContent='Confirmed statutory calculation: '+money(selected)+' per week ('+method.toUpperCase()+'). Refresh/recalculate the pay run before finalising.';confirmButton.remove()});
+          details.appendChild(confirmButton);
+        }
         const classification=await client().rpc('frindly_leave_earnings_classification_preview_v2',{p_request_id:request.id});
         if(state.businessId!==businessId)return;
         const breakdown=document.createElement('p');
