@@ -1612,7 +1612,6 @@ body.admin-portal-active #view-admin .page-head{margin-top:0}
   cursor:progress;
   opacity:.86;
 }
-.payroll-leave-balances-card{margin-top:16px;border:1px solid var(--border);border-radius:10px;padding:12px;background:#fff}.payroll-leave-balances-card summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px}.payroll-leave-balances-card summary small{color:var(--muted);font-weight:400}.payroll-leave-balances-table{width:100%;border-collapse:collapse;margin-top:12px}.payroll-leave-balances-table th,.payroll-leave-balances-table td{padding:9px;border-bottom:1px solid #e4ebf0;text-align:left}.payroll-leave-balances-table td small{display:block;color:var(--muted);margin-top:2px}.payroll-leave-balances-table td:nth-child(3){font-weight:700;text-align:right}.payroll-leave-balances-table th:nth-child(3){text-align:right}
 .payrun-footer-actions button.is-loading{
   cursor:progress;
   opacity:.86;
