@@ -552,7 +552,7 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
       });
       // A request may span a period boundary or use a non-hour unit. Never estimate its value.
       const valid=calcRows.every(v=>v&&v.request.date_from>=run.period_start&&v.request.date_to<=run.period_end&&String(v.request.unit).toLowerCase().includes('hour')&&Number(v.request.quantity)>0);
-      if(!valid||x.employee.pay_type!=='salary'||!['weekly','fortnightly'].includes(run.pay_frequency)){if(state.businessId==='d2a97dc3-f1fd-405a-ad46-cff1466aa7d6'&&!valid)state.leaveRunPreview=[...state.leaveRunPreview,{error:'Annual leave cannot be included in payroll yet: each approved request needs a confirmed, non-synthetic OWP/AWE calculation covering this pay period. No pay run or leave balance has been changed.'}];continue;}
+      if(!valid||x.employee.pay_type!=='salary'||!['weekly','fortnightly'].includes(run.pay_frequency)){if(state.businessId==='d2a97dc3-f1fd-405a-ad46-cff1466aa7d6'&&!valid)state.leaveRunPreview=[...state.leaveRunPreview,{employee_id:x.employee.id,error:'Annual leave cannot be included in payroll yet: each approved request needs a confirmed, non-synthetic OWP/AWE calculation covering this pay period. No pay run or leave balance has been changed.'}];continue;}
       // Use server-owned salary and confirmed statutory rates. Never trust browser-derived salary offsets.
       // Preview only: leaveEvidencePending remains true until atomic posting is implemented.
       const previewRows=[];
@@ -798,7 +798,8 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
         return toast('Pay run finalised atomically. Payslips are ready in Pay Runs.');
       }catch(error){console.error('Atomic annual leave payroll failed',error);return toast('Payroll was not finalised: '+(error?.message||'Atomic save failed'));}
     }
-    if(state.leaveVerificationPending||state.leaveRunPreview.some(d=>d.error)||payEmployees.some(x=>x.syntheticTestOnly||x.manualLines?.some(l=>l.synthetic_test_only||/\bTEST ONLY\b/i.test(String(l.description||''))||l.statutory_calculation_id&&l.statutory_leave_code==='annual_holiday')||x.leaveEvidencePending)||state.leaveRunPreview.some(d=>payEmployees.some(x=>x.employee.id===d.employee_id)))return toast('Cannot save: approved annual leave requires verified statutory evidence and atomic payroll posting.');
+    const selectedEmployeeIds=new Set(payEmployees.map(x=>x.employee.id));
+    if(state.leaveVerificationPending||state.leaveRunPreview.some(d=>d.error&&(!d.employee_id||selectedEmployeeIds.has(d.employee_id)))||payEmployees.some(x=>x.syntheticTestOnly||x.manualLines?.some(l=>l.synthetic_test_only||/\bTEST ONLY\b/i.test(String(l.description||''))||l.statutory_calculation_id&&l.statutory_leave_code==='annual_holiday')||x.leaveEvidencePending)||state.leaveRunPreview.some(d=>selectedEmployeeIds.has(d.employee_id)))return toast('Cannot save: approved annual leave requires verified statutory evidence and atomic payroll posting.');
     const unresolvedStatutory=payEmployees.filter(x=>x.statutoryUnresolved);if(unresolvedStatutory.length)return toast((finalise?'Cannot finalise: ':'Cannot save calculated payroll: ')+'Needs confirmation — '+unresolvedStatutory.map(x=>`${displayName(x.employee)}: ${(x.p6Payg?.reasons||x.p7Tax?.reasons||[]).map(r=>r.message).join('; ')||'Statutory payroll evidence is incomplete.'}`).join(' | '));
     if(finalise){
       // Fail closed using the authenticated, business-scoped approved-leave RPC.
