@@ -1192,6 +1192,7 @@
   let billingReadyBusiness='',billingLoading=false,billingPrice=null,billingDuplicateSubscriptions=[],billingScheduledChange=null;
   function subscriptionReadOnly(sub=state.subscription){
     if(!sub)return false;
+    if(sub.manual_access_until&&new Date(sub.manual_access_until).getTime()>Date.now()&&sub.status!=='suspended')return false;
     const end=sub.cancel_at||(sub.cancel_at_period_end?sub.current_period_end:null);
     return sub.status==='canceled'||(!!end&&new Date(end).getTime()<=Date.now())||
       (sub.status==='trialing'&&!!sub.trial_ends_at&&new Date(sub.trial_ends_at).getTime()<=Date.now());
@@ -1752,7 +1753,7 @@
       const annualBilling=sub.billing_interval==='annual';
       const subscriptionAmount=annualBilling?plan.annual_price:plan.monthly_price;
       const billingDetail=sub.status==='active'?`${formatAdminMoney(subscriptionAmount)} / ${annualBilling?'annual':'monthly'}`:(sub.status==='trialing'?'Trial':'—');
-      const periodDetail=sub.current_period_start||sub.current_period_end?`<small>Start: ${formatAdminDate(sub.current_period_start)}</small><small>End: ${formatAdminDate(sub.current_period_end)}</small>`:'—';
+      const periodDetail=`<small>Start: ${formatAdminDate(sub.current_period_start)}</small><small>Billing end: ${formatAdminDate(sub.current_period_end)}</small>${sub.manual_access_until?`<small>Manual access until: ${formatAdminDate(sub.manual_access_until)}</small>`:''}<button class="secondary" data-admin-expiry="${b.id}" data-business-name="${escapeHtml(b.name)}" data-current-expiry="${sub.manual_access_until||''}">Edit access expiry</button>`;
       tr.innerHTML=`<td><strong>${escapeHtml(b.name)}</strong>${duplicateBadge}<small>${formatAdminDate(b.created_at)}</small></td><td>${escapeHtml(owner.full_name||'')}<small>${escapeHtml(owner.email||'')}</small></td><td><select data-admin-plan="${b.id}">${(plans||[]).map(p=>`<option value="${p.id}" ${p.id===plan.id?'selected':''}>${escapeHtml(p.name)}</option>`).join('')}</select><small>${escapeHtml(billingDetail)}</small></td><td><select data-admin-status="${b.id}">${['trialing','active','past_due','suspended','canceled'].map(x=>`<option ${x===sub.status?'selected':''}>${x}</option>`).join('')}</select></td><td>${escapeHtml(billingDetail)}</td><td>${periodDetail}</td><td>${count||0} / ${sub.invoice_limit_override??plan.invoice_limit??'∞'}</td><td>${sub.trial_ends_at?formatAdminDate(sub.trial_ends_at):'—'}</td><td>${mods.join(', ')||'Frindly'}</td><td><div class="row-actions"><button class="secondary" data-admin-save="${b.id}">Save</button><button class="secondary" data-admin-support="${b.id}" data-business-name="${escapeHtml(b.name)}">Support</button><button class="secondary" data-admin-modules="${b.id}" data-business-name="${escapeHtml(b.name)}">Modules</button><button class="secondary" data-admin-trial="${b.id}">+14d trial</button><button class="danger" data-admin-suspend="${b.id}" data-suspended="${sub.status==='suspended'||b.status==='suspended'?'true':'false'}">${sub.status==='suspended'||b.status==='suspended'?'Activate':'Suspend'}</button><button class="secondary" data-admin-export="${b.id}" data-business-name="${escapeHtml(b.name)}">Export</button><button class="danger" data-admin-delete="${b.id}" data-business-name="${escapeHtml(b.name)}">Delete</button></div></td>`;
       body.appendChild(tr);
     }
@@ -1767,6 +1768,22 @@
     });
     body.querySelectorAll('[data-admin-support]').forEach(btn=>btn.onclick=()=>{setAdminView('support-health');setTimeout(()=>window.SupportHealth?.openBusiness?.(btn.dataset.adminSupport),0)});
     body.querySelectorAll('[data-admin-modules]').forEach(btn=>btn.onclick=()=>openModuleManager(btn.dataset.adminModules,btn.dataset.businessName));
+    body.querySelectorAll('[data-admin-expiry]').forEach(btn=>btn.onclick=async()=>{
+      const businessId=btn.dataset.adminExpiry;
+      const initial=btn.dataset.currentExpiry?new Date(btn.dataset.currentExpiry).toISOString().slice(0,10):'';
+      const value=prompt('Set temporary access expiry for '+(btn.dataset.businessName||'this business')+' (YYYY-MM-DD). Leave blank to remove the manual extension. Stripe billing dates will not change.',initial);
+      if(value===null)return;
+      const input=value.trim();
+      if(input&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(input)){alert('Use YYYY-MM-DD.');return;}
+      const expiry=input?new Date(input+'T23:59:59.999+13:00'):null;
+      if(input&&(!Number.isFinite(expiry.getTime())||expiry<=new Date())){alert('Choose a valid future date.');return;}
+      if(!confirm('Update temporary access for '+(btn.dataset.businessName||'this business')+'? This does not change Stripe billing.'))return;
+      btn.disabled=true;
+      const {error}=await state.client.rpc('v626_admin_set_access_expiry',{p_business_id:businessId,p_access_until:expiry?expiry.toISOString():null});
+      btn.disabled=false;
+      if(error){alert('Could not update access expiry: '+error.message);return;}
+      await renderAdmin();
+    });
     body.querySelectorAll('[data-admin-trial]').forEach(btn=>btn.onclick=async()=>{
       btn.disabled=true;btn.textContent='Extending…';
       const {error}=await state.client.rpc('v33_admin_extend_trial',{p_business_id:btn.dataset.adminTrial,p_days:14});
