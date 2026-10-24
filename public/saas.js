@@ -1200,7 +1200,7 @@
   function billingReturnTarget(){return /^https?:$/.test(location.protocol)?location.origin+location.pathname:'https://frindly.co.nz/'}
   function renderSubscriptionSummary(){
     const sub=state.subscription;if(!sub)return;
-    const owner=state.accessRole==='owner',canCancel=['owner','bookkeeper'].includes(state.accessRole);
+    const owner=['owner','admin'].includes(state.accessRole),canCancel=['owner','admin','bookkeeper'].includes(state.accessRole);
     const duplicates=billingDuplicateSubscriptions.length>1;
     const scheduled=!!(sub.cancel_at_period_end||sub.cancel_at),readOnly=subscriptionReadOnly(sub);
     const renewalPreference=sub.renewal_preference||(scheduled?'manual':'automatic');
@@ -1265,7 +1265,7 @@
     renderSubscriptionSummary();
     try{
       await getSubscription();
-      if(['owner','bookkeeper'].includes(state.accessRole)&&state.subscription?.stripe_subscription_id){
+      if(['owner','admin','bookkeeper'].includes(state.accessRole)&&state.subscription?.stripe_subscription_id){
         const data=await billingApi('status');
         if(state.business?.id!==businessId)return;
         if(data?.price)billingPrice={...data.price,businessId};
@@ -1284,7 +1284,7 @@
       if(q('billingModules'))q('billingModules').innerHTML=available.filter(Boolean).map(m=>`<span>${escapeHtml(m.name||human(m.slug))}</span>`).join('')||'<span>No additional modules enabled</span>';
       billingReadyBusiness=businessId;
       if(messageEl)messageEl.textContent='';
-      if(['owner','bookkeeper'].includes(state.accessRole)&&state.subscription?.stripe_customer_id)refreshBillingHistory().catch(console.warn);
+      if(['owner','admin','bookkeeper'].includes(state.accessRole)&&state.subscription?.stripe_customer_id)refreshBillingHistory().catch(console.warn);
     }catch(error){if(messageEl)messageEl.textContent=`Could not refresh billing: ${error?.name==='AbortError'?'The request timed out. Please try again.':error?.message||'Please try again.'}`;}
     finally{billingLoading=false;if(button)button.disabled=false;renderSubscriptionSummary()}
   }
@@ -1297,7 +1297,7 @@
   async function refreshBillingHistory(){
     const section=q('subscriptionBillingHistory'),rows=q('billingHistoryRows'),msg=q('billingHistoryMessage'),upcoming=q('billingUpcoming'),button=q('billingHistoryRefreshBtn');
     if(!section||!rows||!state.business?.id)return;
-    const allowed=['owner','bookkeeper'].includes(state.accessRole)&&!!state.subscription?.stripe_customer_id;
+    const allowed=['owner','admin','bookkeeper'].includes(state.accessRole)&&!!state.subscription?.stripe_customer_id;
     section.hidden=!allowed;if(!allowed)return;
     if(button)button.disabled=true;if(msg)msg.textContent='Loading billing history…';rows.innerHTML='';if(upcoming){upcoming.hidden=true;upcoming.innerHTML=''}
     try{
@@ -1316,7 +1316,7 @@
   }
 
   async function toggleAutoRenew(button){
-    if(billingLoading||!['owner','bookkeeper'].includes(state.accessRole))return;
+    if(billingLoading||!['owner','admin','bookkeeper'].includes(state.accessRole))return;
     await refreshSubscriptionBilling();if(billingReadyBusiness!==state.business?.id)return;
     const sub=state.subscription;if(!sub?.stripe_subscription_id||subscriptionReadOnly(sub))return;
     const scheduled=!!(sub.cancel_at_period_end||sub.cancel_at),pref=sub.renewal_preference||(scheduled?'manual':'automatic');
@@ -1333,8 +1333,8 @@
 
   async function openBillingPortal(action='portal',button){
     if(billingLoading)return;
-    const canCancel=['owner','bookkeeper'].includes(state.accessRole);
-    if(['cancel','keep'].includes(action)?!canCancel:state.accessRole!=='owner')return;
+    const canCancel=['owner','admin','bookkeeper'].includes(state.accessRole);
+    if(['cancel','keep'].includes(action)?!canCancel:!['owner','admin'].includes(state.accessRole))return;
     if(['cancel','keep'].includes(action)){
       await refreshSubscriptionBilling();if(billingReadyBusiness!==state.business?.id)return;
       const sub=state.subscription,scheduled=!!(sub?.cancel_at_period_end||sub?.cancel_at),pref=sub?.renewal_preference||(scheduled?'manual':'automatic'),cancellationScheduled=scheduled&&pref==='cancelled';
@@ -1386,7 +1386,7 @@
   window.SAAS.showPlanUpgradePrompt=showPlanUpgradePrompt;
 
   async function showPlans(){
-    if(state.accessRole!=='owner')return alert('Only the Business Owner can change the subscription plan.');
+    if(!['owner','admin'].includes(state.accessRole))return alert('Only a Business Owner or Admin can change the subscription plan.');
     const [{data:plans},checkoutReady]=await Promise.all([
       state.client.from('plans').select('*').eq('is_public',true).order('sort_order'),
       getCheckoutAvailability(true)

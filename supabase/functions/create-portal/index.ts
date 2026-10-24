@@ -22,7 +22,7 @@ Deno.serve(async (request) => {
     const { action = 'portal', returnUrl } = await request.json();
     if (!['portal', 'payment_method', 'history', 'cancel', 'keep', 'auto_renew_off', 'auto_renew_on', 'status'].includes(action)) return out({ error: 'Unknown billing action' }, 400);
     const { data: role, error: roleError } = await client.rpc('v6147_current_business_role', { p_business_id: businessId });
-    const permitted = ['cancel', 'keep', 'auto_renew_off', 'auto_renew_on', 'status'].includes(action) ? ['owner', 'bookkeeper'].includes(role) : role === 'owner';
+    const permitted = ['cancel', 'keep', 'auto_renew_off', 'auto_renew_on', 'status'].includes(action) ? ['owner', 'admin', 'bookkeeper'].includes(role) : ['owner', 'admin'].includes(role);
     if (roleError || !permitted) return out({ error: 'Your role cannot perform this billing action.' }, 403);
     const { data: row, error } = await client.from('subscriptions').select('*').eq('business_id', businessId).maybeSingle();
     if (error) throw error;

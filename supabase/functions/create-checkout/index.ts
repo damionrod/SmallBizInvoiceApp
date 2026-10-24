@@ -48,10 +48,10 @@ Deno.serve(async(req)=>{
     const {data:businessId,error:businessError}=await client.rpc('current_business_id');
     if(businessError||!businessId)return out({error:'No active business context found'},403);
 
-    // Billing is server-authorised Owner-only. UI visibility is not a security boundary.
+    // Billing is server-authorised for owners and business admins. UI visibility is not a security boundary.
     stage='checking billing permission';
     const {data:billingRole,error:roleError}=await client.rpc('v6147_current_business_role',{p_business_id:businessId});
-    if(roleError||billingRole!=='owner')return out({error:'Only the Business Owner can manage billing'},403);
+    if(roleError||!['owner','admin'].includes(String(billingRole)))return out({error:'Only a Business Owner or Admin can manage billing'},403);
 
     const {data:profile}=await client.from('profiles').select('email').eq('id',user.id).maybeSingle();
     const {planSlug,billingInterval='monthly',returnUrl,action='start',quote}=await req.json();
@@ -104,7 +104,21 @@ Deno.serve(async(req)=>{
     // Retrieve Stripe's current state rather than trusting a delayed webhook.
     if(sub?.stripe_subscription_id){
       stage='opening the existing subscription';
-      const existing=await billingSubscription(stripe,sub,businessId);
+      let existing:any;
+      try {
+        existing=await billingSubscription(stripe,sub,businessId);
+      } catch(error) {
+        // A subscription can legitimately be deleted or expire outside Frindly.
+        // Clear only the stale Stripe subscription link and continue through a
+        // new Checkout session using the existing customer where possible.
+        const message=error instanceof Error ? error.message : String(error||'');
+        if(!/no such subscription|resource_missing|subscription.*missing/i.test(message)) throw error;
+        const {error:clearError}=await admin.from('subscriptions').update({stripe_subscription_id:null,status:'canceled',updated_at:new Date().toISOString()}).eq('business_id',businessId);
+        if(clearError) throw clearError;
+        existing=null;
+      }
+      if(!existing) { /* continue to new Checkout below */ }
+      else {
       if(!['canceled','incomplete_expired'].includes(existing.status)){
         if(existing.cancel_at_period_end||existing.cancel_at)throw new Error('Choose Keep subscription before changing your plan.');
         if(!['active','trialing'].includes(existing.status))throw new Error('Resolve the outstanding subscription payment in Subscription & Billing before changing your plan.');
@@ -189,6 +203,7 @@ Deno.serve(async(req)=>{
           (amountDue>0&&updated.latest_invoice?.paid!==true))
           throw new Error('Stripe has not confirmed the upgrade payment. Your plan will update only after successful payment.');
         return out({upgraded:true});
+      }
       }
     }
 
