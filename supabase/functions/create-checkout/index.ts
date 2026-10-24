@@ -51,9 +51,9 @@ Deno.serve(async(req)=>{
     // Billing is server-authorised for owners and business admins. UI visibility is not a security boundary.
     stage='checking billing permission';
     const {data:billingRole,error:roleError}=await client.rpc('v6147_current_business_role',{p_business_id:businessId});
-    if(roleError||!['owner','admin'].includes(String(billingRole)))return out({error:'Only a Business Owner or Admin can manage billing'},403);
-
     const {data:profile}=await client.from('profiles').select('email').eq('id',user.id).maybeSingle();
+    const {data:permissionProfile}=await client.from('profiles').select('is_super_admin').eq('id',user.id).maybeSingle();
+    if(roleError||(!['owner','admin'].includes(String(billingRole))&&permissionProfile?.is_super_admin!==true))return out({error:'Only a Business Owner, Admin, or Super Admin can manage billing'},403);
     const {planSlug,billingInterval='monthly',returnUrl,action='start',quote}=await req.json();
     if(!['start','preview','confirm','undo'].includes(action))return out({error:'Unknown plan change action.'},400);
     const interval=billingInterval==='annual'?'annual':'monthly';
