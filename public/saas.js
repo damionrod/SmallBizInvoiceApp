@@ -1774,7 +1774,7 @@
       const value=prompt('Set temporary access expiry for '+(btn.dataset.businessName||'this business')+' (YYYY-MM-DD). Leave blank to remove the manual extension. Stripe billing dates will not change.',initial);
       if(value===null)return;
       const input=value.trim();
-      if(input&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(input)){alert('Use YYYY-MM-DD.');return;}
+      if(input&&!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(input)){alert('Use YYYY-MM-DD.');return;}
       const expiry=input?new Date(input+'T23:59:59.999+13:00'):null;
       if(input&&(!Number.isFinite(expiry.getTime())||expiry<=new Date())){alert('Choose a valid future date.');return;}
       if(!confirm('Update temporary access for '+(btn.dataset.businessName||'this business')+'? This does not change Stripe billing.'))return;
