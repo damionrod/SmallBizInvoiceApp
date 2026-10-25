@@ -7,7 +7,7 @@ let publicHolidays=[],holidayLoadKey='',holidayLoadError='';
 async function loadPublicHolidays(){
  const key=calendarMonth+'|'+(activeBusiness||'');if(holidayLoadKey===key)return;
  holidayLoadKey=key;holidayLoadError='';publicHolidays=[];
- const start=calendarMonth+'-01',end=new Date(Date.UTC(...calendarMonth.split('-').map((v,i)=>i===1?Number(v):Number(v)),0)).toISOString().slice(0,10);
+ const start=calendarMonth+'-01',end=new Date(Date.UTC(Number(calendarMonth.slice(0,4)),Number(calendarMonth.slice(5,7)),0)).toISOString().slice(0,10);
  try{const {data,error}=await client().from('payroll_public_holidays').select('holiday_name,actual_date,observed_date,region_code,holiday_scope').eq('active',true).eq('jurisdiction','NZ').or('and(actual_date.gte.'+start+',actual_date.lte.'+end+'),and(observed_date.gte.'+start+',observed_date.lte.'+end+')');if(error)throw error;if(holidayLoadKey!==key)return;publicHolidays=data||[];}catch(e){if(holidayLoadKey===key)holidayLoadError='Holiday dates unavailable';}
  renderLeaveCalendar();
 }
@@ -84,7 +84,7 @@ function renderLeaveCalendar(){
  for(let i=0;i<offset;i++)html+='<span></span>';
  for(let d=1;d<=length;d++){
   const date=calendarMonth+'-'+String(d).padStart(2,'0'),dow=new Date(Date.UTC(y,m-1,d)).getUTCDay(),weekend=dow===0||dow===6,selected=selectedDays.has(date),holidays=holidayFor(date),holiday=holidays.length>0;
-  html+='<button type="button" data-calendar-day="'+date+'" '+(weekend?'disabled title="Weekend"':'aria-pressed="'+selected+'"')+
+  html+='<button type="button" data-calendar-day="'+date+'" '+(weekend?'disabled':'aria-pressed="'+selected+'"')+
    ' title="'+esc(holidays.map(h=>h.holiday_name).join(', ')||(weekend?'Weekend':''))+'" style="min-width:0;padding:9px 2px;border-radius:7px;border:1px solid '+(selected?'#4169e1':holiday?'#c58b2c':'#dbe2ef')+';background:'+(selected?'#4169e1':holiday?'#fff1ce':'transparent')+';color:'+(selected?'white':holiday?'#704500':weekend?'#a9a9a9':'inherit')+';cursor:'+(weekend?'not-allowed':'pointer')+'">'+d+(holiday?' <span aria-hidden="true">●</span>':'')+'</button>';
  }
  host.innerHTML=html+'</div><small style="display:block;margin-top:8px">🟠 NZ public holiday (hover for name). Regional anniversaries require a confirmed employee region.'+(holidayLoadError?' '+esc(holidayLoadError)+'.':'')+'</small>';
