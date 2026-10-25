@@ -3,6 +3,16 @@
 const el=id=>document.getElementById(id),client=()=>window.SAAS?.client?.(),bid=()=>window.SAAS?.state?.business?.id;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let activeBusiness=null,employees=[],types=[],requests=[],payRuns=[],busy=false,selectedDays=new Set(),calendarMonth=new Date().toISOString().slice(0,7);
+let publicHolidays=[],holidayLoadKey='',holidayLoadError='';
+async function loadPublicHolidays(){
+ const key=calendarMonth+'|'+(activeBusiness||'');if(holidayLoadKey===key)return;
+ holidayLoadKey=key;holidayLoadError='';publicHolidays=[];
+ const start=calendarMonth+'-01',end=new Date(Date.UTC(...calendarMonth.split('-').map((v,i)=>i===1?Number(v):Number(v)),0)).toISOString().slice(0,10);
+ try{const {data,error}=await client().from('payroll_public_holidays').select('holiday_name,actual_date,observed_date,region_code,holiday_scope').eq('active',true).eq('jurisdiction','NZ').or('and(actual_date.gte.'+start+',actual_date.lte.'+end+'),and(observed_date.gte.'+start+',observed_date.lte.'+end+')');if(error)throw error;if(holidayLoadKey!==key)return;publicHolidays=data||[];}catch(e){if(holidayLoadKey===key)holidayLoadError='Holiday dates unavailable';}
+ renderLeaveCalendar();
+}
+function holidayFor(date){return publicHolidays.filter(h=>(h.observed_date===date||h.actual_date===date)&&(!h.region_code||h.holiday_scope==='national'));}
+
 const panel=()=>el('payroll-panel-leave'),root=()=>el('frindlyLeaveNative');
 const note=s=>{if(el('leaveNotice'))el('leaveNotice').textContent=s};
 async function rpc(name,args){const {data,error}=await client().rpc(name,args||{});if(error)throw error;return data}
@@ -66,17 +76,18 @@ function countWeekdays(from,to){
 function renderLeaveCalendar(){
  const host=el('leaveCalendar');if(!host)return;
  const [y,m]=calendarMonth.split('-').map(Number),first=new Date(Date.UTC(y,m-1,1)),length=new Date(Date.UTC(y,m,0)).getUTCDate(),offset=(first.getUTCDay()+6)%7;
+ if(holidayLoadKey!==calendarMonth+'|'+(activeBusiness||''))void loadPublicHolidays();
  const monthLabel=first.toLocaleDateString('en-NZ',{month:'long',year:'numeric',timeZone:'UTC'});
  let html='<div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0"><button type="button" data-calendar-move="-1" aria-label="Previous month">‹</button><strong>'+esc(monthLabel)+'</strong><button type="button" data-calendar-move="1" aria-label="Next month">›</button></div>'+
  '<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center">';
  for(const day of ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'])html+='<small>'+day+'</small>';
  for(let i=0;i<offset;i++)html+='<span></span>';
  for(let d=1;d<=length;d++){
-  const date=calendarMonth+'-'+String(d).padStart(2,'0'),dow=new Date(Date.UTC(y,m-1,d)).getUTCDay(),weekend=dow===0||dow===6,selected=selectedDays.has(date);
+  const date=calendarMonth+'-'+String(d).padStart(2,'0'),dow=new Date(Date.UTC(y,m-1,d)).getUTCDay(),weekend=dow===0||dow===6,selected=selectedDays.has(date),holidays=holidayFor(date),holiday=holidays.length>0;
   html+='<button type="button" data-calendar-day="'+date+'" '+(weekend?'disabled title="Weekend"':'aria-pressed="'+selected+'"')+
-   ' style="min-width:0;padding:9px 2px;border-radius:7px;border:1px solid '+(selected?'#4169e1':'#dbe2ef')+';background:'+(selected?'#4169e1':'transparent')+';color:'+(selected?'white':weekend?'#a9a9a9':'inherit')+';cursor:'+(weekend?'not-allowed':'pointer')+'">'+d+'</button>';
+   ' title="'+esc(holidays.map(h=>h.holiday_name).join(', ')||(weekend?'Weekend':''))+'" style="min-width:0;padding:9px 2px;border-radius:7px;border:1px solid '+(selected?'#4169e1':holiday?'#c58b2c':'#dbe2ef')+';background:'+(selected?'#4169e1':holiday?'#fff1ce':'transparent')+';color:'+(selected?'white':holiday?'#704500':weekend?'#a9a9a9':'inherit')+';cursor:'+(weekend?'not-allowed':'pointer')+'">'+d+(holiday?' <span aria-hidden="true">●</span>':'')+'</button>';
  }
- host.innerHTML=html+'</div>';
+ host.innerHTML=html+'</div><small style="display:block;margin-top:8px">🟠 NZ public holiday (hover for name). Regional anniversaries require a confirmed employee region.'+(holidayLoadError?' '+esc(holidayLoadError)+'.':'')+'</small>';
 }
 function updateDuration(){
  const form=el('leaveCreate');if(!form)return;
