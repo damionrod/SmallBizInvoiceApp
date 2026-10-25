@@ -1708,7 +1708,7 @@
 
   async function renderAdmin(){
     if(!state.profile?.is_super_admin)return;
-    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles!profiles_business_id_fkey(id,full_name,email,role),subscriptions(id,status,billing_interval,trial_ends_at,current_period_start,current_period_end,invoice_limit_override,plans(id,name,slug,invoice_limit,monthly_price,annual_price,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
+    const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles!profiles_business_id_fkey(id,full_name,email,role),subscriptions(id,status,billing_interval,trial_ends_at,current_period_start,current_period_end,manual_access_until,invoice_limit_override,plans(id,name,slug,invoice_limit,monthly_price,annual_price,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
     if(error){console.warn(error);alert('Could not load Super Admin businesses: '+error.message);return}
     const asArray=x=>Array.isArray(x)?x:(x?[x]:[]);
     const getSub=b=>asArray(b.subscriptions)[0]||{};
