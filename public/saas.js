@@ -1546,15 +1546,31 @@
     q('moduleModal').classList.add('open');
   }
 
+  let savingBusinessModules=false;
   async function saveBusinessModules(){
-    const bid=q('moduleModal').dataset.businessId;if(!bid)return;const controls=[...q('moduleChecklist').querySelectorAll('[data-module-status]')];
-    for(const control of controls){
-      const status=control.value,moduleId=control.dataset.moduleId,end=q('moduleChecklist').querySelector(`[data-module-trial-end="${moduleId}"]`)?.value||'';
-      let trial_ends_at=null;if(status==='trialing'){const d=end?new Date(end+'T23:59:59'):new Date(Date.now()+14*86400000);trial_ends_at=d.toISOString()}
-      const {error}=await state.client.from('business_modules').upsert({business_id:bid,module_id:moduleId,status,trial_ends_at},{onConflict:'business_id,module_id'});
-      if(error){alert('Could not update module access: '+error.message);return}
+    if(savingBusinessModules)return;
+    const modal=q('moduleModal'),button=q('saveModules'),bid=modal?.dataset.businessId;
+    if(!bid)return;
+    const controls=[...q('moduleChecklist').querySelectorAll('[data-module-status]')];
+    savingBusinessModules=true;
+    if(button){button.disabled=true;button.textContent='Saving…';}
+    try{
+      for(const control of controls){
+        const status=control.value,moduleId=control.dataset.moduleId,end=q('moduleChecklist').querySelector(`[data-module-trial-end="${moduleId}"]`)?.value||'';
+        let trial_ends_at=null;
+        if(status==='trialing'){const d=end?new Date(end+'T23:59:59'):new Date(Date.now()+14*86400000);trial_ends_at=d.toISOString()}
+        const {error}=await state.client.from('business_modules').upsert({business_id:bid,module_id:moduleId,status,trial_ends_at},{onConflict:'business_id,module_id'});
+        if(error)throw error;
+      }
+      if(button)button.textContent='Saved';
+      modal.classList.remove('open');
+      await renderAdmin();
+    }catch(error){
+      alert('Could not update module access: '+(error?.message||String(error)));
+    }finally{
+      savingBusinessModules=false;
+      if(button){button.disabled=false;button.textContent='Save';}
     }
-    q('moduleModal').classList.remove('open');await renderAdmin();
   }
 
   function paymentProviderDefinitions(){
@@ -1706,9 +1722,12 @@
     content.innerHTML=`<div class="summary-grid"><div class="metric"><span>Amount</span><strong>${adminBillingMoney(s.amount,s.currency)}</strong></div><div class="metric"><span>Next event</span><strong>${adminBillingDate(s.currentPeriodEnd)}</strong></div><div class="metric"><span>Auto renewal</span><strong>${s.autoRenew?'On':'Off'}</strong></div></div><h4>Stripe invoices</h4><div class="table-scroll"><table><thead><tr><th>Invoice</th><th>Date</th><th>Total</th><th>Status</th><th>Document</th></tr></thead><tbody>${invoiceRows}</tbody></table></div><h4>Lifecycle notifications</h4><div class="table-scroll"><table><thead><tr><th>Event</th><th>Event date</th><th>Status</th></tr></thead><tbody>${noteRows}</tbody></table></div><p class="hint">Subscription state is read from Stripe. Billing changes are not made directly from this console.</p>`;
   }
 
+  let adminRenderSequence=0;
   async function renderAdmin(){
+    const renderSequence=++adminRenderSequence;
     if(!state.profile?.is_super_admin)return;
     const {data:businesses,error}=await state.client.from('businesses').select('id,name,status,created_at,profiles!profiles_business_id_fkey(id,full_name,email,role),subscriptions(id,status,billing_interval,trial_ends_at,current_period_start,current_period_end,manual_access_until,invoice_limit_override,plans(id,name,slug,invoice_limit,monthly_price,annual_price,included_modules)),business_modules(status,modules(slug,name))').order('created_at',{ascending:false});
+    if(renderSequence!==adminRenderSequence)return;
     if(error){console.warn(error);alert('Could not load Super Admin businesses: '+error.message);return}
     const asArray=x=>Array.isArray(x)?x:(x?[x]:[]);
     const getSub=b=>asArray(b.subscriptions)[0]||{};
@@ -1735,6 +1754,7 @@
     q('adminBillingMix').textContent=`${monthlySubs.length} / ${annualSubs.length}`;
     q('adminBillingMixDetail').textContent='Monthly / annual active subscribers';
     const {data:plans,error:planError}=await state.client.from('plans').select('id,name,slug,invoice_limit,monthly_price,annual_price').order('sort_order');
+    if(renderSequence!==adminRenderSequence)return;
     if(planError){alert('Could not load subscription plans: '+planError.message);return}
     const body=q('adminBusinessRows'); body.innerHTML='';
     const ownerEmailCounts=new Map();
