@@ -117,14 +117,14 @@ function ensureGstBasisSelector(){
   shortcuts.style.gap='10px';
   const wrap=document.createElement('label');
   wrap.id='finGstBasisControl';
-  wrap.style.cssText='display:inline-flex;flex-direction:row;align-items:center;gap:8px;margin:0;white-space:nowrap;width:auto;flex:0 0 auto;';
+  wrap.style.cssText='box-sizing:border-box;display:inline-flex;flex-direction:row;align-items:center;gap:8px;height:44px;padding:0 12px;margin:0;white-space:nowrap;width:auto;flex:0 0 auto;border:1px solid #dbe3ef;border-radius:10px;background-color:#fff;cursor:pointer;';
   const basisLabel=document.createElement('span');
   basisLabel.textContent='Basis:';
   basisLabel.style.cssText='font:inherit;font-weight:600;white-space:nowrap;';
   wrap.appendChild(basisLabel);
   const select=document.createElement('select');
   select.id='finGstBasisSelect';
-  select.style.cssText='box-sizing:border-box;display:inline-block;width:auto;min-width:160px;max-width:180px;height:44px;margin:0;padding:0 30px 0 12px;font:inherit;border:1px solid #dbe3ef;border-radius:10px;background-color:#fff;color:#14233e;cursor:pointer;vertical-align:middle;';
+  select.style.cssText='box-sizing:border-box;display:inline-block;width:auto;min-width:125px;max-width:155px;height:40px;margin:0;padding:0 22px 0 0;font:inherit;border:0;outline-offset:2px;border-radius:0;background-color:transparent;color:#14233e;cursor:pointer;vertical-align:middle;';
   [['','Business default'],['invoice','Invoice'],['payments','Payments'],['hybrid','Hybrid']].forEach(([value,label])=>{const o=document.createElement('option');o.value=value;o.textContent=label;select.appendChild(o)});
   select.title='A different method is for review; filing requires an authorised basis change in Settings.';
   wrap.appendChild(select);
