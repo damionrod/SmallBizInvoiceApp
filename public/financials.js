@@ -111,15 +111,19 @@ function gstSelectedBasis(){return q('finGstBasisSelect')?.value||null}
 function ensureGstBasisSelector(){
   const from=q('finGstFrom'),to=q('finGstTo');
   if(!from||!to||q('finGstBasisSelect'))return;
+  const shortcuts=document.querySelector('.gst-period-shortcuts');
+  if(!shortcuts)return;
   const wrap=document.createElement('label');
   wrap.id='finGstBasisControl';
-  wrap.textContent='Calculation basis ';
+  wrap.style.cssText='display:inline-flex;align-items:center;gap:8px;margin:0;white-space:nowrap;';
+  wrap.textContent='Calculation basis';
   const select=document.createElement('select');
   select.id='finGstBasisSelect';
+  select.style.cssText='width:auto;min-width:145px;max-width:180px;height:44px;padding:0 30px 0 12px;font:inherit;border:1px solid #dbe3ef;border-radius:10px;background-color:#fff;color:#14233e;cursor:pointer;';
   [['','Business default'],['invoice','Invoice'],['payments','Payments'],['hybrid','Hybrid']].forEach(([value,label])=>{const o=document.createElement('option');o.value=value;o.textContent=label;select.appendChild(o)});
+  select.title='A different method is for review; filing requires an authorised basis change in Settings.';
   wrap.appendChild(select);
-  const note=document.createElement('small');note.id='finGstBasisHint';note.style.display='block';note.textContent='Business default uses the GST method in Settings. A different method is for review; filing requires an authorised basis change.';wrap.appendChild(note);
-  to.closest('label')?.after(wrap);
+  shortcuts.insertBefore(wrap,shortcuts.firstChild);
   select.addEventListener('change',()=>{state.gstCurrentCalc=null;renderGst()});
 }
 function gstRange(){return{from:q('finGstFrom').value,to:q('finGstTo').value}}
