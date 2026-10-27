@@ -126,6 +126,13 @@ function ensureGstBasisSelector(){
   select.id='finGstBasisSelect';
   select.style.cssText='box-sizing:border-box;display:inline-block;width:auto;min-width:125px;max-width:155px;height:40px;margin:0;padding:0 22px 0 0;font:inherit;border:0;outline-offset:2px;border-radius:0;background-color:transparent;color:#14233e;cursor:pointer;vertical-align:middle;';
   [['','Business default'],['invoice','Invoice'],['payments','Payments'],['hybrid','Hybrid']].forEach(([value,label])=>{const o=document.createElement('option');o.value=value;o.textContent=label;select.appendChild(o)});
+  // Global form-control CSS otherwise draws a second bordered box inside the basis control.
+  select.style.setProperty('border','0','important');
+  select.style.setProperty('border-radius','0','important');
+  select.style.setProperty('box-shadow','none','important');
+  select.style.setProperty('background-color','transparent','important');
+  select.style.setProperty('height','40px','important');
+  select.style.setProperty('margin','0','important');
   select.title='A different method is for review; filing requires an authorised basis change in Settings.';
   wrap.appendChild(select);
   shortcuts.insertBefore(wrap,shortcuts.firstChild);
