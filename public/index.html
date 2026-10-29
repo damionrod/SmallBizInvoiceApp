@@ -632,6 +632,28 @@
         #view-accountant .accountant-quick-range button{flex:1 1 135px;white-space:normal}
       }
     </style>
+    <style>
+      /* Balance Sheet drill-down: visual-only styles scoped to Financials. */
+      #finBalanceBody .fin-bs-section{border-bottom:1px solid var(--border,#e2e8f0)}
+      #finBalanceBody .fin-bs-section>summary{cursor:pointer;list-style:none;gap:12px;min-height:44px}
+      #finBalanceBody .fin-bs-section>summary::-webkit-details-marker{display:none}
+      #finBalanceBody .fin-bs-section>summary span:first-child:before{content:'▸';display:inline-block;margin-right:8px;color:var(--muted,#64748b)}
+      #finBalanceBody .fin-bs-section[open]>summary span:first-child:before{content:'▾'}
+      #finBalanceBody .fin-bs-accounts{padding:0 0 8px 14px}
+      #finBalanceBody .fin-bs-account{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;border:0;border-radius:6px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit;min-height:44px;padding:8px}
+      #finBalanceBody .fin-bs-account:hover,#finBalanceBody .fin-bs-account:focus-visible{background:rgba(91,110,220,.08);outline-offset:2px}
+      #finBalanceBody .fin-bs-account strong{white-space:nowrap}
+      #finBalanceBody .fin-bs-detail{margin-top:16px;min-width:0}
+      #finBalanceBody .fin-bs-detail[hidden]{display:none!important}
+      #finBalanceBody .fin-bs-detail .table-scroll{overflow-x:auto}
+      #finBalanceBody .fin-bs-detail table{min-width:620px}
+      @media(max-width:640px){
+        #finBalanceBody .fin-bs-section>summary,#finBalanceBody .fin-bs-account{font-size:13px}
+        #finBalanceBody .fin-bs-accounts{padding-left:5px}
+        #finBalanceBody .fin-bs-account{gap:8px}
+        #finBalanceBody .fin-bs-detail .card-title{flex-wrap:wrap;gap:8px}
+      }
+    </style>
     <section id="view-accountant" class="view">
       <div class="accountant-standalone-panel" id="report-panel-accountant">
         <div class="page-head compact-head"><div><h2>For My Accountant</h2><p>Prepare Frindly records for your accountant or accounting software.</p></div></div>
