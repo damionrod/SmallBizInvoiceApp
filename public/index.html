@@ -24,6 +24,20 @@
   <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+/* Dashboard obligations: scoped, responsive, and aligned with existing dashboard cards. */
+.dash-obligations .dash-obligation-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--border,#e2e8f0)}
+.dash-obligations .dash-obligation-summary strong{font-size:clamp(20px,3vw,27px)}
+.dash-obligations .dash-obligation-details>summary{cursor:pointer;padding:12px 0;font-weight:600}
+.dash-obligations .dash-obligation-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border,#e2e8f0)}
+.dash-obligations .dash-obligation-row span{min-width:0}
+.dash-obligations .dash-obligation-row small{display:block;margin-top:3px;color:var(--muted,#64748b);font-size:12px;font-weight:400}
+.dash-obligations .dash-obligation-row strong{flex-shrink:0;text-align:right;overflow-wrap:anywhere}
+.dash-obligations .dash-obligation-planning{padding-top:14px}
+.dash-obligations .dash-obligation-planning>strong{display:block;margin-bottom:5px}
+.dash-obligations .dash-footnote{margin-top:14px;line-height:1.5}
+@media(max-width:640px){.dash-obligations .dash-obligation-row{align-items:flex-start;font-size:13px}.dash-obligations .dash-obligation-row strong{max-width:43%}}
+</style>
 </head>
 <body>
   <div class="frindly-startup" id="frindlyStartup" hidden aria-live="polite" aria-busy="true">
