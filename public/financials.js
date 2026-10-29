@@ -196,7 +196,7 @@ async function renderBalanceSheet(){
   const [summary,trial,accounts]=await Promise.all([
     client().rpc('v6170b_balance_sheet',{p_as_of:to}),
     client().rpc('v6170b_trial_balance',{p_from:'1900-01-01',p_to:to}),
-    client().from('accounting_accounts').select('account_code,account_name,account_type,account_subtype').eq('business_id',bid).eq('archived',false)
+    client().from('accounting_accounts').select('account_code,account_name,account_type,account_subtype,normal_balance').eq('business_id',bid).eq('archived',false)
   ]);
   if(state.businessId!==bid||token!==balanceDrillToken)return;
   if(summary.error){host.innerHTML=`<div class="notice">${esc(summary.error.message)}</div>`;return}
@@ -211,7 +211,7 @@ async function renderBalanceSheet(){
   for(const t of trial.data||[]){
     const a=chart.get(String(t.account_code));
     if(!a||!groups[a.account_type]||Math.abs(num(t.balance))<.005)continue;
-    groups[a.account_type].push({code:String(t.account_code),name:a.account_name||t.account_name,balance:a.account_type==='equity'&&a.account_subtype==='drawings'?-num(t.balance):num(t.balance),subtype:a.account_subtype||''});
+    groups[a.account_type].push({code:String(t.account_code),name:a.account_name||t.account_name,balance:a.account_type==='equity'&&a.normal_balance==='debit'?-num(t.balance):num(t.balance),subtype:a.account_subtype||''});
   }
   const section=(key,label,total)=>{
     const rows=groups[key].sort((a,b)=>a.code.localeCompare(b.code));
