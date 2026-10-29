@@ -118,6 +118,44 @@
   function meaningfulLegacySettings(s){ return !!(s.company||s.trading||s.address||s.phone||s.email||s.gstNumber||s.logoData||((s.products||[]).some(p=>p&&p.name&&!['Service','Product','Other'].includes(p.name)))) }
   function sameJson(a,b){try{return JSON.stringify(a??null)===JSON.stringify(b??null)}catch{return false}}
 
+  let passwordRecoveryActive=false;
+  function passwordDialog(recovery=false){
+    let modal=q('frindlyPasswordDialog');
+    if(!modal){
+      modal=document.createElement('div');modal.id='frindlyPasswordDialog';
+      modal.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.58);display:none;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;';
+      modal.innerHTML='<form id="frindlyPasswordForm" style="box-sizing:border-box;width:100%;max-width:420px;max-height:90vh;overflow:auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 18px 55px rgba(0,0,0,.2);font:inherit;color:#17233b"><h2 id="frindlyPasswordTitle" style="margin:0 0 8px">Change password</h2><p id="frindlyPasswordInfo" style="margin:0 0 18px;color:#64748b">Choose a secure password for your Frindly account.</p><label style="display:block;margin-bottom:14px">New password<input id="frindlyNewPassword" type="password" autocomplete="new-password" required minlength="8" style="box-sizing:border-box;width:100%;margin-top:6px"></label><label style="display:block;margin-bottom:14px">Confirm new password<input id="frindlyConfirmPassword" type="password" autocomplete="new-password" required minlength="8" style="box-sizing:border-box;width:100%;margin-top:6px"></label><p id="frindlyPasswordError" role="alert" style="color:#b91c1c;min-height:18px"></p><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="frindlyPasswordCancel" class="secondary">Cancel</button><button type="submit" id="frindlyPasswordSave" class="primary">Save password</button></div></form>';
+      document.body.appendChild(modal);
+      q('frindlyPasswordCancel').onclick=()=>{if(passwordRecoveryActive){state.client.auth.signOut().finally(()=>location.replace(location.origin+location.pathname));}else modal.style.display='none'};
+      q('frindlyPasswordForm').onsubmit=async e=>{
+        e.preventDefault();const a=q('frindlyNewPassword').value,b=q('frindlyConfirmPassword').value,err=q('frindlyPasswordError'),btn=q('frindlyPasswordSave');
+        if(a.length<8){err.textContent='Use at least 8 characters.';return}
+        if(a!==b){err.textContent='Passwords do not match.';return}
+        btn.disabled=true;err.textContent='';
+        try{const {error}=await state.client.auth.updateUser({password:a});if(error)throw error;
+          q('frindlyPasswordForm').reset();modal.style.display='none';
+          if(passwordRecoveryActive){passwordRecoveryActive=false;await state.client.auth.signOut();location.replace(location.origin+location.pathname);return}
+          alert('Your password has been updated.');
+        }catch(ex){err.textContent=ex.message||'Unable to update password. Please try again.'}
+        finally{btn.disabled=false}
+      };
+    }
+    passwordRecoveryActive=!!recovery;
+    q('frindlyPasswordTitle').textContent=recovery?'Set new password':'Change password';
+    q('frindlyPasswordInfo').textContent=recovery?'Enter a new password to finish recovering your account.':'Choose a secure password for your Frindly account.';
+    q('frindlyPasswordError').textContent='';
+    q('frindlyPasswordForm').reset();modal.style.display='flex';q('frindlyNewPassword').focus();
+  }
+  function installPasswordSecurity(){
+    const team=q('teamAccessCard');if(!team||q('frindlyMySecurity'))return;
+    const card=document.createElement('div');card.id='frindlyMySecurity';card.className='card account-security-card';
+    card.innerHTML='<div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3>My Security</h3><p class="hint">Manage the password for your own Frindly login.</p></div><button class="secondary" type="button" id="frindlyChangePassword">Change Password</button></div>';
+    team.parentNode.insertBefore(card,team);
+    q('frindlyChangePassword').onclick=()=>passwordDialog(false);
+    const title=team.querySelector('.card-title h3');if(title)title.textContent='Users & Permissions';
+    const section=card.parentElement;if(section&&!q('frindlySecurityHeading')){const heading=document.createElement('h2');heading.id='frindlySecurityHeading';heading.textContent='Security & Access';heading.style.margin='0 0 12px';section.insertBefore(heading,card)}
+  }
+  function recoveryLinkPresent(){const params=new URLSearchParams(location.hash.slice(1));const query=new URLSearchParams(location.search);return params.get('type')==='recovery'||query.get('type')==='recovery'}
   async function init(){
     document.body.classList.add('auth-locked');
     if(!C.supabaseUrl || !C.supabaseKey || !window.supabase){
@@ -125,14 +163,17 @@
     }
     state.client=window.supabase.createClient(C.supabaseUrl,C.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
     bindAuthUI();
+    if(recoveryLinkPresent()){passwordRecoveryActive=true;}
     await loadSignupPlans();
     await renderPublicPlansFeatures();
     await prepareInviteMode();
     if(state.referralCode&&!state.inviteToken){switchAuthTab('signup');message('You were referred to Frindly. Create your business account to continue.');}
     const {data:{session}}=await state.client.auth.getSession();
-    if(session) await enterOnce(session); else q('authShell').classList.add('open');
+    if(passwordRecoveryActive&&session){q('authShell').classList.add('open');passwordDialog(true)} else if(session) await enterOnce(session); else q('authShell').classList.add('open');
     state.client.auth.onAuthStateChange((event,session)=>{
       if(event==='SIGNED_OUT'){location.reload();return}
+      if(event==='PASSWORD_RECOVERY'&&session){passwordDialog(true);return}
+      if(passwordRecoveryActive)return;
       if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session&&!state.loadedApp){
         // Supabase auth events run under its session lock. Do not await database calls here.
         setTimeout(()=>enterOnce(session).catch(err=>{console.error('Loading signed-in account failed',err);q('authShell').classList.add('open');message(err?.message||'Unable to load your account. Refresh and try again.','error')}),0);
@@ -643,7 +684,7 @@
     const modal=q('accountModal'), account=q('centralAccountSettings'), users=q('centralUserSettings'), subscription=q('centralSubscriptionSettings'), job=q('centralJobSettings');
     if(modal&&account){['account-profile-card','account-email-card','account-preferences-card'].forEach(cls=>{const el=modal.querySelector('.'+cls);if(el)account.appendChild(el)})}
     if(modal&&q('centralPlanDataSettings')){const el=modal.querySelector('.account-export-card');if(el)q('centralPlanDataSettings').appendChild(el)}
-    if(modal&&users){const el=q('teamAccessCard');if(el)users.appendChild(el)}
+    if(modal&&users){const el=q('teamAccessCard');if(el)users.appendChild(el);installPasswordSecurity()}
     if(modal&&subscription){const el=q('subscriptionCard');if(el)subscription.appendChild(el)}
     if(job){const el=q('jc-panel-settings');if(el){el.classList.add('active');job.appendChild(el)}}
     movePanelChildren('payments','centralPaymentsSettings');
