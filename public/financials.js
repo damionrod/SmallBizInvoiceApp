@@ -532,7 +532,7 @@ async function dashboardSnapshot(){
   const fyStart=fyBounds(now).start, elapsed=Math.max(1,(now.getFullYear()-fyStart.getFullYear())*12+now.getMonth()-fyStart.getMonth()+1);
   const fyMonths=[];for(let d=new Date(fyStart.getFullYear(),fyStart.getMonth(),1);d<=now;d=new Date(d.getFullYear(),d.getMonth()+1,1)){const v=calcPeriod(iso(d),iso(new Date(d.getFullYear(),d.getMonth()+1,0)));fyMonths.push({label:d.toLocaleDateString('en-NZ',{month:'long'}),sales:v.sales})}
   const best=fyMonths.reduce((a,x)=>!a||x.sales>a.sales?x:a,null);
-  return {businessId:state.businessId,month:{from:month.from,to:month.to,...current},previousMonth:previous,fy:{from:fy.from,to:fy.to,...ytd},previousFy:priorFy,trend,categories,categoryPeriods,averageMonthlySales:ytd.sales/elapsed,bestSalesMonth:best,monthsCompleted:elapsed,gstPosition:ytd.gstNet};
+  return {businessId:state.businessId,month:{from:month.from,to:month.to,...current},previousMonth:previous,fy:{from:fy.from,to:fy.to,...ytd},previousFy:priorFy,trend,categories,categoryPeriods,averageMonthlySales:ytd.sales/elapsed,bestSalesMonth:best,monthsCompleted:elapsed,gstPosition:ytd.gstNet,taxPlanning:{enabled:!!state.settings?.provisional_tax_enabled,entity:state.settings?.business_entity_type||'company',country:country(),fyEstimatedIncomeTax:ytd.tax,fyFrom:fy.from,fyTo:fy.to}};
 }
 async function managementProfitLoss(from,to){
   const businessId=biz()?.id||null;
