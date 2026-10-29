@@ -129,39 +129,12 @@ async function renderPnL(){
     existing.amount+=group==='income'?num(entry.credit)-num(entry.debit):num(entry.debit)-num(entry.credit);
     existing.transactions.push(entry);map.set(code,existing);
   }
-  // Legacy expenses were posted to generic account 6000 despite having saved categories.
-  // Present their original categories without altering posted journals or their balances.
-  const expenseIds=[...new Set((groups.expense.get('6000')?.transactions||[]).filter(t=>t.source_type==='expense'&&t.source_id).map(t=>t.source_id))];
-  let categoryDetails=new Map();
-  if(expenseIds.length){
-    const [expenseResult,categoryResult]=await Promise.all([
-      c.from('expenses').select('id,category_id,expense_number').eq('business_id',bid).in('id',expenseIds),
-      c.from('expense_categories').select('id,name').eq('business_id',bid)
-    ]);
-    if(state.businessId!==bid)return;
-    if(!expenseResult.error&&!categoryResult.error){
-      const expenseById=new Map((expenseResult.data||[]).map(e=>[e.id,e]));
-      const categoryById=new Map((categoryResult.data||[]).map(c=>[c.id,c.name]));
-      for(const t of groups.expense.get('6000')?.transactions||[]){
-        const source=expenseById.get(t.source_id);
-        const label=t.source_type==='expense'&&source?(categoryById.get(source.category_id)||'Uncategorised'):'Uncategorised / other journals';
-        const entry=categoryDetails.get(label)||{name:label,amount:0,transactions:[]};
-        entry.amount+=num(t.debit)-num(t.credit);
-        entry.transactions.push(t);
-        categoryDetails.set(label,entry);
-      }
-    }
-  }
+  // Historical expense reclassifications are now posted as separate balanced journals.
+  // Show only real ledger accounts: the old category split would double-display expenses
+  // and expose the generic account's offsetting credit as a misleading negative row.
   const groupHtml=(label,key,total)=>{
     const accounts=[...groups[key].values()].filter(a=>Math.abs(a.amount)>0.005).sort((a,b)=>a.code.localeCompare(b.code));
     const detail=accounts.map(a=>{
-      const subcategories=key==='expense'&&a.code==='6000'?[...categoryDetails.values()].filter(v=>Math.abs(v.amount)>0.005).sort((x,y)=>x.name.localeCompare(y.name)):[];
-      const renderTransactions=items=>items.map(t=>`<tr><td>${esc(t.journal_date)}</td><td>${esc(t.source_reference||t.journal_number||'')}</td><td>${esc(t.description||t.source_type||'')}</td><td style="text-align:right">${money(key==='income'?num(t.credit)-num(t.debit):num(t.debit)-num(t.credit))}</td></tr>`).join('');
-      const table=items=>`<div style="overflow-x:auto"><table style="width:100%;font-size:0.88em"><thead><tr><th>Date</th><th>Reference</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead><tbody>${renderTransactions(items)}</tbody></table></div>`;
-      if(subcategories.length){
-        const categorySum=subcategories.reduce((sum,v)=>sum+v.amount,0);
-        if(Math.abs(categorySum-a.amount)<0.015)return subcategories.map(v=>`<details style="margin:5px 0 5px 18px"><summary style="cursor:pointer;padding:7px 4px;display:list-item"><span>${esc(v.name)}</span><strong style="float:right">${money(v.amount)}</strong></summary>${table(v.transactions)}</details>`).join('');
-      }
       const tx=a.transactions.map(t=>`<tr><td>${esc(t.journal_date)}</td><td>${esc(t.source_reference||t.journal_number||'')}</td><td>${esc(t.description||t.source_type||'')}</td><td style="text-align:right">${money(key==='income'?num(t.credit)-num(t.debit):num(t.debit)-num(t.credit))}</td></tr>`).join('');
       return `<details style="margin:5px 0 5px 18px"><summary style="cursor:pointer;padding:7px 4px;display:list-item"><span>${esc(a.code)} — ${esc(a.name)}</span><strong style="float:right">${money(a.amount)}</strong></summary><div style="overflow-x:auto"><table style="width:100%;font-size:0.88em"><thead><tr><th>Date</th><th>Reference</th><th>Description</th><th style="text-align:right">Amount</th></tr></thead><tbody>${tx}</tbody></table></div></details>`;
     }).join('');
