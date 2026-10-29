@@ -608,22 +608,57 @@
 
     </section>
 
+    <style>
+      /* Accountant Centre only: preserve Frindly's existing typography and buttons. */
+      #view-accountant .accountant-simple-check{display:flex;flex-wrap:wrap;align-items:end;gap:12px}
+      #view-accountant .accountant-simple-check label{flex:1 1 210px;min-width:0}
+      #view-accountant .accountant-simple-check button{flex:0 1 auto;min-height:40px}
+      #view-accountant .accountant-share-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+      #view-accountant .accountant-share-card>div{flex:1 1 250px;min-width:0}
+      #view-accountant .accountant-advanced-tools>summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:5px 12px;align-items:baseline;list-style:revert}
+      #view-accountant .accountant-advanced-tools>summary .hint{font-weight:400}
+      #view-accountant .accountant-advanced-tools>.hint{margin:12px 0}
+      #view-accountant .accountant-advanced-grid{margin-top:12px}
+      #view-accountant .accountant-advanced-holiday{margin-top:12px}
+      #view-accountant .accountant-original-checks[hidden]{display:none!important}
+      @media(max-width:640px){
+        #view-accountant .accountant-simple-check{display:grid;grid-template-columns:minmax(0,1fr)}
+        #view-accountant .accountant-simple-check button,#view-accountant .accountant-share-card button{width:100%;min-height:44px}
+        #view-accountant .accountant-share-card{display:grid;grid-template-columns:minmax(0,1fr)}
+        #view-accountant .accountant-advanced-grid{display:grid;grid-template-columns:minmax(0,1fr)}
+        #view-accountant .accountant-advanced-grid .accountant-action-card{min-width:0}
+        #view-accountant .accountant-date-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+        #view-accountant .accountant-quick-range{display:flex;flex-wrap:wrap;gap:8px}
+        #view-accountant .accountant-quick-range button{flex:1 1 135px;white-space:normal}
+      }
+    </style>
     <section id="view-accountant" class="view">
       <div class="accountant-standalone-panel" id="report-panel-accountant">
         <div class="page-head compact-head"><div><h2>For My Accountant</h2><p>Prepare Frindly records for your accountant or accounting software.</p></div></div>
-<div class="card" id="accountantReadinessCard"><div class="card-title"><div><h3>Check My Records</h3><p class="hint">Review whether your records are ready to send to your accountant.</p></div></div><div class="form-grid compact"><label>Year end date<input id="finYearEndDate" type="date"></label><div><button class="secondary" id="finYearEndRun" type="button">Run readiness check</button></div><div><button class="secondary" id="finAccountingIntegrityRun" type="button">Run accounting integrity checks</button></div><div><button class="secondary" id="finHolidayLiabilityPost" type="button">Post holiday liability</button></div></div><div id="finYearEndResult" class="notice" style="margin-top:12px">Choose your financial year end and run the check.</div><div id="finAccountingIntegrityResult" class="notice" style="margin-top:12px" hidden></div></div>
+<div class="card" id="accountantReadinessCard">
+          <div class="card-title"><div><h3>1. Check my accounts</h3><p class="hint">Check your year-end records and accounting accuracy together.</p></div></div>
+          <div class="accountant-simple-check"><label>Year end date<input id="finYearEndDate" type="date"></label><button class="primary" id="accountantCombinedCheck" type="button">Check my accounts</button></div>
+          <div class="accountant-original-checks" hidden><button id="finYearEndRun" type="button">Run readiness check</button><button id="finAccountingIntegrityRun" type="button">Run accounting integrity checks</button></div>
+          <div id="finYearEndResult" class="notice" style="margin-top:12px">Choose your financial year end and run the check.</div><div id="finAccountingIntegrityResult" class="notice" style="margin-top:12px" hidden></div>
+        </div>
         <div class="card accountant-period-card">
           <div class="card-title"><div><h3>Accounting Period</h3><p class="hint">Choose the records to include.</p></div></div>
           <div class="quick-range accountant-quick-range"><button class="secondary" data-accountant-range="this_month">This month</button><button class="secondary" data-accountant-range="last_month">Last month</button><button class="secondary" data-accountant-range="fy">Current financial year</button><button class="secondary" data-accountant-range="previous_fy">Previous financial year</button></div>
           <div class="accountant-date-grid"><label>From<input id="accountantFrom" type="date"></label><label>To<input id="accountantTo" type="date"></label></div>
         </div>
-        <div class="accountant-action-grid">
+        <div class="card accountant-share-card"><div><h3>2. Share with my accountant</h3><p class="hint">Download financial reports, transactions, GST, payroll and ledger checks in one ZIP file.</p></div><button class="primary" id="downloadAccountantPack" type="button">Download Accountant Pack</button></div>
+        <details class="card accountant-advanced-tools" id="accountantAdvancedTools"><summary><strong>3. Advanced tools</strong><span class="hint">Xero export, accounting setup and controlled adjustments</span></summary>
+          <p class="hint">These tools are for accountants and advanced accounting tasks. Posting entries changes your ledger.</p>
+                  <div class="accountant-action-grid accountant-advanced-grid">
           <div class="card accountant-action-card"><div><h3>Xero Export</h3><p class="hint">Validates account and GST mappings before creating Xero-compatible CSV files.</p></div><label>Export<select id="accountantXeroType"><option value="all">Sales invoices + supplier bills</option><option value="sales">Sales invoices only</option><option value="purchases">Supplier bills / expenses only</option></select></label><button class="primary" id="prepareXeroExport">Prepare Xero Export</button></div>
-          <div class="card accountant-action-card"><div><h3>Generic Accountant Pack</h3><p class="hint">ZIP of source transaction CSVs suitable for an accountant or another accounting platform.</p></div><button class="primary" id="downloadAccountantPack">Download Accountant Pack</button></div>
-          <div class="card accountant-action-card"><div><h3>Post Accounting Ledger</h3><p class="hint">Creates balanced posted journals for invoices, bills, payments, eligible credits/refunds and equipment depreciation in the selected period. Already posted source records are skipped; refunds that are not safely accounting-backed remain for review.</p><strong id="ledgerPostStatus">Ready when chart and mappings are complete</strong></div><button class="secondary" id="postAccountingLedger" type="button">Post Ledger Entries</button></div>
-          <div class="card accountant-action-card"><div><h3>Accounting Setup</h3><p class="hint">Manage Frindly accounts, expense categories and optional Xero export mappings.</p><strong id="accountingMappingProgress">0% complete</strong></div><button class="secondary" id="toggleAccountingMapping">Configure Accounting Setup</button></div>
+
+          <div class="card accountant-action-card"><div><h3>Historical ledger posting</h3><p class="hint">Creates balanced posted journals for invoices, bills, payments, eligible credits/refunds and equipment depreciation in the selected period. Already posted source records are skipped; refunds that are not safely accounting-backed remain for review.</p><strong id="ledgerPostStatus">Ready when chart and mappings are complete</strong></div><button class="secondary" id="postAccountingLedger" type="button">Post Ledger Entries</button></div>
+          <div class="card accountant-action-card"><div><h3>Accounting setup</h3><p class="hint">Manage Frindly accounts, expense categories and optional Xero export mappings.</p><strong id="accountingMappingProgress">0% complete</strong></div><button class="secondary" id="toggleAccountingMapping">Configure Accounting Setup</button></div>
         </div>
         <div class="card" id="accountantValidation"><div class="hint">Select a period to check export readiness.</div></div>
+
+          <div class="card accountant-advanced-holiday"><h3>Holiday pay liability</h3><p class="hint">Posts an accounting adjustment only when the required leave-pay evidence is available.</p><button class="secondary" id="finHolidayLiabilityPost" type="button">Post holiday liability</button></div>
+        </details>
         <div id="accountingMappingSection" hidden>
           <p class="hint">Use Chart of Accounts to manage ledger accounts and Expense Categories to control future expense allocation. Open Advanced only if you need Xero export settings. These controls do not post journals.</p>
           <details class="card" open><summary style="cursor:pointer;font-weight:700;padding:6px 0">Frindly Accounting Setup · Accounts &amp; Expense Categories</summary>
