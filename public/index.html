@@ -26,6 +26,26 @@
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 /* Dashboard obligations: scoped, responsive, and aligned with existing dashboard cards. */
+/* Compact summary tiles: reuse existing dashboard typography and colors. */
+.dash-obligations .dash-obligation-compact{padding-top:2px}
+.dash-obligations .dash-obligation-summary{padding:8px 0 12px;border:0}
+.dash-obligations .dash-obligation-summary span{font-size:13px;color:var(--muted,#64748b)}
+.dash-obligations .dash-obligation-summary strong{font-size:clamp(22px,3vw,28px)}
+.dash-obligations .dash-obligation-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.dash-obligations .dash-obligation-tile{display:flex;flex-direction:column;gap:8px;min-width:0;border-radius:12px;padding:14px 12px;background:#f3f7ff}
+.dash-obligations .dash-obligation-tile.purple{background:#f5f1ff}
+.dash-obligations .dash-obligation-tile.orange{background:#fff6eb}
+.dash-obligations .dash-obligation-tile span{font-size:12px;color:#64748b}
+.dash-obligations .dash-obligation-tile strong{font-size:clamp(15px,2vw,20px);overflow-wrap:anywhere}
+.dash-obligations .dash-obligation-details{margin-top:12px}
+.dash-obligations .dash-obligation-details>summary{padding:9px 0;font-size:13px}
+.dash-obligations .dash-obligation-breakdown{padding-top:4px}
+.dash-obligations .dash-obligation-row{padding:9px 0;font-size:13px}
+.dash-obligations .dash-obligation-total{font-weight:700}
+.dash-obligations .dash-obligation-future{display:flex;justify-content:space-between;gap:12px;padding:9px 0;font-size:12px;color:var(--muted,#64748b)}
+.dash-obligations .dash-obligation-review{margin-top:10px;padding:9px 11px;border-radius:9px;background:#fff7e8;color:#9a5c13;font-size:12px}
+@media(max-width:640px){.dash-obligations .dash-obligation-tiles{gap:6px}.dash-obligations .dash-obligation-tile{padding:10px 7px}.dash-obligations .dash-obligation-tile strong{font-size:clamp(12px,3.4vw,16px)}}
+
 .dash-obligations .dash-obligation-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--border,#e2e8f0)}
 .dash-obligations .dash-obligation-summary strong{font-size:clamp(20px,3vw,27px)}
 .dash-obligations .dash-obligation-details>summary{cursor:pointer;padding:12px 0;font-weight:600}
