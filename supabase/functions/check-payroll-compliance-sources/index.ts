@@ -48,9 +48,12 @@ Deno.serve(async req=>{
     const checked=new Date().toISOString();
     try{
       const landing=await fetch(s.source_url,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});if(!landing.ok)throw new Error(`Official source returned HTTP ${landing.status}`);
-      const html=await landing.text();const spec=findSpec(html,s.source_url);if(!spec)throw new Error('Official payroll specification document link was not found');
-      const doc=await fetch(spec,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});if(!doc.ok)throw new Error(`Official specification returned HTTP ${doc.status}`);
-      const bytes=await doc.arrayBuffer();const fp=await sha(bytes);const version=versionFrom(html,spec);const previous=s.last_known_fingerprint||null;const changed=!!previous&&previous!==fp;
+      const html=await landing.text();
+      const isAccSource=String(s.source_identifier||'').toLowerCase()==='acc-levy-results';
+      if(isAccSource){const sourceUrl=new URL(s.source_url);if(sourceUrl.protocol!=='https:'||sourceUrl.hostname!=='www.acc.co.nz')throw new Error('ACC source must be an official ACC HTTPS page');if(!/maximum earnings|maximum liable earnings/i.test(html)||!/2026\\/27/.test(html))throw new Error('ACC levy limits could not be verified in the official source');}
+      const spec=isAccSource?s.source_url:findSpec(html,s.source_url);if(!spec)throw new Error('Official payroll specification document link was not found');
+      const doc=isAccSource?null:await fetch(spec,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});if(doc&&!doc.ok)throw new Error(`Official specification returned HTTP ${doc.status}`);
+      const bytes=isAccSource?new TextEncoder().encode((html.match(/Minimum and maximum liable earnings changes[\\s\\S]{0,12000}/i)||[])[0]||html).buffer:await doc!.arrayBuffer();const fp=await sha(bytes);const version=isAccSource?'ACC levy limits':versionFrom(html,spec);const previous=s.last_known_fingerprint||null;const changed=!!previous&&previous!==fp;
       if(!previous){
         await admin.from('payroll_compliance_sources').update({last_checked_at:checked,last_successful_check_at:checked,last_known_fingerprint:fp,last_known_version:version,last_source_reference:spec,last_check_status:'no_change',last_error:null,updated_at:checked}).eq('id',s.id);
       }else if(changed){
