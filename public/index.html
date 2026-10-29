@@ -637,7 +637,7 @@
         <div class="page-head compact-head"><div><h2>For My Accountant</h2><p>Prepare Frindly records for your accountant or accounting software.</p></div></div>
 <div class="card" id="accountantReadinessCard">
           <div class="card-title"><div><h3>1. Check my accounts</h3><p class="hint">Check your year-end records and accounting accuracy together.</p></div></div>
-          <div class="accountant-simple-check"><label>Year end date<input id="finYearEndDate" type="date"></label><button class="primary" id="accountantCombinedCheck" type="button">Check my accounts</button></div>
+          <div class="accountant-simple-check"><label>Year end date<input id="finYearEndDate" type="date"></label><button class="primary" id="accountantCombinedCheck" type="button" onclick="document.getElementById('finYearEndRun')?.click();document.getElementById('finAccountingIntegrityRun')?.click()">Check my accounts</button></div>
           <div class="accountant-original-checks" hidden><button id="finYearEndRun" type="button">Run readiness check</button><button id="finAccountingIntegrityRun" type="button">Run accounting integrity checks</button></div>
           <div id="finYearEndResult" class="notice" style="margin-top:12px">Choose your financial year end and run the check.</div><div id="finAccountingIntegrityResult" class="notice" style="margin-top:12px" hidden></div>
         </div>
