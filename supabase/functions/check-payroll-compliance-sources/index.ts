@@ -50,7 +50,7 @@ Deno.serve(async req=>{
       const landing=await fetch(s.source_url,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});if(!landing.ok)throw new Error(`Official source returned HTTP ${landing.status}`);
       const html=await landing.text();
       const isAccSource=String(s.source_identifier||'').toLowerCase()==='acc-levy-results';
-      if(isAccSource){const sourceUrl=new URL(s.source_url);if(sourceUrl.protocol!=='https:'||sourceUrl.hostname!=='www.acc.co.nz')throw new Error('ACC source must be an official ACC HTTPS page');if(!html.includes('2026/27'))throw new Error('ACC levy year not found on official source');}
+      if(isAccSource){const sourceUrl=new URL(s.source_url);if(sourceUrl.protocol!=='https:'||sourceUrl.hostname!=='www.acc.co.nz')throw new Error('ACC source must be an official ACC HTTPS page');if(!html.includes('156,641'))throw new Error('ACC earnings limit not found on official source');}
       const spec=isAccSource?s.source_url:findSpec(html,s.source_url);if(!spec)throw new Error('Official payroll specification document link was not found');
       const doc=isAccSource?null:await fetch(spec,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});if(doc&&!doc.ok)throw new Error(`Official specification returned HTTP ${doc.status}`);
       const bytes=isAccSource?new TextEncoder().encode(html).buffer:await doc!.arrayBuffer();const fp=await sha(bytes);const version=isAccSource?'ACC levy limits':versionFrom(html,spec);const previous=s.last_known_fingerprint||null;const changed=!!previous&&previous!==fp;
