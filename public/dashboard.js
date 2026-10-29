@@ -59,7 +59,7 @@ function obligationsHtml(o,fin){
   const rows=[['GST',o.totals.gst],['PAYE, KiwiSaver & wages',payroll],['Holiday pay',o.totals.holiday],['Supplier bills',o.totals.suppliers],['ACC payable',o.totals.acc],['Other payables',o.totals.other]];
   const detail=rows.map(([label,value])=>`<div class="dash-obligation-row"><span>${esc(label)}</span><strong>${money(value)}</strong></div>`).join('');
   const a=window.SAAS?.state?.business?.settings?.acc_levy_planning;
-  const rawAcc=a?.method==='bill'?Number(a.bill):a?.method==='rate'?Number(a.rate)*Number(a.earnings)/100:NaN;
+  const rawAcc=a?.method==='bill'?Number(a.bill):a?.method==='rate'?Number(a.rate)*Number(a.earnings)/100:a?.method==='payroll'?Number(fin?.accPayroll?.earnings)*Number(a.rate)/100:NaN;
   const accAmount=Number.isFinite(rawAcc)&&rawAcc>=0?rawAcc:null;
   const accMonths=a?.due?Math.max(1,Math.ceil((new Date(a.due+'T12:00:00')-new Date())/(86400000*30.4375))):12;
   const leaveReview=o.leave?.review||0;
