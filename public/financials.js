@@ -211,7 +211,7 @@ async function renderBalanceSheet(){
   for(const t of trial.data||[]){
     const a=chart.get(String(t.account_code));
     if(!a||!groups[a.account_type]||Math.abs(num(t.balance))<.005)continue;
-    groups[a.account_type].push({code:String(t.account_code),name:a.account_name||t.account_name,balance:num(t.balance),subtype:a.account_subtype||''});
+    groups[a.account_type].push({code:String(t.account_code),name:a.account_name||t.account_name,balance:a.account_type==='equity'&&a.account_subtype==='drawings'?-num(t.balance):num(t.balance),subtype:a.account_subtype||''});
   }
   const section=(key,label,total)=>{
     const rows=groups[key].sort((a,b)=>a.code.localeCompare(b.code));
