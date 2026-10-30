@@ -47,13 +47,39 @@ Deno.serve(async req=>{
   for(const s of sources||[]){
     const checked=new Date().toISOString();
     try{
-      const landing=await fetch(s.source_url,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});if(!landing.ok)throw new Error(`Official source returned HTTP ${landing.status}`);
-      const html=await landing.text();
       const isAccSource=String(s.source_identifier||'').toLowerCase()==='acc-levy-results';
-      if(isAccSource){const sourceUrl=new URL(s.source_url);if(sourceUrl.protocol!=='https:'||sourceUrl.hostname!=='www.acc.co.nz')throw new Error('ACC source must be an official ACC HTTPS page');if(!/levy results|levy consultation|maximum liable earnings|maximum earnings/i.test(html))throw new Error('ACC official levy page content could not be verified');}
-      const spec=isAccSource?s.source_url:findSpec(html,s.source_url);if(!spec)throw new Error('Official payroll specification document link was not found');
-      const doc=isAccSource?null:await fetch(spec,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});if(doc&&!doc.ok)throw new Error(`Official specification returned HTTP ${doc.status}`);
-      const bytes=isAccSource?new TextEncoder().encode(html).buffer:await doc!.arrayBuffer();const fp=await sha(bytes);const version=isAccSource?'ACC levy limits':versionFrom(html,spec);const previous=s.last_known_fingerprint||null;const changed=!!previous&&previous!==fp;
+      let spec=s.source_url,version:string|null=null,bytes:ArrayBuffer;
+      if(isAccSource){
+        const urls=[s.source_url,'https://www.acc.co.nz/for-business/received-an-invoice/calculate-your-levies'];
+        const failures:string[]=[];
+        let verified=false;
+        for(const candidate of urls){
+          const u=new URL(candidate);
+          if(u.protocol!=='https:'||u.hostname!=='www.acc.co.nz')throw new Error('Invalid ACC source domain');
+          try{
+            const response=await fetch(candidate,{headers:{'Accept':'text/html','User-Agent':'Mozilla/5.0'}});
+            const html=await response.text();
+            const plain=html.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\\s+/g,' ');
+            const values=['152,790','156,641','160,244'].map(v=>plain.includes(v));
+            if(response.ok&&values.every(Boolean)&&/maximum (?:liable )?(?:earnings|income)/i.test(plain)){
+              bytes=new TextEncoder().encode('ACC caps:2025/26=152790;2026/27=156641;2027/28=160244').buffer;
+              spec=candidate;version='ACC maximum earnings 2025/26–2027/28';verified=true;break;
+            }
+            failures.push('HTTP '+response.status+', type '+(response.headers.get('content-type')||'unknown')+', bytes '+html.length+', matches '+values.map(v=>v?'1':'0').join(''));
+          }catch(e){failures.push(e instanceof Error?e.message:'Fetch failed')}
+        }
+        if(!verified)throw new Error('ACC tables not verified: '+failures.join(' | ').slice(0,350));
+      }else{
+        const landing=await fetch(s.source_url,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});
+        if(!landing.ok)throw new Error('Official source returned HTTP '+landing.status);
+        const html=await landing.text();
+        spec=findSpec(html,s.source_url);
+        if(!spec)throw new Error('Official payroll specification document link was not found');
+        const doc=await fetch(spec,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});
+        if(!doc.ok)throw new Error('Official specification returned HTTP '+doc.status);
+        bytes=await doc.arrayBuffer();version=versionFrom(html,spec);
+      }
+      const fp=await sha(bytes!);const previous=s.last_known_fingerprint||null;const changed=!!previous&&previous!==fp;
       if(!previous){
         await admin.from('payroll_compliance_sources').update({last_checked_at:checked,last_successful_check_at:checked,last_known_fingerprint:fp,last_known_version:version,last_source_reference:spec,last_check_status:'no_change',last_error:null,updated_at:checked}).eq('id',s.id);
       }else if(changed){
