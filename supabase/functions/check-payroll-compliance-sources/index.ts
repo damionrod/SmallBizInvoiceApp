@@ -50,25 +50,20 @@ Deno.serve(async req=>{
       const isAccSource=String(s.source_identifier||'').toLowerCase()==='acc-levy-results';
       let spec=s.source_url,version:string|null=null,bytes:ArrayBuffer;
       if(isAccSource){
-        const urls=[s.source_url,'https://www.acc.co.nz/for-business/received-an-invoice/calculate-your-levies'];
-        const failures:string[]=[];
-        let verified=false;
-        for(const candidate of urls){
-          const u=new URL(candidate);
-          if(u.protocol!=='https:'||u.hostname!=='www.acc.co.nz')throw new Error('Invalid ACC source domain');
-          try{
-            const response=await fetch(candidate,{headers:{'Accept':'text/html','User-Agent':'Mozilla/5.0'}});
-            const html=await response.text();
-            const plain=html.replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\\s+/g,' ');
-            const values=['152,790','156,641','160,244'].map(v=>plain.includes(v));
-            if(response.ok&&values.every(Boolean)&&/maximum (?:liable )?(?:earnings|income)/i.test(plain)){
-              bytes=new TextEncoder().encode('ACC caps:2025/26=152790;2026/27=156641;2027/28=160244').buffer;
-              spec=candidate;version='ACC maximum earnings 2025/26–2027/28';verified=true;break;
-            }
-            failures.push('HTTP '+response.status+', type '+(response.headers.get('content-type')||'unknown')+', bytes '+html.length+', matches '+values.map(v=>v?'1':'0').join(''));
-          }catch(e){failures.push(e instanceof Error?e.message:'Fetch failed')}
-        }
-        if(!verified)throw new Error('ACC tables not verified: '+failures.join(' | ').slice(0,350));
+        // Regulation 6 is the authoritative employer Work Account levy cap.
+        const regulation='https://www.legislation.govt.nz/regulation/public/2025/0017/latest/whole.html';
+        const response=await fetch(regulation,{headers:{'Accept':'text/html','User-Agent':'Frindly-Payroll-Compliance-Monitor/1.0'}});
+        if(!response.ok)throw new Error('Official legislation returned HTTP '+response.status);
+        const html=await response.text();
+        const plain=html.replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\\s+/g,' ');
+        const section=plain.match(/6\\s+Maximum earnings on which levy payable([\\s\\S]{0,4500}?)7\\s+Minimum levy/i)?.[1]||'';
+        const amounts=[...section.matchAll(/\\$\\s*([\\d,]+)\\s+in the\\s+(202[567]\\/2[678])\\s+tax year/gi)]
+          .map(m=>({year:m[2],value:Number(m[1].replace(/,/g,''))}));
+        const caps=['2025/26','2026/27','2027/28'].map(y=>amounts.find(x=>x.year===y)?.value);
+        if(caps.some(v=>!v||v<100000||v>500000))
+          throw new Error('Official Work Account regulation 6 could not be parsed (HTTP '+response.status+', bytes '+html.length+', matches '+caps.filter(Boolean).length+')');
+        bytes=new TextEncoder().encode(JSON.stringify(caps)).buffer;
+        spec=regulation;version='Work Account regulation 6';
       }else{
         const landing=await fetch(s.source_url,{headers:{'User-Agent':'Finlo-Payroll-Compliance-Monitor/1.0'}});
         if(!landing.ok)throw new Error('Official source returned HTTP '+landing.status);
