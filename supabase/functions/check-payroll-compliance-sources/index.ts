@@ -55,9 +55,11 @@ Deno.serve(async req=>{
         const response=await fetch(regulation,{headers:{'Accept':'text/html','User-Agent':'Frindly-Payroll-Compliance-Monitor/1.0'}});
         if(!response.ok)throw new Error('Official legislation returned HTTP '+response.status);
         const html=await response.text();
-        const plain=html.replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\\s+/g,' ');
-        const section=plain.match(/6\\s+Maximum earnings on which levy payable([\\s\\S]{0,4500}?)7\\s+Minimum levy/i)?.[1]||'';
-        const amounts=[...section.matchAll(/\\$\\s*([\\d,]+)\\s+in the\\s+(202[567]\\/2[678])\\s+tax year/gi)]
+        const plain=html.replace(/<[^>]*>/g,' ').replace(/&nbsp;|&#160;/gi,' ').replace(/\s+/g,' ');
+        const marker='Maximum earnings on which levy payable';
+        const offset=plain.lastIndexOf(marker);
+        const section=offset>=0?plain.slice(offset,offset+3500):'';
+        const amounts=[...section.matchAll(/\$\s*([\d,]+)\s+in the\s+(202[567]\/2[678])\s+tax year/gi)]
           .map(m=>({year:m[2],value:Number(m[1].replace(/,/g,''))}));
         const caps=['2025/26','2026/27','2027/28'].map(y=>amounts.find(x=>x.year===y)?.value);
         if(caps.some(v=>!v||v<100000||v>500000))
