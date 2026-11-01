@@ -501,10 +501,8 @@ async function syncSettingsBankAccountsToBanking(src=settings){
   if(b.is_default)defaultId=result.data;
  }
  if(defaultId){
-  const clear=await sb.from('bank_accounts').update({is_default:false}).eq('business_id',bid).eq('is_default',true);
-  if(clear.error)throw new Error('Could not update default bank: '+clear.error.message);
-  const set=await sb.from('bank_accounts').update({is_default:true}).eq('id',defaultId).eq('business_id',bid);
-  if(set.error)throw new Error('Could not set default bank: '+set.error.message);
+  const {error:defaultError}=await sb.rpc('frindly_bank_setup_default_v1',{p_id:defaultId});
+  if(defaultError)throw new Error('Could not set default bank: '+defaultError.message);
  }
  writeSettingsLocal(src);
  window.BankReconciliation?.refresh?.();
