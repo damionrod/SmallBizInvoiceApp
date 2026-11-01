@@ -82,6 +82,18 @@
 .phaseb-dashboard .dash-bank-footnote{display:block;padding:0 16px 12px;color:var(--muted,#64748b)}
 @media(max-width:520px){.phaseb-dashboard .dash-bank-rows{padding:0 12px 8px}.phaseb-dashboard .dash-bank-row{gap:8px;font-size:13px}.phaseb-dashboard .dash-bank-row strong{font-size:13px}.phaseb-dashboard .dash-bank-footnote{padding:0 12px 12px}}
 </style>
+<style>
+/* Dashboard third row: consistent three-card layout and compact FY summary. */
+#view-dashboard .dash-grid.third{display:grid;grid-template-columns:1.12fr 1.05fr .9fr;gap:12px;margin-top:12px}
+#view-dashboard .dash-grid.third>.dash-panel{min-width:0;min-height:200px}
+#view-dashboard .dash-grid.third .fy-panel{margin-top:0}
+#view-dashboard .dash-grid.third .fy-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#view-dashboard .dash-grid.third .fy-grid>div{padding:4px 5px;border-right:0;min-width:0}
+#view-dashboard .dash-grid.third .fy-grid strong{font-size:13px;overflow-wrap:anywhere}
+#view-dashboard .dash-grid.third .fy-grid span{font-size:11px}
+@media(max-width:1100px){#view-dashboard .dash-grid.third{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#view-dashboard .dash-grid.third{grid-template-columns:minmax(0,1fr)}}
+</style>
 </head>
 <body>
   <div class="frindly-startup" id="frindlyStartup" hidden aria-live="polite" aria-busy="true">
