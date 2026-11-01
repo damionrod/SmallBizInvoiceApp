@@ -58,6 +58,17 @@
 .dash-obligations .dash-footnote{margin-top:14px;line-height:1.5}
 @media(max-width:640px){.dash-obligations .dash-obligation-row{align-items:flex-start;font-size:13px}.dash-obligations .dash-obligation-row strong{max-width:43%}}
 </style>
+<style>
+/* Dashboard bank book balances: scoped to the existing dashboard card. */
+.phaseb-dashboard .dash-bank-balances{margin:12px 0}
+.phaseb-dashboard .dash-bank-rows{padding:0 16px 10px}
+.phaseb-dashboard .dash-bank-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border,#e8edf3)}
+.phaseb-dashboard .dash-bank-row span{min-width:0;overflow-wrap:anywhere}
+.phaseb-dashboard .dash-bank-row strong{flex-shrink:0;font-variant-numeric:tabular-nums;text-align:right}
+.phaseb-dashboard .dash-bank-total{font-weight:600;border-bottom:0}
+.phaseb-dashboard .dash-bank-footnote{display:block;padding:0 16px 12px;color:var(--muted,#64748b)}
+@media(max-width:520px){.phaseb-dashboard .dash-bank-rows{padding:0 12px 8px}.phaseb-dashboard .dash-bank-row{gap:8px;font-size:13px}.phaseb-dashboard .dash-bank-row strong{font-size:13px}.phaseb-dashboard .dash-bank-footnote{padding:0 12px 12px}}
+</style>
 </head>
 <body>
   <div class="frindly-startup" id="frindlyStartup" hidden aria-live="polite" aria-busy="true">
