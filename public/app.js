@@ -433,6 +433,9 @@ async function hydrateBankOpeningSettings(){
   // Old syncs created duplicate bank rows. Prefer the unique initialized row,
   // then the unique default. Never guess when several candidates remain.
   let saved=byId.length===1?byId[0]:null;
+  // An old cached ID may point to a duplicate without the posted opening balance.
+  // Prefer the uniquely initialized record for the same bank number.
+  if(byNumber.length>1){const initialized=byNumber.filter(a=>a.opening_balance_date!==null);if(initialized.length===1)saved=initialized[0]}
   if(!saved&&byNumber.length===1)saved=byNumber[0];
   if(!saved&&byNumber.length>1){
    const initialized=byNumber.filter(a=>a.opening_balance_date!==null);
@@ -458,7 +461,7 @@ async function syncSettingsBankAccountsToBanking(src=settings){
  if(!sb||!bid)throw new Error('Bank account sync requires a signed-in business');
  const rows=(src.bankAccounts||[]).map((b,i)=>({source:b,name:String(b.name||`Bank account ${i+1}`).trim(),account_number:String(b.account||'').trim(),is_default:!!b.isDefault})).filter(b=>b.name||b.account_number);
  if(!rows.length)return;
- const {data,error}=await sb.from('bank_accounts').select('id,name,account_number,is_default').eq('business_id',bid).eq('archived',false);
+ const {data,error}=await sb.from('bank_accounts').select('id,name,account_number,is_default,opening_balance_date').eq('business_id',bid).eq('archived',false);
  if(error)throw new Error('Cannot load bank accounts: '+error.message);
  const norm=v=>String(v||'').replace(/[^0-9a-z]/gi,'').toLowerCase(),existing=data||[];
  const used=new Set();let defaultId=null;
@@ -470,6 +473,7 @@ async function syncSettingsBankAccountsToBanking(src=settings){
   // Legacy syncs could create duplicate bank rows. Resolve only when one candidate
   // is unambiguously the active record; never merge, archive or move transactions here.
   let match=byId[0]||null;
+  if(byNumber.length>1){const initialized=byNumber.filter(x=>x.opening_balance_date!==null);if(initialized.length===1)match=initialized[0]}
   if(!match&&byNumber.length===1)match=byNumber[0];
   if(!match&&byNumber.length>1){
    const ids=byNumber.map(x=>x.id);
