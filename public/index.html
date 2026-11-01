@@ -59,6 +59,19 @@
 @media(max-width:640px){.dash-obligations .dash-obligation-row{align-items:flex-start;font-size:13px}.dash-obligations .dash-obligation-row strong{max-width:43%}}
 </style>
 <style>
+/* Compact dashboard widgets use the same responsive card grid as the other panels. */
+#view-dashboard .dash-grid.top .dash-bank-balances,
+#view-dashboard .dash-grid.lower .dash-obligations{min-height:0;align-self:start}
+#view-dashboard .dash-bank-balances .dash-bank-rows{padding:0 2px 5px}
+#view-dashboard .dash-bank-balances .dash-bank-row{padding:6px 0;font-size:13px}
+#view-dashboard .dash-bank-balances .dash-bank-footnote{padding:5px 2px 0;font-size:11px;line-height:1.4}
+#view-dashboard .dash-obligations .dash-obligation-summary{padding:5px 0 9px}
+#view-dashboard .dash-obligations .dash-obligation-summary strong{font-size:20px}
+#view-dashboard .dash-obligations .dash-obligation-tiles{gap:5px}
+#view-dashboard .dash-obligations .dash-obligation-tile{padding:9px 7px;gap:5px}
+#view-dashboard .dash-obligations .dash-obligation-tile strong{font-size:14px}
+#view-dashboard .dash-obligations .dash-obligation-details{margin-top:4px}
+@media(max-width:640px){#view-dashboard .dash-bank-balances .dash-bank-row{flex-wrap:wrap}#view-dashboard .dash-bank-balances .dash-bank-row strong{margin-left:auto}#view-dashboard .dash-obligations .dash-obligation-tile strong{font-size:12px}}
 /* Dashboard bank book balances: scoped to the existing dashboard card. */
 .phaseb-dashboard .dash-bank-balances{margin:12px 0}
 .phaseb-dashboard .dash-bank-rows{padding:0 16px 10px}
