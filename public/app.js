@@ -464,6 +464,8 @@ async function syncSettingsBankAccountsToBanking(src=settings){
   const byId=b.source.bankAccountId?existing.filter(x=>x.id===b.source.bankAccountId):[];
   const byNumber=b.account_number?existing.filter(x=>norm(x.account_number)===norm(b.account_number)):[];
   const byName=existing.filter(x=>norm(x.name)===norm(b.name));
+  if(!b.source.bankAccountId&&byNumber.length)throw new Error('Bank number '+b.account_number+' already belongs to a saved account. Enter a different number for '+b.name+'.');
+  if(b.source.bankAccountId&&byNumber.some(x=>x.id!==b.source.bankAccountId)&&!byNumber.some(x=>x.id===b.source.bankAccountId))throw new Error('Bank number belongs to another account: '+b.name);
   if(byId.length>1)throw new Error('Bank account ID is ambiguous: '+b.name);
   // Legacy syncs could create duplicate bank rows. Resolve only when one candidate
   // is unambiguously the active record; never merge, archive or move transactions here.
