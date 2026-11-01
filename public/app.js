@@ -434,8 +434,29 @@ async function syncSettingsBankAccountsToBanking(src=settings){
   const byId=b.source.bankAccountId?existing.filter(x=>x.id===b.source.bankAccountId):[];
   const byNumber=b.account_number?existing.filter(x=>norm(x.account_number)===norm(b.account_number)):[];
   const byName=existing.filter(x=>norm(x.name)===norm(b.name));
-  if(byId.length>1||byNumber.length>1)throw new Error('Multiple bank records match '+b.name+'. Resolve duplicates before saving.');
-  let match=byId[0]||byNumber[0]||null;
+  if(byId.length>1)throw new Error('Bank account ID is ambiguous: '+b.name);
+  // Legacy syncs could create duplicate bank rows. Resolve only when one candidate
+  // is unambiguously the active record; never merge, archive or move transactions here.
+  let match=byId[0]||null;
+  if(!match&&byNumber.length===1)match=byNumber[0];
+  if(!match&&byNumber.length>1){
+   const ids=byNumber.map(x=>x.id);
+   const [tx,imports,feedsA,feedsB]=await Promise.all([
+    sb.from('bank_transactions').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000),
+    sb.from('bank_import_batches').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000),
+    sb.from('akahu_feed_accounts').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000),
+    sb.from('blinkpay_feed_accounts').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000)
+   ]);
+   for(const q of [tx,imports,feedsA,feedsB])if(q.error)throw new Error('Cannot safely identify duplicate bank account: '+q.error.message);
+   const referenced=new Set([...tx.data,...imports.data,...feedsA.data,...feedsB.data].map(x=>x.bank_account_id));
+   const active=byNumber.filter(x=>referenced.has(x.id));
+   if(active.length===1)match=active[0];
+   else if(active.length===0){
+    const defaults=byNumber.filter(x=>x.is_default);
+    if(defaults.length===1)match=defaults[0];
+   }
+   if(!match)throw new Error('Multiple active or indistinguishable bank records match '+b.name+'. Manual reconciliation is required; no records were changed.');
+  }
   if(!match&&byName.length===1&&(!byName[0].account_number||!b.account_number))match=byName[0];
   if(!match&&byName.length>1)throw new Error('Bank name is ambiguous: '+b.name);
   if(match&&used.has(match.id))throw new Error('Two settings rows refer to the same bank account: '+b.name);
