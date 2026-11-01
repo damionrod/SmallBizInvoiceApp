@@ -497,7 +497,7 @@ async function syncSettingsBankAccountsToBanking(src=settings){
   if(result.error||!result.data)throw new Error('Could not save bank '+b.name+': '+(result.error?.message||'No record returned'));
   b.source.bankAccountId=result.data;
   used.add(result.data);
-  if(!match)existing.push({...row,id:result.data});
+  if(!match)existing.push({id:result.data,name:b.name,account_number:b.account_number,is_default:false,opening_balance_date:null});
   if(b.is_default)defaultId=result.data;
  }
  if(defaultId){
