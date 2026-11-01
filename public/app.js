@@ -422,7 +422,7 @@ function draftAutoReminderSettings(){const before=Math.max(0,Math.min(30,num($('
 function loadSettingsForm(){[['sCompany','company'],['sTrading','trading'],['sInvoicePrefix','invoicePrefix'],['sAddress','address'],['sPhone','phone'],['sEmail','email'],['sWebsite','website'],['sGst','gstNumber'],['sDueDays','dueDays'],['sGstRate','gstRate'],['sExtraFeeLabel','extraFeeLabel'],['sExtraFeeRate','extraFeeRate'],['sTemplate','template'],['sTheme','theme'],['sPrimary','primaryColor'],['sAccent','accentColor'],['sSupabaseUrl','supabaseUrl'],['sSupabaseKey','supabaseKey']].forEach(([id,k])=>$(id).value=settings[k]??'');$('sExtraFeeEnabled').checked=!!settings.extraFeeEnabled;const textIds={sTextInvoiceTitle:'invoiceTitle',sTextBillTo:'billTo',sTextInvoiceNumber:'invoiceNumber',sTextInvoiceDate:'invoiceDate',sTextDueDate:'dueDate',sTextDescription:'description',sTextQty:'qty',sTextUnitPrice:'unitPrice',sTextLineTotal:'lineTotal',sTextSubtotal:'subtotal',sTextGst:'gst',sTextTotal:'total',sTextPaymentTo:'paymentTo',sTextPaymentReference:'paymentReference',sTextPaymentInstruction:'paymentInstruction',sTextDefaultNote:'defaultNote'};Object.entries(textIds).forEach(([id,k])=>$(id).value=settings.invoiceText[k]??DEFAULT_SETTINGS.invoiceText[k]);if($('sEmailSenderName'))$('sEmailSenderName').value=settings.emailSettings?.senderName??DEFAULT_SETTINGS.emailSettings.senderName;if($('sEmailSubject'))$('sEmailSubject').value=settings.emailSettings?.subject??DEFAULT_SETTINGS.emailSettings.subject;if($('sEmailBody'))$('sEmailBody').value=settings.emailSettings?.body??DEFAULT_SETTINGS.emailSettings.body;if($('sQuoteEmailSenderName'))$('sQuoteEmailSenderName').value=settings.quoteEmailSettings?.senderName??DEFAULT_SETTINGS.quoteEmailSettings.senderName;if($('sQuoteEmailSubject'))$('sQuoteEmailSubject').value=settings.quoteEmailSettings?.subject??DEFAULT_SETTINGS.quoteEmailSettings.subject;if($('sQuoteEmailBody'))$('sQuoteEmailBody').value=settings.quoteEmailSettings?.body??DEFAULT_SETTINGS.quoteEmailSettings.body;if($('sReminderEmailSenderName'))$('sReminderEmailSenderName').value=settings.reminderEmailSettings?.senderName??DEFAULT_SETTINGS.reminderEmailSettings.senderName;if($('sReminderEmailSubject'))$('sReminderEmailSubject').value=settings.reminderEmailSettings?.subject??DEFAULT_SETTINGS.reminderEmailSettings.subject;if($('sReminderEmailBody'))$('sReminderEmailBody').value=settings.reminderEmailSettings?.body??DEFAULT_SETTINGS.reminderEmailSettings.body;loadAutoReminderSettings();setImageOrHide($('settingsLogoPreview'),logoSrc());renderBankSettings();renderProductSettings();renderSettingsPreview()}
 async function hydrateBankOpeningSettings(){
  const bid=window.SAAS?.state?.business?.id;if(!sb||!bid)return;
- const {data,error}=await sb.rpc('frindly_bank_setup_list_v1');
+ const {data,error}=await sb.rpc('frindly_invoice_bank_list_v1');
  if(error){console.warn('Bank setup unavailable:',error.message);toast('Cannot load saved bank accounts: '+error.message);return}
  if(window.SAAS?.state?.business?.id!==bid)return;
  const norm=v=>String(v||'').replace(/[^0-9a-z]/gi,'').toLowerCase();
@@ -440,8 +440,13 @@ async function hydrateBankOpeningSettings(){
    restored.push(b); // Unsaved draft: never infer a different existing bank's ID.
   }
  }
- // Invoice payment settings must not import every historical Banking record.
- // Keep existing configured rows and unsaved drafts; never delete bank records.
+ // Restore configured accounts from the database, including those absent from
+ // this browser's local cache. Historical Banking-only records are excluded by RPC.
+ for(const saved of rows){
+  if(used.has(saved.id))continue;
+  used.add(saved.id);
+  restored.push({bankAccountId:saved.id,name:saved.name,account:saved.account_number||'',isDefault:!!saved.is_default,openingBalance:saved.opening_balance_date?String(saved.opening_balance??0):'',openingDate:saved.opening_balance_date||''});
+ }
  if(!restored.length)return;
  settings.bankAccounts=restored;writeSettingsLocal(settings);renderBankSettings();
 }
