@@ -422,16 +422,29 @@ function draftAutoReminderSettings(){const before=Math.max(0,Math.min(30,num($('
 function loadSettingsForm(){[['sCompany','company'],['sTrading','trading'],['sInvoicePrefix','invoicePrefix'],['sAddress','address'],['sPhone','phone'],['sEmail','email'],['sWebsite','website'],['sGst','gstNumber'],['sDueDays','dueDays'],['sGstRate','gstRate'],['sExtraFeeLabel','extraFeeLabel'],['sExtraFeeRate','extraFeeRate'],['sTemplate','template'],['sTheme','theme'],['sPrimary','primaryColor'],['sAccent','accentColor'],['sSupabaseUrl','supabaseUrl'],['sSupabaseKey','supabaseKey']].forEach(([id,k])=>$(id).value=settings[k]??'');$('sExtraFeeEnabled').checked=!!settings.extraFeeEnabled;const textIds={sTextInvoiceTitle:'invoiceTitle',sTextBillTo:'billTo',sTextInvoiceNumber:'invoiceNumber',sTextInvoiceDate:'invoiceDate',sTextDueDate:'dueDate',sTextDescription:'description',sTextQty:'qty',sTextUnitPrice:'unitPrice',sTextLineTotal:'lineTotal',sTextSubtotal:'subtotal',sTextGst:'gst',sTextTotal:'total',sTextPaymentTo:'paymentTo',sTextPaymentReference:'paymentReference',sTextPaymentInstruction:'paymentInstruction',sTextDefaultNote:'defaultNote'};Object.entries(textIds).forEach(([id,k])=>$(id).value=settings.invoiceText[k]??DEFAULT_SETTINGS.invoiceText[k]);if($('sEmailSenderName'))$('sEmailSenderName').value=settings.emailSettings?.senderName??DEFAULT_SETTINGS.emailSettings.senderName;if($('sEmailSubject'))$('sEmailSubject').value=settings.emailSettings?.subject??DEFAULT_SETTINGS.emailSettings.subject;if($('sEmailBody'))$('sEmailBody').value=settings.emailSettings?.body??DEFAULT_SETTINGS.emailSettings.body;if($('sQuoteEmailSenderName'))$('sQuoteEmailSenderName').value=settings.quoteEmailSettings?.senderName??DEFAULT_SETTINGS.quoteEmailSettings.senderName;if($('sQuoteEmailSubject'))$('sQuoteEmailSubject').value=settings.quoteEmailSettings?.subject??DEFAULT_SETTINGS.quoteEmailSettings.subject;if($('sQuoteEmailBody'))$('sQuoteEmailBody').value=settings.quoteEmailSettings?.body??DEFAULT_SETTINGS.quoteEmailSettings.body;if($('sReminderEmailSenderName'))$('sReminderEmailSenderName').value=settings.reminderEmailSettings?.senderName??DEFAULT_SETTINGS.reminderEmailSettings.senderName;if($('sReminderEmailSubject'))$('sReminderEmailSubject').value=settings.reminderEmailSettings?.subject??DEFAULT_SETTINGS.reminderEmailSettings.subject;if($('sReminderEmailBody'))$('sReminderEmailBody').value=settings.reminderEmailSettings?.body??DEFAULT_SETTINGS.reminderEmailSettings.body;loadAutoReminderSettings();setImageOrHide($('settingsLogoPreview'),logoSrc());renderBankSettings();renderProductSettings();renderSettingsPreview()}
 async function hydrateBankOpeningSettings(){
  const bid=window.SAAS?.state?.business?.id;if(!sb||!bid)return;
- const {data,error}=await sb.from('bank_accounts').select('id,name,account_number,opening_balance,opening_balance_date').eq('business_id',bid).eq('archived',false);
+ const {data,error}=await sb.from('bank_accounts').select('id,name,account_number,is_default,opening_balance,opening_balance_date').eq('business_id',bid).eq('archived',false);
  if(error){console.warn('Bank opening settings unavailable:',error.message);return}
+ if(window.SAAS?.state?.business?.id!==bid)return;
  const norm=v=>String(v||'').replace(/[^0-9a-z]/gi,'').toLowerCase();
  let changed=false;
  for(const b of settings.bankAccounts||[]){
-  const matches=(data||[]).filter(a=>b.bankAccountId?a.id===b.bankAccountId:!!b.account&&norm(a.account_number)===norm(b.account));
-  const saved=matches.length===1?matches[0]:null;
+  const byId=b.bankAccountId?(data||[]).filter(a=>a.id===b.bankAccountId):[];
+  const byNumber=b.account?(data||[]).filter(a=>norm(a.account_number)===norm(b.account)):[];
+  // Old syncs created duplicate bank rows. Prefer the unique initialized row,
+  // then the unique default. Never guess when several candidates remain.
+  let saved=byId.length===1?byId[0]:null;
+  if(!saved&&byNumber.length===1)saved=byNumber[0];
+  if(!saved&&byNumber.length>1){
+   const initialized=byNumber.filter(a=>a.opening_balance_date!==null);
+   if(initialized.length===1)saved=initialized[0];
+   else if(initialized.length===0){
+    const defaults=byNumber.filter(a=>a.is_default);
+    if(defaults.length===1)saved=defaults[0];
+   }
+  }
   if(!saved)continue;
   if(b.bankAccountId!==saved.id){b.bankAccountId=saved.id;changed=true}
-  if(!String(b.name||'').trim()&&saved.name){b.name=saved.name;changed=true}
+  if(saved.name&&b.name!==saved.name){b.name=saved.name;changed=true}
   if(saved.opening_balance_date){
    const amount=String(saved.opening_balance??0),date=saved.opening_balance_date;
    if(b.openingBalance!==amount||b.openingDate!==date){b.openingBalance=amount;b.openingDate=date;changed=true}
