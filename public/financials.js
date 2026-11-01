@@ -170,24 +170,47 @@ async function renderCashBook(){
  for(const a of accountsResult.data||[])if(linkedBankIds.has(a.id))bankCodes.add(String(a.account_code));
  const accountNames=new Map();
  for(const a of accountsResult.data||[]){if(!bankCodes.has(String(a.account_code)))continue;const linked=(banksResult.data||[]).filter(b=>b.accounting_account_id===a.id);accountNames.set(String(a.account_code),linked.length===1?(linked[0].name||a.account_code):(a.account_name||a.account_code));}
- const panel=q('financial-panel-cashbook');let picker=q('finCashBookAccountPicker');
- if(!picker&&panel){picker=document.createElement('div');picker.id='finCashBookAccountPicker';picker.className='card';picker.style.cssText='padding:12px 16px;margin-bottom:12px';const table=panel.querySelector('.table-card');table?.parentNode.insertBefore(picker,table);}
- const codes=[...bankCodes].sort((a,b)=>String(accountNames.get(a)||a).localeCompare(String(accountNames.get(b)||b)));
- const current=q('finCashBookAccountFilter')?.value||'',selected=codes.includes(current)?current:'';
- const allBankRows=(ledgerResult.data||[]).filter(t=>bankCodes.has(String(t.account_code))).map(t=>({date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:t.description||t.account_name||'',cat:t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code:t.account_code}));if(picker){
- const totals=codes.map(code=>{const tx=allBankRows.filter(t=>String(t.code)===code);return{code,name:accountNames.get(code)||code,opening:tx.filter(t=>t.date<from).reduce((v,t)=>v+t.in-t.out,0),closing:tx.reduce((v,t)=>v+t.in-t.out,0)}});
- picker.innerHTML='<label>Bank / Cash account <select id="finCashBookAccountFilter"><option value="">All accounts</option>'+codes.map(code=>'<option value="'+esc(code)+'"'+(selected===code?' selected':'')+'>'+esc(accountNames.get(code)||code)+'</option>').join('')+'</select></label><details id="finCashBookAccounts"><summary style="cursor:pointer">Cash & Bank breakdown</summary><div class="table-scroll"><table><thead><tr><th>Account</th><th>Opening</th><th>Closing</th></tr></thead><tbody>'+totals.map(t=>'<tr><td><button type="button" class="secondary compact-btn" data-cash-code="'+esc(t.code)+'">'+esc(t.name)+'</button></td><td>'+money(t.opening)+'</td><td>'+money(t.closing)+'</td></tr>').join('')+'<tr><td><strong>Total Cash & Bank</strong></td><td>'+money(totals.reduce((v,t)=>v+t.opening,0))+'</td><td>'+money(totals.reduce((v,t)=>v+t.closing,0))+'</td></tr></tbody></table></div></details>';
- q('finCashBookAccountFilter').onchange=()=>renderCashBook();
- picker.querySelectorAll('[data-cash-code]').forEach(b=>b.onclick=()=>{q('finCashBookAccountFilter').value=b.dataset.cashCode;state.cashBookBreakdownOpen=true;renderCashBook()});
- const details=q('finCashBookAccounts');details.open=!!state.cashBookBreakdownOpen;details.ontoggle=()=>{state.cashBookBreakdownOpen=details.open};
- }
- const scoped=selected?allBankRows.filter(t=>String(t.code)===selected):allBankRows;
+ const allBankRows=(ledgerResult.data||[]).filter(t=>bankCodes.has(String(t.account_code))).map(t=>({date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:t.description||t.account_name||'',cat:t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code:t.account_code}));;
+ const scoped=allBankRows;
  const opening=scoped.filter(t=>t.date<from).reduce((sum,t)=>sum+t.in-t.out,0);const rows=scoped.filter(t=>t.date>=from);
  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.ref).localeCompare(String(b.ref)));
  let run=opening;
- const openingHtml=`<tr><td>${esc(from)}</td><td>Opening</td><td><strong>Opening book balance</strong></td><td>${esc(selected?(accountNames.get(selected)||selected):'Cash / Bank')}</td><td></td><td></td><td><strong>${money(opening)}</strong></td><td>General Ledger</td></tr>`;
+ const openingHtml=`<tr><td>${esc(from)}</td><td>Opening</td><td><button type="button" class="secondary compact-btn" data-cashbook-expand="opening" aria-expanded="false">▸ Opening book balance</button></td><td>Cash / Bank</td><td></td><td></td><td><strong>${money(opening)}</strong></td><td>General Ledger</td></tr>`;
  const movementHtml=rows.map(x=>{run+=x.in-x.out;return `<tr><td>${esc(x.date)}</td><td>${esc(x.ref)}</td><td>${esc(x.desc)}</td><td>${esc(x.cat)}</td><td>${x.in?money(x.in):''}</td><td>${x.out?money(x.out):''}</td><td>${money(run)}</td><td>${esc(x.source)}</td></tr>`}).join('');
- root.innerHTML=openingHtml+movementHtml+`<tr><td>${esc(to)}</td><td>Closing</td><td><strong>Closing book balance</strong></td><td>${esc(selected?(accountNames.get(selected)||selected):'Cash / Bank')}</td><td></td><td></td><td><strong>${money(run)}</strong></td><td>General Ledger</td></tr>`;
+ root.innerHTML=openingHtml+movementHtml+`<tr><td>${esc(to)}</td><td>Closing</td><td><button type="button" class="secondary compact-btn" data-cashbook-expand="closing" aria-expanded="false">▸ Closing book balance</button></td><td>Cash / Bank</td><td></td><td></td><td><strong>${money(run)}</strong></td><td>General Ledger</td></tr>`;
+ const codes=[...bankCodes].sort((x,y)=>String(accountNames.get(x)||x).localeCompare(String(accountNames.get(y)||y)));
+ function detailRows(kind){
+  const fragment=document.createDocumentFragment();
+  for(const code of codes){
+   const tx=allBankRows.filter(t=>String(t.code)===code&&(kind==='closing'||t.date<from));
+   const balance=tx.reduce((sum,t)=>sum+t.in-t.out,0);
+   const tr=document.createElement('tr');tr.dataset.cashbookDetail=kind;
+   tr.innerHTML='<td></td><td></td><td style="padding-left:20px"><button type="button" class="secondary compact-btn" data-cashbook-code="'+esc(code)+'" aria-expanded="false">▸ '+esc(accountNames.get(code)||code)+'</button></td><td>Account balance</td><td></td><td></td><td><strong>'+money(balance)+'</strong></td><td>General Ledger</td>';
+   fragment.appendChild(tr);
+  }
+  return fragment;
+ }
+ root.querySelectorAll('[data-cashbook-expand]').forEach(button=>{
+  button.onclick=()=>{
+   const kind=button.dataset.cashbookExpand,opened=button.getAttribute('aria-expanded')==='true';
+   if(opened){root.querySelectorAll('[data-cashbook-detail="'+kind+'"]').forEach(el=>el.remove());button.setAttribute('aria-expanded','false');button.textContent='▸ '+(kind==='opening'?'Opening':'Closing')+' book balance';return;}
+   const fragment=detailRows(kind);button.closest('tr').after(fragment);
+   button.setAttribute('aria-expanded','true');button.textContent='▾ '+(kind==='opening'?'Opening':'Closing')+' book balance';
+   root.querySelectorAll('[data-cashbook-detail="'+kind+'"] [data-cashbook-code]').forEach(accountButton=>{
+    accountButton.onclick=()=>{
+     const code=accountButton.dataset.cashbookCode,accountRow=accountButton.closest('tr'),opened=accountButton.getAttribute('aria-expanded')==='true';
+     let next=accountRow.nextElementSibling;
+     while(next&&next.dataset.cashbookTransaction===kind+':'+code){const remove=next;next=next.nextElementSibling;remove.remove();}
+     if(opened){accountButton.setAttribute('aria-expanded','false');accountButton.textContent='▸ '+(accountNames.get(code)||code);return;}
+     const tx=allBankRows.filter(t=>String(t.code)===code&&(kind==='closing'||t.date<from)).sort((x,y)=>String(x.date).localeCompare(String(y.date))||String(x.ref).localeCompare(String(y.ref)));
+     let running=0;const fragment=document.createDocumentFragment();
+     tx.forEach(t=>{running+=t.in-t.out;const tr=document.createElement('tr');tr.dataset.cashbookDetail=kind;tr.dataset.cashbookTransaction=kind+':'+code;tr.innerHTML='<td>'+esc(t.date)+'</td><td>'+esc(t.ref)+'</td><td style="padding-left:32px">'+esc(t.desc)+'</td><td>'+esc(t.cat)+'</td><td>'+(t.in?money(t.in):'')+'</td><td>'+(t.out?money(t.out):'')+'</td><td>'+money(running)+'</td><td>'+esc(t.source)+'</td>';fragment.appendChild(tr)});
+     if(!tx.length){const tr=document.createElement('tr');tr.dataset.cashbookDetail=kind;tr.dataset.cashbookTransaction=kind+':'+code;tr.innerHTML='<td colspan="8">No posted account transactions.</td>';fragment.appendChild(tr);}
+     accountRow.after(fragment);accountButton.setAttribute('aria-expanded','true');accountButton.textContent='▾ '+(accountNames.get(code)||code);
+    };
+   });
+  };
+ });
  state.cashBookRows=rows;
 }
 async function renderStatementCashFlows(){const {from,to}=currentRange(),bid=state.businessId;q('finCashStatementPeriod').textContent=`${from} to ${to}`;q('finCashStatementBody').innerHTML='<p class="hint">Loading posted accounting…</p>';const {data,error}=await client().rpc('v61114_statement_cash_flows',{p_from:from,p_to:to});if(state.businessId!==bid)return;if(error){q('finCashStatementBody').innerHTML=`<div class="notice">${esc(error.message)}</div>`;return}const x=data||{},sections=Array.isArray(x.sections)?x.sections:[],warnings=Array.isArray(x.warnings)?x.warnings:[];state.statementCashFlows=x;const sectionHtml=sections.map(s=>`<details open class="financial-statement-group"><summary><span>${esc(s.label)}</span><strong>${money(s.amount)}</strong></summary>${(s.lines||[]).length?(s.lines||[]).map(l=>`<div class="financial-statement-row detail"><span>${esc(l.label)} <small>${num(l.journal_count)} journal${num(l.journal_count)===1?'':'s'}</small></span><strong>${money(l.amount)}</strong></div>`).join(''):'<div class="financial-statement-row detail"><span>No posted cash movement</span><strong>'+money(0)+'</strong></div>'}</details>`).join('');q('finCashStatementBody').innerHTML=`${warnings.length?`<div class="notice">${warnings.map(esc).join('<br>')}</div>`:''}<div class="financial-statement-row"><span>Opening Cash and Cash Equivalents</span><strong>${money(x.opening_cash)}</strong></div>${sectionHtml}<div class="financial-statement-row total"><span>Net Increase / Decrease in Cash</span><strong>${money(x.net_movement)}</strong></div><div class="financial-statement-row"><span>Closing Cash and Cash Equivalents</span><strong>${money(x.closing_cash)}</strong></div><div class="financial-statement-row muted"><span>Reconciliation check</span><strong>${x.reconciles?'Passed':'Needs review'}</strong></div><p class="hint">Posted Accounting / Direct Method. This report uses posted General Ledger cash and bank account movements only. It does not mix in unposted operational records from invoices, bills or payroll.</p>`}
