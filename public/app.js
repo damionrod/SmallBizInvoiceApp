@@ -440,13 +440,8 @@ async function hydrateBankOpeningSettings(){
    restored.push(b); // Unsaved draft: never infer a different existing bank's ID.
   }
  }
- // Include established accounts that are absent from the browser cache.
- for(const saved of rows){
-  if(used.has(saved.id))continue;
-  // Hide uninitialized legacy duplicates of an already represented bank number.
-  if(saved.account_number && restored.some(b=>b.bankAccountId&&norm(b.account)===norm(saved.account_number)))continue;
-  restored.push({bankAccountId:saved.id,name:saved.name,account:saved.account_number||'',isDefault:!!saved.is_default,openingBalance:saved.opening_balance_date?String(saved.opening_balance??0):'',openingDate:saved.opening_balance_date||''});
- }
+ // Invoice payment settings must not import every historical Banking record.
+ // Keep existing configured rows and unsaved drafts; never delete bank records.
  if(!restored.length)return;
  settings.bankAccounts=restored;writeSettingsLocal(settings);renderBankSettings();
 }
