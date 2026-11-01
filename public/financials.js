@@ -159,7 +159,7 @@ async function renderCashBook(){
  const {from,to}=currentRange(),bid=state.businessId,c=client(),root=q('finCashBookRows');
  root.innerHTML='<tr><td colspan="8">Loading posted cash and bank movements…</td></tr>';
  const [ledgerResult,accountsResult]=await Promise.all([
-  c.rpc('v6170c45_general_ledger',{p_from:from,p_to:to,p_account_code:null,p_source_type:null}),
+  c.rpc('v6170c45_general_ledger',{p_from:'1900-01-01',p_to:to,p_account_code:null,p_source_type:null}),
   c.from('accounting_accounts').select('account_code,account_type,system_account_key,system_key').eq('business_id',bid)
  ]);
  if(state.businessId!==bid)return;
