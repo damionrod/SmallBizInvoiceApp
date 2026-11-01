@@ -441,14 +441,11 @@ async function syncSettingsBankAccountsToBanking(src=settings){
   if(!match&&byNumber.length===1)match=byNumber[0];
   if(!match&&byNumber.length>1){
    const ids=byNumber.map(x=>x.id);
-   const [tx,imports,feedsA,feedsB]=await Promise.all([
-    sb.from('bank_transactions').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000),
-    sb.from('bank_import_batches').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000),
-    sb.from('akahu_feed_accounts').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000),
-    sb.from('blinkpay_feed_accounts').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000)
-   ]);
-   for(const q of [tx,imports,feedsA,feedsB])if(q.error)throw new Error('Cannot safely identify duplicate bank account: '+q.error.message);
-   const referenced=new Set([...tx.data,...imports.data,...feedsA.data,...feedsB.data].map(x=>x.bank_account_id));
+   // Bank-feed connection tables are deliberately inaccessible to regular users.
+   // Use the existing tenant-scoped transaction link and never widen permissions.
+   const tx=await sb.from('bank_transactions').select('bank_account_id').eq('business_id',bid).in('bank_account_id',ids).limit(1000);
+   if(tx.error)throw new Error('Cannot safely identify duplicate bank account: '+tx.error.message);
+   const referenced=new Set((tx.data||[]).map(x=>x.bank_account_id));
    const active=byNumber.filter(x=>referenced.has(x.id));
    if(active.length===1)match=active[0];
    else if(active.length===0){
