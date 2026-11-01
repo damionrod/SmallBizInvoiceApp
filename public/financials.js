@@ -110,7 +110,7 @@ async function renderPnL(){
   const fallback=()=>rows.map((row,i)=>statement(row[0],row[1],i===2?'subtotal':i===4?'total':'')).join('');
   // Keep the established posted P&L RPC authoritative. Detail is read-only and cannot change its totals.
   const [ledgerResult,accountsResult]=await Promise.all([
-    c.rpc('v6170c45_general_ledger',{p_from:from,p_to:to,p_account_code:null,p_source_type:null}),
+    c.rpc('v6170c45_general_ledger',{p_from:'1900-01-01',p_to:to,p_account_code:null,p_source_type:null}),
     c.from('accounting_accounts').select('account_code,account_name,account_type').eq('business_id',bid)
   ]);
   if(state.businessId!==bid)return;
@@ -165,9 +165,9 @@ async function renderCashBook(){
  if(state.businessId!==bid)return;
  if(ledgerResult.error||accountsResult.error){root.innerHTML='<tr><td colspan="8">Posted Cash Book unavailable. No operational estimates have been substituted.</td></tr>';state.cashBookRows=[];return}
  const bankCodes=new Set((accountsResult.data||[]).filter(a=>a.account_type==='bank'||['bank','cash','cash_on_hand','bank_main'].includes(a.system_account_key)||['bank','cash','cash_on_hand','bank_main'].includes(a.system_key)).map(a=>String(a.account_code)));
- const rows=(ledgerResult.data||[]).filter(t=>bankCodes.has(String(t.account_code))).map(t=>({date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:t.description||t.account_name||'',cat:t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code:t.account_code}));
+ const allBankRows=(ledgerResult.data||[]).filter(t=>bankCodes.has(String(t.account_code))).map(t=>({date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:t.description||t.account_name||'',cat:t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code:t.account_code}));const opening=allBankRows.filter(t=>t.date<from).reduce((sum,t)=>sum+t.in-t.out,0);const rows=allBankRows.filter(t=>t.date>=from);
  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.ref).localeCompare(String(b.ref)));
- let run=0;
+ let run=opening;
  root.innerHTML=rows.length?rows.map(x=>{run+=x.in-x.out;return `<tr><td>${esc(x.date)}</td><td>${esc(x.ref)}</td><td>${esc(x.desc)}</td><td>${esc(x.cat)}</td><td>${x.in?money(x.in):''}</td><td>${x.out?money(x.out):''}</td><td>${money(run)}</td><td>${esc(x.source)}</td></tr>`}).join(''):'<tr><td colspan="8">No posted cash or bank movements in this period.</td></tr>';
  state.cashBookRows=rows;
 }
