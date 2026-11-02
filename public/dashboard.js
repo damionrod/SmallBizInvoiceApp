@@ -31,7 +31,7 @@ async function obligationsSnapshot(client,businessId,asOf){
   const map=new Map((accounts.data||[]).map(a=>[String(a.account_code),a]));
   const totals={gst:0,payroll:0,holiday:0,suppliers:0,acc:0,other:0};
   for(const line of trial.data||[]){
-    const a=map.get(String(line.account_code));if(!a||!['liability','current_liability','non_current_liability'].includes(a.account_type))continue;
+    const a=map.get(String(line.account_code));if(a&&['gst_receivable'].includes(a.system_account_key||a.system_key)){totals.gst-=num(line.balance);continue;}if(!a||!['liability','current_liability','non_current_liability'].includes(a.account_type))continue;
     // Trial balance is expressed using each account's normal balance.
     const amount=num(line.balance);if(Math.abs(amount)<.005)continue;
     const key=String(a.system_account_key||a.system_key||'').toLowerCase(),name=String(a.account_name||'').toLowerCase(),sub=String(a.account_subtype||'').toLowerCase();
@@ -43,6 +43,7 @@ async function obligationsSnapshot(client,businessId,asOf){
       matches('accounts payable','bills payable','trade payable','supplier payable','creditors')?'suppliers':'other';
     totals[bucket]+=amount;
   }
+  totals.gst=Math.max(0,totals.gst);
   const leave=holiday.error?null:{confirmed:0,unposted:0,review:0};
   if(leave)for(const item of holiday.data||[]){
     if(item.valuation_status==='needs_review')leave.review++;
