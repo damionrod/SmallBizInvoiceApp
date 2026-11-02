@@ -10,11 +10,11 @@ const client=(values,gst)=>({rpc:async(name)=>name==='frindly_dashboard_pending_
  let x=await fn(client({gst:999,input:0,wages:100,ird:20},{data:pending}),'a','2026-11-03');
  assert.equal(x.totals.gst,200);assert.equal(x.totals.payroll,120);assert.equal(x.recorded,320);
  let html=render(x,{accPayroll:{earnings:1021.70},taxPlanning:{country:'NZ',enabled:false,fyEstimatedIncomeTax:280}});
- assert(html.includes('Estimated total to set aside</span><strong>$623.81'));
- assert(html.includes('GST receivable (not added)'));assert(html.includes('2026-04-01 to 2026-09-30 · unsaved'));
+ assert(html.includes('Estimated total to set aside</span><strong>$693.81'));
+ assert(html.includes('GST receivable'));assert(html.includes('2026-04-01 to 2026-09-30 · unsaved'));
  x=await fn(client({gst:1000,input:0,wages:0,ird:0},{data:{payable:0,receivable:90,periods:[]}}),'a','2026-11-03');
- assert.equal(x.recorded,0);html=render(x,null);assert(html.includes('GST receivable'));assert(html.includes('Estimated total to set aside</span><strong>$0.00'));
+ assert.equal(x.recorded,0);html=render(x,null);assert(html.includes('GST receivable'));assert(html.includes('Estimated total to set aside</span><strong>$90.00'));
  await assert.rejects(()=>fn(client({},{error:{message:'GST unavailable'}}),'a','2026-11-03'),/GST unavailable/);
  context.window.SAAS.state.business.settings.country='AU';x=await fn(client({gst:150,input:50,wages:100,ird:20},null),'a','2026-11-03');assert.equal(x.totals.gst,100);assert.equal(x.recorded,220);
- console.log('PASS pending period GST replaces historical ledger GST, refunds excluded from reserve, ACC/tax retained, errors explicit, AU unchanged');
+ console.log('PASS pending period GST replaces historical ledger GST, receivables included once in planning total, ACC/tax retained, errors explicit, AU unchanged');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -81,7 +81,7 @@ function obligationsHtml(o,fin){
   const payroll=o.totals.payroll,other=o.totals.other+o.totals.suppliers+o.totals.holiday+o.totals.acc;
   const refund=num(o.gst?.receivable),gstRefundOnly=o.totals.gst===0&&refund>0;
   const tiles=[[gstRefundOnly?'GST receivable':o.gst?'GST payable':'GST',gstRefundOnly?refund:o.totals.gst,'blue'],['Payroll',payroll,'purple'],['Other',other,'orange']];
-  const rows=[[o.gst?'GST payable':'GST',o.totals.gst],...(refund>0?[['GST receivable (not added)',refund]]:[]),['PAYE, KiwiSaver & wages',payroll],['Holiday pay',o.totals.holiday],['Supplier bills',o.totals.suppliers],['ACC payable',o.totals.acc],['Other payables',o.totals.other]];
+  const rows=[[o.gst?'GST payable':'GST',o.totals.gst],...(refund>0?[['GST receivable',refund]]:[]),['PAYE, KiwiSaver & wages',payroll],['Holiday pay',o.totals.holiday],['Supplier bills',o.totals.suppliers],['ACC payable',o.totals.acc],['Other payables',o.totals.other]];
   const detail=rows.map(([label,value])=>`<div class="dash-obligation-row"><span>${esc(label)}</span><strong>${money(value)}</strong></div>`).join('');
   const gstPeriods=(o.gst?.periods||[]);
   const gstDetail=gstPeriods.length?`<details><summary>GST periods</summary>${gstPeriods.map(p=>`<div class="dash-obligation-row"><span>${esc(p.from)} to ${esc(p.to)} · ${esc(p.status)}${(p.review_items||[]).length?' · Estimate needs review':''}</span><strong>${money(p.outstanding)} ${esc(p.direction)}</strong></div>`).join('')}</details>`:'';
@@ -90,7 +90,7 @@ function obligationsHtml(o,fin){
   const accAmount=Number.isFinite(rawAcc)&&rawAcc>=0?rawAcc:null;
   const accMonths=a?.due?Math.max(1,Math.ceil((new Date(a.due+'T12:00:00')-new Date())/(86400000*30.4375))):12;
   const incomeTax=fin?.taxPlanning?.country==='NZ'?Math.max(0,num(fin.taxPlanning.fyEstimatedIncomeTax)):0;
-  const estimatedTotal=o.recorded+(accAmount??0)+incomeTax;
+  const estimatedTotal=o.recorded+refund+(accAmount??0)+incomeTax;
   const leaveReview=o.leave?.review||0;
   return `<div class="dash-obligation-compact"><div class="dash-obligation-summary"><span>Estimated total to set aside</span><strong>${money(estimatedTotal)}</strong></div><div class="dash-obligation-tiles">${tiles.map(([label,value,tone])=>`<div class="dash-obligation-tile ${tone}"><span>${esc(label)}</span><strong>${money(value)}</strong></div>`).join('')}</div><details class="dash-obligation-details"><summary>View breakdown</summary><div class="dash-obligation-breakdown">${detail}${gstDetail}<div class="dash-obligation-row dash-obligation-total"><span>Total estimated</span><strong>${money(estimatedTotal)}</strong></div><div class="dash-obligation-future"><span>Future ACC levy estimate</span><strong>${accAmount===null?'Needs setup':money(accAmount)}</strong></div>${accAmount!==null?`<div class="dash-obligation-future"><span>Suggested ACC monthly reserve</span><strong>${money(accAmount/accMonths)}</strong></div>`:''}<div class="dash-obligation-future"><span>${fin?.taxPlanning?.country==='NZ'?'Estimated FY income tax':'Provisional tax'}</span><strong>${fin?.taxPlanning?.country==='NZ'?money(fin.taxPlanning.fyEstimatedIncomeTax):'Not available'}</strong></div></div></details>${leaveReview?`<div class="dash-obligation-review"><span>${leaveReview} holiday pay balance${leaveReview===1?'':'s'} need${leaveReview===1?'s':''} review</span></div>`:''}</div>`;
 }
