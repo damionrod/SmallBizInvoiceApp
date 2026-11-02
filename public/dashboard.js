@@ -20,14 +20,18 @@ function renderTrend(){const host=$('dashSalesTrend');if(!host||!D.fin)return;le
 function donut(categories,emptyLabel='this period'){const top=categories.slice(0,5),rest=categories.slice(5).reduce((s,x)=>s+num(x.value),0),rows=rest?[...top,{label:'Other',value:rest}]:top,total=rows.reduce((s,x)=>s+num(x.value),0);if(!total)return `<div class="dash-empty">No expenses recorded ${esc(emptyLabel)}.</div>`;let at=0;const colors=['#3b82f6','#34bfa3','#f5b942','#f45b75','#8b72ed','#cbd5e1'],stops=rows.map((x,i)=>{const a=at,b=at+(x.value/total*100);at=b;return `${colors[i]} ${a}% ${b}%`}).join(',');return `<div class="dash-donut-wrap"><div class="dash-donut" style="background:conic-gradient(${stops})"><div><strong>${money(total)}</strong><span>Total expenses</span></div></div><div class="dash-donut-legend">${rows.map((x,i)=>`<div><i style="background:${colors[i]}"></i><span>${esc(x.label)}</span><strong>${(x.value/total*100).toFixed(0)}%</strong></div>`).join('')}</div></div>`}
 function expenseRangeMeta(){return D.expenseRange==='6'?['Last 6 months','in the last 6 months']:D.expenseRange==='12'?['Last 12 months','in the last 12 months']:D.expenseRange==='fy'?['This financial year','this financial year']:['This month','this month']}
 function renderExpenseDonut(){const host=$('dashExpenseDonut'),sub=$('dashExpenseSubtitle');if(!host||!D.fin)return;const meta=expenseRangeMeta(),sets=D.fin.categoryPeriods||{};const rows=sets[D.expenseRange]||(D.expenseRange==='this_month'?D.fin.categories:[]);if(sub)sub.textContent=`Expenses by category · ${meta[0].toLowerCase()}`;host.innerHTML=donut(rows,meta[1])}
-// Read-only obligations snapshot. Uses the existing posted Trial Balance and leave valuation.
+// Read-only obligations snapshot. GST uses pending return periods; other balances use the posted ledger.
 async function obligationsSnapshot(client,businessId,asOf){
-  const [trial,accounts,holiday]=await Promise.all([
+  const nz=String(window.SAAS?.state?.business?.settings?.country||'NZ').toUpperCase()==='NZ';
+  const [trial,accounts,holiday,gst]=await Promise.all([
     client.rpc('v6170b_trial_balance',{p_from:'1900-01-01',p_to:asOf}),
     client.from('accounting_accounts').select('account_code,account_name,account_type,account_subtype,system_account_key,system_key').eq('business_id',businessId).eq('archived',false),
-    client.rpc('v61110_holiday_pay_liability_review',{p_as_of:asOf})
+    client.rpc('v61110_holiday_pay_liability_review',{p_as_of:asOf}),
+    nz?client.rpc('frindly_dashboard_pending_gst',{p_as_of:asOf}):Promise.resolve({data:null,error:null})
   ]);
   if(trial.error||accounts.error)throw new Error(trial.error?.message||accounts.error?.message||'Ledger unavailable');
+  if(gst.error)throw new Error(gst.error.message||'Pending GST unavailable');
+  if(nz&&(!gst.data||!Number.isFinite(Number(gst.data.payable))||!Number.isFinite(Number(gst.data.receivable))))throw new Error('Pending GST unavailable');
   const map=new Map((accounts.data||[]).map(a=>[String(a.account_code),a]));
   const totals={gst:0,payroll:0,holiday:0,suppliers:0,acc:0,other:0};
   for(const line of trial.data||[]){
@@ -43,7 +47,7 @@ async function obligationsSnapshot(client,businessId,asOf){
       matches('accounts payable','bills payable','trade payable','supplier payable','creditors')?'suppliers':'other';
     totals[bucket]+=amount;
   }
-  totals.gst=Math.max(0,totals.gst);
+  totals.gst=nz?Math.max(0,num(gst.data.payable)):Math.max(0,totals.gst);
   const leave=holiday.error?null:{confirmed:0,unposted:0,review:0};
   if(leave)for(const item of holiday.data||[]){
     if(item.valuation_status==='needs_review')leave.review++;
@@ -51,7 +55,7 @@ async function obligationsSnapshot(client,businessId,asOf){
   }
   // Never add leave estimates to posted liabilities: the posted portion is already in the ledger.
   const recorded=Object.values(totals).reduce((a,b)=>a+b,0);
-  return {totals,recorded,leave,holidayError:holiday.error?.message||null};
+  return {totals,recorded,leave,gst:gst.data,holidayError:holiday.error?.message||null};
 }
 async function bankBookBalances(client,businessId,asOf){
  const [ledger,accounts,banks,aliases]=await Promise.all([
@@ -75,9 +79,12 @@ function bankBookWidget(rows,asOf){
 function obligationsHtml(o,fin){
   if(!o)return '<div class="dash-empty">Recorded obligations unavailable.</div>';
   const payroll=o.totals.payroll,other=o.totals.other+o.totals.suppliers+o.totals.holiday+o.totals.acc;
-  const tiles=[['GST',o.totals.gst,'blue'],['Payroll',payroll,'purple'],['Other',other,'orange']];
-  const rows=[['GST',o.totals.gst],['PAYE, KiwiSaver & wages',payroll],['Holiday pay',o.totals.holiday],['Supplier bills',o.totals.suppliers],['ACC payable',o.totals.acc],['Other payables',o.totals.other]];
+  const refund=num(o.gst?.receivable),gstRefundOnly=o.totals.gst===0&&refund>0;
+  const tiles=[[gstRefundOnly?'GST receivable':o.gst?'GST payable':'GST',gstRefundOnly?refund:o.totals.gst,'blue'],['Payroll',payroll,'purple'],['Other',other,'orange']];
+  const rows=[[o.gst?'GST payable':'GST',o.totals.gst],...(refund>0?[['GST receivable (not added)',refund]]:[]),['PAYE, KiwiSaver & wages',payroll],['Holiday pay',o.totals.holiday],['Supplier bills',o.totals.suppliers],['ACC payable',o.totals.acc],['Other payables',o.totals.other]];
   const detail=rows.map(([label,value])=>`<div class="dash-obligation-row"><span>${esc(label)}</span><strong>${money(value)}</strong></div>`).join('');
+  const gstPeriods=(o.gst?.periods||[]);
+  const gstDetail=gstPeriods.length?`<details><summary>GST periods</summary>${gstPeriods.map(p=>`<div class="dash-obligation-row"><span>${esc(p.from)} to ${esc(p.to)} · ${esc(p.status)}${(p.review_items||[]).length?' · Estimate needs review':''}</span><strong>${money(p.outstanding)} ${esc(p.direction)}</strong></div>`).join('')}</details>`:'';
   const a=window.SAAS?.state?.business?.settings?.acc_levy_planning;
   const rawAcc=a?.method==='bill'?Number(a.bill):a?.method==='rate'?Number(a.rate)*Number(a.earnings)/100:a?.method==='payroll'?Number(fin?.accPayroll?.earnings)*Number(a.rate)/100:NaN;
   const accAmount=Number.isFinite(rawAcc)&&rawAcc>=0?rawAcc:null;
@@ -85,7 +92,7 @@ function obligationsHtml(o,fin){
   const incomeTax=fin?.taxPlanning?.country==='NZ'?Math.max(0,num(fin.taxPlanning.fyEstimatedIncomeTax)):0;
   const estimatedTotal=o.recorded+(accAmount??0)+incomeTax;
   const leaveReview=o.leave?.review||0;
-  return `<div class="dash-obligation-compact"><div class="dash-obligation-summary"><span>Estimated total to set aside</span><strong>${money(estimatedTotal)}</strong></div><div class="dash-obligation-tiles">${tiles.map(([label,value,tone])=>`<div class="dash-obligation-tile ${tone}"><span>${esc(label)}</span><strong>${money(value)}</strong></div>`).join('')}</div><details class="dash-obligation-details"><summary>View breakdown</summary><div class="dash-obligation-breakdown">${detail}<div class="dash-obligation-row dash-obligation-total"><span>Total estimated</span><strong>${money(estimatedTotal)}</strong></div><div class="dash-obligation-future"><span>Future ACC levy estimate</span><strong>${accAmount===null?'Needs setup':money(accAmount)}</strong></div>${accAmount!==null?`<div class="dash-obligation-future"><span>Suggested ACC monthly reserve</span><strong>${money(accAmount/accMonths)}</strong></div>`:''}<div class="dash-obligation-future"><span>${fin?.taxPlanning?.country==='NZ'?'Estimated FY income tax':'Provisional tax'}</span><strong>${fin?.taxPlanning?.country==='NZ'?money(fin.taxPlanning.fyEstimatedIncomeTax):'Not available'}</strong></div></div></details>${leaveReview?`<div class="dash-obligation-review"><span>${leaveReview} holiday pay balance${leaveReview===1?'':'s'} need${leaveReview===1?'s':''} review</span></div>`:''}</div>`;
+  return `<div class="dash-obligation-compact"><div class="dash-obligation-summary"><span>Estimated total to set aside</span><strong>${money(estimatedTotal)}</strong></div><div class="dash-obligation-tiles">${tiles.map(([label,value,tone])=>`<div class="dash-obligation-tile ${tone}"><span>${esc(label)}</span><strong>${money(value)}</strong></div>`).join('')}</div><details class="dash-obligation-details"><summary>View breakdown</summary><div class="dash-obligation-breakdown">${detail}${gstDetail}<div class="dash-obligation-row dash-obligation-total"><span>Total estimated</span><strong>${money(estimatedTotal)}</strong></div><div class="dash-obligation-future"><span>Future ACC levy estimate</span><strong>${accAmount===null?'Needs setup':money(accAmount)}</strong></div>${accAmount!==null?`<div class="dash-obligation-future"><span>Suggested ACC monthly reserve</span><strong>${money(accAmount/accMonths)}</strong></div>`:''}<div class="dash-obligation-future"><span>${fin?.taxPlanning?.country==='NZ'?'Estimated FY income tax':'Provisional tax'}</span><strong>${fin?.taxPlanning?.country==='NZ'?money(fin.taxPlanning.fyEstimatedIncomeTax):'Not available'}</strong></div></div></details>${leaveReview?`<div class="dash-obligation-review"><span>${leaveReview} holiday pay balance${leaveReview===1?'':'s'} need${leaveReview===1?'s':''} review</span></div>`:''}</div>`;
 }
 
 async function refresh(){if(D.loading)return;const root=$('dashboardRoot'),businessId=bid();if(!root||!businessId)return;D.loading=true;const token=++D.token;D.businessId=businessId;try{const client=c(),today=zoneDate(),month=monthStart(),[yy,mm]=month.split('-').map(Number),nextMonth=`${mm===12?yy+1:yy}-${String(mm===12?1:mm+1).padStart(2,'0')}-01`,todayStart=new Date(window.Schedule?._test?.zonedToUtc?.(today,'00:00',timezone())||`${today}T00:00:00Z`),tomorrow=new Date(todayStart.getTime()+36*3600000),tomorrowKey=new Intl.DateTimeFormat('en-CA',{timeZone:timezone(),year:'numeric',month:'2-digit',day:'2-digit'}).format(tomorrow),todayEnd=new Date(window.Schedule?._test?.zonedToUtc?.(tomorrowKey,'00:00',timezone())||new Date(todayStart.getTime()+86400000).toISOString());

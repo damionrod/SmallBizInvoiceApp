@@ -1,4 +1,20 @@
-const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');const s=fs.readFileSync(require('node:path').join(__dirname,'../../public/dashboard.js'),'utf8');const f=s.slice(s.indexOf('async function obligationsSnapshot('),s.indexOf('async function bankBookBalances('));const fn=vm.runInNewContext('('+f+')',{num:v=>Number(v||0)});
-const accounts=[{account_code:'gst',account_type:'liability',system_key:'gst_payable'},{account_code:'input',account_type:'asset',system_key:'gst_receivable'},{account_code:'wages',account_type:'liability',system_key:'payroll_net_payable'},{account_code:'ird',account_type:'current_liability',system_key:'payroll_liability'}];
-const client=values=>({rpc:async(name)=>({data:name==='v6170b_trial_balance'?Object.entries(values).map(([account_code,balance])=>({account_code,balance})):[]}),from:()=>({select(){return this},eq(){return this},then(resolve){resolve({data:accounts})}})});
-(async()=>{let x=await fn(client({gst:150,input:50,wages:100,ird:20}),'a','2026-10-01');assert.equal(x.totals.gst,100);assert.equal(x.totals.payroll,120);assert.equal(x.recorded,220);x=await fn(client({gst:110,input:50,wages:70,ird:10}),'a','2026-10-01');assert.equal(x.totals.gst,60);assert.equal(x.totals.payroll,80);assert.equal(x.recorded,140);x=await fn(client({gst:50,input:50,wages:0,ird:0}),'a','2026-10-01');assert.equal(x.recorded,0);console.log('PASS Money to Set Aside uses net GST and remaining posted payroll liabilities before/after partial and full payment');})().catch(e=>{console.error(e);process.exitCode=1});
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const s=fs.readFileSync(require('node:path').join(__dirname,'../../public/dashboard.js'),'utf8');
+const context={num:v=>Number(v)||0,window:{SAAS:{state:{business:{settings:{country:'NZ',acc_levy_planning:{method:'payroll',rate:2.33}}}}}},esc:String,money:v=>'$'+Number(v).toFixed(2)};
+const fn=vm.runInNewContext('('+s.slice(s.indexOf('async function obligationsSnapshot('),s.indexOf('async function bankBookBalances('))+')',context);
+const render=vm.runInNewContext('('+s.slice(s.indexOf('function obligationsHtml('),s.indexOf('\nasync function refresh()',s.indexOf('function obligationsHtml(')))+')',context);
+const accounts=[{account_code:'gst',account_type:'liability',system_key:'gst_collected'},{account_code:'input',account_type:'asset',system_key:'gst_receivable'},{account_code:'wages',account_type:'liability',system_key:'payroll_net_payable'},{account_code:'ird',account_type:'current_liability',system_key:'payroll_liability'}];
+const client=(values,gst)=>({rpc:async(name)=>name==='frindly_dashboard_pending_gst'?gst:{data:name==='v6170b_trial_balance'?Object.entries(values).map(([account_code,balance])=>({account_code,balance})):[]},from:()=>({select(){return this},eq(){return this},then(resolve){resolve({data:accounts})}})});
+(async()=>{
+ const pending={payable:200,receivable:70,periods:[{from:'2026-04-01',to:'2026-09-30',status:'unsaved',outstanding:200,direction:'payable',review_items:[]}]};
+ let x=await fn(client({gst:999,input:0,wages:100,ird:20},{data:pending}),'a','2026-11-03');
+ assert.equal(x.totals.gst,200);assert.equal(x.totals.payroll,120);assert.equal(x.recorded,320);
+ let html=render(x,{accPayroll:{earnings:1021.70},taxPlanning:{country:'NZ',enabled:false,fyEstimatedIncomeTax:280}});
+ assert(html.includes('Estimated total to set aside</span><strong>$623.81'));
+ assert(html.includes('GST receivable (not added)'));assert(html.includes('2026-04-01 to 2026-09-30 · unsaved'));
+ x=await fn(client({gst:1000,input:0,wages:0,ird:0},{data:{payable:0,receivable:90,periods:[]}}),'a','2026-11-03');
+ assert.equal(x.recorded,0);html=render(x,null);assert(html.includes('GST receivable'));assert(html.includes('Estimated total to set aside</span><strong>$0.00'));
+ await assert.rejects(()=>fn(client({},{error:{message:'GST unavailable'}}),'a','2026-11-03'),/GST unavailable/);
+ context.window.SAAS.state.business.settings.country='AU';x=await fn(client({gst:150,input:50,wages:100,ird:20},null),'a','2026-11-03');assert.equal(x.totals.gst,100);assert.equal(x.recorded,220);
+ console.log('PASS pending period GST replaces historical ledger GST, refunds excluded from reserve, ACC/tax retained, errors explicit, AU unchanged');
+})().catch(e=>{console.error(e);process.exitCode=1});
