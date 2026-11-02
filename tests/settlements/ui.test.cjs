@@ -17,10 +17,10 @@ test('shared settlement dialog: banks, partial payments, allocation, history, re
   window.fixture={business_id:'business-a',obligations:[{kind:'gst',source_id:'gst-a',account_id:'gst-account',label:'GST period',total:100,paid:0,outstanding:100,direction:'payment',notice:null}],payments:[]};
   const banks=[{id:'other',name:'Another bank',accounting_account_id:'gl-other'},{id:'default',name:'Default bank',is_default:true,accounting_account_id:'gl-default'},{id:'unmapped',name:'Unmapped bank'}];
   const client={from:()=>({select(){return this},eq(){return this},order:async()=>({data:banks})}),rpc:async(name,args)=>{
-   if(name==='frindly_settlement_snapshot')return{data:structuredClone(window.fixture)};
+   if(name==='frindly_settlement_snapshot'){const data=structuredClone(window.fixture);data.obligations=(data.obligations||[]).filter(o=>(args.p_kind==='all'||o.kind===args.p_kind)&&(!args.p_source_id||o.source_id===args.p_source_id));if(window.holdStatusSnapshot&&args.p_kind==='wages')await new Promise(r=>window.releaseStatusSnapshot=r);return{data};}
    window.calls.push({name,args});
    if(window.holdSave)await new Promise(r=>window.releaseSave=r);
-   if(window.failSave)return{error:{message:'Accounting period is locked'}};
+   if(window.failSave)return{error:{message:'Accounting period is locked'}};if(window.updateFixtureOnSave&&name==='frindly_record_liability_payment')for(const a of args.p_allocations){const row=window.fixture.obligations.find(o=>o.kind===a.kind&&o.source_id===a.source_id&&o.account_id===a.account_id);row.paid+=a.amount;row.outstanding-=a.amount;}
    return{data:'payment-a'};
   }};
   window.SAAS={state:{business:{id:'business-a',settings:{currency:'NZD'}}},client:()=>client};
@@ -45,6 +45,25 @@ test('shared settlement dialog: banks, partial payments, allocation, history, re
  await page.evaluate(()=>{window.fixture.obligations=[{kind:'wages',source_id:'legacy',account_id:null,label:'PAY-0002',total:136.34,paid:136.34,outstanding:0,direction:'payment',notice:'Legacy payroll already credited bank'}]});await page.evaluate(()=>window.LiabilityPayments.open('wages','legacy'));assert.equal(await page.locator('#lpSave').count(),0);assert.match(await page.textContent('#lpContent'),/Bank posted \(legacy\)/);
  await page.evaluate(()=>{window.fixture.obligations=[];window.fixture.payments=[{id:'recorded-a',bank_account_id:'default',amount:40,direction:'payment',payment_date:'2026-10-01',matched:false,reference:'Wages'}]});
  await page.evaluate(()=>window.LiabilityPayments.reconcile({id:'bank-tx',bank_account_id:'default',amount:-40,transaction_date:'2026-10-02'},()=>window.matchDone=true));await page.selectOption('#lpExisting','recorded-a');await page.click('#lpMatch');await page.waitForFunction(()=>window.matchDone);assert.equal(await page.evaluate(()=>calls.at(-1).name),'frindly_reconcile_liability_payment');assert.equal(await page.evaluate(()=>calls.at(-1).args.p_payment_id),'recorded-a');
+
+ // List actions use persisted balances, stay clickable, and update after successful saves.
+ await page.evaluate(()=>{
+  window.fixture.obligations=[
+   {kind:'wages',source_id:'run-a',account_id:'wages',total:100,paid:0,outstanding:100,direction:'payment'},
+   {kind:'ird',source_id:'run-a',account_id:'ird',total:20,paid:0,outstanding:20,direction:'payment'},
+   {kind:'gst',source_id:'gst-a',account_id:'gst',total:100,paid:40,outstanding:60,direction:'payment'},
+   {kind:'gst',source_id:'refund-a',account_id:'gst-in',total:10,paid:10,outstanding:0,direction:'refund'},
+   {kind:'wages',source_id:'legacy-a',account_id:null,total:50,paid:50,outstanding:0,direction:'payment',notice:'Legacy bank credit'}
+  ];window.fixture.payments=[];window.updateFixtureOnSave=true;
+  const root=document.createElement('div');root.id='statusList';root.innerHTML=[['wageDesktop','wages','run-a'],['wageMobile','wages','run-a'],['irdStatus','ird','run-a'],['gstStatus','gst','gst-a'],['refundStatus','gst','refund-a'],['legacyStatus','wages','legacy-a'],['unknownStatus','wages','unknown']].map(([id,kind,source])=>`<button id="${id}" class="secondary" data-liability-kind="${kind}" data-liability-source="${source}">Record Payment</button>`).join('');document.body.append(root);
+ });
+ await page.evaluate(()=>window.LiabilityPayments.refreshButtons());
+ assert.equal(await page.textContent('#wageDesktop'),'Record Payment · Wages');assert.equal(await page.textContent('#irdStatus'),'Record Payment · IRD');assert.equal(await page.textContent('#gstStatus'),'Partially Paid');assert.equal(await page.textContent('#refundStatus'),'Refund Received');assert.equal(await page.textContent('#legacyStatus'),'Bank posted · Wages');assert.equal(await page.textContent('#unknownStatus'),'Record Payment');
+ await page.evaluate(()=>window.LiabilityPayments.open('wages','run-a'));await page.fill('#lpAmount','40');await page.click('#lpSave');await page.waitForFunction(()=>document.getElementById('wageDesktop').textContent==='Partially Paid · Wages');assert.equal(await page.textContent('#wageMobile'),'Partially Paid · Wages');assert.equal(await page.textContent('#irdStatus'),'Record Payment · IRD');
+ await page.evaluate(()=>window.LiabilityPayments.open('wages','run-a'));await page.click('#lpSave');await page.waitForFunction(()=>document.getElementById('wageDesktop').textContent==='Paid · Wages');assert.equal(await page.textContent('#wageMobile'),'Paid · Wages');assert.equal(await page.locator('#wageDesktop').isDisabled(),false);
+ await page.click('#wageDesktop');await page.waitForFunction(()=>document.getElementById('lpContent').textContent.includes('Outstanding $0.00'));assert.equal(await page.locator('#lpSave').count(),0);await page.click('#lpCancel');
+ await page.evaluate(()=>{document.getElementById('wageDesktop').textContent='Record Payment';return window.LiabilityPayments.refreshButtons()});assert.equal(await page.textContent('#wageDesktop'),'Paid · Wages');
+ await page.evaluate(async()=>{window.holdStatusSnapshot=true;document.getElementById('wageDesktop').textContent='New business';const pending=window.LiabilityPayments.refreshButtons();window.SAAS.state.business.id='business-b';window.releaseStatusSnapshot();await pending;window.holdStatusSnapshot=false;});assert.equal(await page.textContent('#wageDesktop'),'New business');
 
  }finally{await browser.close()}
 });

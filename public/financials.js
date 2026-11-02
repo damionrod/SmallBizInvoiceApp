@@ -441,6 +441,7 @@ async function renderGst(){if(isAu())return renderBas();ensureGstBasisSelector()
     renderIrdConnectGst(c,{warnings});
     q('finGstFinalise').disabled=saved?.status==='finalised'||c.reviewItems.some(x=>x.severity==='blocking');
     q('finGstHistoryRows').innerHTML=state.gstReturns.length?state.gstReturns.map(x=>{const conflict=x.status==='finalised'&&x.period_start<=c.to&&x.period_end>=c.from&&!(x.period_start===c.from&&x.period_end===c.to);return `<tr><td>${esc(x.period_start)} to ${esc(x.period_end)}${conflict?' · <strong>Period conflict</strong>':''}</td><td>${money(x.gst_collected)}</td><td>${money(x.gst_paid)}</td><td>${x.gst_net>=0?money(x.gst_net)+' payable':money(Math.abs(x.gst_net))+' refund'}</td><td><span class="badge">${esc(human(x.status))}${conflict?' · Review':''}</span><button class="secondary" data-liability-kind="gst" data-liability-source="${x.id}">${x.gst_net<0?'Record Refund Received':'Record Payment'}</button></td></tr>`}).join(''):'<tr><td colspan="5">No saved GST returns yet.</td></tr>';
+    window.LiabilityPayments?.refreshButtons?.();
   }catch(e){
     console.error('GST calculation/render failed',e);
     state.gstCurrentCalc=null;
