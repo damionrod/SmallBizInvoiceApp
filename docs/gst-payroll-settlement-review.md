@@ -1,6 +1,6 @@
 # GST and payroll settlements — release verification
 
-Release authorised by the owner on 2 November 2026 after verification of the historical discrepancies. The final migration passed a rollback-only check against the production schema; isolated PostgreSQL, browser/mobile and dashboard tests passed again. Deployment status is recorded in the release update below.
+Release authorised by the owner on 2 November 2026 after verification of the historical discrepancies. The final migration passed a rollback-only check against the production schema; isolated PostgreSQL, browser/mobile and dashboard tests passed again. The feature is merged into main and published on production. Deployment details are recorded in the release update below.
 
 ## Historical wages resolved
 
@@ -113,4 +113,4 @@ Run local tests from `tests/settlements` after `npm ci` using `npm test`. In res
 
 ## Release update
 
-Owner verification cleared the historical-data release hold on 2 November 2026. Migration `20261102014924_gst_payroll_settlements` applied successfully. Post-migration checks confirmed both new tables have RLS enabled, anonymous/authenticated direct table writes remain denied, and both tables contain zero records. No historical payments, journals or GST returns were backfilled. The security advisor reported the expected no-policy informational notices for the two RPC-only tables. Main/Netlify publication is being verified.
+Owner verification cleared the historical-data release hold on 2 November 2026. Migration `20261102014924_gst_payroll_settlements` applied successfully. Post-migration checks confirmed both new tables have RLS enabled, anonymous/authenticated direct table writes remain denied, and both tables contain zero records. No historical payments, journals or GST returns were backfilled. The security advisor reported the expected no-policy informational notices for the two RPC-only tables. PR #2 merged into main as `ade3c5c81c864b1d2d265620e4550941f86982e1`. Netlify production deploy `6ae7ec738248ec41adf1f921` published that exact commit successfully. The live JavaScript assets matched the release byte-for-byte. A final anonymous RPC check rejected snapshot and payment access, and the settlement tables still contained zero records. No signed-in customer payment was created for verification.
