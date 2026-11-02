@@ -54,24 +54,16 @@ async function obligationsSnapshot(client,businessId,asOf){
   return {totals,recorded,leave,holidayError:holiday.error?.message||null};
 }
 async function bankBookBalances(client,businessId,asOf){
- const [ledger,accounts,banks]=await Promise.all([
+ const [ledger,accounts,banks,aliases]=await Promise.all([
   client.rpc('v6170c45_general_ledger',{p_from:'1900-01-01',p_to:asOf,p_account_code:null,p_source_type:null}),
   client.from('accounting_accounts').select('id,account_code,account_name,account_type,system_account_key,system_key').eq('business_id',businessId),
-  client.from('bank_accounts').select('name,accounting_account_id').eq('business_id',businessId).eq('archived',false)
+  client.from('bank_accounts').select('id,name,accounting_account_id').eq('business_id',businessId).eq('archived',false),
+  client.rpc('frindly_bank_ledger_aliases_v1')
  ]);
- if(ledger.error||accounts.error||banks.error)throw new Error(ledger.error?.message||accounts.error?.message||banks.error?.message||'Bank book ledger unavailable');
- const accountsList=accounts.data||[],bankList=banks.data||[];
- const linkedIds=new Set(bankList.map(b=>b.accounting_account_id).filter(Boolean));
- const codes=new Map();
- for(const a of accountsList){
-  const key=String(a.system_account_key||''),otherKey=String(a.system_key||'');
-  if(a.account_type!=='bank'&&!linkedIds.has(a.id)&&!['bank','cash','cash_on_hand','bank_main'].includes(key)&&!['bank','cash','cash_on_hand','bank_main'].includes(otherKey))continue;
-  const linked=bankList.filter(b=>b.accounting_account_id===a.id);
-  const name=linked.length===1?(linked[0].name||a.account_name||a.account_code):(a.account_name||a.account_code);
-  codes.set(String(a.account_code),String(name));
- }
+ if(ledger.error||accounts.error||banks.error||aliases.error)throw new Error(ledger.error?.message||accounts.error?.message||banks.error?.message||aliases.error?.message||'Bank book ledger unavailable');
+ const {codeMap,names:codes}=window.FrindlyBankLedger.group(accounts.data||[],banks.data||[],aliases.data||[]);
  const totals=new Map([...codes.keys()].map(code=>[code,0]));
- for(const t of ledger.data||[]){const code=String(t.account_code);if(totals.has(code))totals.set(code,totals.get(code)+num(t.debit)-num(t.credit))}
+ for(const t of ledger.data||[]){const code=codeMap.get(String(t.account_code));if(totals.has(code))totals.set(code,totals.get(code)+num(t.debit)-num(t.credit))}
  return [...totals].map(([code,value])=>({name:codes.get(code),value})).sort((a,b)=>a.name.localeCompare(b.name));
 }
 function bankBookWidget(rows,asOf){

@@ -158,19 +158,17 @@ function renderCashFlow(){const {from,to}=currentRange();let cashIn=0,cashOut=0;
 async function renderCashBook(){
  const {from,to}=currentRange(),bid=state.businessId,c=client(),root=q('finCashBookRows');
  root.innerHTML='<tr><td colspan="8">Loading posted cash and bank movements…</td></tr>';
- const [ledgerResult,accountsResult,banksResult]=await Promise.all([
+ const [ledgerResult,accountsResult,banksResult,aliasesResult]=await Promise.all([
   c.rpc('v6170c45_general_ledger',{p_from:'1900-01-01',p_to:to,p_account_code:null,p_source_type:null}),
   c.from('accounting_accounts').select('id,account_code,account_name,account_type,system_account_key,system_key').eq('business_id',bid),
-  c.from('bank_accounts').select('accounting_account_id,name').eq('business_id',bid).eq('archived',false)
+  c.from('bank_accounts').select('id,accounting_account_id,name').eq('business_id',bid).eq('archived',false),
+  c.rpc('frindly_bank_ledger_aliases_v1')
  ]);
  if(state.businessId!==bid)return;
- if(ledgerResult.error||accountsResult.error||banksResult.error){root.innerHTML='<tr><td colspan="8">Posted Cash Book unavailable. No operational estimates have been substituted.</td></tr>';state.cashBookRows=[];return}
- const bankCodes=new Set((accountsResult.data||[]).filter(a=>a.account_type==='bank'||['bank','cash','cash_on_hand','bank_main'].includes(a.system_account_key)||['bank','cash','cash_on_hand','bank_main'].includes(a.system_key)).map(a=>String(a.account_code)));
- const linkedBankIds=new Set((banksResult.data||[]).map(b=>b.accounting_account_id).filter(Boolean));
- for(const a of accountsResult.data||[])if(linkedBankIds.has(a.id))bankCodes.add(String(a.account_code));
- const accountNames=new Map();
- for(const a of accountsResult.data||[]){if(!bankCodes.has(String(a.account_code)))continue;const linked=(banksResult.data||[]).filter(b=>b.accounting_account_id===a.id);accountNames.set(String(a.account_code),linked.length===1?(linked[0].name||a.account_code):(a.account_name||a.account_code));}
- const allBankRows=(ledgerResult.data||[]).filter(t=>bankCodes.has(String(t.account_code))).map(t=>({date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:t.description||t.account_name||'',cat:t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code:t.account_code}));;
+ if(ledgerResult.error||accountsResult.error||banksResult.error||aliasesResult.error){root.innerHTML='<tr><td colspan="8">Posted Cash Book unavailable. No operational estimates have been substituted.</td></tr>';state.cashBookRows=[];return}
+ const {codeMap,names:accountNames}=window.FrindlyBankLedger.group(accountsResult.data||[],banksResult.data||[],aliasesResult.data||[]);
+ const bankCodes=new Set(accountNames.keys());
+ const allBankRows=(ledgerResult.data||[]).filter(t=>codeMap.has(String(t.account_code))).map(t=>{const code=codeMap.get(String(t.account_code));return {date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:t.description||t.account_name||'',cat:accountNames.get(code)||t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code}});
  const scoped=allBankRows;
  const opening=scoped.filter(t=>t.date<from).reduce((sum,t)=>sum+t.in-t.out,0);const rows=scoped.filter(t=>t.date>=from);
  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.ref).localeCompare(String(b.ref)));

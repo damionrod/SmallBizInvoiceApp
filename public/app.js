@@ -436,7 +436,7 @@ async function hydrateBankOpeningSettings(){
    if(used.has(saved.id))continue;
    used.add(saved.id);
    restored.push({...b,bankAccountId:saved.id,name:saved.name,account:saved.account_number||'',isDefault:!!saved.is_default,openingBalance:saved.opening_balance_date?String(saved.opening_balance??0):'',openingDate:saved.opening_balance_date||''});
-  }else if(!b.bankAccountId){
+  }else if(!b.bankAccountId&&String(b.account||'').trim()){
    restored.push(b); // Unsaved draft: never infer a different existing bank's ID.
   }
  }
