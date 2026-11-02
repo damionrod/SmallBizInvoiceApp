@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-core.css?v=61.116-settings-simplified" />
-  <link rel="stylesheet" href="styles.css?v=62.19-payment-action-polish" />
+  <link rel="stylesheet" href="styles.css?v=20261102-shared-cash" />
   <link rel="stylesheet" href="frontend-quality.css?v=61.102L-login-reliability" />
   <script src="frindly-dialogs.js?v=61.129-ui-alerts"></script>
   <script defer src="mobile-shell.js?v=61.102L-login-reliability"></script>
@@ -399,7 +399,7 @@
           <details class="financial-statement-group"><summary><span>Direct Costs</span><strong id="finDirect">—</strong></summary><div id="finDirectBreakdown"></div></details>
           <div class="financial-statement-row subtotal"><span>Gross Profit</span><strong id="finGross">—</strong></div><div class="financial-statement-row muted"><span>Gross Margin</span><strong id="finGrossMargin">—</strong></div>
           <details class="financial-statement-group"><summary><span>Indirect / Operating Costs</span><strong id="finIndirect">—</strong></summary><div id="finIndirectBreakdown"></div></details>
-          <div class="financial-statement-row subtotal"><span>Operating Profit</span><strong id="finOperating">—</strong></div><div class="financial-statement-row muted"><span>Operating Margin</span><strong id="finOperatingMargin">—</strong></div>
+          <div class="financial-statement-row"><span>Other recorded income</span><strong id="finOtherIncome">—</strong></div><div class="financial-statement-row subtotal"><span>Operating Profit</span><strong id="finOperating">—</strong></div><div class="financial-statement-row muted"><span>Operating Margin</span><strong id="finOperatingMargin">—</strong></div>
           <div class="financial-statement-row"><span>Estimated Business Tax</span><strong id="finTax">—</strong></div><div class="financial-statement-row total"><span>Estimated Profit After Tax</span><strong id="finAfterTax">—</strong></div>
         </div></div>
         <div class="card"><div class="card-title"><div><h2>Purchase allocations</h2><p class="hint">Confirmed items are allocated once per bill. Amounts below are purchase costs before GST, not posted asset balances, stock on hand or tax deductions.</p></div></div><div id="finPurchaseAllocations" class="financial-summary-statement"></div></div>
@@ -408,7 +408,7 @@
       </div>
 
       <div class="financial-panel" id="financial-panel-pnl" hidden><div class="page-head compact-head"><div><h2>Profit &amp; Loss</h2><p id="finPnlPeriod"></p></div><button class="secondary" id="finPnlCsv">Download CSV</button></div><div class="card financial-statement" id="finPnlBody"></div></div>
-      <div class="financial-panel" id="financial-panel-cashflow" hidden><div class="page-head compact-head"><div><h2>Money In &amp; Out</h2><p>Cash movement based on payments recorded in Frindly</p></div></div><div class="card financial-statement" id="finCashFlowBody"></div></div>
+      <div class="financial-panel" id="financial-panel-cashflow" hidden><div class="page-head compact-head"><div><h2>Money In &amp; Out</h2><p>Record other bank transactions and review posted bank movements</p></div></div><div class="card financial-statement" id="finCashFlowBody"></div></div>
       <div class="financial-panel" id="financial-panel-cashstatement" hidden><div class="page-head compact-head"><div><h2>Statement of Cash Flows</h2><p id="finCashStatementPeriod">Posted Accounting / Direct Method</p></div><button class="secondary" id="finCashStatementCsv">Download CSV</button></div><div class="card financial-statement" id="finCashStatementBody"></div></div>
       <div class="financial-panel" id="financial-panel-balance" hidden><div class="page-head compact-head"><div><h2>Balance Sheet</h2><p>Posted accounting balances only. Incomplete opening history is disclosed rather than estimated.</p></div></div><div class="card financial-statement" id="finBalanceBody"></div></div>
       <div class="financial-panel" id="financial-panel-ledger" hidden><div class="page-head compact-head"><div><h2>General Ledger</h2><p>Posted accounting entries with source and journal references.</p></div><button class="secondary" id="finLedgerCsv">Download CSV</button></div><div class="card filters financial-ledger-filters"><label>Account<select id="finLedgerAccount"><option value="">All accounts</option></select></label><label>Source<select id="finLedgerSource"><option value="">All sources</option><option value="invoice">Invoice</option><option value="customer_payment">Customer Payment</option><option value="customer_credit_note">Customer Credit Note</option><option value="customer_refund">Customer Refund</option><option value="expense">Expense</option><option value="supplier_payment">Expense Payment</option><option value="supplier_credit">Supplier Credit</option><option value="supplier_refund">Supplier Refund</option><option value="payroll">Payroll</option><option value="bank">Bank</option><option value="reversal">Reversal</option></select></label></div><div class="card table-card"><div class="table-scroll"><table><thead><tr><th>Date</th><th>Account</th><th>Description</th><th>Source / reference</th><th>Debit</th><th>Credit</th><th>Running balance</th></tr></thead><tbody id="finLedgerRows"></tbody></table></div></div></div>
@@ -1275,7 +1275,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <script src="support-inbox.js?v=61.102L-login-reliability"></script>
   <script src="support-center.js?v=61.102L-login-reliability"></script>
   <script src="community.js?v=61.107AAZ-community-v2"></script>
-  <script src="advanced-business-features.js?v=61.117-safe-feature-gaps"></script>
+  <script src="advanced-business-features.js?v=20261102-shared-cash"></script>
   <script src="payroll-leave-native.js?v=20261023-error-visible"></script>
 </body>
 </html>

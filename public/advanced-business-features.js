@@ -214,7 +214,8 @@
     root.innerHTML=`<div class="summary-grid"><div class="metric"><span>YTD posted profit</span><strong>${money(profit)}</strong></div><div class="metric"><span>Annualised estimate</span><strong>${money(annualised)}</strong></div><div class="metric"><span>Estimated tax rate</span><strong>${taxRate.toFixed(2)}%</strong></div><div class="metric"><span>Estimated provisional tax</span><strong>${money(tax)}</strong></div></div>
       <p class="hint">Planning worksheet only. Confirm method, residual income tax and due dates with your accountant or IRD before paying.</p>
       <div class="table-scroll"><table><thead><tr><th>Instalment</th><th>Due date</th><th>Suggested reserve</th><th>Status</th></tr></thead><tbody>${dates.map((d,i)=>`<tr><td>P${i+1}</td><td>${d}</td><td>${money(instalment)}</td><td>${d<today()?'Review/paid?':'Upcoming'}</td></tr>`).join('')}</tbody></table></div>
-      <div class="actions"><button class="secondary" id="provisionalTaxCsv" type="button">Download CSV</button></div>`;
+      <div class="actions"><button class="primary" type="button" data-cash-open="out" data-cash-purpose="income_tax">Record income-tax payment</button><button class="secondary" id="provisionalTaxCsv" type="button">Download CSV</button></div><div id="provisionalCashHistory"></div>`;
+    window.CashTransactions?.taxHistory();
     $('provisionalTaxCsv').onclick=()=>{const csv=[['Provisional Tax Plan'],['FY end',fyEnd],['YTD posted profit',profit],['Annualised estimate',annualised],['Estimated tax',tax],[],['Instalment','Due date','Suggested reserve'],...dates.map((d,i)=>[`P${i+1}`,d,instalment])].map(r=>r.join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`provisional-tax-plan-${today()}.csv`;a.click();};
   }
 
