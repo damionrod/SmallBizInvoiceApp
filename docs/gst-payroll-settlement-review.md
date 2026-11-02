@@ -1,6 +1,6 @@
-# GST and payroll settlements — implementation held for historical GST review
+# GST and payroll settlements — release verification
 
-Status: draft implementation, not deployed. Production `main`, customer financial records and persisted Supabase schema are unchanged.
+Release authorised by the owner on 2 November 2026 after verification of the historical discrepancies. The final migration passed a rollback-only check against the production schema; isolated PostgreSQL, browser/mobile and dashboard tests passed again. Deployment status is recorded in the release update below.
 
 ## Historical wages resolved
 
@@ -16,7 +16,7 @@ One finalised return agrees exactly. Two historical finalised returns do not agr
 
 The older positive return has no stored `accounting_basis`. This does not establish why it differs. The frozen return, source transaction history, adjustments and any external filing evidence must be traced before deciding on an accounting correction. Do not overwrite finalised returns or create a balancing journal merely to make these numbers agree.
 
-Deployment is held under the requested stop-on-critical-failure rule. The draft rejects GST settlement when the saved return differs from its posted source movements. The zero saved return has no payment to record, but still requires source-history review.
+The owner has verified the historical discrepancies and authorised release. Historical records are preserved. Settlement still rejects a saved GST return that differs from its posted source movements; owner verification does not bypass the posting guard or create a balancing adjustment.
 
 ## Draft application changes
 
@@ -30,7 +30,7 @@ Deployment is held under the requested stop-on-critical-failure rule. The draft 
 
 ## Draft database changes
 
-SQL is in `supabase/changes/gst_payroll_settlements.sql`. It is intentionally outside the migration runner directory while release is blocked. Before an approved release, generate a migration with the Supabase CLI and transfer the reviewed SQL into it.
+The Supabase CLI generated `supabase/migrations/20261102014748_gst_payroll_settlements.sql`, containing the reviewed SQL.
 
 New tables:
 
@@ -96,17 +96,17 @@ Passed:
 18. Dashboard calculation before/after partial and full settlements.
 19. JavaScript syntax and whitespace checks.
 
-A rollback-only production-schema compilation was also executed successfully before the final additional guards, and the historical source was recognised as bank-posted with zero wages outstanding. The transaction was rolled back. A subsequent read confirmed no new payment table persisted. Final amendments were validated locally; there has been no production migration application.
+A rollback-only production-schema compilation was also executed successfully before the final additional guards, and the historical source was recognised as bank-posted with zero wages outstanding. The transaction was rolled back. A subsequent read confirmed no new payment table persisted. The complete final migration subsequently passed another rollback-only production-schema compatibility check, identifying both new tables and all four RPC wrappers.
 
 Selected existing regression suites: 19 checks, 9 passed and 10 failed. An unchanged checkout of the same main commit produced the exact same failing test names and pass/fail counts. These failures predate this draft; this does not constitute a clean full-application regression pass.
 
 ## Remaining work before release
 
-- Trace the two historical GST mismatches against their frozen snapshots and source postings. Confirm the correct evidence-backed treatment without changing historical filings blindly.
-- Re-run production-schema compatibility and isolated integration checks on the final migration.
+- Historical discrepancies: verified by the owner; preserve existing records and retain the source-ledger settlement guard.
+- Final production-schema compatibility and isolated test suites: passed.
 - Review full-app regression coverage, including the pre-existing suite failures; no signed-in end-to-end test of the deployed application has been performed.
 - Verify concurrent requests using independent PostgreSQL connections; local tests cover sequential request replay, double-click and balance limits, not multi-session concurrency.
 - Bank matching currently matches a complete recorded settlement to one bank line. Split a real transfer into separate recorded payments when it will appear as separate bank lines. Existing legacy wages matches remain in the existing mechanism.
-- Then commit the verified release to main, apply the generated migration, deploy through existing Netlify Git CD and verify production. No such deployment was performed during this review.
+- Commit the authorised release to main, apply the generated migration and verify the Netlify Git CD deployment. See the release update for completion status.
 
 Run local tests from `tests/settlements` after `npm ci` using `npm test`. In restricted hosts, `SETTLEMENT_CHROMIUM_PATH` may point to an extracted Chromium binary. Tests do not use production credentials or production transaction rows.
