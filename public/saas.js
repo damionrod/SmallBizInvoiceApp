@@ -2153,10 +2153,13 @@ ${businessName}`,'');
 
   function invoicePaymentStatusLabel(status){return ({not_started:'Not connected',pending:'Setup in progress',active:'Ready to accept payments',restricted:'Action required',disabled:'Disabled'}[status]||human(status||'Not connected'))}
 
+  let invoicePaymentSettingsRenderToken=0;
   async function renderInvoicePaymentSettings(){
     const root=q('invoicePaymentSettingsRoot');if(!root)return;
+    const renderToken=++invoicePaymentSettingsRenderToken;
     root.innerHTML='<div class="card"><p class="hint">Loading Stripe payment setup…</p></div>';
     const {data,error}=await invoicePaymentsRequest({action:'status'});
+    if(renderToken!==invoicePaymentSettingsRenderToken)return;
     if(error||data?.error){root.innerHTML=`<div class="card"><p class="hint">${escapeHtml(data?.error||error?.message||'Online payment setup is unavailable.')}</p></div>`;return}
     const settings=data?.settings||{};
     const accountReady=settings.connect_status==='active'&&settings.card_payments_status==='active';
@@ -2170,6 +2173,7 @@ ${businessName}`,'');
         canManage=!roleError&&actualRole==='owner';
       }
     }catch(_error){canManage=false;}
+    if(renderToken!==invoicePaymentSettingsRenderToken)return;
     const requirements=Array.isArray(settings.requirements?.currently_due)?settings.requirements.currently_due:[];
     const setupLabel=!settings.stripe_account_id?'Connect Stripe and set up bank account':accountReady?'Manage Stripe account and bank details':'Continue Stripe setup';
     root.innerHTML=`<div class="card invoice-payment-settings-card"><div class="card-title"><div><h3>Stripe Connect</h3><p class="hint">Stripe collects the business identity and bank details. Frindly stores the connected-account ID and setup status only.</p></div><span class="gateway-status ${accountReady?'enabled':settings.connect_status==='restricted'?'warning':'ready'}">${escapeHtml(invoicePaymentStatusLabel(settings.connect_status))}</span></div><div class="invoice-payment-connect-summary"><div><span>Card payments</span><strong>${escapeHtml(human(settings.card_payments_status||'not_requested'))}</strong></div><div><span>Partial payments</span><strong>${settings.allow_partial_payments===false?'Off':'On'}</strong></div><div><span>Fee handling</span><strong>${settings.fee_mode==='pass'?'Pass to customer':settings.fee_mode==='split'?'Split estimate':'Business absorbs'}</strong></div></div>${requirements.length?`<div class="admin-inline-message warning">Stripe still needs: ${requirements.map(escapeHtml).join(', ')}</div>`:''}<div class="actions"><button class="primary" type="button" id="invoicePaymentConnectBtn" ${canManage?'':'disabled'}>${setupLabel}</button></div><p class="hint">The button opens Stripe’s hosted onboarding. Complete the business verification and bank-account steps there before sending invoices with Pay Now.</p></div><div class="card"><div class="card-title"><div><h3>Customer payment options</h3><p class="hint">The original invoice amount stays unchanged. Any online processing charge is shown separately at checkout.</p></div></div><div class="form-grid compact"><label>Processing fee<select id="invoicePaymentFeeMode" ${canManage?'':'disabled'}><option value="bear" ${settings.fee_mode==='bear'?'selected':''}>Business absorbs the Stripe fee</option><option value="split" ${settings.fee_mode==='split'?'selected':''}>Split the estimated fee 50 / 50</option><option value="pass" ${settings.fee_mode==='pass'?'selected':''}>Pass the estimated fee to the customer</option></select><small>Stripe’s actual fee is recorded separately; this setting controls the estimated fee shown before Checkout.</small></label><label class="tick-option"><input id="invoicePaymentPartial" type="checkbox" ${settings.allow_partial_payments!==false?'checked':''} ${canManage?'':'disabled'}><span>Allow customers to make partial payments</span></label></div><div class="actions"><button class="primary" type="button" id="saveInvoicePaymentSettings" ${canManage?'':'disabled'}>Save payment settings</button></div><p class="hint" id="invoicePaymentSettingsMessage"></p></div>`;
@@ -2184,7 +2188,7 @@ ${businessName}`,'');
       state.client.from('bank_accounts').select('id,name,account_number,is_default,accounting_account_id').eq('business_id',renderBusinessId).eq('archived',false).order('name'),
       state.client.from('invoice_payment_settings').select('stripe_payout_bank_account_id').eq('business_id',renderBusinessId).maybeSingle()
     ]);
-    if(String(state.business?.id||'')!==renderBusinessId||!payoutSelect.isConnected)return;
+    if(renderToken!==invoicePaymentSettingsRenderToken||String(state.business?.id||'')!==renderBusinessId||!payoutSelect.isConnected)return;
     if(payoutBanksResult.error||payoutSettingsResult.error){
       payoutMessage.textContent=payoutBanksResult.error?.message||payoutSettingsResult.error?.message||'Unable to load Stripe payout bank settings.';
       payoutMessage.className='hint error';
@@ -2192,12 +2196,15 @@ ${businessName}`,'');
       const banks=(payoutBanksResult.data||[]).filter(bank=>bank.id&&bank.name);
       payoutSelect.replaceChildren(new Option('Choose a payout bank account',''));
       for(const bank of banks){
-        const option=new Option(bank.name+(bank.account_number?' · '+bank.account_number:'')+(!bank.accounting_account_id?' (ledger setup required)':''),bank.id);
+        const option=new Option(bank.name+(bank.account_number?' · '+bank.account_number:'')+(bank.is_default?' (Default)':'')+(!bank.accounting_account_id?' (ledger setup required)':''),bank.id);
         option.disabled=!bank.accounting_account_id;
         payoutSelect.add(option);
       }
       const savedBank=payoutSettingsResult.data?.stripe_payout_bank_account_id||'';
-      if(savedBank&&banks.some(bank=>bank.id===savedBank&&bank.accounting_account_id))payoutSelect.value=savedBank;
+      if(savedBank&&banks.some(bank=>bank.id===savedBank&&bank.accounting_account_id)){
+        payoutSelect.value=savedBank;
+        if(payoutSelect.value!==savedBank){payoutMessage.textContent='Saved bank account could not be displayed. Please reload settings.';payoutMessage.className='hint error';}
+      }
       else if(savedBank){payoutMessage.textContent='The saved payout bank is no longer available. Select an active bank account.';payoutMessage.className='hint error';}
       payoutSelect.disabled=!canManage;
       payoutButton.disabled=!canManage;
