@@ -367,8 +367,70 @@
   function syncExpenseEditorActions(expense=null){const current=expense||(state.editingId?state.expenses.find(x=>x.id===state.editingId):null),remove=$('expRemove'),draft=$('expSaveDraft');if(remove){remove.hidden=!current;if(current)remove.textContent=isRecordedExpense(current)?'Void Expense':'Delete Draft'}if(draft)draft.hidden=!!current&&isRecordedExpense(current)}
   async function removeEditingExpense(){const e=state.editingId?state.expenses.find(x=>x.id===state.editingId):null;if(!e)return;const removed=isRecordedExpense(e)?await voidExpense(e.id):await archiveExpense(e.id);if(!removed)return;state.editingId=null;state.serverDraftId=null;syncExpenseEditorActions();switchTab('bills')}
 
-  async function openPayment(id){const e=state.expenses.find(x=>x.id===id);if(!e||isVoidedExpense(e))return toast('Voided bills cannot receive payments.');$('paymentExpenseId').value=e.id;$('paymentBillLabel').textContent=`${e.expense_number} · ${e.supplier_name} · Balance ${money(supplierCreditAdjustedOutstanding(e))}`;$('paymentDate').value=today();$('paymentAmount').value=supplierCreditAdjustedOutstanding(e).toFixed(2);$('paymentMethod').value='Bank transfer';$('paymentBank').value='';$('paymentReference').value='';$('paymentNotes').value='';const bankInput=$('paymentBank');if(bankInput&&client()&&business()?.id){const {data,error}=await client().from('bank_accounts').select('name,is_default,archived').eq('business_id',business().id).eq('archived',false).order('name');if(!error&&Array.isArray(data)){const banks=data.filter(b=>b.name);const defaults=banks.filter(b=>b.is_default);if(defaults.length===1)bankInput.value=defaults[0].name;let list=document.getElementById('expensePaymentBankOptions');if(!list){list=document.createElement('datalist');list.id='expensePaymentBankOptions';bankInput.after(list)}list.replaceChildren(...banks.map(b=>{const option=document.createElement('option');option.value=b.name;return option}));bankInput.setAttribute('list',list.id)}}$('expensePaymentModal').classList.add('open')}
-  async function savePayment(){const id=$('paymentExpenseId').value,e=state.expenses.find(x=>x.id===id),amount=num($('paymentAmount').value);if(isVoidedExpense(e))return toast('Voided bills cannot receive payments.');if(!e||amount<=0)return toast('Enter a payment amount.');if(amount>supplierCreditAdjustedOutstanding(e)+0.005)return toast('Payment cannot exceed the supplier-credit-adjusted outstanding balance.');const {error}=await client().from('expense_payments').insert({expense_id:id,payment_date:$('paymentDate').value||today(),amount,payment_method:$('paymentMethod').value.trim()||null,bank_account:$('paymentBank').value.trim()||null,reference:$('paymentReference').value.trim()||null,notes:$('paymentNotes').value.trim()||null});if(error)return toast(error.message);$('expensePaymentModal').classList.remove('open');await loadExpenses();renderBills();renderPayments();renderDashboard();toast('Payment recorded')}
+  async function openPayment(id){
+    const e=state.expenses.find(x=>x.id===id);
+    if(!e||isVoidedExpense(e))return toast('Voided bills cannot receive payments.');
+    $('paymentExpenseId').value=e.id;
+    $('paymentBillLabel').textContent=`${e.expense_number} · ${e.supplier_name} · Balance ${money(supplierCreditAdjustedOutstanding(e))}`;
+    $('paymentDate').value=today();
+    $('paymentAmount').value=supplierCreditAdjustedOutstanding(e).toFixed(2);
+    $('paymentMethod').value='Bank transfer';
+    $('paymentReference').value='';
+    $('paymentNotes').value='';
+    let bankField=$('paymentBank');
+    if(!bankField)return toast('Bank account field is unavailable.');
+    if(bankField.tagName!=='SELECT'){
+      const select=document.createElement('select');
+      select.id='paymentBank';
+      select.name=bankField.name||'paymentBank';
+      select.className=bankField.className;
+      select.style.cssText=bankField.style.cssText;
+      select.required=true;
+      bankField.replaceWith(select);
+      bankField=select;
+    }
+    bankField.replaceChildren(new Option('Loading bank accounts…',''));
+    bankField.disabled=true;
+    $('expensePaymentModal').classList.add('open');
+    const bid=business()?.id;
+    if(!bid||!client()){bankField.replaceChildren(new Option('No active business',''));return}
+    const {data,error}=await client().from('bank_accounts')
+      .select('id,name,account_number,is_default,archived,accounting_account_id')
+      .eq('business_id',bid).eq('archived',false).order('name');
+    if(business()?.id!==bid||$('paymentExpenseId').value!==id)return;
+    if(error){bankField.replaceChildren(new Option('Unable to load bank accounts',''));toast(error.message);return}
+    const banks=(data||[]).filter(b=>b.id&&b.name);
+    bankField.replaceChildren(new Option('Select a bank account',''));
+    for(const bank of banks){
+      const label=bank.name+(bank.account_number?' · '+bank.account_number:'')+(!bank.accounting_account_id?' (ledger setup required)':'');
+      const option=new Option(label,bank.id);
+      option.disabled=!bank.accounting_account_id;
+      bankField.add(option);
+    }
+    const available=banks.filter(b=>b.accounting_account_id);
+    const defaults=available.filter(b=>b.is_default);
+    if(defaults.length===1)bankField.value=defaults[0].id;
+    bankField.disabled=available.length===0;
+    if(!available.length)toast('No bank accounts are linked to a ledger. Configure a bank account in Settings before recording payment.');
+  }
+  async function savePayment(){
+    const id=$('paymentExpenseId').value,e=state.expenses.find(x=>x.id===id),amount=num($('paymentAmount').value);
+    if(isVoidedExpense(e))return toast('Voided bills cannot receive payments.');
+    if(!e||amount<=0)return toast('Enter a payment amount.');
+    if(amount>supplierCreditAdjustedOutstanding(e)+0.005)return toast('Payment cannot exceed the supplier-credit-adjusted outstanding balance.');
+    const bankField=$('paymentBank'),selected=bankField?.selectedOptions?.[0];
+    if(!bankField||bankField.tagName!=='SELECT'||!bankField.value||!selected||selected.disabled)return toast('Select a bank account linked to the accounting ledger.');
+    const {error}=await client().from('expense_payments').insert({
+      expense_id:id,payment_date:$('paymentDate').value||today(),amount,
+      payment_method:$('paymentMethod').value.trim()||null,
+      bank_account:bankField.value,
+      reference:$('paymentReference').value.trim()||null,
+      notes:$('paymentNotes').value.trim()||null
+    });
+    if(error)return toast(error.message);
+    $('expensePaymentModal').classList.remove('open');
+    await loadExpenses();renderBills();renderPayments();renderDashboard();toast('Payment recorded');
+  }
 
   async function togglePaymentReconcile(paymentId,expenseId){const e=state.expenses.find(x=>x.id===expenseId),p=e?.expense_payments?.find(x=>x.id===paymentId);if(!p)return;const next=!p.reconciled;if(next){const {error:rerr}=await client().from('expense_reconciliations').insert({expense_id:expenseId,payment_id:paymentId});if(rerr&&!String(rerr.message||'').includes('duplicate'))return toast(rerr.message)}else{const {error:rerr}=await client().from('expense_reconciliations').delete().eq('payment_id',paymentId);if(rerr)return toast(rerr.message)}const {error}=await client().from('expense_payments').update({reconciled:next,reconciled_at:next?new Date().toISOString():null,reconciled_by:next?(window.SAAS?.state?.user?.id||null):null}).eq('id',paymentId);if(error)return toast(error.message);await loadExpenses();renderPayments();toast(next?'Payment reconciled':'Payment unreconciled')}
 
