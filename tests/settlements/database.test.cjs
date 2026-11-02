@@ -9,7 +9,7 @@ await db.exec(fs.readFileSync(path.join(dir,'fixtures/current-checks.sql'),'utf8
 await db.exec(fs.readFileSync(path.join(dir,'fixtures/current-functions.sql'),'utf8'));
 await db.exec('create table public.invoices(id uuid,business_id uuid);create table public.expenses(id uuid,business_id uuid);create table public.customer_payments(id uuid,business_id uuid);create table public.expense_payments(id uuid,business_id uuid);create table public.bank_reconciliation_groups(id uuid,business_id uuid);create table public.business_owners(id uuid,business_id uuid);create table public.ird_filing_batches(business_id uuid,filing_type text,status text,source_id uuid,period_start date,period_end date);');
 await db.exec(fs.readFileSync(path.join(dir,'fixtures/current-triggers.sql'),'utf8'));
-await db.exec(fs.readFileSync(path.join(dir,'../../supabase/migrations/20261102014748_gst_payroll_settlements.sql'),'utf8'));
+await db.exec(fs.readFileSync(path.join(dir,'../../supabase/migrations/20261102014924_gst_payroll_settlements.sql'),'utf8'));
 console.log('PASS migration compiles against current table columns and current auth/journal functions');
 await db.exec(`insert into auth.users values('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002');
 insert into public.businesses(id,name) values('10000000-0000-0000-0000-000000000001','Isolated A'),('10000000-0000-0000-0000-000000000002','Isolated B');

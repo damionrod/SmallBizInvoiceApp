@@ -30,7 +30,7 @@ The owner has verified the historical discrepancies and authorised release. Hist
 
 ## Draft database changes
 
-The Supabase CLI generated `supabase/migrations/20261102014748_gst_payroll_settlements.sql`, containing the reviewed SQL.
+The Supabase CLI generated the migration file; its filename was aligned with the authoritative applied Supabase migration version: `supabase/migrations/20261102014924_gst_payroll_settlements.sql`. The reviewed migration has been applied successfully.
 
 New tables:
 
@@ -110,3 +110,7 @@ Selected existing regression suites: 19 checks, 9 passed and 10 failed. An uncha
 - Commit the authorised release to main, apply the generated migration and verify the Netlify Git CD deployment. See the release update for completion status.
 
 Run local tests from `tests/settlements` after `npm ci` using `npm test`. In restricted hosts, `SETTLEMENT_CHROMIUM_PATH` may point to an extracted Chromium binary. Tests do not use production credentials or production transaction rows.
+
+## Release update
+
+Owner verification cleared the historical-data release hold on 2 November 2026. Migration `20261102014924_gst_payroll_settlements` applied successfully. Post-migration checks confirmed both new tables have RLS enabled, anonymous/authenticated direct table writes remain denied, and both tables contain zero records. No historical payments, journals or GST returns were backfilled. The security advisor reported the expected no-policy informational notices for the two RPC-only tables. Main/Netlify publication is being verified.
