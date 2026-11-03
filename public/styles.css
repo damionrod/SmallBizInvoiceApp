@@ -8060,3 +8060,34 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
  #finCashFlowBody .ct-history-table td[data-label]::before{content:attr(data-label) ': ';font-weight:600;}
  #finCashFlowBody .ct-pagination{flex-wrap:wrap;}
 }
+/* Scoped visual organisation for the Money In & Out workspace. */
+#finCashFlowBody.ct-workspace{display:grid;gap:20px;}
+#finCashFlowBody .ct-entry-card,#finCashFlowBody .ct-history-card{padding:20px;margin:0;min-width:0;}
+#finCashFlowBody h3{margin:0 0 12px;}
+#finCashFlowBody .cash-entry-actions{margin:0;}
+#finCashFlowBody .cash-entry-actions>.actions{display:grid;grid-template-columns:repeat(3,220px);justify-content:start;gap:12px;margin:0;}
+#finCashFlowBody .cash-entry-actions>.actions button{width:100%;min-height:42px;margin:0;}
+#finCashFlowBody .cash-entry-actions>.hint{margin:12px 0 8px;}
+#finCashFlowBody .ct-entry-help summary{color:var(--primary,#426bf2);cursor:pointer;font-size:13px;}
+#finCashFlowBody .ct-entry-help p{margin:8px 0 0;}
+#finCashFlowBody .ct-history-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+#finCashFlowBody .ct-history-heading h3{margin:0;}
+#finCashFlowBody .ct-report-links{display:flex;gap:16px;flex-wrap:wrap;margin:0;}
+#finCashFlowBody .ct-report-link{background:none;border:0;box-shadow:none;padding:4px 0;min-height:32px;width:auto;color:var(--primary,#426bf2);font-weight:500;text-align:left;}
+#finCashFlowBody .ct-report-link:hover{text-decoration:underline;}
+#finCashFlowBody .ct-filter-top{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;gap:12px;margin:16px 0 12px;}
+#finCashFlowBody #ctPeriodSlot{grid-column:span 3;min-width:0;}
+#finCashFlowBody #financialReportPeriodCard{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;background:none;border:0;border-radius:0;box-shadow:none;padding:0;margin:0;}
+#finCashFlowBody #finCustomDates{display:contents;}
+#finCashFlowBody .ct-filter-bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr);gap:12px;margin-bottom:16px;}
+#finCashFlowBody .ct-filter-top label,#finCashFlowBody .ct-filter-bottom label{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:13px;}
+#finCashFlowBody .ct-filter-top input,#finCashFlowBody .ct-filter-top select,#finCashFlowBody .ct-filter-bottom input,#finCashFlowBody .ct-filter-bottom select{width:100%;height:42px;min-width:0;box-sizing:border-box;}
+@media(max-width:800px){#finCashFlowBody .cash-entry-actions>.actions{grid-template-columns:repeat(3,minmax(0,1fr));}#finCashFlowBody .cash-entry-actions>.actions button{white-space:normal;}}
+@media(max-width:600px){
+ #finCashFlowBody .ct-entry-card,#finCashFlowBody .ct-history-card{padding:16px;}
+ #finCashFlowBody .cash-entry-actions>.actions,#finCashFlowBody .ct-filter-top,#finCashFlowBody #financialReportPeriodCard,#finCashFlowBody .ct-filter-bottom{grid-template-columns:1fr;}
+ #finCashFlowBody #ctPeriodSlot{grid-column:auto;}
+ #finCashFlowBody .ct-history-heading{align-items:flex-start;flex-direction:column;}
+ #finCashFlowBody .ct-report-links{gap:12px;}
+ #finCashFlowBody .ct-report-links button{width:auto;}
+}
