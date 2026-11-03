@@ -8097,3 +8097,8 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 #cashTransactionModal .ct-route strong,#cashTransactionModal .ct-route small{display:block;}
 #cashTransactionModal .ct-route small{margin-top:4px;font-weight:400;color:var(--muted,#667792);}
 #cashTransactionModal #ctRouteSearch,#cashTransactionModal #ctPickSearch{width:100%;box-sizing:border-box;}
+/* Capital allocations retain the existing modal fields and mobile layout. */
+#cashTransactionModal .ct-capital-line{display:grid;grid-template-columns:minmax(0,2fr) minmax(90px,1fr) auto;gap:8px;margin:8px 0;}
+#cashTransactionModal .ct-capital-line input,#cashTransactionModal .ct-capital-line select{width:100%;min-width:0;box-sizing:border-box;}
+#cashTransactionModal label.wide>input[type=checkbox]{width:auto;min-width:auto;}
+@media(max-width:600px){#cashTransactionModal .ct-capital-line{grid-template-columns:1fr;}#cashTransactionModal .ct-capital-line button{justify-self:start;}}

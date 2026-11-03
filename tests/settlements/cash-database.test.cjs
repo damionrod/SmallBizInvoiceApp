@@ -15,6 +15,12 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/current-triggers.sql'),'utf8'));
  await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261102064121_shared_cash_transactions.sql'),'utf8'));
  await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/cash-profit-loss.sql'),'utf8'));
+ await db.exec(`alter table public.business_owners add column is_shareholder boolean default true,add column shareholding_effective_from date;
+ create function public.v6169a_accountant_centre_access(b uuid,w boolean default false) returns boolean language sql as $$select b=public.current_business_id() and exists(select 1 from public.business_memberships where business_id=b and user_id=auth.uid() and status='active' and role in ('owner','admin','accountant','bookkeeper'))$$;`);
+ await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/capital-balance-sheet.sql'),'utf8'));
+ const capitalMigration=fs.readdirSync(path.join(__dirname,'../../supabase/migrations')).find(f=>f.endsWith('_capital_money_out.sql'));
+ await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations',capitalMigration),'utf8'));
+
  console.log('PASS shared cash migration compiles against current accounting schema and posting guards');
  const A='10000000-0000-0000-0000-000000000001',B='10000000-0000-0000-0000-000000000002',U='00000000-0000-0000-0000-000000000001',V='00000000-0000-0000-0000-000000000002';
  const scalar=async(s,p=[])=>Object.values((await db.query(s,p)).rows[0])[0];
@@ -68,6 +74,49 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  assert.equal(Number(await scalar(`select count(*) from(select journal_id from public.accounting_journal_lines group by journal_id having sum(debit)<>sum(credit)) q`)),0);
  await db.exec(`alter table public.bank_accounts enable row level security;grant select on public.bank_accounts to authenticated;select set_config('test.bank_enabled','false',false);grant usage on schema public to authenticated;grant select,update,delete on public.bank_reconciliation_allocations to authenticated;set role authenticated`);assert.equal(Number(await scalar('select count(*) from public.bank_accounts')),2);assert.equal((await db.query(`select * from public.frindly_cash_ledger('2026-12-31')`)).rows.length>0,true);assert.equal((await snap()).can_write,true);await reject(()=>db.query(`insert into public.cash_transactions(business_id) values($1)`,[A]),/permission denied/);await reject(()=>db.query(`update public.bank_reconciliation_allocations set amount=1 where cash_leg_id is not null`),/controlled transaction workflow|permission denied/);await reject(()=>db.query(`update public.bank_reconciliation_allocations set cash_leg_id=null,allocation_type='transfer' where cash_leg_id is not null`),/controlled transaction workflow|permission denied/);await db.exec('reset role');
  console.log('PASS bank-first creation, legacy owner entry-point reuse, locks, filed GST guard, reversal and balanced journals');
+
+ // Capital uses the same record, legs, lines, journal writer, reports and matching.
+ await db.query(`insert into public.financial_settings(business_id,business_entity_type) values($1,'company'),($2,'company')`,[A,B]);
+ const reserve=await acct(A,'3300','retained_earnings','equity',null,'credit');
+ const capReceipt=await record(payload('capital_contribution','in',{amount:1000,owner_id:owner}));
+ await scalar(`select public.v6192_create_posted_journal($1,'2026-09-01','manual','manual_journal',gen_random_uuid(),'Reserve opening','Reserve opening',$2)`,[A,JSON.stringify([{account_id:gl,debit:500,credit:0},{account_id:reserve,debit:0,credit:500}])]);
+ const approval={owner_id:owner,capital_authorised:true,capital_solvent:true,capital_tax_reviewed:true,capital_not_previously_posted:true,capital_authority_ref:'RES-2026-01',capital_authority_date:'2026-09-30',capital_reviewer:'Accountant A',capital_share_details:'50 ordinary shares cancelled',capital_tax_status:'no_additional_withholding',note:'Approved equity split; no additional withholding due'};
+ const buyPayload=payload('share_buyback','out',{...approval,amount:600,capital_allocations:[{account_id:capital,amount:400},{account_id:reserve,amount:200}]});
+ const ownerEntriesBefore=await scalar('select count(*)::int from public.owner_current_account_entries');
+ const preCount=await count(),preBank=await bal(gl),preCap=await bal(capital),preReserve=await bal(reserve);
+ const bsBefore=await scalar(`select to_jsonb(x) from public.v6170b_balance_sheet('2026-12-31') x`);
+ const pnlBefore=await scalar(`select to_jsonb(x) from public.v6170b_profit_loss('2026-01-01','2026-12-31') x`);
+ const br=req(),buy=await record(buyPayload,br);assert.equal(await count(),preCount+1);assert.equal(await record(buyPayload,br),buy);assert.equal(await count(),preCount+1);
+ assert.equal(await bal(gl),preBank-600);assert.equal(await bal(capital),preCap+400);assert.equal(await bal(reserve),preReserve+200);
+ assert.deepEqual(await scalar(`select to_jsonb(x) from public.v6170b_profit_loss('2026-01-01','2026-12-31') x`),pnlBefore);
+ const bsAfter=await scalar(`select to_jsonb(x) from public.v6170b_balance_sheet('2026-12-31') x`);assert.equal(Number(bsAfter.assets),Number(bsBefore.assets)-600);assert.equal(Number(bsAfter.equity),Number(bsBefore.equity)-600);assert.equal(Number(bsAfter.liabilities),Number(bsBefore.liabilities));assert.equal(Number(bsAfter.current_profit),Number(bsBefore.current_profit));assert.equal(bsAfter.balances,true);
+ const bb=await get(buy);assert.equal(bb.owner_id,owner);assert.equal(bb.gst_amount,0);assert.equal(bb.gst_treatment,'NO_GST');assert.equal(bb.legs.length,1);
+ await db.exec("select set_config('test.bank_enabled','true',false)");
+ const beforeMatch=await count(),statement=await tx(-600);await match(statement,bb.legs[0].id);assert.equal(await count(),beforeMatch);await unmatch(statement);assert.equal(await count(),beforeMatch);
+ await reject(async()=>match(await tx(-600,'2026-10-02'),bb.legs[0].id),/date differs/);assert.equal(await count(),beforeMatch);
+ const ret=await record(payload('return_share_capital','out',{...approval,amount:100,capital_allocations:[{account_id:capital,amount:100}]}));
+ assert.equal(await bal(capital),preCap+500);assert.equal(await bal(gl),preBank-700);
+ const report=await scalar(`select public.v61114_statement_cash_flows('2026-10-01','2026-10-31')`);assert.equal(report.reconciles,true);assert.ok(report.sections.some(s=>s.key==='financing'||String(s.label).toLowerCase().includes('financing')));
+ const ledgerRows=(await db.query(`select * from public.frindly_cash_ledger('2026-10-31') where source_id=$1`,[buy])).rows;assert.equal(ledgerRows.length,1);assert.equal(Number(ledgerRows[0].credit),600);
+ const noWrite=await count();
+ for(const mutation of [{capital_authorised:false},{capital_solvent:false},{capital_tax_reviewed:false},{capital_not_previously_posted:false},{capital_authority_date:'2026-10-02'},{capital_tax_status:'withholding_due'},{gst_treatment:'GST'},{capital_allocations:[{account_id:capital,amount:601}]},{capital_allocations:[{account_id:gl,amount:600}]},{capital_allocations:[{account_id:foreignGl,amount:600}]}])await reject(()=>record({...buyPayload,...mutation}),/authorisation|Authorisation|withholding|grant|allocation|equity|GST/i);
+ await reject(()=>record(payload('return_share_capital','out',{...approval,amount:50,capital_allocations:[{account_id:reserve,amount:50}]})),/share capital account/);
+ await reject(()=>record(payload('return_share_capital','out',{...approval,amount:9999,capital_allocations:[{account_id:capital,amount:9999}]})),/exceeds/);
+ const otherOwner=await scalar(`insert into public.business_owners(business_id,display_name) values($1,'Other owner') returning id`,[B]);await reject(()=>record({...buyPayload,owner_id:otherOwner}),/active shareholder/);
+ await db.query(`update public.business_owners set is_shareholder=false where id=$1`,[owner]);await reject(()=>record(buyPayload),/active shareholder/);await db.query(`update public.business_owners set is_shareholder=true where id=$1`,[owner]);
+ await db.query(`update public.financial_settings set business_entity_type='sole_trader' where business_id=$1`,[A]);await reject(()=>record(buyPayload),/NZ company/);await db.query(`update public.financial_settings set business_entity_type='company' where business_id=$1`,[A]);
+ await db.query(`update public.business_memberships set role='staff' where business_id=$1`,[A]);await db.query(`insert into public.business_member_access_overrides(membership_id,business_id,area,can_read,can_write) select id,business_id,'financials',true,true from public.business_memberships where business_id=$1`,[A]);await reject(()=>record(buyPayload),/authorised accounting/i);await reject(()=>scalar("select public.frindly_void_cash_transaction($1,'Staff reversal')",[buy]),/authorised accounting/);await db.query(`delete from public.business_member_access_overrides where business_id=$1 and area='financials'`,[A]);await db.query(`update public.business_memberships set role='owner' where business_id=$1`,[A]);assert.equal(await count(),noWrite);
+ await reject(()=>scalar(`select public.frindly_void_cash_transaction($1,'Reverse underlying capital')`,[capReceipt]),/Capital has already been returned/);
+ await scalar(`select public.frindly_void_cash_transaction($1,'Approved reversal')`,[ret]);assert.equal(await bal(capital),preCap+400);
+ await as(V);await reject(()=>scalar(`select public.frindly_void_cash_transaction($1,'Other tenant')`,[buy]),/recorded transaction/);await as(U);
+ assert.equal(Number(await scalar(`select count(*) from(select journal_id from public.accounting_journal_lines group by journal_id having sum(debit)<>sum(credit)) q`)),0);
+
+ const capBankFirst=payload('share_buyback','out',{...approval,amount:60,capital_allocations:[{account_id:capital,amount:30},{account_id:reserve,amount:30}]});const firstCount=await count(),firstStmt=await tx(-60);await match(firstStmt,null,req(),capBankFirst);assert.equal(await count(),firstCount+1);
+ assert.equal(await scalar('select count(*)::int from public.owner_current_account_entries'),ownerEntriesBefore);
+ await db.exec(`set role authenticated`);await reject(()=>scalar('select frindly_cash.validate_capital($1,$2)',[A,JSON.stringify(buyPayload)]),/permission denied/);await db.exec('reset role');
+ await db.query(`update public.accounting_periods set status='closed' where business_id=$1`,[A]);await reject(()=>record(buyPayload),/locked/);await db.query(`update public.accounting_periods set status='open' where business_id=$1`,[A]);
+ await db.exec("select set_config('test.bank_enabled','false',false)");
+ console.log('PASS authorised split-equity buyback, capital return, P&L/GST isolation, bank/Cash Book movements, reports, matching without reposting, tenant and authorisation guards');
  await db.query(`insert into public.business_member_access_overrides(membership_id,business_id,area,can_read,can_write) select id,business_id,'bank',false,false from public.business_memberships where business_id=$1`,[A]);await record(payload('interest','in',{amount:2}));await reject(async()=>match(await tx(2),null,req(),payload('interest','in',{amount:2})),/reconciliation access/);
  await db.query(`insert into public.business_member_access_overrides(membership_id,business_id,area,can_read,can_write) select id,business_id,'financials',false,false from public.business_memberships where business_id=$1`,[A]);await reject(()=>record(payload('interest','in',{amount:3})),/Financial access/);await reject(()=>snap(),/Financial access/);
  console.log('PASS readonly API tables, controlled match mutations, bank permission independence and financial permission denial');await db.close();
