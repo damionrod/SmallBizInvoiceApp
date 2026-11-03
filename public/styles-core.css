@@ -408,17 +408,8 @@ tbody tr:last-child td{border-bottom:0}
  #finOwnerHistoryRows{padding:14px}
 }
 
-/* v61.107Y: Owners & Shareholders add form — desktop single-row layout only */
-.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:minmax(0,1.8fr) minmax(0,1.2fr) minmax(150px,1fr);align-items:end;gap:14px 16px}
-.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid label,.settings-owner-section .fin-owner-add-grid label{min-width:0}
-.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid input,.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid select,.settings-owner-section .fin-owner-add-grid input,.settings-owner-section .fin-owner-add-grid select{min-width:0}
-@media(max-width:760px){.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:1fr;align-items:stretch}}
 /* v61.107ZA — read-only Shareholder Summary report */
 .shareholder-report-card{margin-top:14px}.shareholder-report-note{margin:10px 16px 14px}.shareholder-report-notice{margin-top:14px}.shareholder-summary-grid .metric small{display:block;margin-top:4px;font-weight:400}@media(max-width:760px){.shareholder-summary-grid{grid-template-columns:1fr 1fr}.shareholder-report-card table{min-width:680px}}@media(max-width:520px){.shareholder-summary-grid{grid-template-columns:1fr}}
-
-/* v61.107ZC: shareholding effective-date field; scoped to owner setup only */
-@media(min-width:900px){.fin-owner-add-grid{grid-template-columns:minmax(240px,1.5fr) minmax(180px,1fr) minmax(150px,.75fr) minmax(190px,1fr)!important}}
-
 
 /* v61.107ZE — unified Frindly Reports visual system. Presentation only. */
 #view-reports{
@@ -496,22 +487,22 @@ tbody tr:last-child td{border-bottom:0}
 #finOwnerEditModal .form-grid>label>small{margin-top:4px;line-height:1.25}
 #finOwnerEditModal .form-grid>label.span-2{grid-template-rows:18px 42px}
 
-/* Add owner/shareholder: all four fields and the action share one desktop row. */
-@media(min-width:1100px){
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{
-   grid-template-columns:minmax(250px,1.55fr) minmax(170px,.95fr) minmax(145px,.7fr) minmax(245px,1.2fr) auto!important;
-   gap:12px 14px;align-items:end
- }
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label,.settings-owner-section .fin-owner-add-grid>label{min-width:0}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label:nth-child(4),.settings-owner-section .fin-owner-add-grid>label:nth-child(4){white-space:nowrap}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action,.settings-owner-section .fin-owner-add-action{display:flex;align-items:end}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button,.settings-owner-section .fin-owner-add-action button{white-space:nowrap;min-height:42px}
+/* Owner setup: four fields with a separate action row, without fixed minimum widths. */
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{
+ grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1.4fr);gap:12px 16px;align-items:start;
 }
-@media(max-width:1099px) and (min-width:761px){
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:1fr 1fr!important}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action,.settings-owner-section .fin-owner-add-action{grid-column:1/-1;display:flex;justify-content:flex-end}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label,.settings-owner-section .fin-owner-add-grid>label{
+ display:grid;grid-template-rows:36px 42px auto;align-content:start;min-width:0;white-space:normal;
 }
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid input,.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid select,.settings-owner-section .fin-owner-add-grid input,.settings-owner-section .fin-owner-add-grid select{
+ width:100%;min-width:0;max-width:100%;height:42px;box-sizing:border-box;
+}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid small,.settings-owner-section .fin-owner-add-grid small{font-weight:400;line-height:1.35;margin-top:4px;}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action,.settings-owner-section .fin-owner-add-action{grid-column:1/-1;display:flex;justify-content:flex-end;min-width:0;}
+.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button,.settings-owner-section .fin-owner-add-action button{max-width:100%;min-height:42px;white-space:normal;}
+@media(max-width:1099px) and (min-width:761px){.settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:760px){
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action,.settings-owner-section .fin-owner-add-action{display:block}
- .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button,.settings-owner-section .fin-owner-add-action button{width:100%}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{grid-template-columns:minmax(0,1fr);}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid>label,.settings-owner-section .fin-owner-add-grid>label{grid-template-rows:auto 42px auto;}
+ .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-action button,.settings-owner-section .fin-owner-add-action button{width:100%;}
 }
