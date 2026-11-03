@@ -56,8 +56,9 @@ Existing ordinary cash date-correction behaviour is unchanged. Reversal requires
 open periods and no bank match. Reversing an underlying capital receipt is guarded when a recorded
 capital payment would leave insufficient posted capital.
 
-Ownership percentages and share quantities are not changed by a payment. Approved changes to the
-share register, Companies Register and Settings remain separate and are stated in the form/detail.
+Ownership percentages and share quantities are not changed by a payment alone. The linked confirmation
+step below updates Settings only after explicit legal completion; statutory register and Companies
+Register maintenance remain separate.
 This avoids turning payment entry or bank unmatching into an unreviewed ownership transfer.
 
 ## Validation
@@ -88,3 +89,44 @@ No production financial records are created or rewritten for testing.
 - IRD / share sales usually GST exempt: https://www.ird.govt.nz/income-tax/income-tax-for-businesses-and-organisations/buying-or-selling-a-business/tax-on-share-sales
 - IRD company return guide, share-repurchase dividend/available-subscribed-capital considerations:
   https://www.ird.govt.nz/-/media/project/ir/home/documents/forms-and-guides/ir1---ir99/ir4gu/ir4gu-2025.pdf
+
+## Linked ownership confirmation
+
+Existing capital payment details now offer Confirm / review shareholding change. The existing
+Settings owner edit dialog links back to that person's capital payments. These features and purposes
+are company-only (NZ backend enforcement); sole traders and proprietors are excluded.
+
+A separate confirmed event stores the legal date, document/approval reference, quantities, full
+before/after snapshots and links to existing cash transactions in private, RLS-enabled tables.
+The existing owner/history RPC performs the updates atomically. No journal writer is called.
+
+The guided cancellation route supports a complete, single-class register with explicit quantities,
+reduces the selected holder by the confirmed shares, and recalculates each holder's percentage using
+the remaining issued shares. Full exit sets zero shares/ownership and removes the shareholder flag,
+without resigning a director or clearing owner-loan balances. Unknown quantities, mixed classes,
+treasury shares, cancelling every share, future legal dates and changes before later recorded
+ownership changes are blocked for accountant handling. The completeness confirmation includes all
+issued shares; Frindly does not infer these from investment dollars or claim to maintain every
+statutory-register requirement. Capital-only returns leave quantities/percentages unchanged.
+
+Additional payments can link an existing compatible event in the payment form or from payment
+details, including payments to a former shareholder explicitly linked to their confirmed acquisition.
+A payment cannot link two events. Request retries and stale previews are guarded. A previously
+accrued full equity reduction must still be settled through the existing accountant payable route.
+
+Reversing a linked payment flags the event for review without undoing a legal acquisition. Authorised
+company users can record their accountant's review and replacement-payment arrangement to clear
+the flag; that audit action does not change shares or create a journal. Any actual legal rescission
+requires a separate dated ownership correction through existing Settings/accountant tools.
+
+The shareholder summary uses the existing dated before/after owner history once linked events
+exist, includes former holders and calculates profit-share estimates by ownership interval using the
+existing management P&L. Earlier periods retain earlier holdings. Ordinary businesses without linked
+events retain their existing calculation. This is an ownership-based estimate, not a dividend
+declaration or entitlement determination for special share rights.
+
+Live storage checks confirm both tables have RLS, deny direct authenticated reads/writes, and reject
+anonymous confirmation. Covering FK indexes and explicit RPC-only deny policies are installed.
+The security advisor reports the four intentionally authenticated SECURITY DEFINER RPCs; these
+perform existing membership/business/permission checks and expose no direct table grants. New
+unused-index informational notices are expected before the feature has real records.
