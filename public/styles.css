@@ -8091,3 +8091,9 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
  #finCashFlowBody .ct-report-links{gap:12px;}
  #finCashFlowBody .ct-report-links button{width:auto;}
 }
+/* Searchable recording routes reuse existing payment dialogs. */
+#cashTransactionModal .ct-route-list{display:grid;gap:8px;max-height:52vh;overflow:auto;margin:12px 0;}
+#cashTransactionModal .ct-route{display:block;width:100%;text-align:left;padding:12px;white-space:normal;overflow-wrap:anywhere;}
+#cashTransactionModal .ct-route strong,#cashTransactionModal .ct-route small{display:block;}
+#cashTransactionModal .ct-route small{margin-top:4px;font-weight:400;color:var(--muted,#667792);}
+#cashTransactionModal #ctRouteSearch,#cashTransactionModal #ctPickSearch{width:100%;box-sizing:border-box;}

@@ -2,8 +2,8 @@
 
 Money In & Out is the entry point for grants, income tax, bank interest, loans,
 owner funds, refundable deposits and bank transfers. Ordinary invoices, expenses,
-GST and payroll retain their existing payment workflows. Cash Book displays all posted bank movements. Money In & Out lists only the
-shared non-standard transactions, including entries created during reconciliation.
+GST and payroll retain their existing payment workflows. Money In & Out now routes to these existing forms and lists posted bank movements.
+See `unified-money-entry.md` for the expanded chooser, history and advanced-workflow boundaries.
 
 ## Accounting and reconciliation
 
