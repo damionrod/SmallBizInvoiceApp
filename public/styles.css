@@ -8041,3 +8041,22 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 #cashTransactionModal small,#ctHistoryRows small{display:block;}
 .cash-entry-actions{margin:20px 0;padding-top:12px;border-top:1px solid var(--border,#e1e7ef);}
 @media(max-width:600px){#cashTransactionModal .form-grid{grid-template-columns:1fr;}#cashTransactionModal .wide{grid-column:1;}#cashTransactionModal .actions,.cash-entry-actions .actions{display:flex;flex-wrap:wrap;gap:8px;}#cashTransactionModal .actions button,.cash-entry-actions .actions button{flex:1 1 140px;}#cashTransactionModal input,#cashTransactionModal select,#cashTransactionModal textarea{max-width:100%;min-width:0;} }
+/* Money In & Out entry workspace; reporting stays in the existing reports. */
+#finCashFlowBody .cash-entry-actions{margin:0 0 16px;padding-top:0;border-top:0;}
+#finCashFlowBody .ct-report-links{margin-bottom:24px;display:flex;gap:8px;flex-wrap:wrap;}
+#finCashFlowBody #financialReportPeriodCard{margin:12px 0;box-shadow:none;}
+#finCashFlowBody .ct-history-filters{grid-template-columns:repeat(3,minmax(0,1fr));margin:12px 0;}
+#finCashFlowBody .ct-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;}
+#finCashFlowBody .ct-pagination .actions{display:flex;gap:8px;}
+#finCashFlowBody td small{display:block;}
+@media(max-width:600px){
+ #finCashFlowBody .ct-history-filters{grid-template-columns:1fr;}
+ #finCashFlowBody .ct-report-links button{width:100%;white-space:normal;}
+ #finCashFlowBody .ct-history-table{overflow:visible;}
+ #finCashFlowBody .ct-history-table table,#finCashFlowBody .ct-history-table tbody,#finCashFlowBody .ct-history-table tr,#finCashFlowBody .ct-history-table td{display:block;width:100%;box-sizing:border-box;}
+ #finCashFlowBody .ct-history-table thead{display:none;}
+ #finCashFlowBody .ct-history-table tr{border:1px solid var(--border,#e1e7ef);border-radius:10px;margin-bottom:10px;padding:8px;}
+ #finCashFlowBody .ct-history-table td{border:0;padding:5px 8px;white-space:normal;overflow-wrap:anywhere;}
+ #finCashFlowBody .ct-history-table td[data-label]::before{content:attr(data-label) ': ';font-weight:600;}
+ #finCashFlowBody .ct-pagination{flex-wrap:wrap;}
+}
