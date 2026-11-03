@@ -481,11 +481,15 @@ tbody tr:last-child td{border-bottom:0}
 
 /* v61.107ZF — three targeted alignment fixes only. */
 /* Owner edit: keep paired fields on a clean common baseline. */
-#finOwnerEditModal .form-grid{align-items:start}
-#finOwnerEditModal .form-grid>label{display:grid;grid-template-rows:18px 42px auto;align-content:start}
+#finOwnerEditModal .modal-card{display:flex;flex-direction:column;overflow:hidden}
+#finOwnerEditModal .modal-head,#finOwnerEditModal .actions{position:static;flex-shrink:0}
+#finOwnerEditModal .form-grid{align-items:start;overflow-y:auto;min-height:0;margin:0;flex:1 1 auto}
+#finOwnerEditModal .form-grid>label{display:grid;grid-template-rows:minmax(18px,auto) 42px auto;align-content:start}
+#finOwnerEditModal .form-grid>label>span{line-height:18px}
+#finOwnerEditModal .form-grid input,#finOwnerEditModal .form-grid select{box-sizing:border-box;width:100%;max-width:100%;min-width:0}
 #finOwnerEditModal .form-grid>label>input,#finOwnerEditModal .form-grid>label>select{height:42px}
 #finOwnerEditModal .form-grid>label>small{margin-top:4px;line-height:1.25}
-#finOwnerEditModal .form-grid>label.span-2{grid-template-rows:18px 42px}
+#finOwnerEditModal .form-grid>label.span-2{grid-template-rows:minmax(18px,auto) 42px}
 
 /* Owner setup: four fields with a separate action row, without fixed minimum widths. */
 .settings-page-panel[data-settings-panel="owners"] .fin-owner-add-grid,.settings-owner-section .fin-owner-add-grid{

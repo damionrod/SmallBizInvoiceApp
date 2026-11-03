@@ -25,3 +25,16 @@ test('owner register renders on Settings refresh without visiting Financials own
  for(const width of [1440,1024,768,390]){await page.setViewportSize({width,height:1100});const layout=await page.evaluate(()=>{const grid=document.querySelector('.fin-owner-add-grid'),b=document.getElementById('finOwnerAdd').getBoundingClientRect(),r=grid.getBoundingClientRect(),fields=['finOwnerName','finOwnerRole','finOwnerPercent','finOwnerEffectiveFrom'].map(id=>document.getElementById(id).getBoundingClientRect());return {fits:b.left>=r.left-1&&b.right<=r.right+1,actionBelow:b.top>=Math.max(...fields.map(x=>x.bottom)),overflow:document.documentElement.scrollWidth>innerWidth,fieldsFit:fields.every(f=>f.left>=r.left-1&&f.right<=r.right+1)};});assert.equal(layout.fits,true,'button width '+width);assert.equal(layout.actionBelow,true,'action row '+width);assert.equal(layout.overflow,false,'page overflow '+width);assert.equal(layout.fieldsFit,true,'field widths '+width);}
  }finally{await browser.close();}
 });
+test('owner edit fields align and scroll between visible header and actions',async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.SETTLEMENT_CHROMIUM_PATH,args:['--no-sandbox','--disable-gpu','--disable-software-rasterizer','--no-zygote','--single-process']});
+ try{const page=await browser.newPage(),base=path.join(__dirname,'../../public'),html=fs.readFileSync(path.join(base,'index.html'),'utf8');
+ const start=html.indexOf('<div class="modal" id="finOwnerEditModal"'),end=html.indexOf('<div class="modal" id="finOwnerHistoryModal"',start);
+ await page.setContent(html.slice(start,end));await page.addStyleTag({path:path.join(base,'styles-core.css')});await page.addStyleTag({path:path.join(base,'styles.css')});await page.locator('#finOwnerEditModal').evaluate(e=>e.classList.add('open'));
+ for(const width of [1440,1024,768,390]){await page.setViewportSize({width,height:800});await page.locator('#finOwnerEditModal .form-grid').evaluate(e=>e.scrollTop=0);
+ const layout=await page.evaluate(()=>{const m=document.getElementById('finOwnerEditModal'),grid=m.querySelector('.form-grid'),head=m.querySelector('.modal-head').getBoundingClientRect(),foot=m.querySelector('.actions').getBoundingClientRect(),fields=[...grid.querySelectorAll('input,select')].map(e=>e.getBoundingClientRect()),r=grid.getBoundingClientRect();return {first:fields[0].top>=head.bottom,paired:innerWidth<=760||Math.abs(fields[2].top-fields[3].top)<1,fit:fields.every(f=>f.left>=r.left&&f.right<=r.right),header:head.top>=0,footer:foot.bottom<=innerHeight,scroll:grid.scrollHeight>grid.clientHeight,overflow:document.documentElement.scrollWidth>innerWidth};});
+ for(const k of ['first','paired','fit','header','footer'])assert.equal(layout[k],true,k+' '+width);assert.equal(layout.overflow,false,'overflow '+width);
+ await page.locator('#finOwnerEditNote').scrollIntoViewIfNeeded();assert.equal(await page.locator('#finOwnerEditSave').isVisible(),true);
+ const clear=await page.evaluate(()=>document.getElementById('finOwnerEditNote').getBoundingClientRect().bottom<=document.querySelector('#finOwnerEditModal .actions').getBoundingClientRect().top);assert.equal(clear,true,'last field above footer '+width);
+ }
+ }finally{await browser.close();}
+});
