@@ -10,6 +10,9 @@ await db.exec(fs.readFileSync(path.join(dir,'fixtures/current-functions.sql'),'u
 await db.exec('create table public.invoices(id uuid,business_id uuid);create table public.expenses(id uuid,business_id uuid);create table public.customer_payments(id uuid,business_id uuid);create table public.expense_payments(id uuid,business_id uuid);create table public.bank_reconciliation_groups(id uuid,business_id uuid);create table public.business_owners(id uuid,business_id uuid);create table public.ird_filing_batches(business_id uuid,filing_type text,status text,source_id uuid,period_start date,period_end date);');
 await db.exec(fs.readFileSync(path.join(dir,'fixtures/current-triggers.sql'),'utf8'));
 await db.exec(fs.readFileSync(path.join(dir,'../../supabase/migrations/20261102014924_gst_payroll_settlements.sql'),'utf8'));
+const cashSql=fs.readFileSync(path.join(dir,'../../supabase/migrations/20261102064121_shared_cash_transactions.sql'),'utf8');
+await db.exec('create schema frindly_cash;'+cashSql.slice(cashSql.indexOf('create function frindly_cash.account('),cashSql.indexOf('end $$;',cashSql.indexOf('create function frindly_cash.account('))+7));
+await db.exec(fs.readFileSync(path.join(dir,'../../supabase/migrations/20261104080000_gst_refund_rounding.sql'),'utf8'));
 console.log('PASS migration compiles against current table columns and current auth/journal functions');
 await db.exec(`insert into auth.users values('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002');
 insert into public.businesses(id,name) values('10000000-0000-0000-0000-000000000001','Isolated A'),('10000000-0000-0000-0000-000000000002','Isolated B');
@@ -42,7 +45,19 @@ await db.query("insert into public.ird_filing_batches(business_id,filing_type,st
 const retry=req(),p1=await pay([alloc('gst',g1,gst,40)],'2026-10-01',bank,retry);assert.equal(Number((await snapshot('gst',g1)).obligations[0].outstanding),60);assert.equal(await balance(gst),60);
 assert.equal(await pay([alloc('gst',g1,gst,40)],'2026-10-01',bank,retry),p1);await reject(()=>pay([alloc('gst',g1,gst,41)],'2026-10-01',bank,retry),/already used/);
 await pay([alloc('gst',g1,gst,60)]);assert.equal(await balance(gst),0);await reject(()=>pay([alloc('gst',g1,gst,1)]),/outstanding/);console.log('PASS partial/full GST, liability decrease, request idempotency and overpayment guard');
-await pay([alloc('gst',g2,gstIn,50)],'2026-10-01',bank2);assert.equal(await balance(gstIn),0);assert.equal(await balance(bankGl2),-50);console.log('PASS GST refund credits GST receivable and debits selected bank');
+await reject(()=>pay([alloc('gst',g2,gstIn,50.01)]),/outstanding/);
+await reject(()=>pay([{...alloc('gst',g2,gstIn,50),gst_refund_rounding:.02}]),/one-cent/);
+await reject(()=>pay([{...alloc('gst',g2,gstIn,49),gst_refund_rounding:.01}]),/full outstanding/);
+const rounding=[{...alloc('gst',g2,gstIn,50),gst_refund_rounding:.01}], refundRequest=req();
+const refund=await pay(rounding,'2026-10-01',bank2,refundRequest);
+assert.equal(await pay(rounding,'2026-10-01',bank2,refundRequest),refund);
+assert.equal(await balance(gstIn),0);assert.equal(await balance(bankGl2),-50.01);
+assert.equal(await balance(await scalar("select id from accounting_accounts where system_key='gst_refund_rounding'")),0.01);
+const refundTx=await scalar("insert into bank_transactions(business_id,bank_account_id,transaction_date,amount,import_fingerprint) values($1,$2,'2026-10-01',50.01,'rounding-refund') returning id",[B,bank2]);
+await scalar('select public.frindly_reconcile_liability_payment($1,$2)',[refundTx,refund]);
+assert.equal(Number((await snapshot('gst',g2)).obligations[0].outstanding),0);
+console.log('PASS one-cent GST rounding settles the return, posts the exact deposit and matches the bank');
+
 await pay([alloc('wages',r1,wages,30)]);assert.equal(Number((await snapshot('wages',r1)).obligations[0].outstanding),70);await pay([alloc('wages',r1,wages,70)]);assert.equal(Number((await snapshot('wages',r1)).obligations[0].outstanding),0);console.log('PASS partial/full wages and original liability settlement');
 await pay([alloc('ird',r1,ird,10),alloc('ird',r2,ird,20)]);assert.equal(Number((await snapshot('ird',r1)).obligations[0].outstanding),10);assert.equal(Number((await snapshot('ird',r2)).obligations[0].outstanding),0);await reject(()=>pay([alloc('ird',r2,ird,1)]),/outstanding/);console.log('PASS IRD multi-run partial allocation without duplicate settlement');
 await db.query(`insert into public.accounting_periods(business_id,period_start,period_end,financial_year,status) values($1,'2026-10-02','2026-10-02',2027,'closed')`,[B]);await reject(()=>pay([alloc('wages',r2,wages,10)],'2026-10-02'),/locked/);console.log('PASS locked payment period');
