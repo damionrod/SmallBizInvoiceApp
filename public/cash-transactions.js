@@ -18,6 +18,12 @@
  function field(name,title,html,wide=false){return `<label class="${wide?'wide':''}">${title}${html}</label>`;}
  function options(rows,valueKey='id',nameKey='name'){return rows.map(x=>`<option value="${esc(x[valueKey])}">${esc(x[nameKey])}</option>`).join('');}
  async function banks(c){const r=await sb().from('bank_accounts').select('id,name,account_number,is_default,accounting_account_id,currency').eq('business_id',c.bid).eq('archived',false).order('name');if(r.error)throw new Error(r.error.message);return (r.data||[]).filter(b=>b.accounting_account_id);}
+ function showInstalmentDate(c,due){
+  const date=$('ctDate');
+  $('ctInstalmentDue').parentElement.hidden=!due;
+  $('ctInstalmentDue').value=due||'';
+  date.parentElement.firstChild.textContent=due?'Actual date paid':c.kind==='transfer'?'Date sent':c.kind==='in'?'Date received':'Date paid';
+ }
  function extra(c){
   const p=$('ctPurpose').value,capital=['share_buyback','return_share_capital'].includes(p),owner=['owner_funds_introduced','capital_contribution','repay_owner_loan','owner_drawings','share_buyback','return_share_capital'].includes(p),tax=['income_tax','income_tax_refund'].includes(p);
   let html='';
@@ -37,12 +43,14 @@
    $('ctAmount').insertAdjacentHTML('afterend','<small id="ctRepaymentAmountHelp" class="hint">Enter the full payment, including principal and interest. Include any finance fees charged in the same payment when using a registered loan.</small>');
   }
   c.loanDue=null;
+  showInstalmentDate(c,null);
   if(p==='loan_repayment'&&$('ctLoan')){
    $('ctInterest').parentElement.insertAdjacentHTML('afterend','<label id="ctLoanFeeLabel" hidden>Finance fee included (optional)<input id="ctLoanFee" type="number" min="0" step="0.01" inputmode="decimal"></label>');
   }
   if($('ctLoan'))$('ctLoan').onchange=()=>{
    const loan=c.loans.find(item=>item.id===$('ctLoan').value);
    c.loanDue=null;
+   showInstalmentDate(c,null);
    if($('ctLoanFee')){$('ctLoanFee').value='';$('ctLoanFeeLabel').hidden=!loan;}
    if($('ctInterest')){$('ctInterest').parentElement.hidden=false;$('ctInterest').value='0.00';}
    if(!loan)return;
@@ -54,6 +62,8 @@
    if(!c.tx&&!$('ctAmount').value)$('ctAmount').value=remaining;
    $('ctInterest').value=Math.min(Number($('ctAmount').value),Math.max(0,next.interest-next.paidInterest)/100).toFixed(2);
    c.loanDue=next.due;
+   showInstalmentDate(c,next.due);
+   if(!c.tx&&!c.paymentDateEdited&&next.due<today())$('ctDate').value='';
   };
 if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   if($('ctNote'))$('ctNote').parentElement.firstChild.textContent=capital?'Accounting allocation note — required':'Note — optional (required for grants)';
@@ -146,12 +156,13 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    }
    if(preset.loan_id&&!c.loans?.some(loan=>loan.id===preset.loan_id))throw new Error('The selected loan is unavailable');
    const transfer=kind==='transfer';
-   $('ctContent').innerHTML=`<h2>${transfer?'Transfer between accounts':kind==='in'?'Record money in':'Record money out'}</h2><p class="hint">This records a transaction in Frindly. It does not send money through your bank.</p><p id="ctError" role="alert" hidden></p><form id="ctForm"><div class="form-grid compact">${field('purpose',kind==='in'?'Where did this money come from?':transfer?'Transfer type':'What was this payment for?',`<select id="ctPurpose">${purposes[kind].filter(([v])=>!['share_buyback','return_share_capital'].includes(v)||data.entity_type==='company').map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join('')}</select>`,true)}${field('date',transfer?'Date sent':kind==='in'?'Date received':'Date paid',`<input id="ctDate" type="date" required value="${esc(tx?.transaction_date||today())}" ${tx?'readonly':''}>`)}${field('amount',kind==='in'?'Amount received':'Amount paid',`<input id="ctAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required value="${tx?Math.abs(tx.amount).toFixed(2):''}" ${tx?'readonly':''}>`)}${field('bank',transfer?'From account':kind==='in'?'Received into':'Paid from',`<select id="ctBank" required><option value="">Select bank account</option>${options(accounts.map(a=>({...a,name:a.name+(a.account_number?' · '+a.account_number:'')})))}</select>`)}${transfer?field('to','To account',`<select id="ctTo" required><option value="">Select destination bank</option>${options(accounts.map(a=>({...a,name:a.name+(a.account_number?' · '+a.account_number:'')})))}</select>`)+field('received','Date received',`<input id="ctReceived" type="date" required value="${esc(tx?.transaction_date||today())}">`):''}</div><div id="ctExtra" class="form-grid compact"></div><div class="form-grid compact">${field('description','Description','<input id="ctDescription" required maxlength="500">',true)}${field('reference','Reference — optional',`<input id="ctReference" value="${esc(tx?.reference||'')}">`,true)}${field('note','Note — optional (required for grants)','<textarea id="ctNote" rows="2"></textarea>',true)}</div><p class="hint">Use the actual date for historical transactions. Check existing records before saving.</p><div id="ctDuplicate" class="notice" hidden></div><div class="actions"><button type="button" class="secondary" id="ctCancel">Cancel</button><button type="submit" class="primary" id="ctSave">${tx?'Record & match':'Record transaction'}</button></div></form>`;
+   $('ctContent').innerHTML=`<h2>${transfer?'Transfer between accounts':kind==='in'?'Record money in':'Record money out'}</h2><p class="hint">This records a transaction in Frindly. It does not send money through your bank.</p><p id="ctError" role="alert" hidden></p><form id="ctForm"><div class="form-grid compact">${field('purpose',kind==='in'?'Where did this money come from?':transfer?'Transfer type':'What was this payment for?',`<select id="ctPurpose">${purposes[kind].filter(([v])=>!['share_buyback','return_share_capital'].includes(v)||data.entity_type==='company').map(([v,l])=>`<option value="${v}">${esc(l)}</option>`).join('')}</select>`,true)}${field('instalmentDue','Instalment due','<input id="ctInstalmentDue" type="date" readonly>')}${field('date',transfer?'Date sent':kind==='in'?'Date received':'Date paid',`<input id="ctDate" type="date" required value="${esc(tx?.transaction_date||today())}" ${tx?'readonly':''}>`)}${field('amount',kind==='in'?'Amount received':'Amount paid',`<input id="ctAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required value="${tx?Math.abs(tx.amount).toFixed(2):''}" ${tx?'readonly':''}>`)}${field('bank',transfer?'From account':kind==='in'?'Received into':'Paid from',`<select id="ctBank" required><option value="">Select bank account</option>${options(accounts.map(a=>({...a,name:a.name+(a.account_number?' · '+a.account_number:'')})))}</select>`)}${transfer?field('to','To account',`<select id="ctTo" required><option value="">Select destination bank</option>${options(accounts.map(a=>({...a,name:a.name+(a.account_number?' · '+a.account_number:'')})))}</select>`)+field('received','Date received',`<input id="ctReceived" type="date" required value="${esc(tx?.transaction_date||today())}">`):''}</div><div id="ctExtra" class="form-grid compact"></div><div class="form-grid compact">${field('description','Description','<input id="ctDescription" required maxlength="500">',true)}${field('reference','Reference — optional',`<input id="ctReference" value="${esc(tx?.reference||'')}">`,true)}${field('note','Note — optional (required for grants)','<textarea id="ctNote" rows="2"></textarea>',true)}</div><p class="hint">Use the actual date for historical transactions. Check existing records before saving.</p><div id="ctDuplicate" class="notice" hidden></div><div class="actions"><button type="button" class="secondary" id="ctCancel">Cancel</button><button type="submit" class="primary" id="ctSave">${tx?'Record & match':'Record transaction'}</button></div></form>`;
    $('ctBank').value=tx?.bank_account_id||accounts.find(x=>x.is_default)?.id||'';
    if(tx){if(transfer&&tx.amount>0){$('ctTo').value=tx.bank_account_id;$('ctTo').disabled=true;$('ctBank').value='';$('ctReceived').value=tx.transaction_date;$('ctReceived').readOnly=true;$('ctDate').readOnly=false;}else $('ctBank').disabled=true;}
    if(preset.purpose)$('ctPurpose').value=preset.purpose;
 
    for(const [id,value] of Object.entries(preset.paymentFields||{}))$(id).value=value;
+   $('ctDate').oninput=()=>{c.paymentDateEdited=true;};
    $('ctDescription').oninput=()=>{$('ctDescription').dataset.edited='true';c.duplicateAcknowledged=false;};
    $('ctPurpose').onchange=()=>{if(preset.interest_only||preset.purpose==='share_buyback'||$('ctPurpose').value==='share_buyback'||(['loan_received','loan_repayment'].includes($('ctPurpose').value)&&window.LoansFinance&&!c.loans))return open(kind,{purpose:$('ctPurpose').value,paymentFields:Object.fromEntries(['ctDate','ctAmount','ctBank','ctReference'].map(id=>[id,$(id).value]))},tx,onDone);delete $('ctDescription').dataset.edited;extra(c);c.duplicateAcknowledged=false;};extra(c);
    if(preset.loan_id){
@@ -160,7 +171,8 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
     if($('ctLoanFeeLabel'))$('ctLoanFeeLabel').hidden=!!preset.interest_only;
     if(!tx&&accounts.some(account=>account.id===preset.bank_id))$('ctBank').value=preset.bank_id;
     if(!tx&&preset.amount!=null)$('ctAmount').value=preset.amount;
-    if(!tx&&preset.date)$('ctDate').value=preset.date;
+    if(!tx&&preset.date!=null)$('ctDate').value=preset.date;
+    if(preset.loan_due_date)showInstalmentDate(c,preset.loan_due_date);
     if($('ctInterest')&&preset.interest!=null)$('ctInterest').value=preset.interest;
     if($('ctInterest')&&preset.interest_only){
      $('ctInterest').parentElement.hidden=true;
@@ -170,7 +182,7 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    }
    if(preset.owner_id&&$('ctOwner'))$('ctOwner').value=preset.owner_id;if(preset.tax_year&&$('ctYear'))$('ctYear').value=preset.tax_year;
    if($('ctPurpose').value==='share_buyback'&&c.data.capital?.can_record)setupBuyback(c);
-   $('ctForm').addEventListener('input',()=>{c.duplicateAcknowledged=false;});$('ctCancel').onclick=close;$('ctForm').onsubmit=e=>{e.preventDefault();if(c.reviewBuyback&&!c.buybackReview)c.reviewBuyback();else save(c);};
+   $('ctForm').addEventListener('input',()=>{c.duplicateAcknowledged=false;$('ctDuplicate').hidden=true;});$('ctCancel').onclick=close;$('ctForm').onsubmit=e=>{e.preventDefault();if(c.reviewBuyback&&!c.buybackReview)c.reviewBuyback();else save(c);};
    $('ctPurpose').focus();
   }catch(e){error(c,e);}
  }
@@ -184,7 +196,11 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    if(!p.capital_allocations.length||p.capital_allocations.some(x=>!x.account_id||!Number.isFinite(x.amount)||x.amount<=0)||p.capital_allocations.reduce((n,x)=>n+cents(x.amount),0)!==cents(p.amount))return error(c,new Error('Approved equity allocations must equal the bank payment.'));
   }
   const duplicate=(c.data.transactions||[]).find(t=>t.status==='recorded'&&(t.purpose===p.purpose||['share_buyback','return_share_capital'].includes(t.purpose)&&['share_buyback','return_share_capital'].includes(p.purpose))&&cents(t.amount)===cents(p.amount)&&t.legs?.some(l=>l.bank_account_id===p.bank_id&&l.transaction_date===p.date));
-  if(duplicate&&!c.duplicateAcknowledged){$('ctDuplicate').hidden=false;$('ctDuplicate').innerHTML=`A ${esc(money(p.amount))} ${esc(label(p.purpose))} transaction is already recorded on ${esc(p.date)}. <button type="button" class="secondary" id="ctViewDuplicate">View recorded transaction</button> <button type="button" class="secondary" id="ctSeparate">Record a separate transaction</button>`;$('ctViewDuplicate').onclick=()=>view(duplicate.id);$('ctSeparate').onclick=()=>{c.duplicateAcknowledged=true;save(c);};return;}
+  if(duplicate&&!c.duplicateAcknowledged){
+   const previous=duplicate.request_payload;
+   const otherInstalment=p.purpose==='loan_repayment'&&p.loan_id&&p.loan_id===previous?.loan_id&&p.loan_due_date&&previous.loan_due_date&&p.loan_due_date!==previous.loan_due_date;
+   const warning=otherInstalment?`Another instalment (due ${esc(previous.loan_due_date)}) has a ${esc(money(p.amount))} payment recorded on ${esc(p.date)}. Continue only if your bank statement shows a separate debit for this instalment.`:`A ${esc(money(p.amount))} ${esc(label(p.purpose))} transaction is already recorded on ${esc(p.date)}.`;
+   $('ctDuplicate').hidden=false;$('ctDuplicate').innerHTML=`${warning} <button type="button" class="secondary" id="ctViewDuplicate">View recorded transaction</button> <button type="button" class="secondary" id="ctSeparate">Record a separate transaction</button>`;$('ctViewDuplicate').onclick=()=>view(duplicate.id);$('ctSeparate').onclick=()=>{c.duplicateAcknowledged=true;save(c);};return;}
   c.busy=true;$('ctSave').disabled=true;$('ctCancel').disabled=true;$('ctClose').disabled=true;$('ctError').hidden=true;
   try{
    let recorded;if(c.tx)recorded=await rpc('frindly_match_cash_transaction',{p_bank_transaction_id:c.tx.id,p_request_id:c.requestId,p_transaction:p});

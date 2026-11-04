@@ -38,10 +38,14 @@ test('loan register shows lender schedule and opens the shared repayment form wi
   assert.equal(await page.inputValue('#ctInterest'),'30');
   assert.equal(await page.inputValue('#ctBank'),'bank');
   assert.equal(await page.evaluate(()=>{const dialog=document.querySelector('#cashTransactionModal .modal-box');return dialog.scrollWidth<=dialog.clientWidth+1;}),true);
+  assert.equal(await page.inputValue('#ctInstalmentDue'),'2026-10-01');
+  assert.equal(await page.inputValue('#ctDate'),'');
+  await page.fill('#ctDate','2026-10-02');
   await page.click('#ctSave');
   await page.waitForFunction(()=>loanCalls.length===1);
   const [{name,args}]=await page.evaluate(()=>loanCalls);
   assert.equal(name,'frindly_record_cash_transaction');
+  assert.equal(args.p_transaction.date,'2026-10-02');
   assert.equal(args.p_transaction.loan_due_date,'2026-10-01');
   assert.equal(args.p_transaction.interest_amount,30);
   assert.equal(args.p_transaction.loan_id,'loan');

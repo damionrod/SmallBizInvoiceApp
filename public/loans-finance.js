@@ -231,7 +231,7 @@
         const amount=row?(row.total-row.paid)/100:firstReceipt?Number(loan.original_amount):undefined;
         window.CashTransactions.open(incoming?'in':'out',{
           purpose:incoming?'loan_received':'loan_repayment',loan_id:loan.id,bank_id:loan.bank_id,
-          amount,date:today(),loan_due_date:row?.due,
+          amount,date:row&&row.due<today()?'':today(),loan_due_date:row?.due,
           interest:row?Math.min(amount,Math.max(0,row.interest-row.paidInterest)/100):0,
           interest_only:action==='interest',description:labels[action]+' · '+loan.name
         },null,render);
