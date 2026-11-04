@@ -227,7 +227,8 @@
         if(tenant!==business())return;
         const incoming=['funds','topup'].includes(action);
         const labels={funds:'Loan funds received',topup:'Loan top-up',repayment:'Loan repayment',extra:'Extra principal payment',interest:'Interest-only payment'};
-        const amount=row?(row.total-row.paid)/100:undefined;
+        const firstReceipt=action==='funds'&&Number(loan.owing)===0&&payments.length===0;
+        const amount=row?(row.total-row.paid)/100:firstReceipt?Number(loan.original_amount):undefined;
         window.CashTransactions.open(incoming?'in':'out',{
           purpose:incoming?'loan_received':'loan_repayment',loan_id:loan.id,bank_id:loan.bank_id,
           amount,date:today(),loan_due_date:row?.due,
