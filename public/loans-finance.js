@@ -174,16 +174,38 @@
     try{
       const [{loans,can_write:canWrite},cash]=await Promise.all([list(),window.CashTransactions.snapshot()]);
       if(version!==renderVersion||tenant!==business()||root.hidden)return;
-      const loan=loans.find(item=>item.id===selected);
+      const loan=loans.find(item=>item.id===selected)||loans[0];
       const payments=loan?cash.transactions.filter(item=>item.request_payload?.loan_id===loan.id&&item.status==='recorded'):[];
       const schedule=loan?projectedSchedule(loan,payments):[];
       const next=schedule.find(row=>row.paid<row.total);
+      const noPostedBalance=loan&&!loan.closed&&Number(loan.owing)===0;
+      const metric=(label,value)=>`<div><dt class="hint">${esc(label)}</dt><dd style="margin:0"><strong>${esc(value)}</strong></dd></div>`;
+      const metricGrid='display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));gap:1rem';
       root.innerHTML=`<div class="page-head compact-head"><div><h2>Loans &amp; Finance</h2><p>See what you owe and record payments using Money In &amp; Out.</p></div>${canWrite?'<button class="primary" id="finLoanAdd">Add loan</button>':''}</div>
       <p class="hint">Use Owner Current Accounts for shareholder or director lending.</p>
-      <div class="ct-workspace">${loans.map(item=>`<button type="button" class="secondary" data-fin-loan="${esc(item.id)}">${esc(item.name)} · ${money(item.owing)}${item.closed?' · Closed':''}</button>`).join(' ')||'<p>No loans added yet.</p>'}</div>
-      ${loan?`<h3>${esc(loan.name)}</h3><p>${esc(loan.lender)} · ${loan.closed?'Closed':'Open'}</p><p>Original loan ${money(loan.original_amount)} · Amount owing ${money(loan.owing)}</p><p>${esc(loan.terms.rate)}% annual interest · ${money(loan.terms.regular)} ${esc(loan.terms.frequency)}${next?' · Next unpaid instalment '+esc(next.due):''}</p>
+      <div class="ct-workspace">${loans.map(item=>`<button type="button" class="secondary" data-fin-loan="${esc(item.id)}" aria-pressed="${item.id===loan?.id}">${esc(item.name)}${item.closed?' · Closed':''}</button>`).join(' ')||'<p>No loans added yet.</p>'}</div>
+      ${loan?`<section class="card" style="margin-block:1rem">
+      <h3>${esc(loan.name)}</h3><p class="hint">${esc(loan.lender)} · ${loan.closed?'Closed':'Open'}</p>
+      <dl style="${metricGrid}">
+        ${metric('Original loan amount',money(loan.original_amount))}
+        ${metric('Recorded balance owing',money(loan.owing))}
+        ${metric('Annual interest rate',loan.terms.rate+'%')}
+        ${metric('Regular repayment',money(loan.terms.regular)+' '+loan.terms.frequency)}
+      </dl>
+      ${noPostedBalance?'<p class="hint">The recorded balance is $0.00. If this is a new loan, record how the loan was funded using Record loan funds received or Lender paid supplier.</p>':''}
+      </section>
+      ${next&&!loan.closed?`<section class="card" style="margin-block:1rem">
+        <h3>${noPostedBalance?'Planned repayment':'First unpaid scheduled repayment'}</h3>
+        <p class="hint">${esc(next.due)} · ${loan.terms.schedule?.length?'Lender schedule':'Estimate from loan terms'}</p>
+        <dl style="${metricGrid}">
+          ${metric('Total scheduled payment',money(next.total/100))}
+          ${metric('Principal (capital)',money(next.principal/100))}
+          ${metric('Interest',money(next.interest/100))}
+          ${next.paid?metric('Still to record',money((next.total-next.paid)/100)):''}
+        </dl>
+      </section>`:''}
       ${canWrite&&!loan.closed?`<div class="actions"><button class="primary" data-loan-action="repayment">Record repayment</button><button class="secondary" data-loan-action="funds">Record loan funds received</button><button class="secondary" data-loan-action="topup">Loan top-up</button><button class="secondary" data-loan-action="extra">Extra principal payment</button><button class="secondary" data-loan-action="interest">Interest-only payment</button><button class="secondary" id="finDirectFinanceOpen">Lender paid supplier</button><button class="secondary" id="finLoanTerms">Update loan terms</button><button class="secondary" id="finLoanClose">Close loan</button></div>`:canWrite&&loan.closed?'<button class="secondary" id="finLoanReopen">Reopen loan</button>':''}
-      <details><summary>Repayment schedule</summary><p class="hint">Estimated instalments. Use your lender’s figures when recording a payment. Update the terms after a top-up, extra payment or rate change.</p><div class="table-scroll"><table><thead><tr><th>Due</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Estimated owing</th><th>Status</th><th></th></tr></thead><tbody>${schedule.map((row,index)=>`<tr><td>${row.due}</td><td>${money(row.total/100)}</td><td>${money(row.principal/100)}</td><td>${money(row.interest/100)}</td><td>${money(row.remaining/100)}</td><td>${row.paid>=row.total?'Paid':row.paid?'Partially paid':row.due<today()?'Overdue':'Upcoming'}</td><td>${canWrite&&!loan.closed&&row.paid<row.total?`<button class="secondary" data-loan-instalment="${index}">Record payment</button>`:''}</td></tr>`).join('')}</tbody></table></div></details>
+      <details class="card" style="margin-block:1rem" open><summary><strong>Repayment schedule</strong></summary><p class="hint">${loan.terms.schedule?.length?'From your lender’s schedule.':'Estimates from your loan terms.'} Principal reduces the amount you owe. Interest is the cost of borrowing. Use your lender’s figures when recording a payment.</p>${schedule.length?'':'<p class="hint">No instalments to display. Check the repayment dates and amounts in Update loan terms.</p>'}<div class="table-scroll"><table><thead><tr><th>Due date</th><th>Total payment</th><th>Principal (capital)</th><th>Interest</th><th>Projected balance</th><th>Status</th><th></th></tr></thead><tbody>${schedule.map((row,index)=>`<tr><td>${row.due}</td><td>${money(row.total/100)}</td><td>${money(row.principal/100)}</td><td>${money(row.interest/100)}</td><td>${money(row.remaining/100)}</td><td>${row.paid>=row.total?'Paid':row.paid?'Partially paid':noPostedBalance?'Planned':row.due<today()?'Overdue':'Upcoming'}</td><td>${canWrite&&!loan.closed&&row.paid<row.total?`<button class="secondary" data-loan-instalment="${index}">Record payment</button>`:''}</td></tr>`).join('')}</tbody></table></div></details>
       <details><summary>Payment history</summary>${payments.map(payment=>`<p>${esc(payment.description)} · ${money(payment.amount)} <button class="secondary" data-cash-view="${esc(payment.id)}">View</button></p>`).join('')||'<p>No payments recorded.</p>'}</details>
       <details><summary>Check a lender statement</summary><form id="finLoanStatement"><div class="form-grid compact"><label>Statement date<input name="date" type="date" required value="${today()}"></label><label>Amount owing on statement<input name="amount" type="number" min="0" step="0.01" required></label></div><button class="secondary">Compare balances</button><p id="finLoanComparison" role="status"></p></form></details>
       `:''}<p id="finLoanError" role="alert"></p>`;

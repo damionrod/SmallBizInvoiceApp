@@ -29,7 +29,8 @@ test('loan register shows lender schedule and opens the shared repayment form wi
   for(const file of ['loans-finance.js','cash-transactions.js'])await page.addScriptTag({path:path.join(__dirname,'../../public',file)});
   await page.evaluate(()=>LoansFinance.render());
   await page.click('[data-fin-loan="loan"]');
-  await page.getByText('Repayment schedule',{exact:true}).click();
+  assert.equal(await page.locator('details').filter({hasText:'Repayment schedule'}).getAttribute('open'),'');
+  await page.getByRole('columnheader',{name:'Principal (capital)'}).waitFor();
   assert.match(await page.locator('#financial-panel-loans').innerText(),/Partially paid/);
   await page.click('[data-loan-instalment="0"]');
   assert.equal(await page.inputValue('#ctLoan'),'loan');
