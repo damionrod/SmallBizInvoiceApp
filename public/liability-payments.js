@@ -57,7 +57,15 @@
    c.obligations.forEach((o,i)=>$('lpAllocation'+i)?.addEventListener('input',()=>refreshAmount(c)));$('lpSave').onclick=()=>save(c);
   }catch(e){error(c,e);}
  }
- async function save(c){if(!active(c)||c.busy)return;const bank=$('lpBank'),date=$('lpDate').value,a=allocations(c),sum=a.reduce((s,o)=>s+cents(o.amount),0);if(!date)return error(c,new Error('Enter the payment date.'));if(!bank.value||bank.selectedOptions[0]?.disabled)return error(c,new Error('Select a bank account linked to the accounting ledger.'));if(!a.length||sum<=0||a.some(o=>!Number.isFinite(o.amount)||o.amount<=0||Math.abs(o.amount*100-cents(o.amount))>0.00001||cents(o.amount)>cents(o.outstanding)))return error(c,new Error('Enter valid amounts within the outstanding balances.'));if(c.tx&&sum!==cents(Math.abs(c.tx.amount)))return error(c,new Error('Allocations must equal the bank transaction amount.'));
+ async function save(c){if(!active(c)||c.busy)return;const bank=$('lpBank'),date=$('lpDate').value,a=allocations(c),sum=a.reduce((s,o)=>s+cents(o.amount),0);if(!date)return error(c,new Error('Enter the payment date.'));if(!bank.value||bank.selectedOptions[0]?.disabled)return error(c,new Error('Select a bank account linked to the accounting ledger.'));if(!a.length||sum<=0||a.some(o=>!Number.isFinite(o.amount)||o.amount<=0||Math.abs(o.amount*100-cents(o.amount))>0.00001))return error(c,new Error('Enter valid amounts within the outstanding balances.'));
+  const excess=a.find(o=>cents(o.amount)>cents(o.outstanding));
+  if(excess){
+   if(excess.kind==='gst'&&excess.direction==='refund'){
+    const difference=(cents(excess.amount)-cents(excess.outstanding))/100;
+    return error(c,new Error(`The refund entered is ${money(excess.amount)}, which is ${money(difference)} more than the ${money(excess.outstanding)} outstanding on this return. Check the bank deposit and myIR refund details.`));
+   }
+   return error(c,new Error('Enter valid amounts within the outstanding balances.'));
+  }if(c.tx&&sum!==cents(Math.abs(c.tx.amount)))return error(c,new Error('Allocations must equal the bank transaction amount.'));
   const payload=a.map(o=>({kind:o.kind,source_id:o.source_id,account_id:o.account_id,amount:o.amount}));c.busy=true;$('lpSave').disabled=true;$('lpClose').disabled=true;$('lpCancel').disabled=true;$('lpError').hidden=true;
   try{if(c.tx)await rpc('frindly_reconcile_liability_payment',{p_bank_transaction_id:c.tx.id,p_payment_id:null,p_request_id:c.requestId,p_allocations:payload});else await rpc('frindly_record_liability_payment',{p_request_id:c.requestId,p_date:date,p_bank_id:bank.value,p_reference:$('lpReference').value.trim()||null,p_allocations:payload});if(!active(c))return;c.busy=false;close();toast('Payment recorded');window.dispatchEvent(new CustomEvent('frindly:settlement-recorded'));await Promise.allSettled([window.Payroll?.refresh?.(),window.Financials?.refresh?.(),window.Dashboard?.refresh?.()]);await refreshButtons();}catch(e){error(c,e);}finally{c.busy=false;if($('lpSave'))$('lpSave').disabled=false;$('lpClose').disabled=false;if($('lpCancel'))$('lpCancel').disabled=false;}
  }
