@@ -98,6 +98,11 @@
       </div>
       ${loan?'':`<details><summary>Already paying this loan?</summary><p class="hint">Use an opening balance only if this debt is missing from your books. Ask your accountant if it is already recorded.</p><div class="form-grid compact"><label>Opening amount owing<input name="opening_amount" type="number" min="0" step="0.01"></label><label>Opening balance date<input name="opening_date" type="date"></label></div></details>`}
       <details><summary>Interest calculation and lender schedule</summary><label>Estimate method<select name="method"><option value="periodic">Rate divided by payment frequency</option><option value="daily365" ${terms.method==='daily365'?'selected':''}>Daily interest (365-day basis)</option></select></label><p class="hint">Paste one instalment per line with its due date, principal and interest. Example: 2026-12-01, 800.00, 200.00. This schedule takes precedence over estimates.</p><label>Lender instalments<textarea name="schedule" rows="4">${esc((terms.schedule||[]).map(row=>[row.due,row.principal/100,row.interest/100].join(', ')).join('\n'))}</textarea></label></details>
+      <details><summary>Balance Sheet classification</summary><label>Repayment rights<select name="classification">
+      <option value="">Needs review</option>
+      <option value="demand" ${terms.classification==='demand'?'selected':''}>Payable on demand or within 12 months</option>
+      <option value="scheduled" ${terms.classification==='scheduled'?'selected':''}>Use lender schedule. The agreement allows deferral of later amounts</option>
+      </select></label><p class="hint">Use the lender’s schedule and confirm that the business can defer the later payments under its agreement and applicable covenants.</p></details>
       <p class="hint">The schedule estimates reducing-balance interest. Leave the repayment amount blank to calculate an estimate, or enter the amount on your lender’s statement.</p>
       <p id="finLoanError" role="alert"></p><div class="actions"><button type="button" class="secondary" id="finLoanCancel">Cancel</button><button class="primary">Save loan</button></div></form>`;
     byId('finLoanCancel').onclick=render;
@@ -122,11 +127,42 @@
           action:loan?'terms':'create',name:values.name,lender:values.lender,loan_type:values.loan_type,
           bank_id:values.bank_id,original_amount:values.original_amount,start_date:values.start_date,
           opening_amount:values.opening_amount||null,opening_date:values.opening_date||null,
-          terms:{rate:values.rate,frequency:values.frequency,first:values.first,count:values.count,regular,base,method:values.method,accrualFrom,schedule}
+          terms:{rate:values.rate,frequency:values.frequency,first:values.first,count:values.count,regular,base,method:values.method,accrualFrom,schedule,classification:values.classification,classificationFrom:today()}
         }});
         if(tenant===business()){selected=id;await render();}
       }catch(e){if(tenant===business()&&form.isConnected)byId('finLoanError').textContent=e.message;}
       finally{button.disabled=false;}
+    };
+  }
+
+  async function directFinance(root,loan){
+    const tenant=business(), version=++renderVersion;
+    const bills=await rpc('frindly_financeable_asset_bills');
+    if(tenant!==business()||root.hidden||version!==renderVersion)return;
+    root.innerHTML=`<h3>Lender paid the supplier</h3><p class="hint">Select an unpaid bill already posted as a fixed asset. This records a supplier payment against ${esc(loan.name)}.</p>
+      <form id="finDirectFinance"><div class="form-grid compact">
+      <label>Asset bill<select name="bill" required><option value="">Choose a bill</option>${bills.map(bill=>`<option value="${esc(bill.id)}">${esc(bill.expense_number)} · ${esc(bill.supplier_name)} · ${money(bill.outstanding)} owing</option>`).join('')}</select></label>
+      <label>Amount lender paid<input name="amount" type="number" min="0.01" step="0.01" required></label>
+      <label>Date lender paid<input name="date" type="date" required max="${today()}" value="${today()}"></label>
+      <label>Lender reference<input name="reference" maxlength="200"></label>
+      </div><p id="finLoanError" role="alert"></p><div class="actions"><button type="button" class="secondary" id="finFinanceBack">Back</button><button type="submit" class="primary" ${bills.length?'':'disabled'}>Record supplier payment</button></div></form>`;
+    byId('finFinanceBack').onclick=render;
+    const form=byId('finDirectFinance'), request=crypto.randomUUID(), submit=form.querySelector('[type=submit]');
+    form.elements.bill.onchange=()=>{
+      const bill=bills.find(item=>item.id===form.elements.bill.value);
+      form.elements.amount.value=bill?.outstanding??'';
+      form.elements.amount.max=bill?.outstanding??'';
+    };
+    form.onsubmit=async event=>{
+      event.preventDefault();
+      if(tenant!==business()||submit.disabled)return;
+      submit.disabled=true;
+      const values=Object.fromEntries(new FormData(form));
+      try{
+        await rpc('frindly_record_direct_asset_finance',{p_request:request,p_loan:loan.id,p_expense:values.bill,p_date:values.date,p_amount:Number(values.amount),p_reference:values.reference});
+        if(tenant===business()&&form.isConnected)await render();
+      }catch(error){if(tenant===business()&&form.isConnected)byId('finLoanError').textContent=error.message;}
+      finally{submit.disabled=false;}
     };
   }
 
@@ -146,7 +182,7 @@
       <p class="hint">Use Owner Current Accounts for shareholder or director lending.</p>
       <div class="ct-workspace">${loans.map(item=>`<button type="button" class="secondary" data-fin-loan="${esc(item.id)}">${esc(item.name)} · ${money(item.owing)}${item.closed?' · Closed':''}</button>`).join(' ')||'<p>No loans added yet.</p>'}</div>
       ${loan?`<h3>${esc(loan.name)}</h3><p>${esc(loan.lender)} · ${loan.closed?'Closed':'Open'}</p><p>Original loan ${money(loan.original_amount)} · Amount owing ${money(loan.owing)}</p><p>${esc(loan.terms.rate)}% annual interest · ${money(loan.terms.regular)} ${esc(loan.terms.frequency)}${next?' · Next unpaid instalment '+esc(next.due):''}</p>
-      ${canWrite&&!loan.closed?`<div class="actions"><button class="primary" data-loan-action="repayment">Record repayment</button><button class="secondary" data-loan-action="funds">Record loan funds received</button><button class="secondary" data-loan-action="topup">Loan top-up</button><button class="secondary" data-loan-action="extra">Extra principal payment</button><button class="secondary" data-loan-action="interest">Interest-only payment</button><button class="secondary" id="finLoanTerms">Update loan terms</button><button class="secondary" id="finLoanClose">Close loan</button></div>`:canWrite&&loan.closed?'<button class="secondary" id="finLoanReopen">Reopen loan</button>':''}
+      ${canWrite&&!loan.closed?`<div class="actions"><button class="primary" data-loan-action="repayment">Record repayment</button><button class="secondary" data-loan-action="funds">Record loan funds received</button><button class="secondary" data-loan-action="topup">Loan top-up</button><button class="secondary" data-loan-action="extra">Extra principal payment</button><button class="secondary" data-loan-action="interest">Interest-only payment</button><button class="secondary" id="finDirectFinanceOpen">Lender paid supplier</button><button class="secondary" id="finLoanTerms">Update loan terms</button><button class="secondary" id="finLoanClose">Close loan</button></div>`:canWrite&&loan.closed?'<button class="secondary" id="finLoanReopen">Reopen loan</button>':''}
       <details><summary>Repayment schedule</summary><p class="hint">Estimated instalments. Use your lender’s figures when recording a payment. Update the terms after a top-up, extra payment or rate change.</p><div class="table-scroll"><table><thead><tr><th>Due</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Estimated owing</th><th>Status</th><th></th></tr></thead><tbody>${schedule.map((row,index)=>`<tr><td>${row.due}</td><td>${money(row.total/100)}</td><td>${money(row.principal/100)}</td><td>${money(row.interest/100)}</td><td>${money(row.remaining/100)}</td><td>${row.paid>=row.total?'Paid':row.paid?'Partially paid':row.due<today()?'Overdue':'Upcoming'}</td><td>${canWrite&&!loan.closed&&row.paid<row.total?`<button class="secondary" data-loan-instalment="${index}">Record payment</button>`:''}</td></tr>`).join('')}</tbody></table></div></details>
       <details><summary>Payment history</summary>${payments.map(payment=>`<p>${esc(payment.description)} · ${money(payment.amount)} <button class="secondary" data-cash-view="${esc(payment.id)}">View</button></p>`).join('')||'<p>No payments recorded.</p>'}</details>
       <details><summary>Check a lender statement</summary><form id="finLoanStatement"><div class="form-grid compact"><label>Statement date<input name="date" type="date" required value="${today()}"></label><label>Amount owing on statement<input name="amount" type="number" min="0" step="0.01" required></label></div><button class="secondary">Compare balances</button><p id="finLoanComparison" role="status"></p></form></details>
@@ -155,6 +191,7 @@
       if(byId('finLoanAdd'))byId('finLoanAdd').onclick=()=>editor(root).catch(report);
       for(const button of root.querySelectorAll('[data-fin-loan]'))button.onclick=()=>{selected=button.dataset.finLoan;render();};
       if(!loan)return;
+      if(byId('finDirectFinanceOpen'))byId('finDirectFinanceOpen').onclick=()=>directFinance(root,loan).catch(report);
       if(byId('finLoanTerms'))byId('finLoanTerms').onclick=()=>editor(root,loan).catch(report);
       if(byId('finLoanClose'))byId('finLoanClose').onclick=async()=>{
         if(tenant!==business())return;
@@ -209,5 +246,49 @@
     const payments=transactions.filter(payment=>payment.status==='recorded'&&payment.request_payload?.loan_id===loan.id);
     return projectedSchedule(loan,payments).find(row=>row.paid<row.total);
   }
-  window.LoansFinance={list,render,upcoming,nextPayment};
+  function splitLiability(loan, transactions, asOf){
+    const balance=cents(loan.owing);
+    const terms=loan.terms;
+    if(balance<=0||!terms.classificationFrom||terms.classificationFrom>asOf)return null;
+    if(terms.classification==='demand')return {current:balance/100,longTerm:0};
+    if(terms.classification!=='scheduled'||!Array.isArray(terms.schedule)||!terms.schedule.length)return null;
+    const cutoff=new Date(asOf+'T00:00:00Z');
+    const day=cutoff.getUTCDate();
+    cutoff.setUTCDate(1);
+    cutoff.setUTCFullYear(cutoff.getUTCFullYear()+1);
+    const last=new Date(Date.UTC(cutoff.getUTCFullYear(),cutoff.getUTCMonth()+1,0)).getUTCDate();
+    cutoff.setUTCDate(Math.min(day,last));
+    const dueThrough=dateText(cutoff);
+    const principalByDue=new Map();
+    for(const payment of transactions){
+      const payload=payment.request_payload;
+      if(payload?.loan_id!==loan.id||payment.status!=='recorded'||payment.purpose!=='loan_repayment')continue;
+      const paidOn=payment.legs?.[0]?.transaction_date||payload.date;
+      if(!paidOn||paidOn>asOf||!payload.loan_due_date)continue;
+      const principal=cents(payment.amount)-cents(payment.interest_amount||0)-cents(payload.loan_fee||0);
+      principalByDue.set(payload.loan_due_date,(principalByDue.get(payload.loan_due_date)||0)+principal);
+    }
+    let total=0,current=0;
+    const seen=new Set();
+    for(const row of terms.schedule){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(row.due)||seen.has(row.due)||!Number.isSafeInteger(row.principal)||row.principal<0)return null;
+      seen.add(row.due);
+      const unpaid=row.principal-(principalByDue.get(row.due)||0);
+      if(unpaid<0)return null;
+      total+=unpaid;
+      if(row.due<=dueThrough)current+=unpaid;
+    }
+    // A changed principal balance or incomplete schedule requires a refreshed lender schedule.
+    if(total!==balance)return null;
+    return {current:current/100,longTerm:(balance-current)/100};
+  }
+
+  async function classifications(asOf){
+    const tenant=business();
+    const [{loans},cash]=await Promise.all([list(asOf),window.CashTransactions.snapshot()]);
+    if(tenant!==business())return new Map();
+    return new Map(loans.filter(loan=>Number(loan.owing)>0).map(loan=>[loan.account_id,splitLiability(loan,cash.transactions,asOf)]));
+  }
+
+  window.LoansFinance={list,render,upcoming,nextPayment,classifications};
 })();

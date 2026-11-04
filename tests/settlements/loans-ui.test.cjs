@@ -12,13 +12,14 @@ test('loan register shows lender schedule and opens the shared repayment form wi
   await page.evaluate(()=>{
    window.loanCalls=[];
    window.crypto.randomUUID=()=>String(Math.random());
-   const loan={id:'loan',bank_id:'bank',name:'Van loan',lender:'BNZ',original_amount:1000,owing:900,terms:{regular:250,rate:8,frequency:'monthly',schedule:[{due:'2026-10-01',total:25000,principal:20000,interest:5000,remaining:80000}]}};
+   const loan=window.testLoan={id:'loan',account_id:'liability',bank_id:'bank',name:'Van loan',lender:'BNZ',original_amount:1000,owing:900,terms:{regular:250,rate:8,frequency:'monthly',classification:'scheduled',classificationFrom:'2026-10-01',schedule:[{due:'2026-10-01',total:25000,principal:20000,interest:5000,remaining:80000},{due:'2028-10-01',total:80000,principal:80000,interest:0,remaining:0}]}};
    const banks=[{id:'bank',name:'BNZ',is_default:true,accounting_account_id:'ledger'}];
    window.FinloCore={format:{money:n=>'$'+Number(n).toFixed(2)},ui:{toast(){}}};
    window.SAAS={state:{business:{id:'company',settings:{currency:'NZD'}}},client:()=>({
     rpc:async(name,args)=>{
      if(name==='frindly_loan_register')return {data:{loans:[loan],can_write:true}};
-     if(name==='frindly_cash_snapshot')return {data:{can_write:true,entity_type:'company',transactions:[{id:'partial',purpose:'loan_repayment',status:'recorded',description:'Partial loan payment',amount:120,interest_amount:20,request_payload:{loan_id:'loan',loan_due_date:'2026-10-01'}}]}};
+     if(name==='frindly_cash_snapshot')return {data:{can_write:true,entity_type:'company',transactions:[{id:'partial',purpose:'loan_repayment',status:'recorded',description:'Partial loan payment',amount:120,interest_amount:20,request_payload:{date:'2026-10-01',loan_id:'loan',loan_due_date:'2026-10-01'}}]}};
+     if(name==='frindly_financeable_asset_bills')return {data:[{id:'bill',expense_number:'A-1',supplier_name:'Equipment seller',outstanding:500}]};
      window.loanCalls.push({name,args});
      return {data:'saved'};
     },
@@ -43,5 +44,21 @@ test('loan register shows lender schedule and opens the shared repayment form wi
   assert.equal(args.p_transaction.loan_due_date,'2026-10-01');
   assert.equal(args.p_transaction.interest_amount,30);
   assert.equal(args.p_transaction.loan_id,'loan');
+  const split=await page.evaluate(async()=>Object.fromEntries(await LoansFinance.classifications('2026-11-04')));
+  assert.deepEqual(split.liability,{current:100,longTerm:800});
+  await page.evaluate(()=>{testLoan.owing=950;});
+  const incomplete=await page.evaluate(async()=>Object.fromEntries(await LoansFinance.classifications('2026-11-04')));
+  assert.equal(incomplete.liability,null);
+  await page.click('#finDirectFinanceOpen');
+  await page.selectOption('#finDirectFinance select[name=bill]','bill');
+  assert.equal(await page.inputValue('#finDirectFinance input[name=amount]'),'500');
+  await page.fill('#finDirectFinance input[name=amount]','400');
+  await page.click('#finDirectFinance button[type=submit]');
+  await page.waitForFunction(()=>loanCalls.length===2);
+  const direct=await page.evaluate(()=>loanCalls[1]);
+  assert.equal(direct.name,'frindly_record_direct_asset_finance');
+  assert.equal(direct.args.p_expense,'bill');
+  assert.equal(direct.args.p_loan,'loan');
+  assert.equal(direct.args.p_amount,400);
  }finally{await browser.close();}
 });

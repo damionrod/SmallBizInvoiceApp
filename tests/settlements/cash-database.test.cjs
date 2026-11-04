@@ -27,6 +27,28 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  const shareMigration=fs.readdirSync(path.join(__dirname,'../../supabase/migrations')).find(f=>f.endsWith('_linked_shareholding_changes.sql'));await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations',shareMigration),'utf8'));
  const storageMigration=fs.readdirSync(path.join(__dirname,'../../supabase/migrations')).find(f=>f.endsWith('_share_change_storage_guards.sql'));await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations',storageMigration),'utf8'));
  await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261104150000_loan_register.sql'),'utf8'));
+ // Fixture boundary for the existing operational supplier posting RPC.
+ await db.exec(`
+ alter table public.expense_payments add primary key(id),add column expense_id uuid,add column payment_date date,add column amount numeric,add column payment_method text,add column reference text,add column notes text,add column funding_source text,add column reconciliation_requirement text,add column created_by uuid;
+ alter table public.expenses add column archived boolean,add column lifecycle_state text,add column payment_status text,add column invoice_date date,add column business_use_percent numeric,add column private_use_amount numeric,add column total_amount numeric,add column outstanding_balance numeric,add column gst_amount numeric,add column expense_number text,add column supplier_name text;
+ create table public.supplier_credits(business_id uuid,applied_expense_id uuid,status text);
+ create function public.v6170b_payment_account(p_bid uuid,p_source_type text,p_source_id uuid) returns uuid language plpgsql as $$
+ declare v_account uuid;begin
+ if p_source_type='customer_payment' then return null;
+ elsif p_source_type='supplier_payment' then
+  select accounting_account_id into v_account from public.bank_accounts where business_id=p_bid and is_default;
+ end if;
+ return v_account;
+ end $$;
+ create function public.v6170b_post_source(p_type text,p_id uuid,p_origin text) returns uuid language plpgsql as $$
+ declare p public.expense_payments%rowtype; payable uuid;
+ begin
+ select * into p from public.expense_payments where id=p_id and business_id=public.current_business_id();
+ select id into payable from public.accounting_accounts where business_id=p.business_id and system_key='accounts_payable';
+ return public.v6192_create_posted_journal(p.business_id,p.payment_date,'supplier_payment',p_type,p.id,p.reference,'Supplier payment',jsonb_build_array(
+ frindly_cash.line(payable,p.amount,0,'Supplier payable'),frindly_cash.line(public.v6170b_payment_account(p.business_id,p_type,p_id),0,p.amount,'Funding')));
+ end $$;`);
+ await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261104160000_direct_asset_finance.sql'),'utf8'));
  console.log('PASS shared cash migration compiles against current accounting schema and posting guards');
  const A='10000000-0000-0000-0000-000000000001',B='10000000-0000-0000-0000-000000000002',U='00000000-0000-0000-0000-000000000001',V='00000000-0000-0000-0000-000000000002';
  const scalar=async(s,p=[])=>Object.values((await db.query(s,p)).rows[0])[0];
@@ -203,6 +225,26 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await saveLoan({...loanDetails,name:'Existing equipment loan',opening_amount:450,opening_date:'2026-01-01'},openingId);
  assert.equal(Number((await loanList()).loans.find(item=>item.id===openingId).owing),450);
  assert.equal(await bal(gl),beforeOpeningBank);
+ const payable=await acct(A,'2000','accounts_payable','liability');
+ const asset=await acct(A,'1500','fixed_assets','asset');
+ await db.query("update public.accounting_accounts set report_section='fixed_assets' where id=$1",[asset]);
+ const billId=req(), financeRequest=req();
+ await db.query("insert into public.expenses(id,business_id,invoice_date,total_amount,outstanding_balance,payment_status,expense_number) values($1,$2,'2026-10-01',500,500,'unpaid','ASSET-1')",[billId,A]);
+ await scalar("select public.v6192_create_posted_journal($1,'2026-10-01','expense','expense',$2,'ASSET-1','Asset bill',jsonb_build_array(frindly_cash.line($3,500,0,'Asset'),frindly_cash.line($4,0,500,'Payable')))",[A,billId,asset,payable]);
+ const finance=(id,amount)=>scalar("select public.frindly_record_direct_asset_finance($1,$2,$3,'2026-10-01',$4,'LENDER-1')",[id,openingId,billId,amount]);
+ const beforeFinance=await count(), bankBeforeFinance=await bal(gl);
+ assert.equal(await finance(financeRequest,400),financeRequest);
+ assert.equal(await finance(financeRequest,400),financeRequest);
+ assert.equal(await count(),beforeFinance+1);
+ assert.equal(await bal(payable),-100);
+ assert.equal(await bal(asset),500);
+ assert.equal(await bal(gl),bankBeforeFinance);
+ assert.equal(Number((await loanList()).loans.find(item=>item.id===openingId).owing),850);
+ assert.equal(await scalar('select reconciliation_requirement from public.expense_payments where id=$1',[financeRequest]),'not_required');
+ await reject(()=>finance(req(),101),/unpaid supplier balance/);
+ await reject(()=>db.query('update public.expense_payments set amount=1 where id=$1',[financeRequest]),/linked to a loan/);
+ await as(V);await reject(()=>finance(req(),1),/active loan/);await as(U);
+ console.log('PASS direct finance settles the posted asset bill without bank movement, guards overpayment and retries');
  console.log('PASS registered loan setup, opening balances, repayments, interest-only, top-ups, exact bank matching, terms, closure and tenant isolation');
  await db.query(`insert into public.business_member_access_overrides(membership_id,business_id,area,can_read,can_write) select id,business_id,'bank',false,false from public.business_memberships where business_id=$1`,[A]);await record(payload('interest','in',{amount:2}));await reject(async()=>match(await tx(2),null,req(),payload('interest','in',{amount:2})),/reconciliation access/);
  await db.query(`insert into public.business_member_access_overrides(membership_id,business_id,area,can_read,can_write) select id,business_id,'financials',false,false from public.business_memberships where business_id=$1`,[A]);await reject(()=>record(payload('interest','in',{amount:3})),/Financial access/);await reject(()=>snap(),/Financial access/);
