@@ -159,6 +159,10 @@ async function renderPnL(){
   }));
 }
 function renderCashFlow(){const {from,to}=currentRange();window.CashTransactions.render(from,to);}
+// Registered loan account names include an internal ID for uniqueness.
+function displayLoanAccountName(name){
+  return String(name||'').replace(/^(Loan: .+) \[([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]$/i,'$1');
+}
 async function renderCashBook(){
  const {from,to}=currentRange(),bid=state.businessId,c=client(),root=q('finCashBookRows');
  root.innerHTML='<tr><td colspan="8">Loading posted cash and bank movements…</td></tr>';
@@ -172,7 +176,7 @@ async function renderCashBook(){
  if(ledgerResult.error||accountsResult.error||banksResult.error||aliasesResult.error){root.innerHTML='<tr><td colspan="8">Posted Cash Book unavailable. No operational estimates have been substituted.</td></tr>';state.cashBookRows=[];return}
  const {codeMap,names:accountNames}=window.FrindlyBankLedger.group(accountsResult.data||[],banksResult.data||[],aliasesResult.data||[]);
  const bankCodes=new Set(accountNames.keys());
- const allBankRows=(ledgerResult.data||[]).filter(t=>codeMap.has(String(t.account_code))).map(t=>{const code=codeMap.get(String(t.account_code));return {date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:t.description||t.account_name||'',cat:accountNames.get(code)||t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code}});
+ const allBankRows=(ledgerResult.data||[]).filter(t=>codeMap.has(String(t.account_code))).map(t=>{const code=codeMap.get(String(t.account_code));return {date:t.journal_date,ref:t.source_reference||t.journal_number||'',desc:displayLoanAccountName(t.description||t.account_name),cat:accountNames.get(code)||t.account_name||'Cash / Bank',in:num(t.debit),out:num(t.credit),source:t.source_type||'Posted journal',code}});
  const scoped=allBankRows;
  const opening=scoped.filter(t=>t.date<from).reduce((sum,t)=>sum+t.in-t.out,0);const rows=scoped.filter(t=>t.date>=from);
  rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.ref).localeCompare(String(b.ref)));
@@ -256,7 +260,7 @@ async function renderBalanceSheet(){
   for(const t of trial.data||[]){
     const a=chart.get(String(t.account_code));
     if(!a||!groups[a.account_type]||Math.abs(num(t.balance))<.005)continue;
-    const row={code:String(t.account_code),name:a.account_name||t.account_name,balance:a.account_type==='equity'&&a.normal_balance==='debit'?-num(t.balance):num(t.balance),subtype:a.account_subtype||''};
+    const row={code:String(t.account_code),name:a.account_type==='liability'?displayLoanAccountName(a.account_name||t.account_name):a.account_name||t.account_name,balance:a.account_type==='equity'&&a.normal_balance==='debit'?-num(t.balance):num(t.balance),subtype:a.account_subtype||''};
     const split=a.account_type==='liability'?loanSplits?.get(a.id):null;
     if(split&&Math.abs(split.current+split.longTerm-row.balance)<.005){
       if(split.current)groups.liability.push({...row,name:row.name+' · Current portion',balance:split.current});
