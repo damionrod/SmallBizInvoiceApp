@@ -8,13 +8,28 @@ const reviewer=fs.readFileSync('public/purchase-review.js','utf8');
 const edge=fs.readFileSync('supabase/functions/scan-expense-document/index.ts','utf8');
 
 function extract(name,next){const from=expenses.indexOf(`  function ${name}(`);const to=expenses.indexOf(`  function ${next}(`,from+1);assert.ok(from>=0&&to>from);return expenses.slice(from,to)}
-test('uploads and camera captures wait for one explicit batch scan',()=>{
- const code=extract('queueInvoiceScan','renderPendingFiles');
- assert.doesNotMatch(code,/queueInvoiceScan\(\)\s*}/);
- assert.match(code,/Ready to scan\. Add another page if needed, or tap Scan now\./);
- assert.match(code,/All pages are ready\. Tap Scan all pages when you have finished adding files\./);
- assert.match(expenses,/expAiRescan'\)\)\$\('expAiRescan'\)\.onclick=.*scanExpenseFile\(\[\.\.\.state\.pendingFiles\]\)/);
- assert.match(expenses,/kind!==['"]ready['"]/);
+test('draft upload does not hide the explicit full-invoice scan or retry action',()=>{
+ const pick=extract('pickFiles','renderPendingFiles');
+ assert.doesNotMatch(pick,/scanExpenseFile\(/);
+ assert.match(expenses,/scanExpenseFile\(invoicePages\(\)\)/);
+ const controls={expAiScanState:{dataset:{}},expAiStatusTitle:{},expAiStatusText:{},expAiRescan:{}};
+ const context={state:{aiFile:{},aiScanning:false},$:id=>controls[id],completeAiProgress(){},failAiProgress(){}};
+ vm.runInNewContext(extract('aiStatus','renderAiPreview')+';globalThis.setStatus=aiStatus;',context);
+ context.setStatus('Ready','Add more pages','ready');
+ assert.equal(controls.expAiRescan.hidden,false);
+ context.setStatus('Failed','Try again','error');
+ assert.equal(controls.expAiRescan.hidden,false);
+ assert.equal(controls.expAiRescan.textContent,'Retry scan');
+ const from=expenses.indexOf('  function ensurePhotoDraft('),to=expenses.indexOf('  async function saveScannedItemSuggestions',from);
+ assert.doesNotMatch(expenses.slice(from,to),/aiStatus/);
+});
+test('a reopened draft scans saved files first and appends newly selected files',()=>{
+ const saved={mime_type:'application/pdf'},pending={type:'image/jpeg'};
+ const context={state:{scanSavedPages:true,attachments:[saved],pendingFiles:[pending]},AI_FILE_TYPES:new Set(['application/pdf','image/jpeg'])};
+ vm.runInNewContext(extract('invoicePages','updateScanReady')+';globalThis.pages=invoicePages;',context);
+ assert.equal(context.pages()[0],saved);
+ assert.equal(context.pages()[1],pending);
+ assert.match(expenses,/facingMode:\{exact:'environment'\}/);
 });
 test('absent AI amounts are unknown rather than a zero total or verified zero GST',()=>{
  const from=expenses.indexOf('  function scanAmount('),to=expenses.indexOf('  function applyAiResult(',from);
