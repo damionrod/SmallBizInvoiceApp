@@ -8109,3 +8109,8 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 #ctSharePreview .table-scroll{max-width:100%;overflow-x:auto}
 #finOwnerEditModal .actions{flex-wrap:wrap}
 @media(max-width:600px){#ctShareForm .form-grid{grid-template-columns:minmax(0,1fr)}}
+
+.ct-buyback-form [hidden]{display:none!important}
+#ctBuybackReview{margin-bottom:1rem}
+#ctExtra label.ct-buyback-confirmation{display:grid;grid-template-columns:1.25rem minmax(0,1fr);align-items:start;gap:.65rem;cursor:pointer}
+#ctExtra label.ct-buyback-confirmation input{margin:.2rem 0 0;justify-self:start}

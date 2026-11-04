@@ -39,6 +39,74 @@
   if(tax){const entity=c.data.entity_type||window.SAAS?.state?.business?.settings?.business_entity_type; if(['sole_trader','partnership'].includes(entity))$('ctTaxpayer').value='owner';}
   if(!$('ctDescription').dataset.edited)$('ctDescription').value=label(p);
  }
+ function setupBuyback(c){
+  const form=$('ctForm'),payment=form.firstElementChild,extra=$('ctExtra');
+  form.classList.add('ct-buyback-form');
+  const review=document.createElement('section');
+  review.id='ctBuybackReview';
+  review.innerHTML='<h3 tabindex="-1">Review and record</h3><p id="ctBuybackSummary"></p><p class="hint">Use the accounting instructions approved for this buyback.</p><button type="button" class="secondary" id="ctBuybackHelp">I need accounting instructions</button><p class="hint" id="ctBuybackHelpText" hidden>Ask your accountant which account or accounts to use and whether tax needs to be withheld. Return here with their instructions, or ask them to use the accountant workflow if a payable has already been recorded.</p>';
+  form.insertBefore(review,extra);
+  const owner=$('ctOwner'),event=$('ctCapitalEvent');
+  owner.required=true;
+  owner.parentElement.firstChild.textContent='Shareholder paid';
+  $('ctShareholderHelp').textContent='Choose the shareholder the company paid for their shares.';
+  payment.append(owner.parentElement,event.parentElement);
+  event.parentElement.hidden=event.options.length===1;
+  event.parentElement.firstChild.textContent='Payment towards an existing buyback?';
+  event.parentElement.querySelector('small').textContent='Choose the original buyback if this payment is an instalment.';
+  extra.querySelector('p').hidden=true;
+  $('ctCapitalLines').parentElement.firstChild.textContent='Accounting instructions';
+  $('ctCapitalAdd').textContent='Split across accounts';
+  $('ctDescription').parentElement.hidden=true;
+  $('ctReference').parentElement.firstChild.textContent='Bank reference (optional)';
+  const approval=document.createElement('div');
+  approval.className='wide form-grid compact';
+  approval.innerHTML='<h3 class="wide">Approval details</h3>';
+  extra.insertBefore(approval,$('ctCapitalAuthority').parentElement);
+  for(const id of ['ctCapitalAuthority','ctCapitalAuthorityDate','ctCapitalReviewer','ctCapitalShares','ctCapitalTax','ctNote']){
+   approval.append($(id).parentElement);
+  }
+  $('ctNote').parentElement.firstChild.textContent='Accounting instructions or document reference';
+  const confirmations={
+   ctCapitalAuthorised:'The company approved this buyback and has the supporting documents.',
+   ctCapitalSolvent:'The directors confirmed the required solvency checks and certificates.',
+   ctCapitalReviewed:'Our accountant approved the accounting and tax treatment.',
+   ctCapitalNotPosted:'This payment and equity reduction have not already been recorded.'
+  };
+  for(const [id,copy] of Object.entries(confirmations)){
+   const box=$(id),label=box.parentElement,caption=document.createElement('span');
+   caption.textContent=copy;
+   label.classList.add('ct-buyback-confirmation');
+   label.replaceChildren(box,caption);
+  }
+  const actions=$('ctSave').parentElement;
+  actions.insertAdjacentHTML('afterbegin','<button type="button" class="secondary" id="ctBuybackBack">Back</button>');
+  $('ctBuybackHelp').onclick=()=>{$('ctBuybackHelpText').hidden=!$('ctBuybackHelpText').hidden;};
+  const setStep=isReview=>{
+   c.buybackReview=isReview;
+   payment.hidden=isReview;
+   review.hidden=!isReview;
+   extra.hidden=!isReview;
+   $('ctReference').parentElement.hidden=!isReview;
+   $('ctBuybackBack').hidden=!isReview;
+   $('ctSave').textContent=isReview?(c.tx?'Record & match':'Record buyback payment'):'Review payment';
+   form.noValidate=!isReview;
+   if(isReview)review.querySelector('h3').focus();
+   else $('ctPurpose').focus();
+  };
+  $('ctBuybackBack').onclick=()=>setStep(false);
+  c.reviewBuyback=()=>{
+   if(!c.data.capital?.can_record)return error(c,new Error('Capital payments require authorised accounting access.'));
+   for(const control of payment.querySelectorAll('input,select'))if(!control.reportValidity())return;
+   const shareholder=owner.selectedOptions[0].textContent;
+   $('ctDescription').value='Share buyback – '+shareholder;
+   $('ctBuybackSummary').textContent=shareholder+' · '+money($('ctAmount').value)+' · '+$('ctDate').value+' · '+$('ctBank').selectedOptions[0].textContent;
+   const lines=$('ctCapitalLines');
+   if(lines.children.length===1)lines.querySelector('input').value=$('ctAmount').value;
+   setStep(true);
+  };
+  setStep(false);
+ }
  async function open(kind='out',preset={},tx=null,onDone=null){
   const token=++sequence,c={bid:bid(),kind,tx,onDone,preset,requestId:crypto.randomUUID(),busy:false};context=c;modal().classList.add('open');$('ctContent').innerHTML='<p>Loading bank transaction form…</p><p id="ctError" role="alert" hidden></p>';
   try{
@@ -50,10 +118,12 @@
    $('ctBank').value=tx?.bank_account_id||accounts.find(x=>x.is_default)?.id||'';
    if(tx){if(transfer&&tx.amount>0){$('ctTo').value=tx.bank_account_id;$('ctTo').disabled=true;$('ctBank').value='';$('ctReceived').value=tx.transaction_date;$('ctReceived').readOnly=true;$('ctDate').readOnly=false;}else $('ctBank').disabled=true;}
    if(preset.purpose)$('ctPurpose').value=preset.purpose;
+   for(const [id,value] of Object.entries(preset.paymentFields||{}))$(id).value=value;
    $('ctDescription').oninput=()=>{$('ctDescription').dataset.edited='true';c.duplicateAcknowledged=false;};
-   $('ctPurpose').onchange=()=>{delete $('ctDescription').dataset.edited;extra(c);c.duplicateAcknowledged=false;};extra(c);
+   $('ctPurpose').onchange=()=>{if(preset.purpose==='share_buyback'||$('ctPurpose').value==='share_buyback')return open(kind,{purpose:$('ctPurpose').value,paymentFields:Object.fromEntries(['ctDate','ctAmount','ctBank','ctReference'].map(id=>[id,$(id).value]))},tx,onDone);delete $('ctDescription').dataset.edited;extra(c);c.duplicateAcknowledged=false;};extra(c);
    if(preset.owner_id&&$('ctOwner'))$('ctOwner').value=preset.owner_id;if(preset.tax_year&&$('ctYear'))$('ctYear').value=preset.tax_year;
-   $('ctForm').addEventListener('input',()=>{c.duplicateAcknowledged=false;});$('ctCancel').onclick=close;$('ctForm').onsubmit=e=>{e.preventDefault();save(c);};
+   if($('ctPurpose').value==='share_buyback'&&c.data.capital?.can_record)setupBuyback(c);
+   $('ctForm').addEventListener('input',()=>{c.duplicateAcknowledged=false;});$('ctCancel').onclick=close;$('ctForm').onsubmit=e=>{e.preventDefault();if(c.reviewBuyback&&!c.buybackReview)c.reviewBuyback();else save(c);};
    $('ctPurpose').focus();
   }catch(e){error(c,e);}
  }
@@ -73,7 +143,7 @@
    let recorded;if(c.tx)recorded=await rpc('frindly_match_cash_transaction',{p_bank_transaction_id:c.tx.id,p_request_id:c.requestId,p_transaction:p});
    else recorded=await rpc('frindly_record_cash_transaction',{p_request_id:c.requestId,p_transaction:p});
    await saved(c,c.tx?'Transaction recorded and matched':'Transaction recorded');
-   if(['share_buyback','return_share_capital'].includes(p.purpose)&&bid()===c.bid){let id=recorded;if(c.tx){const latest=await snapshot();id=latest.transactions.find(t=>t.legs?.some(l=>l.id===recorded))?.id;}if(id)await view(id);}
+   if(['share_buyback','return_share_capital'].includes(p.purpose)&&bid()===c.bid){let id=recorded;if(c.tx){const latest=await snapshot();id=latest.transactions.find(t=>t.legs?.some(l=>l.id===recorded))?.id;}if(id)await view(id,p.purpose==='share_buyback');}
   }catch(e){error(c,e);}finally{c.busy=false;if($('ctSave'))$('ctSave').disabled=false;if($('ctCancel'))$('ctCancel').disabled=false;$('ctClose').disabled=false;}
  }
  // The hub routes to existing forms. It never substitutes a generic posting for a linked payment.
@@ -171,7 +241,7 @@
  }
  async function ownerChanges(ownerId){const c={bid:bid()};context=c;modal().classList.add('open');$('ctContent').innerHTML='<p>Loading capital payments…</p><p id="ctError" role="alert" hidden></p>';try{const data=await snapshot();if(!active(c))return;if(data.entity_type!=='company')throw new Error('Shareholding changes are for companies only.');const payments=data.transactions.filter(t=>t.owner_id===ownerId&&['share_buyback','return_share_capital'].includes(t.purpose));$('ctContent').innerHTML=`<h2>Capital payments & share changes</h2><p>Open an existing payment to confirm or review its linked shareholding record.</p>${payments.map(t=>`<p><button type="button" class="secondary" data-owner-capital="${esc(t.id)}">${esc(t.description)} · ${esc(money(t.amount))} · ${esc(t.status)}</button></p>`).join('')||'<p>No capital payments recorded for this person.</p>'}<button type="button" class="secondary" id="ctOwnerClose">Close</button>`;document.querySelectorAll('[data-owner-capital]').forEach(b=>b.onclick=()=>view(b.dataset.ownerCapital));$('ctOwnerClose').onclick=close;}catch(e){error(c,e);}}
 
- async function view(id){const c={bid:bid(),busy:false};context=c;++sequence;modal().classList.add('open');$('ctClose').disabled=false;$('ctContent').innerHTML='<p>Loading transaction…</p><p id="ctError" role="alert" hidden></p>';try{const data=await snapshot();if(!active(c))return;const t=data.transactions.find(t=>t.id===id);if(!t)throw new Error('Transaction unavailable in this business.');$('ctContent').innerHTML=`<h2>${esc(t.description)}</h2><p>${esc(label(t.purpose))} · ${esc(money(t.amount))} · ${t.status==='void'?'Reversed':'Recorded'}</p><p id="ctError" role="alert" hidden></p><div class="table-scroll"><table><thead><tr><th>Bank</th><th>Date</th><th>Amount</th><th>Bank match</th></tr></thead><tbody>${(t.legs||[]).map(l=>`<tr><td>${esc(l.bank_name)}</td><td>${esc(l.transaction_date)}${l.original_date!==l.transaction_date?`<small>Originally ${esc(l.original_date)}</small>`:''}</td><td>${esc(money(l.amount))}</td><td>${l.matched?'Matched':'Not matched'}</td></tr>`).join('')}</tbody></table></div><p>${esc(t.reference||'')}</p><p>${esc(t.note||'')}</p>${['share_buyback','return_share_capital'].includes(t.purpose)?`<h3>Approved capital allocation</h3><p>${esc(t.request_payload?.capital_authority_ref)} · ${esc(t.request_payload?.capital_authority_date)} · Reviewed by ${esc(t.request_payload?.capital_reviewer)}</p><p>${esc(t.request_payload?.capital_share_details)}</p>${(t.request_payload?.capital_allocations||[]).map(a=>`<p>${esc((data.capital?.accounts||[]).find(x=>x.id===a.account_id)?.name||a.account_id)} · ${esc(money(a.amount))}</p>`).join('')}<p class="hint">Payment alone does not change ownership. Confirm or review the linked shareholding record, then maintain the statutory register and Companies Office filings.</p>${data.entity_type==='company'?'<button type="button" class="secondary" id="ctShareChange">Confirm / review shareholding change</button>':''}`:''}${t.tax_year?`<p>Tax year ending ${esc(t.tax_year)} · ${esc(t.taxpayer)}</p>`:''}<div class="actions"><button class="secondary" id="ctCancel">Close</button>${data.can_write&&t.status==='recorded'&&!t.legs.some(l=>l.matched)?'<button class="secondary danger" id="ctVoid">Reverse transaction</button>':''}</div>`;$('ctCancel').onclick=close;if($('ctShareChange'))$('ctShareChange').onclick=()=>shareChange(t);if($('ctVoid'))$('ctVoid').onclick=async()=>{const reason=await window.FrindlyDialogs.prompt((['share_buyback','return_share_capital'].includes(t.purpose)?'Reversing payment does not undo the legal share change. Review its linked shareholding record with your accountant. Reason for reversal:':'Reason for reversing this transaction:'),'');if(!reason?.trim()||!active(c)||c.busy)return;c.busy=true;$('ctVoid').disabled=true;try{await rpc('frindly_void_cash_transaction',{p_transaction_id:id,p_reason:reason.trim()});await saved(c,'Transaction reversed');}catch(e){error(c,e);c.busy=false;$('ctVoid').disabled=false;}};
+ async function view(id,buybackRecorded=false){const c={bid:bid(),busy:false};context=c;++sequence;modal().classList.add('open');$('ctClose').disabled=false;$('ctContent').innerHTML='<p>Loading transaction…</p><p id="ctError" role="alert" hidden></p>';try{const data=await snapshot();if(!active(c))return;const t=data.transactions.find(t=>t.id===id);if(!t)throw new Error('Transaction unavailable in this business.');$('ctContent').innerHTML=`<h2>${buybackRecorded?'Payment recorded':esc(t.description)}</h2><p>${esc(label(t.purpose))} · ${esc(money(t.amount))} · ${t.status==='void'?'Reversed':'Recorded'}</p><p id="ctError" role="alert" hidden></p><div class="table-scroll"><table><thead><tr><th>Bank</th><th>Date</th><th>Amount</th><th>Bank match</th></tr></thead><tbody>${(t.legs||[]).map(l=>`<tr><td>${esc(l.bank_name)}</td><td>${esc(l.transaction_date)}${l.original_date!==l.transaction_date?`<small>Originally ${esc(l.original_date)}</small>`:''}</td><td>${esc(money(l.amount))}</td><td>${l.matched?'Matched':'Not matched'}</td></tr>`).join('')}</tbody></table></div><p>${esc(t.reference||'')}</p><p>${esc(t.note||'')}</p>${['share_buyback','return_share_capital'].includes(t.purpose)?`<h3>Approved capital allocation</h3><p>${esc(t.request_payload?.capital_authority_ref)} · ${esc(t.request_payload?.capital_authority_date)} · Reviewed by ${esc(t.request_payload?.capital_reviewer)}</p><p>${esc(t.request_payload?.capital_share_details)}</p>${(t.request_payload?.capital_allocations||[]).map(a=>`<p>${esc((data.capital?.accounts||[]).find(x=>x.id===a.account_id)?.name||a.account_id)} · ${esc(money(a.amount))}</p>`).join('')}<p class="hint">Payment alone does not change ownership. Confirm or review the linked shareholding record, then maintain the statutory register and Companies Office filings.</p>${data.entity_type==='company'?`<button type="button" class="secondary" id="ctShareChange">${buybackRecorded?'Confirm shareholding change':'Confirm / review shareholding change'}</button>`:''}`:''}${t.tax_year?`<p>Tax year ending ${esc(t.tax_year)} · ${esc(t.taxpayer)}</p>`:''}<div class="actions"><button class="secondary" id="ctCancel">${buybackRecorded?'Do this later':'Close'}</button>${data.can_write&&t.status==='recorded'&&!t.legs.some(l=>l.matched)?'<button class="secondary danger" id="ctVoid">Reverse transaction</button>':''}</div>`;$('ctCancel').onclick=close;if($('ctShareChange'))$('ctShareChange').onclick=()=>shareChange(t);if($('ctVoid'))$('ctVoid').onclick=async()=>{const reason=await window.FrindlyDialogs.prompt((['share_buyback','return_share_capital'].includes(t.purpose)?'Reversing payment does not undo the legal share change. Review its linked shareholding record with your accountant. Reason for reversal:':'Reason for reversing this transaction:'),'');if(!reason?.trim()||!active(c)||c.busy)return;c.busy=true;$('ctVoid').disabled=true;try{await rpc('frindly_void_cash_transaction',{p_transaction_id:id,p_reason:reason.trim()});await saved(c,'Transaction reversed');}catch(e){error(c,e);c.busy=false;$('ctVoid').disabled=false;}};
   }catch(e){error(c,e);}}
  // Shared posted-bank projection. No operational estimates are substituted on failure.
  async function ledger(to){const b=bid(),client=sb();let all=[];for(let start=0;;start+=1000){let query=client.rpc('frindly_cash_ledger',{p_to:to});const paged=typeof query.range==='function';const r=await(paged?query.range(start,start+999):query);if(r.error)throw new Error(r.error.message);all.push(...(r.data||[]));if(!paged||(r.data||[]).length<1000)break;}if(bid()!==b)throw new Error('Business changed while loading.');return all.map(r=>({...r,amount:Number(r.debit||0)-Number(r.credit||0)}));}
