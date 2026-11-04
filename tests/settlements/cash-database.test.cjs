@@ -26,6 +26,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/owner-history-writer.sql'),'utf8'));
  const shareMigration=fs.readdirSync(path.join(__dirname,'../../supabase/migrations')).find(f=>f.endsWith('_linked_shareholding_changes.sql'));await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations',shareMigration),'utf8'));
  const storageMigration=fs.readdirSync(path.join(__dirname,'../../supabase/migrations')).find(f=>f.endsWith('_share_change_storage_guards.sql'));await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations',storageMigration),'utf8'));
+ await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261104150000_loan_register.sql'),'utf8'));
  console.log('PASS shared cash migration compiles against current accounting schema and posting guards');
  const A='10000000-0000-0000-0000-000000000001',B='10000000-0000-0000-0000-000000000002',U='00000000-0000-0000-0000-000000000001',V='00000000-0000-0000-0000-000000000002';
  const scalar=async(s,p=[])=>Object.values((await db.query(s,p)).rows[0])[0];
@@ -160,6 +161,49 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  const beforeReturn=await scalar('select to_jsonb(o) from public.business_owners o where id=$1',[remainingOwner]);const capitalOnly=await confirmShare({transaction_id:capitalOnlyPay,change_type:'capital_only',effective_date:'2026-10-03',shares_acquired:0,authority_ref:'Capital return only',note:'Approved capital return with no cancellation',authorised:true,expected_owners:(await scalar('select public.frindly_share_change_snapshot($1)',[capitalOnlyPay])).owners});assert.ok(capitalOnly);assert.deepEqual(await scalar('select to_jsonb(o) from public.business_owners o where id=$1',[remainingOwner]),beforeReturn);
  await db.exec('set role authenticated');await reject(()=>scalar('select * from frindly_cash.share_changes'),/permission denied/);await reject(()=>scalar('select * from frindly_cash.share_change_payments'),/permission denied/);await db.exec('reset role');
  console.log('PASS company-only linked share changes, partial/full exit, preserved director and historical ownership, idempotency, instalments, reversal review, unchanged bank/Balance Sheet/journal counts and private tables');
+ // Registered borrowing uses the same cash journal and matching functions.
+ const loanId=req(), loanDetails={action:'create',name:'Van loan',lender:'BNZ',loan_type:'vehicle',original_amount:1000,start_date:'2026-01-01',bank_id:bank2,terms:{rate:8}};
+ const saveLoan=(details,id=loanId)=>scalar('select public.frindly_save_loan($1,$2)',[id,JSON.stringify(details)]);
+ const loanList=()=>scalar("select public.frindly_loan_register('2026-12-31')");
+ assert.equal(await saveLoan(loanDetails),loanId);
+ assert.equal(await saveLoan(loanDetails),loanId);
+ const loanFunds=payload('loan_received','in',{loan_id:loanId,amount:1000,bank_id:bank2});
+ const fundingRequest=req(),fundingId=await record(loanFunds,fundingRequest);
+ assert.equal(await record(loanFunds,fundingRequest),fundingId);
+ assert.notEqual((await get(fundingId)).account_id,(await get(loan)).account_id);
+ const paymentId=await record(payload('loan_repayment','out',{loan_id:loanId,amount:200,interest_amount:20,bank_id:bank2}));
+ await record(payload('loan_repayment','out',{loan_id:loanId,amount:10,interest_amount:10}));
+ await record(payload('loan_received','in',{loan_id:loanId,amount:50}));
+ await record(payload('loan_repayment','out',{loan_id:loanId,amount:70}));
+ assert.equal(Number((await loanList()).loans[0].owing),800);
+ const feeId=await record(payload('loan_repayment','out',{loan_id:loanId,amount:15,loan_fee:15}));
+ assert.equal(Number((await loanList()).loans[0].owing),800);
+ const feeJournal=(await get(feeId)).legs[0].accounting_journal_id;
+ assert.equal(Number(await scalar("select l.debit from public.accounting_journal_lines l join public.accounting_accounts a on a.id=l.account_id where l.journal_id=$1 and a.system_key='finance_fees'",[feeJournal])),15);
+ await reject(()=>record(payload('loan_repayment','out',{amount:15,loan_fee:15})),/registered loan/);
+
+ await reject(()=>saveLoan({action:'close'}),/final payment/);
+ await reject(()=>record(payload('loan_repayment','out',{loan_id:loanId,amount:801})),/exceeds/);
+ await saveLoan({action:'terms',terms:{rate:9}});
+ assert.equal((await loanList()).loans[0].terms.rate,9);
+ await as(V);assert.equal((await loanList()).loans.length,0);await reject(()=>record({...loanFunds,bank_id:foreignBank}),/active loan/);await as(U);
+ await db.exec("select set_config('test.bank_enabled','true',false)");
+ const loanStatement=await tx(-200,'2026-10-01',bank2), beforeLoanMatch=await count();
+ await match(loanStatement,(await get(paymentId)).legs[0].id);
+ assert.equal(await count(),beforeLoanMatch);
+ await record(payload('loan_repayment','out',{loan_id:loanId,amount:800}));
+ await saveLoan({action:'close'});assert.equal((await loanList()).loans[0].closed,true);
+ await reject(()=>scalar("select public.frindly_void_cash_transaction($1,'Test loan correction')",[fundingId]),/Reopen/);
+ await saveLoan({action:'reopen'});
+ await reject(()=>scalar("select public.frindly_void_cash_transaction($1,'Test loan correction')",[fundingId]),/later repayments/);
+ await saveLoan({action:'close'});
+
+ await acct(A,'3999','opening_balance_equity','equity');
+ const openingId=req(), beforeOpeningBank=await bal(gl);
+ await saveLoan({...loanDetails,name:'Existing equipment loan',opening_amount:450,opening_date:'2026-01-01'},openingId);
+ assert.equal(Number((await loanList()).loans.find(item=>item.id===openingId).owing),450);
+ assert.equal(await bal(gl),beforeOpeningBank);
+ console.log('PASS registered loan setup, opening balances, repayments, interest-only, top-ups, exact bank matching, terms, closure and tenant isolation');
  await db.query(`insert into public.business_member_access_overrides(membership_id,business_id,area,can_read,can_write) select id,business_id,'bank',false,false from public.business_memberships where business_id=$1`,[A]);await record(payload('interest','in',{amount:2}));await reject(async()=>match(await tx(2),null,req(),payload('interest','in',{amount:2})),/reconciliation access/);
  await db.query(`insert into public.business_member_access_overrides(membership_id,business_id,area,can_read,can_write) select id,business_id,'financials',false,false from public.business_memberships where business_id=$1`,[A]);await reject(()=>record(payload('interest','in',{amount:3})),/Financial access/);await reject(()=>snap(),/Financial access/);
  console.log('PASS readonly API tables, controlled match mutations, bank permission independence and financial permission denial');await db.close();

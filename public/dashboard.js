@@ -128,7 +128,7 @@ root.innerHTML=`<div class="dashboard-welcome"><div><span class="eyebrow">${gree
 
 <section class="dash-panel dash-bank-balances"><header>${panelHeading('bank','blue','Bank balances','Current book balances by account')}</header>${bankBookWidget(bankBook,today)}</section>
 
-<section class="dash-panel dash-obligations"><header>${panelHeading('paid','purple','Money to set aside','Recorded liabilities and future planning')}</header>${obligationsHtml(obligations,fin)}</section>
+<section class="dash-panel dash-obligations"><header>${panelHeading('paid','purple','Money to set aside','Recorded liabilities and future planning')}</header>${obligationsHtml(obligations,fin)}<div id="dashLoanCommitments" hidden></div></section>
 </div>
 <div class="dash-grid third"><section class="dash-panel"><header>${panelHeading('paid','blue','Getting paid','Outstanding invoices by ageing')}<button data-go="invoices" class="dash-link">View invoices →</button></header>${invoices.ok?`<div class="age-bar">${age.map(x=>`<i style="width:${x.amount/ageTotal*100}%"></i>`).join('')}</div><div class="age-grid">${age.map((x,i)=>`<div><span class="age-label"><i class="age-dot age-dot-${i}"></i>${x.label}</span><strong>${money(x.amount)}</strong><small>${x.count} invoice${x.count===1?'':'s'}</small></div>`).join('')}</div>`:'<div class="dash-empty">Invoice ageing unavailable.</div>'}</section>
 
@@ -136,6 +136,12 @@ root.innerHTML=`<div class="dashboard-welcome"><div><span class="eyebrow">${gree
 <section class="dash-panel fy-panel"><header>${panelHeading('sales','blue','Financial year so far',fin?`${esc(fin.fy.from)} – ${esc(fin.fy.to)}`:'Financial data unavailable')}</header>${fin?`<div class="fy-grid"><div><span>Sales (YTD)</span><strong>${money(fin.fy.sales)}</strong></div><div><span>Expenses (YTD)</span><strong>${money(num(fin.fy.direct)+num(fin.fy.indirect))}</strong></div><div><span>Profit (YTD)</span><strong>${money(fyProfit)}</strong><small>${num(fin.fy.operatingMargin).toFixed(1)}% margin</small></div><div><span>Average monthly sales</span><strong>${money(fin.averageMonthlySales)}</strong></div><div><span>Best sales month</span><strong>${esc(fin.bestSalesMonth?.label||'—')}</strong><small>${fin.bestSalesMonth?money(fin.bestSalesMonth.sales):''}</small></div><div><span>Months completed</span><strong>${fin.monthsCompleted} / 12</strong><div class="fy-progress"><i style="width:${Math.min(100,Math.max(0,num(fin.monthsCompleted)/12*100))}%"></i></div></div><div><span>GST position (YTD)</span><strong>${money(Math.abs(fin.gstPosition))}</strong><small>${fin.gstPosition>=0?'payable':'credit'}</small></div></div>`:'<div class="dash-empty">Financial-year snapshot unavailable.</div>'}</section></div>
 `;
 retryBind(root);renderTrend();renderExpenseDonut();
+window.LoansFinance?.upcoming().then(rows=>{
+  const target=$('dashLoanCommitments');
+  if(token!==D.token||bid()!==businessId||!target||!rows.length)return;
+  target.innerHTML='<details class="dash-obligation-details"><summary>Loan payments due within 30 days or overdue</summary><p class="hint">Schedule estimates shown separately from recorded liabilities.</p>'+rows.map(row=>'<div class="dash-obligation-row"><span>'+esc(row.label)+'</span><strong>'+money(row.amount)+'</strong></div>').join('')+'</details>';
+  target.hidden=false;
+}).catch(()=>{});
 }catch(e){console.warn('[Dashboard] refresh failed',{message:e?.message||String(e),businessId});if(token===D.token&&bid()===businessId){root.innerHTML='<div class="phaseb-empty"><h1>Dashboard</h1><p>Dashboard data could not be loaded safely.</p><button class="secondary" id="dashRetry">Try again</button></div>';$('dashRetry').onclick=refresh}}finally{D.loading=false}}
 window.Dashboard={onShow:refresh,refresh,_test:{state:D}};
 })();
