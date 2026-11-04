@@ -2750,6 +2750,7 @@ body.auth-locked .app-version{display:none}
 .expense-ai-card .card-title{align-items:flex-start}
 .expense-ai-badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:28px;padding:0 9px;border-radius:999px;background:#eef4f8;color:#284d68;font-size:.78rem;font-weight:800;letter-spacing:.04em}
 .expense-ai-state{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;margin-top:14px;padding:12px;border:1px solid #dce5eb;border-radius:10px;background:#f8fafb}
+.expense-ai-state[hidden],.expense-ai-progress[hidden]{display:none}
 .expense-ai-state[data-state="loading"]{border-color:#c6d9e8}
 .expense-ai-state[data-state="success"]{background:#f4fbf7;border-color:#cfe8d8}
 .expense-ai-state[data-state="error"]{background:#fff8f7;border-color:#f0d1cc}
