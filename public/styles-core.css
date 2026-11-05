@@ -213,6 +213,8 @@ nav{align-self:stretch;gap:0}
 .referral-top-shortcut[hidden]{display:none!important}
 .referral-top-shortcut .nav-icon{width:15px;height:15px;flex:0 0 15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #primaryNav{flex:0 1 auto;min-width:0}
+/* Preserve module/role hiding against authored button display rules. */
+#primaryNav>[hidden]{display:none!important}
 #primaryNav .nav-btn{padding-left:9px;padding-right:9px;gap:5px}
 #primaryNav .account-chip{box-sizing:border-box!important;width:42px!important;min-width:42px!important;max-width:42px!important;height:42px!important;min-height:42px!important;max-height:42px!important;aspect-ratio:1/1!important;border-radius:50%!important;padding:0!important;margin-left:7px!important;flex:0 0 42px!important}
 
