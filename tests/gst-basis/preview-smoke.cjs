@@ -1,0 +1,53 @@
+// Limited build checks for the staged feature; full accounting acceptance is deferred.
+const {PGlite}=require('@electric-sql/pglite');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+(async()=>{
+ const db=new PGlite();
+ await db.exec(`create role anon;create role authenticated;create schema auth;create schema frindly_cash;
+ create table auth.users(id uuid primary key);create table public.businesses(id uuid primary key);
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('test.user',true),'')::uuid$$;
+ create function public.current_business_id() returns uuid language sql as $$select nullif(current_setting('test.business',true),'')::uuid$$;
+ create function public.v6147_can_read_area(uuid,text) returns boolean language sql as $$select true$$;
+ create function public.v6147_can_write_area(uuid,text) returns boolean language sql as $$select coalesce(current_setting('test.write',true),'true')<>'false'$$;`);
+ await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/current-tables.sql'),'utf8'));
+ await db.exec('create unique index on gst_settings_history(business_id,effective_from);');
+ await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/current-functions.sql'),'utf8'));
+ const migration=fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261106033020_gst_basis_change_preview.sql'),'utf8');
+ await db.exec(migration);console.log('PASS migration compiles against captured live column types');
+ const b='10000000-0000-0000-0000-000000000001',other='10000000-0000-0000-0000-000000000002',u='00000000-0000-0000-0000-000000000001';
+ const scalar=async(s,p=[])=>Object.values((await db.query(s,p)).rows[0])[0];
+ await db.query('insert into auth.users values($1);',[u]);await db.query('insert into businesses values($1),($2)',[b,other]);
+ await scalar("select set_config('test.user',$1,false)",[u]);await scalar("select set_config('test.business',$1,false)",[b]);
+ await db.query("insert into invoices(id,business_id,invoice_date,invoice_number,total,gst,lifecycle_state,amount_paid) values('20000000-0000-0000-0000-000000000001',$1,'2026-09-01','SALE',1150,150,'issued',0)",[b]);
+ await db.query("insert into expenses(id,business_id,invoice_date,expense_number,total_amount,ex_gst,gst_amount,business_use_percent,lifecycle_state,amount_paid) values('30000000-0000-0000-0000-000000000001',$1,'2026-09-01','BILL',460,400,60,100,'recorded',0)",[b]);
+ const preview=(basis='payments',kind='ird_change')=>scalar("select public.frindly_preview_gst_basis_change_v1('2026-10-01','2026-10-31',$1,'2026-10-01',$2)",[basis,kind]);
+ for(const [old,basis,expected] of [['invoice','payments',-90],['payments','invoice',90],['invoice','hybrid',60],['hybrid','invoice',-60],['payments','hybrid',150],['hybrid','payments',-150]]){
+  await db.exec('truncate gst_settings_history');await db.query("insert into gst_settings_history(business_id,effective_from,gst_registered,accounting_basis,jurisdiction) values($1,'2026-01-01',true,$2,'NZ')",[b,old]);
+  const p=await preview(basis);assert.equal(Number(p.provisional_net_adjustment),expected);assert.equal(p.can_apply,false);
+ }
+ console.log('PASS six simple IR546 worksheet directions; activation unavailable');
+ await db.exec("update gst_settings_history set accounting_basis='invoice'");
+ let p=await preview();assert.deepEqual(await preview(),p);
+ const id='90000000-0000-0000-0000-000000000001';
+ const args=[id,'payments','approval reference',p.fingerprint];
+ const save=()=>scalar("select to_jsonb(public.frindly_request_gst_basis_change_v1($1,'2026-10-01','2026-10-31',$2,'2026-10-01','ird_change',$3,$4,true))",args);
+ const saved=await save();assert.equal(saved.status,'pending_verification');assert.deepEqual(await save(),saved);
+ assert.equal(Number(await scalar('select count(*) from gst_basis_change_requests')),1);
+ assert.equal(await scalar('select accounting_basis from gst_settings_history limit 1'),'invoice');assert.equal(Number(await scalar('select count(*) from gst_adjustments')),0);
+ console.log('PASS request retry does not duplicate or change settings/adjustments');
+ await assert.rejects(()=>scalar("select public.frindly_save_gst_basis_v1('2026-10-01','2026-10-31','finalised',null)"),/blocking review/);
+ console.log('PASS server rejects affected finalisation');
+ await scalar("select set_config('test.business',$1,false)",[other]);await scalar('select public.frindly_cancel_gst_basis_request_v1($1)',[id]);
+ assert.equal(await scalar('select status from gst_basis_change_requests where id=$1',[id]),'pending_verification');
+ await scalar("select set_config('test.business',$1,false)",[b]);await scalar('select public.frindly_cancel_gst_basis_request_v1($1)',[id]);assert.equal(await scalar('select status from gst_basis_change_requests where id=$1',[id]),'cancelled');
+ console.log('PASS cancellation scopes to current business');
+ await scalar("select set_config('test.write','false',false)");await assert.rejects(save,/write access denied/);await scalar("select set_config('test.write','true',false)");
+ console.log('PASS request write predicate enforced (fixture predicate; not full RLS test)');
+ await db.query("insert into gst_returns(business_id,period_start,period_end,status,snapshot) values($1,'2026-08-01','2026-08-31','finalised',$2)",[b,JSON.stringify({gst_net:42,basis:'invoice',sales_items:[],purchase_items:[]})]);
+ const locked=await scalar("select public.frindly_gst_boundary_basis_v1('2026-08-01','2026-08-31','payments')");assert.equal(locked.gst_net,42);assert.equal(locked.locked_snapshot,true);assert.equal(locked.basis,'invoice');
+ console.log('PASS finalised calculation returns stored snapshot rather than recalculating');
+ await db.query("insert into ird_filing_batches(business_id,filing_type,status,period_start,period_end) values($1,'gst_return','filed_in_myir','2026-10-01','2026-10-31')",[b]);
+ assert.equal((await preview()).filed_conflict,true);await assert.rejects(()=>scalar("select public.frindly_save_gst_basis_v1('2026-10-01','2026-10-31','draft',null)"),/filed externally/);
+ console.log('PASS external filing prevents request application and return overwrite');
+ await db.close();
+})().catch(e=>{console.error(e);process.exitCode=1});

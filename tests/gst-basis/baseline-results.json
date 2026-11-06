@@ -1,0 +1,67 @@
+{
+  "captured_at": "2026-11-06",
+  "checks": [
+    {
+      "case": "invoice -> payments",
+      "expected_net_adjustment": -90,
+      "actual_net_adjustment": 0,
+      "result": "FAIL",
+      "blocking_review": false
+    },
+    {
+      "case": "payments -> invoice",
+      "expected_net_adjustment": 90,
+      "actual_net_adjustment": 0,
+      "result": "FAIL",
+      "blocking_review": false
+    },
+    {
+      "case": "invoice -> hybrid",
+      "expected_net_adjustment": 60,
+      "actual_net_adjustment": 0,
+      "result": "FAIL",
+      "blocking_review": false
+    },
+    {
+      "case": "hybrid -> invoice",
+      "expected_net_adjustment": -60,
+      "actual_net_adjustment": 0,
+      "result": "FAIL",
+      "blocking_review": false
+    },
+    {
+      "case": "payments -> hybrid",
+      "expected_net_adjustment": 150,
+      "actual_net_adjustment": 0,
+      "result": "FAIL",
+      "blocking_review": false
+    },
+    {
+      "case": "hybrid -> payments",
+      "expected_net_adjustment": -150,
+      "actual_net_adjustment": 0,
+      "result": "FAIL",
+      "blocking_review": false
+    },
+    {
+      "case": "Invoice GST followed by payment after basis change",
+      "expected_lifetime_sales_gst": 150,
+      "actual_sales_gst": 300,
+      "missing_transition_credit": 150
+    },
+    {
+      "case": "Missing transition reconciliation prevents finalisation",
+      "expected_finalised": false,
+      "actual_finalised": true,
+      "error": null
+    },
+    {
+      "case": "Settings basis mutation affecting finalised return",
+      "expected_basis": "payments",
+      "actual_basis": "hybrid"
+    }
+  ],
+  "repeatability": "PASS",
+  "business_filtering": "PASS",
+  "note": "Fixture auth predicates are stubs; this is not a complete RLS or permission test."
+}
