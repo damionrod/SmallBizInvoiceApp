@@ -307,8 +307,8 @@ async function renderSettingsEmailActivity(opts={}){
   const from=Number.isInteger(opts.page)?Math.max(0,opts.page):0;
   const pageSize=state.pageSize;
   const prev=$('settingsEmailActivityPrevious'),next=$('settingsEmailActivityNext'),info=$('settingsEmailActivityPageInfo');
-  if(prev)prev.disabled=true;
-  if(next)next.disabled=true;
+  if(prev){prev.disabled=true;prev.hidden=true;}
+  if(next){next.disabled=true;next.hidden=true;}
   if(info)info.textContent='Loading email activity…';
   root.innerHTML='<tr><td colspan="5">Loading email activity…</td></tr>';
   try{
@@ -328,9 +328,10 @@ async function renderSettingsEmailActivity(opts={}){
     state.offset=from;
     state.hasNext=rows.length>pageSize;
     root.innerHTML=visible.map(settingsEmailActivityRow).join('')||'<tr><td colspan="5">No email activity recorded yet.</td></tr>';
-    if(info)info.textContent=visible.length?`Showing ${from+1}–${from+visible.length} · Page ${Math.floor(from/pageSize)+1}`:'No emails found';
-    if(prev)prev.disabled=from===0;
-    if(next)next.disabled=!state.hasNext;
+    const hasMultiplePages=from>0||state.hasNext;
+    if(info)info.textContent=!visible.length?'No emails found':!hasMultiplePages?`Showing all ${visible.length} emails`:`Showing ${from+1}–${from+visible.length} · Page ${Math.floor(from/pageSize)+1}`;
+    if(prev){prev.hidden=!hasMultiplePages;prev.disabled=from===0;}
+    if(next){next.hidden=!hasMultiplePages;next.disabled=!state.hasNext;}
     const scroll=card.querySelector('.email-activity-table-scroll');
     if(scroll)scroll.scrollTop=0;
   }catch(err){

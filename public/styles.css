@@ -8124,3 +8124,7 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 .email-activity-settings-card .email-activity-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;}
 .email-activity-settings-card #settingsEmailActivityPageInfo{margin-right:auto;font-size:13px;color:var(--muted,#667085);}
 @media(max-width:700px){.email-activity-settings-card .email-activity-table-scroll{max-height:410px;-webkit-overflow-scrolling:touch;}.email-activity-settings-card .email-activity-actions{gap:8px;}.email-activity-settings-card #settingsEmailActivityPageInfo{flex-basis:100%;}}
+
+/* Hide Email Activity paging controls when all results fit on one page. */
+.email-activity-settings-card .email-activity-actions button[hidden]{display:none!important;}
+.email-activity-settings-card .email-activity-actions button:not(:disabled){cursor:pointer;}
