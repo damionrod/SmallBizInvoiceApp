@@ -800,23 +800,54 @@
     setupAccountUI();
   }
 
+  let accountProfileSavePending=false;
   async function saveAccountProfile(){
-    const full_name=q('accountProfileName')?.value.trim()||'';
-    const role=state.profile?.is_super_admin?'owner':(state.accessRole||'viewer');
-    const canEditBusiness=['owner','admin'].includes(role);
-    const a=await state.client.from('profiles').update({full_name}).eq('id',state.user.id);
-    if(a.error)return alert(a.error.message||'Could not save your profile.');
-    state.profile.full_name=full_name;
-    if(canEditBusiness){
-      const name=q('accountBusinessName')?.value.trim()||state.business.name;
-      const phone=q('accountBusinessPhone')?.value.trim()||'';
-      const address=q('accountBusinessAddress')?.value.trim()||'';
-      const {error}=await state.client.from('businesses').update({name,phone,address,updated_at:new Date().toISOString()}).eq('id',state.business.id);
-      if(error)return alert(error.message||'Could not save business account details.');
-      state.business.name=name;state.business.phone=phone;state.business.address=address;
-      if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||name||'Business');
+    if(accountProfileSavePending)return;
+    const button=q('saveAccountProfile');
+    const statusId='accountProfileSaveStatus';
+    let status=q(statusId);
+    if(!status&&button?.parentElement){
+      status=document.createElement('span');
+      status.id=statusId;
+      status.setAttribute('role','status');
+      status.setAttribute('aria-live','polite');
+      status.style.marginRight='12px';
+      button.parentElement.insertBefore(status,button);
     }
-    setupAccountUI();applyRoleAccessUI();q('accountModal')?.classList.remove('open');
+    const originalLabel=button?.textContent||'Save account details';
+    accountProfileSavePending=true;
+    if(button){button.disabled=true;button.textContent='Saving...';button.setAttribute('aria-busy','true');}
+    if(status){status.textContent='Saving account details...';status.style.color='';}
+    try{
+      const full_name=q('accountProfileName')?.value.trim()||'';
+      const role=state.profile?.is_super_admin?'owner':(state.accessRole||'viewer');
+      const canEditBusiness=['owner','admin'].includes(role);
+      const businessId=state.business?.id;
+      if(canEditBusiness&&!businessId)throw new Error('No active business selected.');
+      const a=await state.client.from('profiles').update({full_name}).eq('id',state.user.id);
+      if(a.error)throw new Error(a.error.message||'Could not save your profile.');
+      state.profile.full_name=full_name;
+      if(canEditBusiness){
+        const name=q('accountBusinessName')?.value.trim()||'';
+        if(!name)throw new Error('Enter a business name before saving.');
+        const phone=q('accountBusinessPhone')?.value.trim()||'';
+        const address=q('accountBusinessAddress')?.value.trim()||'';
+        const {data,error}=await state.client.from('businesses')
+          .update({name,phone,address,updated_at:new Date().toISOString()})
+          .eq('id',businessId).select('id,name,phone,address').maybeSingle();
+        if(error)throw new Error(error.message||'Could not save business account details.');
+        if(!data||data.id!==businessId)throw new Error('Business details were not saved. Please check your access and try again.');
+        state.business.name=data.name;state.business.phone=data.phone;state.business.address=data.address;
+        if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||data.name||'Business');
+      }
+      setupAccountUI();applyRoleAccessUI();
+      if(status){status.textContent='Account details saved successfully.';status.style.color='#16803c';}
+    }catch(error){
+      if(status){status.textContent=error?.message||'Could not save account details. Please try again.';status.style.color='#b42318';}
+    }finally{
+      accountProfileSavePending=false;
+      if(button){button.disabled=false;button.textContent=originalLabel;button.removeAttribute('aria-busy');}
+    }
   }
 
 
