@@ -1,5 +1,7 @@
 # GST basis changes — staged build
 
+> Historical preview-stage notes. Superseded by [GST basis change activation](GST_BASIS_CHANGE_ACTIVATION.md).
+
 ## What is available
 
 Financials → GST Returns → **Review / change basis**.
