@@ -7,7 +7,6 @@ const num=v=>Number(v||0)||0;
 function zoneDate(value=new Date()){const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:timezone(),year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(value).filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return `${p.year}-${p.month}-${p.day}`}
 function monthStart(){return `${zoneDate().slice(0,7)}-01`}
 function greeting(){const hour=Number(new Intl.DateTimeFormat('en-NZ',{timeZone:timezone(),hour:'2-digit',hourCycle:'h23'}).format(new Date()));return hour<12?'Good morning':hour<18?'Good afternoon':'Good evening'}
-function skeleton(){const r=$('dashboardRoot');if(r)r.innerHTML='<div class="dashboard-skeleton"><div></div><div></div><div></div><div></div><div></div></div>'}
 function diag(source,error,businessId){console.warn('[Dashboard] data source unavailable',{source,code:error?.code||null,message:error?.message||'Unknown error',businessId})}
 function result(source,r,businessId){if(r?.error){diag(source,r.error,businessId);return {ok:false,data:null,count:null}}return {ok:true,data:r?.data??[],count:r?.count??null}}
 function pct(now,prior){if(!Number.isFinite(now)||!Number.isFinite(prior)||Math.abs(prior)<.005)return '';const v=(now-prior)/Math.abs(prior)*100;return `<small class="dash-change ${v>=0?'good':'bad'}">${v>=0?'↑':'↓'} ${Math.abs(v).toFixed(0)}% vs last month</small>`}

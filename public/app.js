@@ -205,7 +205,6 @@ async function allInvoices(){
   return localInvoices();
 }
 function invoiceCalcFrom(inv){const snap=inv.company_snapshot||settings,tx=snap.invoiceTax||taxConfig(snap),subtotal=num(inv.subtotal),discountAmount=num(inv.discount_amount),afterDiscount=Math.max(0,subtotal-discountAmount),extraFee=inv.extra_fee!=null?num(inv.extra_fee):Math.max(0,num(inv.total)-subtotal-num(inv.gst)),gst=num(inv.gst),total=num(inv.total),amountPaid=num(inv.amount_paid),balanceDue=inv.balance_due!=null?num(inv.balance_due):Math.max(0,total-amountPaid);return{...taxConfig(tx),subtotal,discountAmount,afterDiscount,extraFee,gst,total,amountPaid,balanceDue,discountType:inv.discount_type||'percent',discountValue:num(inv.discount_value)}}
-function hexToRgb(hex){hex=String(hex||'#082f4f').replace('#','');if(hex.length===3)hex=hex.split('').map(x=>x+x).join('');return[parseInt(hex.slice(0,2),16)||8,parseInt(hex.slice(2,4),16)||47,parseInt(hex.slice(4,6),16)||79]}
 async function makePdf(inv=payload(),output='save'){
   const {jsPDF}=window.jspdf||{};
   if(!jsPDF)throw new Error('PDF library unavailable.');

@@ -5,7 +5,6 @@ function isoDate(d){return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pa
 function dateObj(s){const [y,m,d]=String(s||'').split('-').map(Number);return new Date(Date.UTC(y,m-1,d))}
 function addDays(s,n){const d=dateObj(s);d.setUTCDate(d.getUTCDate()+n);return isoDate(d)}
 function addMonths(s,n){const d=dateObj(s),day=d.getUTCDate();d.setUTCDate(1);d.setUTCMonth(d.getUTCMonth()+n);d.setUTCDate(Math.min(day,new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).getUTCDate()));return isoDate(d)}
-function monthEnd(y,m){return isoDate(new Date(Date.UTC(y,m,0)))}
 function daysBetween(a,b){return Math.round((dateObj(b)-dateObj(a))/DAY)}
 function nextWeekday(date,target){let d=dateObj(date);for(let i=0;i<8;i++){if(d.getUTCDay()===target)return isoDate(d);d=new Date(d.getTime()+DAY)}return isoDate(d)}
 function nextWorkingDay(s){let d=dateObj(s);while([0,6].includes(d.getUTCDay()))d=new Date(d.getTime()+DAY);return isoDate(d)}

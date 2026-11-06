@@ -1,0 +1,6 @@
+# Local dependency installations and generated test output.
+node_modules/
+__pycache__/
+*.py[cod]
+playwright-report/
+test-results/

@@ -15,7 +15,6 @@ function money(v){return window.FinloCore.format.money(v,{currency:currency(),lo
 function toastMsg(s){if(typeof toast==='function')toast(s);else alert(s)}
 function dateLocal(s){if(!s)return null;const [y,m,d]=String(s).slice(0,10).split('-').map(Number);return new Date(y,m-1,d)}
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
-function addMonths(d,n){return new Date(d.getFullYear(),d.getMonth()+n,d.getDate())}
 function monthStart(d){return new Date(d.getFullYear(),d.getMonth(),1)}
 function monthLabel(d){return d.toLocaleDateString('en-NZ',{month:'short',year:'numeric'})}
 function fyBounds(ref=new Date()){
