@@ -811,11 +811,18 @@
       status.id=statusId;
       status.setAttribute('role','status');
       status.setAttribute('aria-live','polite');
-      status.style.marginRight='12px';
-      button.parentElement.insertBefore(status,button);
+      status.style.display='block';
+      status.style.width='100%';
+      status.style.textAlign='right';
+      status.style.marginTop='8px';
+      status.style.fontSize='13px';
+      status.style.fontWeight='600';
+      status.style.flexBasis='100%';
+      button.parentElement.insertAdjacentElement('afterend',status);
     }
     const originalLabel=button?.textContent||'Save account details';
     accountProfileSavePending=true;
+    const savingStarted=Date.now();
     if(button){button.disabled=true;button.textContent='Saving...';button.setAttribute('aria-busy','true');}
     if(status){status.textContent='Saving account details...';status.style.color='';}
     try{
@@ -841,12 +848,15 @@
         if(q('brandCompanyName'))q('brandCompanyName').textContent=(state.business.settings?.company||state.business.settings?.trading||data.name||'Business');
       }
       setupAccountUI();applyRoleAccessUI();
+      const remaining=Math.max(0,650-(Date.now()-savingStarted));
+      if(remaining)await new Promise(resolve=>setTimeout(resolve,remaining));
       if(status){status.textContent='Account details saved successfully.';status.style.color='#16803c';}
+      if(button)button.textContent='Saved ✓';
     }catch(error){
       if(status){status.textContent=error?.message||'Could not save account details. Please try again.';status.style.color='#b42318';}
     }finally{
       accountProfileSavePending=false;
-      if(button){button.disabled=false;button.textContent=originalLabel;button.removeAttribute('aria-busy');}
+      if(button){button.disabled=false;if(button.textContent!=='Saved ✓')button.textContent=originalLabel;button.removeAttribute('aria-busy');}
     }
   }
 
