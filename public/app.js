@@ -285,10 +285,61 @@ function emailActivityPlaceholder(type,id,{title='Email activity',empty='No emai
 async function loadEmailActivity(type,id,limit=8){if(!sb||!id)return[];try{let q=sb.from('email_delivery_events').select('id,message_type,recipient,subject,status,sent_at,provider_message_id,error_message,metadata').eq('source_id',id).order('sent_at',{ascending:false}).limit(limit);if(type)q=q.eq('source_table',type==='payslip'?'payroll_payslips':type==='quote'?'quotes':'invoices');const{data,error}=await q;if(error)throw error;return data||[]}catch(err){console.warn('Email activity unavailable:',err?.message||err);return[]}}
 function emailActivityRowsHtml(rows,empty='No email activity recorded yet.'){if(!rows.length)return `<p class="hint">${esc(empty)}</p>`;return rows.map(x=>`<div class="email-activity-row"><div><strong>${esc(emailActivityTypeLabel(x.message_type))}</strong><small>${esc(x.subject||'No subject')}</small><small>${esc(x.recipient)}</small></div><div><span class="email-status email-status-${esc(String(x.status||'sent').toLowerCase().replace(/[^a-z0-9_-]/g,''))}">${esc(emailActivityStatusLabel(x.status))}</span><small>${esc(emailActivityDate(x.sent_at))}</small></div></div>`).join('')}
 async function renderEmailActivity(root=document){const nodes=[...root.querySelectorAll?.('[data-email-activity-type][data-email-activity-id]')||[]];for(const node of nodes){const list=node.querySelector('.email-activity-list');if(!list)continue;const rows=await loadEmailActivity(node.dataset.emailActivityType,node.dataset.emailActivityId);list.innerHTML=emailActivityRowsHtml(rows,node.dataset.emailActivityEmpty||'No email activity recorded yet.')}}
-const settingsEmailActivityState={offset:0,pageSize:40,bound:false};
+const settingsEmailActivityState={offset:0,pageSize:25,bound:false,requestId:0,hasNext:false};
 function settingsEmailActivityRow(x){return `<tr><td>${esc(emailActivityDate(x.sent_at))}</td><td>${esc(emailActivityTypeLabel(x.message_type))}</td><td>${esc(x.recipient)}</td><td>${esc(x.metadata?.invoice_number||x.metadata?.quote_number||x.metadata?.payslip_number||x.subject||'—')}</td><td><span class="email-status email-status-${esc(String(x.status||'sent').toLowerCase().replace(/[^a-z0-9_-]/g,''))}">${esc(emailActivityStatusLabel(x.status))}</span></td></tr>`}
-function bindSettingsEmailActivityControls(){if(settingsEmailActivityState.bound)return;settingsEmailActivityState.bound=true;['settingsEmailActivityType','settingsEmailActivitySince'].forEach(id=>{$(id)&&($(id).onchange=()=>renderSettingsEmailActivity())});if($('settingsEmailActivitySearch')){$('settingsEmailActivitySearch').oninput=()=>{clearTimeout(settingsEmailActivityState.searchTimer);settingsEmailActivityState.searchTimer=setTimeout(()=>renderSettingsEmailActivity(),250)}}if($('settingsEmailActivityMore'))$('settingsEmailActivityMore').onclick=()=>renderSettingsEmailActivity({append:true})}
-async function renderSettingsEmailActivity(opts={}){const root=$('settingsEmailActivityRows');if(!root||!sb)return;if(!$('settingsEmailActivityCard'))return;bindSettingsEmailActivityControls();const append=!!opts.append;if(!append){settingsEmailActivityState.offset=0;root.innerHTML='<tr><td colspan="5">Loading email activity…</td></tr>'}try{const pageSize=settingsEmailActivityState.pageSize,from=settingsEmailActivityState.offset,to=from+pageSize;let q=sb.from('email_delivery_events').select('id,message_type,recipient,subject,status,sent_at,source_table,source_id,metadata').order('sent_at',{ascending:false}).range(from,to);const type=$('settingsEmailActivityType')?.value||'',since=$('settingsEmailActivitySince')?.value||'',search=String($('settingsEmailActivitySearch')?.value||'').trim();if(type)q=q.eq('message_type',type);if(since)q=q.gte('sent_at',`${since}T00:00:00.000Z`);if(search)q=q.ilike('recipient',`%${search.replace(/[%_]/g,'\\$&')}%`);const{data,error}=await q;if(error)throw error;const rows=data||[],visible=rows.slice(0,pageSize),html=visible.map(settingsEmailActivityRow).join('');if(append){if(html)root.insertAdjacentHTML('beforeend',html)}else root.innerHTML=html||'<tr><td colspan="5">No email activity recorded yet.</td></tr>';settingsEmailActivityState.offset+=visible.length;const more=$('settingsEmailActivityMore');if(more){more.hidden=rows.length<=pageSize;more.disabled=false}}catch(err){if(!append)root.innerHTML='<tr><td colspan="5">Email activity is not available yet. Apply the latest database migration first.</td></tr>';console.warn('Settings email activity unavailable:',err?.message||err)}}
+function bindSettingsEmailActivityControls(){
+  if(settingsEmailActivityState.bound)return;
+  settingsEmailActivityState.bound=true;
+  ['settingsEmailActivityType','settingsEmailActivitySince'].forEach(id=>{$(id)&&($(id).onchange=()=>renderSettingsEmailActivity())});
+  if($('settingsEmailActivitySearch'))$('settingsEmailActivitySearch').oninput=()=>{
+    clearTimeout(settingsEmailActivityState.searchTimer);
+    settingsEmailActivityState.searchTimer=setTimeout(()=>renderSettingsEmailActivity(),250);
+  };
+  if($('settingsEmailActivityPrevious'))$('settingsEmailActivityPrevious').onclick=()=>renderSettingsEmailActivity({page:Math.max(0,settingsEmailActivityState.offset-settingsEmailActivityState.pageSize)});
+  if($('settingsEmailActivityNext'))$('settingsEmailActivityNext').onclick=()=>renderSettingsEmailActivity({page:settingsEmailActivityState.offset+settingsEmailActivityState.pageSize});
+}
+async function renderSettingsEmailActivity(opts={}){
+  const root=$('settingsEmailActivityRows'),card=$('settingsEmailActivityCard');
+  if(!root||!sb||!card)return;
+  bindSettingsEmailActivityControls();
+  const state=settingsEmailActivityState;
+  const requestId=++state.requestId;
+  const from=Number.isInteger(opts.page)?Math.max(0,opts.page):0;
+  const pageSize=state.pageSize;
+  const prev=$('settingsEmailActivityPrevious'),next=$('settingsEmailActivityNext'),info=$('settingsEmailActivityPageInfo');
+  if(prev)prev.disabled=true;
+  if(next)next.disabled=true;
+  if(info)info.textContent='Loading email activity…';
+  root.innerHTML='<tr><td colspan="5">Loading email activity…</td></tr>';
+  try{
+    let q=sb.from('email_delivery_events')
+      .select('id,message_type,recipient,subject,status,sent_at,source_table,source_id,metadata')
+      .order('sent_at',{ascending:false}).order('id',{ascending:false}).range(from,from+pageSize);
+    const type=$('settingsEmailActivityType')?.value||'';
+    const since=$('settingsEmailActivitySince')?.value||'';
+    const search=String($('settingsEmailActivitySearch')?.value||'').trim();
+    if(type)q=q.eq('message_type',type);
+    if(since)q=q.gte('sent_at',`${since}T00:00:00.000Z`);
+    if(search)q=q.ilike('recipient',`%${search.replace(/[%_]/g,'\\$&')}%`);
+    const {data,error}=await q;
+    if(requestId!==state.requestId)return;
+    if(error)throw error;
+    const rows=data||[],visible=rows.slice(0,pageSize);
+    state.offset=from;
+    state.hasNext=rows.length>pageSize;
+    root.innerHTML=visible.map(settingsEmailActivityRow).join('')||'<tr><td colspan="5">No email activity recorded yet.</td></tr>';
+    if(info)info.textContent=visible.length?`Showing ${from+1}–${from+visible.length} · Page ${Math.floor(from/pageSize)+1}`:'No emails found';
+    if(prev)prev.disabled=from===0;
+    if(next)next.disabled=!state.hasNext;
+    const scroll=card.querySelector('.email-activity-table-scroll');
+    if(scroll)scroll.scrollTop=0;
+  }catch(err){
+    if(requestId!==state.requestId)return;
+    root.innerHTML='<tr><td colspan="5">Could not load email activity. Please try Refresh.</td></tr>';
+    if(info)info.textContent='Unable to load email activity';
+    console.warn('Settings email activity unavailable:',err?.message||err);
+  }
+}
 window.FrindlyEmailActivity={placeholder:emailActivityPlaceholder,render:renderEmailActivity,settings:renderSettingsEmailActivity};
 async function markInvoiceEmailed(inv,to){const at=new Date().toISOString();saveLocalEmailStatus(inv,to,at);const updated={...inv,email_sent:true,last_sent_to:to,last_sent_at:at,updated_at:inv.updated_at||at};cacheInvoice(updated,true);if(sb&&inv?.id&&!String(inv.id).startsWith('local-')){try{const{error}=await sb.from('invoices').update({email_sent:true,last_sent_to:to,last_sent_at:at}).eq('id',inv.id);if(error)console.warn('Email status cloud sync failed; local status retained:',error)}catch(err){console.warn('Email status cloud sync failed; local status retained:',err)}}return updated}
 async function refreshInvoiceFromCloud(inv){if(!sb||!inv?.id||String(inv.id).startsWith('local-'))return inv;try{const{data,error}=await sb.from('invoices').select('*').eq('id',inv.id).single();if(error)throw error;const refreshed={...inv,...data,_sync_pending:false};cacheInvoice(refreshed,true);return refreshed}catch(err){console.warn('Invoice refresh failed:',err?.message||err);return inv}}
