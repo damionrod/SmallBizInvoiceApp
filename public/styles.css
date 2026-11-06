@@ -8116,3 +8116,11 @@ html body #expense-panel-add #expAuTaxStatus[hidden]{
 #ctBuybackReview{margin-bottom:1rem}
 #ctExtra label.ct-buyback-confirmation{display:grid;grid-template-columns:1.25rem minmax(0,1fr);align-items:start;gap:.65rem;cursor:pointer}
 #ctExtra label.ct-buyback-confirmation input{margin:.2rem 0 0;justify-self:start}
+
+/* Settings Email Activity: bounded table with independent mobile scrolling */
+.email-activity-settings-card .email-activity-table-scroll{max-height:440px;overflow:auto;overscroll-behavior:contain;max-width:100%;}
+.email-activity-settings-card .email-activity-table-scroll table{min-width:680px;}
+.email-activity-settings-card .email-activity-table-scroll thead th{position:sticky;top:0;z-index:1;background:var(--surface,#f5f7fa);}
+.email-activity-settings-card .email-activity-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;}
+.email-activity-settings-card #settingsEmailActivityPageInfo{margin-right:auto;font-size:13px;color:var(--muted,#667085);}
+@media(max-width:700px){.email-activity-settings-card .email-activity-table-scroll{max-height:410px;-webkit-overflow-scrolling:touch;}.email-activity-settings-card .email-activity-actions{gap:8px;}.email-activity-settings-card #settingsEmailActivityPageInfo{flex-basis:100%;}}
