@@ -1,0 +1,243 @@
+{
+  "overview.features": [
+    "public/index.html",
+    "public/saas.js"
+  ],
+  "dashboard.attention": [
+    "public/dashboard.js",
+    "public/compliance-reminders.js"
+  ],
+  "onboarding.nz": [
+    "public/onboarding.js",
+    "public/saas.js"
+  ],
+  "invoices.create": [
+    "public/app.js",
+    "public/index.html"
+  ],
+  "invoices.payments": [
+    "public/app.js"
+  ],
+  "invoices.corrections": [
+    "public/app.js"
+  ],
+  "customers.add": [
+    "public/app.js",
+    "public/index.html"
+  ],
+  "quotes.create": [
+    "public/job-costing.js"
+  ],
+  "quotes.progress": [
+    "public/job-costing.js",
+    "public/app.js"
+  ],
+  "jobcosting.new": [
+    "public/job-costing.js"
+  ],
+  "schedule.current": [
+    "public/schedule.js"
+  ],
+  "schedule.recurrence": [
+    "public/schedule.js"
+  ],
+  "expenses.record": [
+    "public/expenses.js",
+    "public/index.html"
+  ],
+  "expenses.scan": [
+    "public/expenses.js",
+    "public/purchase-review.js"
+  ],
+  "expenses.businessuse": [
+    "public/expenses.js"
+  ],
+  "expenses.payment": [
+    "public/expenses.js"
+  ],
+  "expenses.corrections": [
+    "public/expenses.js",
+    "public/purchase-review.js"
+  ],
+  "suppliers.add": [
+    "public/expenses.js"
+  ],
+  "expenses.review_items": [
+    "public/purchase-review.js"
+  ],
+  "stock.overview": [
+    "public/stock-equipment.js",
+    "public/index.html"
+  ],
+  "stock.movements": [
+    "public/stock-equipment.js"
+  ],
+  "stock.assets": [
+    "public/stock-equipment.js"
+  ],
+  "payroll.employee": [
+    "public/payroll.js"
+  ],
+  "payroll.timesheets": [
+    "public/payroll.js",
+    "public/schedule.js"
+  ],
+  "payroll.run": [
+    "public/payroll.js"
+  ],
+  "payroll.leave": [
+    "public/payroll.js",
+    "public/payroll-leave-native.js"
+  ],
+  "payroll.statutory": [
+    "public/payroll.js",
+    "public/payroll-nz-statutory-leave.js",
+    "public/payroll-nz-final-pay.js"
+  ],
+  "payroll.ird": [
+    "public/payroll.js",
+    "public/compliance-reminders.js"
+  ],
+  "payroll.settlement": [
+    "public/liability-payments.js",
+    "public/payroll.js"
+  ],
+  "bank.import": [
+    "public/bank-reconciliation.js",
+    "public/bank-import-core.js"
+  ],
+  "bank.reconcile": [
+    "public/bank-reconciliation.js"
+  ],
+  "bank.other": [
+    "public/bank-reconciliation.js"
+  ],
+  "bank.feeds": [
+    "public/bank-reconciliation.js",
+    "public/saas.js"
+  ],
+  "financials.overview": [
+    "public/financials.js",
+    "public/index.html"
+  ],
+  "financials.cash": [
+    "public/cash-transactions.js"
+  ],
+  "financials.ownerfunds": [
+    "public/cash-transactions.js",
+    "public/financials.js"
+  ],
+  "financials.capital": [
+    "public/cash-transactions.js"
+  ],
+  "financials.shareholders": [
+    "public/financials.js",
+    "public/cash-transactions.js"
+  ],
+  "financials.deposits": [
+    "public/cash-transactions.js"
+  ],
+  "financials.taxpayments": [
+    "public/liability-payments.js",
+    "public/cash-transactions.js"
+  ],
+  "financials.reverse": [
+    "public/cash-transactions.js",
+    "public/liability-payments.js"
+  ],
+  "loans.setup": [
+    "public/loans-finance.js"
+  ],
+  "loans.repayments": [
+    "public/loans-finance.js",
+    "public/cash-transactions.js"
+  ],
+  "loans.changes": [
+    "public/loans-finance.js"
+  ],
+  "financials.pnl": [
+    "public/financials.js"
+  ],
+  "financials.cashbook": [
+    "public/financials.js",
+    "public/bank-ledger-view.js"
+  ],
+  "financials.balance": [
+    "public/financials.js"
+  ],
+  "financials.budget": [
+    "public/financials.js"
+  ],
+  "gst.return": [
+    "public/financials.js"
+  ],
+  "gst.basis": [
+    "public/financials.js",
+    "supabase/migrations/20261106035826_gst_basis_change_activation.sql"
+  ],
+  "gst.adjustments": [
+    "public/financials.js"
+  ],
+  "accountant.centre": [
+    "public/accountant-centre.js"
+  ],
+  "reports.overview": [
+    "public/index.html",
+    "public/job-profitability.js",
+    "public/payroll.js"
+  ],
+  "settings.main": [
+    "public/index.html",
+    "public/saas.js"
+  ],
+  "settings.banks": [
+    "public/saas.js",
+    "public/financials.js"
+  ],
+  "payments.invoice": [
+    "public/saas.js",
+    "public/bank-reconciliation.js"
+  ],
+  "settings.access": [
+    "public/saas.js"
+  ],
+  "settings.subscription": [
+    "public/saas.js"
+  ],
+  "settings.security": [
+    "public/saas.js"
+  ],
+  "import.records": [
+    "public/import-migration.js"
+  ],
+  "community.current": [
+    "public/community.js"
+  ],
+  "helper.support": [
+    "public/finlo-helper.js",
+    "public/support-center.js"
+  ],
+  "admin.controls": [
+    "public/saas.js"
+  ],
+  "expenses.purchaseorders": [
+    "public/advanced-business-features.js"
+  ],
+  "customers.statements": [
+    "public/advanced-business-features.js"
+  ],
+  "financials.manualjournal": [
+    "public/advanced-business-features.js"
+  ],
+  "financials.yearend": [
+    "public/financials.js"
+  ],
+  "settings.templates": [
+    "public/app.js",
+    "public/job-costing.js",
+    "public/saas.js"
+  ],
+  "settings.referrals": [
+    "public/referrals.js"
+  ]
+}

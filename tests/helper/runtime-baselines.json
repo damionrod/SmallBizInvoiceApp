@@ -1,0 +1,12 @@
+{
+  "finlo-helper": {
+    "deployed_version": 12,
+    "verify_jwt": false,
+    "index_sha256": "178f1cd2da36cbff3849429a1c3f788974e612af7b1be28c60268997eaf13826"
+  },
+  "finlo-live-voice-session": {
+    "deployed_version": 13,
+    "verify_jwt": false,
+    "index_sha256": "978a0762fa544a1bb2de8ca5528fa9742285c0771f570ce231d7a1d0ceb15ef1"
+  }
+}
