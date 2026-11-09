@@ -110,6 +110,23 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  const preview=async(date)=>scalar('select public.frindly_buyback_share_capital_preview($1)',[date]);
  assert.deepEqual(await preview('2026-09-30'),{account_id:capital,balance:-await bal(capital,'2026-09-30')||0});
  const reserve=await acct(A,'3300','retained_earnings','equity',null,'credit');
+ const reviewMigration=fs.readdirSync(path.join(__dirname,'../../supabase/migrations')).find(f=>f.endsWith('_opening_share_capital_review.sql'));
+ await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations',reviewMigration),'utf8'));
+ await db.exec('begin');
+ try {
+  const review=(confirm=false,offset=null)=>scalar("select public.frindly_opening_share_capital_review('2026-09-01',500,'Verified trial balance',$1,$2)",[confirm,offset]);
+  assert.match((await review()).reason,/could not verify/);
+  const openingEquity=await acct(A,'3900','opening_balance_equity','equity',null,'credit');
+  await scalar("select public.v6192_create_posted_journal($1,'2026-09-01','opening_balance','test_opening',gen_random_uuid(),'Opening','Opening',$2)",[A,JSON.stringify([{account_id:gl,debit:800,credit:0},{account_id:openingEquity,debit:0,credit:800}])]);
+  const before=await bal(gl);
+  assert.equal((await review()).offset.id,openingEquity);
+  assert.equal((await preview('2026-09-01')).balance,0);
+  const posted=await review(true,openingEquity);
+  assert.equal((await review(true,openingEquity)).journal_id,posted.journal_id);
+  assert.equal((await preview('2026-09-01')).balance,500);
+  assert.equal(await bal(gl),before);
+  assert.match((await review()).reason,/already has ledger activity/);
+ } finally {await db.exec('rollback');}
  const capReceipt=await record(payload('capital_contribution','in',{amount:1000,owner_id:owner}));
  assert.deepEqual(await preview('2026-10-01'),{account_id:capital,balance:-await bal(capital,'2026-10-01')});
  await scalar(`select public.v6192_create_posted_journal($1,'2026-09-01','manual','manual_journal',gen_random_uuid(),'Reserve opening','Reserve opening',$2)`,[A,JSON.stringify([{account_id:gl,debit:500,credit:0},{account_id:reserve,debit:0,credit:500}])]);

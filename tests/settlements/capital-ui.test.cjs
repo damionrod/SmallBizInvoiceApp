@@ -6,7 +6,10 @@ test('capital forms require an explicit equity split and authorisations, reusing
  await page.evaluate(()=>{
   window.calls=[];window.crypto.randomUUID=()=>String(Math.random());window.allowed=true;window.postedCapital=1000;
   window.FinloCore={format:{money:n=>'$'+Number(n).toFixed(2)},ui:{toast:m=>window.message=m}};
-  window.SAAS={state:{business:{id:'a',settings:{currency:'NZD'}}},client:()=>({rpc:async(name,args)=>{if(name==='frindly_buyback_share_capital_preview')return {data:{account_id:'capital',balance:postedCapital}};if(name==='frindly_cash_snapshot')return {data:{entity_type:'company',can_write:true,owners:[{id:'owner',name:'Owner'}],transactions:[],capital:{can_record:allowed,shareholders:[{id:'shareholder',name:'Shareholder A'}],accounts:[{id:'capital',name:'3000 · Share capital'},{id:'retained',name:'3300 · Retained earnings'}]}}};calls.push({name,args});if(window.rejectMatch)return {error:{message:'Statement line was already reconciled'}};return {data:'saved'};},from:()=>({select(){return this},eq(){return this},order:async()=>({data:[{id:'bnz',name:'BNZ',is_default:true,accounting_account_id:'bankgl'}]})})})};
+  window.SAAS={state:{business:{id:'a',settings:{currency:'NZD'}}},client:()=>({rpc:async(name,args)=>{if(name==='frindly_opening_share_capital_review'){
+   if(args.p_confirm){window.openingPosted=args;postedCapital=500;return {data:{journal_id:'opening-journal'}};}
+   return {data:{code:'3000',name:'Share capital',balance:postedCapital,has_entries:false,offset:{id:'opening',name:'Opening Balance Equity'}}};
+  }if(name==='v6170c45_general_ledger')return {data:[]};if(name==='frindly_buyback_share_capital_preview')return {data:{account_id:'capital',balance:postedCapital}};if(name==='frindly_cash_snapshot')return {data:{entity_type:'company',can_write:true,owners:[{id:'owner',name:'Owner'}],transactions:[],capital:{can_record:allowed,shareholders:[{id:'shareholder',name:'Shareholder A'}],accounts:[{id:'capital',name:'3000 · Share capital'},{id:'retained',name:'3300 · Retained earnings'}]}}};calls.push({name,args});if(window.rejectMatch)return {error:{message:'Statement line was already reconciled'}};return {data:'saved'};},from:()=>({select(){return this},eq(){return this},order:async()=>({data:[{id:'bnz',name:'BNZ',is_default:true,accounting_account_id:'bankgl'}]})})})};
  });
  await page.addScriptTag({path:path.join(__dirname,'../../public/cash-transactions.js')});
  await page.evaluate(()=>CashTransactions.choose('out'));assert.equal(await page.locator('[data-money-route="share_buyback"]').count(),1);assert.equal(await page.locator('[data-money-route="return_share_capital"]').count(),1);await page.click('[data-money-route="share_buyback"]');await page.waitForSelector('#ctOwner');assert.equal(await page.locator('#ctCapitalLines').isVisible(),false);
@@ -41,6 +44,23 @@ test('capital forms require an explicit equity split and authorisations, reusing
  assert.equal(await page.evaluate(()=>calls.length),0);
  assert.match(await page.textContent('#ctError'),/Review the approved allocation/);
  assert.equal(await page.locator('#ctBuybackBalance').isVisible(),false);
+ await page.click('#ctReviewOpeningCapital');
+ await page.waitForSelector('#ctOpeningForm');
+ assert.match(await page.textContent('#ctOpeningCurrent'),/No entries recorded/);
+ await page.click('#ctOpeningLedger');
+ await page.waitForFunction(()=>document.querySelector('#ctOpeningLedgerRows').textContent.includes('No posted entries'));
+ await page.fill('#ctOpeningDate','2026-09-01');
+ await page.fill('#ctOpeningAmount','500');
+ await page.fill('#ctOpeningReference','Opening trial balance');
+ await page.click('#ctOpeningCheck');
+ await page.waitForSelector('#ctOpeningPost');
+ assert.match(await page.textContent('#ctOpeningPreview'),/debit Opening Balance Equity and credit Share capital/);
+ await page.check('#ctOpeningConfirm');
+ await page.click('#ctOpeningPost');
+ await page.waitForSelector('#ctOpeningCapitalDialog',{state:'detached'});
+ await page.waitForFunction(()=>document.querySelector('#ctBuybackAllocationBalance').textContent.includes('$500.00'));
+ assert.equal(await page.inputValue('#ctCapitalAuthority'),'Board resolution 17');
+ assert.equal(await page.evaluate(()=>openingPosted.p_expected_offset),'opening');
  await page.selectOption('.ct-capital-account','retained');
  await page.evaluate(()=>window.rejectMatch=true);
  await page.click('#ctSave');

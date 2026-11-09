@@ -93,6 +93,7 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   const notice=$('ctBuybackAllocationBalance');
   notice.textContent='Checking posted share capital…';
   $('ctBuybackBalance').textContent='';
+  $('ctReviewOpeningCapital').hidden=true;
   try{
    const result=await rpc('frindly_buyback_share_capital_preview',{p_as_of:date});
    if(!active(c)||!c.buybackReview||$('ctDate').value!==date)return;
@@ -104,6 +105,115 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
  }
  function capitalConfirmation(id){
   return ($('ctBuybackConfirm')||$(id))?.checked===true;
+ }
+ async function openShareCapitalReview(asOf=today(),returnToBuyback=null){
+  if($('ctOpeningCapitalDialog'))return;
+  const business=bid();
+  const dialog=document.createElement('dialog');
+  dialog.id='ctOpeningCapitalDialog';
+  dialog.className='card';
+  dialog.setAttribute('aria-labelledby','ctOpeningTitle');
+  dialog.style.cssText='width:min(720px,calc(100% - 24px));max-height:90dvh;overflow:auto;margin:auto;color:inherit;';
+  dialog.innerHTML=`<h2 id="ctOpeningTitle">Review opening share capital</h2>
+   <p id="ctOpeningCurrent" role="status">Loading posted share capital…</p>
+   <button type="button" class="secondary" id="ctOpeningLedger" hidden>View ledger entries</button>
+   <div id="ctOpeningLedgerRows" hidden></div>
+   <form id="ctOpeningForm" hidden>
+    <p class="hint">Use the verified opening amount from the previous books. The guided correction moves an existing opening equity balance into share capital.</p>
+    <div class="form-grid compact">
+     <label>Opening date<input id="ctOpeningDate" type="date" max="${esc(asOf)}" required></label>
+     <label>Verified opening amount<input id="ctOpeningAmount" type="number" min="0.01" step="0.01" required></label>
+     <label class="wide">Source reference<input id="ctOpeningReference" required minlength="3" maxlength="200" placeholder="Opening trial balance or journal reference"></label>
+    </div>
+    <p id="ctOpeningPreview" role="status"></p>
+    <label id="ctOpeningConfirmLabel" hidden><input type="checkbox" id="ctOpeningConfirm"> I verified this allocation against the opening records.</label>
+    <div class="actions"><button class="secondary" type="submit" id="ctOpeningCheck">Preview correction</button>
+    <button class="primary" type="button" id="ctOpeningPost" hidden>Post opening correction</button></div>
+   </form>
+   <p id="ctOpeningError" class="notice" role="alert" hidden></p>
+   <div class="actions"><button type="button" class="secondary" id="ctOpeningManual" hidden>Open Manual Journals</button>
+   <button type="button" class="secondary" id="ctOpeningClose">${returnToBuyback?'Back to buyback':'Close'}</button></div>`;
+  document.body.append(dialog);
+  dialog.showModal();
+  let busy=false,preview=null,posted=false;
+  const current=()=>dialog.open&&bid()===business;
+  const closeReview=()=>{if(!busy)dialog.close();};
+  dialog.addEventListener('cancel',event=>{event.preventDefault();event.stopPropagation();closeReview();});
+  dialog.addEventListener('close',()=>{dialog.remove();if(bid()===business)returnToBuyback?.();});
+  $('ctOpeningClose').onclick=closeReview;
+  const report=e=>{if(current()){$('ctOpeningError').textContent=e.message||String(e);$('ctOpeningError').hidden=false;}};
+  const setBusy=value=>{
+   busy=value;
+   for(const control of dialog.querySelectorAll('button,input'))control.disabled=value;
+  };
+  const resetPreview=()=>{
+   preview=null;
+   $('ctOpeningConfirm').checked=false;
+   $('ctOpeningConfirmLabel').hidden=true;
+   $('ctOpeningPost').hidden=true;
+   $('ctOpeningPreview').textContent='';
+   $('ctOpeningError').hidden=true;
+  };
+  $('ctOpeningForm').oninput=event=>{if(event.target.id!=='ctOpeningConfirm')resetPreview();};
+  $('ctOpeningManual').onclick=async()=>{
+   if(!current()||busy)return;
+   closeReview();
+   if(returnToBuyback)close();
+   await window.switchView?.('financials');
+   if(bid()===business)$('finManualJournalTab')?.click();
+  };
+  try{
+   const account=await rpc('frindly_opening_share_capital_review',{p_as_of:asOf});
+   if(!current())return;
+   $('ctOpeningCurrent').textContent=`${account.code} · ${account.name} · ${money(account.balance)} on ${asOf}.${account.has_entries?'':' No entries recorded.'}`;
+   $('ctOpeningLedger').hidden=false;
+   $('ctOpeningManual').hidden=false;
+   $('ctOpeningForm').hidden=false;
+   $('ctOpeningLedger').onclick=async()=>{
+    if(!current()||busy)return;
+    const host=$('ctOpeningLedgerRows');
+    if(!host.hidden){host.hidden=true;return;}
+    host.hidden=false;
+    host.textContent='Loading ledger entries…';
+    try{
+     const rows=await rpc('v6170c45_general_ledger',{p_from:'1900-01-01',p_to:asOf,p_account_code:account.code,p_source_type:null});
+     if(!current())return;
+     host.innerHTML=rows?.length?`<div class="table-scroll"><table><thead><tr><th>Date</th><th>Reference</th><th>Debit</th><th>Credit</th></tr></thead><tbody>${rows.slice(-100).reverse().map(row=>`<tr><td>${esc(row.journal_date)}</td><td>${esc(row.source_reference||row.journal_number||row.description)}</td><td>${esc(money(row.debit))}</td><td>${esc(money(row.credit))}</td></tr>`).join('')}</tbody></table></div>`:'<p>No posted entries for this account on this date.</p>';
+    }catch(e){if(current()){host.hidden=true;report(e);}}
+   };
+   $('ctOpeningForm').onsubmit=async event=>{
+    event.preventDefault();
+    if(!current()||busy||posted)return;
+    resetPreview();
+    const args={p_as_of:$('ctOpeningDate').value,p_amount:Number($('ctOpeningAmount').value),p_reference:$('ctOpeningReference').value.trim()};
+    setBusy(true);
+    try{
+     const result=await rpc('frindly_opening_share_capital_review',args);
+     if(!current())return;
+     if(result.reason){$('ctOpeningPreview').textContent=result.reason;return;}
+     preview={...args,p_expected_offset:result.offset.id};
+     $('ctOpeningPreview').textContent=`On ${args.p_as_of}, debit ${result.offset.name} and credit ${result.name} by ${money(args.p_amount)} each.`;
+     $('ctOpeningConfirmLabel').hidden=false;
+     $('ctOpeningPost').hidden=false;
+    }catch(e){report(e);}finally{if(current())setBusy(false);else dialog.close();}
+   };
+   $('ctOpeningPost').onclick=async()=>{
+    if(!current()||busy||posted||!preview)return;
+    if(!$('ctOpeningConfirm').checked)return report(new Error('Confirm you verified the opening allocation.'));
+    setBusy(true);
+    try{
+     await rpc('frindly_opening_share_capital_review',{...preview,p_confirm:true});
+     if(!current())return;
+     posted=true;
+     toast('Opening share capital correction posted');
+     window.dispatchEvent(new CustomEvent('frindly:cash-recorded'));
+     void Promise.allSettled([window.Financials?.refresh?.(),window.Dashboard?.refresh?.()]);
+    }catch(e){report(e);}finally{
+     if(current())setBusy(false);
+     if(posted||!current())dialog.close();
+    }
+   };
+  }catch(e){report(e);}
  }
  function setupBuyback(c){
   const form=$('ctForm'),payment=form.firstElementChild,extra=$('ctExtra');
@@ -123,7 +233,12 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   extra.querySelector('p').hidden=true;
   $('ctCapitalLines').parentElement.firstChild.textContent='Accounting instructions';
   $('ctCapitalAdd').textContent='Split across accounts';
-  $('ctCapitalAdd').insertAdjacentHTML('beforebegin','<small id="ctBuybackAllocationBalance" class="hint" role="status"></small>');
+  $('ctCapitalAdd').insertAdjacentHTML('beforebegin','<small id="ctBuybackAllocationBalance" class="hint" role="status"></small><button type="button" id="ctReviewOpeningCapital" class="secondary" hidden>Review opening share capital</button>');
+  $('ctReviewOpeningCapital').onclick=()=>openShareCapitalReview($('ctDate').value,()=>{
+   if(!active(c)||!c.buybackReview)return;
+   if($('ctError').textContent===buybackBalanceMessage(c,true))$('ctError').hidden=true;
+   void previewBuybackBalance(c);
+  });
   $('ctDescription').parentElement.hidden=true;
   $('ctReference').parentElement.firstChild.textContent='Bank reference (optional)';
   const approval=document.createElement('div');
@@ -150,6 +265,7 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    const footer=$('ctBuybackBalance');
    const alert=$('ctError');
    const warning=buybackBalanceMessage(c,true);
+   $('ctReviewOpeningCapital').hidden=!warning;
    if(!alert.hidden&&footer.textContent&&alert.textContent===footer.textContent&&warning!==footer.textContent)alert.hidden=true;
    footer.textContent=warning;
    footer.hidden=!warning||(!alert.hidden&&alert.textContent===warning);
@@ -403,7 +519,7 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
  async function journal(id){const c={bid:bid(),busy:false};context=c;++sequence;modal().classList.add('open');$('ctClose').disabled=false;const rows=historyContext?.bid===c.bid?(historyContext.rows||[]).filter(r=>r.journal_id===id):[],r=rows[0];if(!r){$('ctContent').innerHTML='<p>Reload Money In &amp; Out to view this movement.</p><button class="secondary" id="ctCancel">Close</button>';$('ctCancel').onclick=close;return;}const source=r.source_type||'',target=/invoice|customer/.test(source)?'invoices':/expense|supplier/.test(source)?'expenses':/payroll/.test(source)?'payroll':'financials';$('ctContent').innerHTML=`<h2>Recorded bank movement</h2><p>${esc(r.journal_date)} · ${esc(r.description||r.source_reference||source)}</p><p>${esc(r.source_reference||'')}</p>${rows.map(l=>`<p>${esc(l.bank_name)} · ${l.amount<0?'Money out':'Money in'} ${esc(money(Math.abs(l.amount)))}</p>`).join('')}<p class="hint">This was recorded through its existing workflow. Manage the original payment there.</p><div id="ctSettlementActions"></div><div class="actions"><button class="secondary" id="ctSource">Open ${target==='financials'?'Financials':target==='payroll'?'Payroll':target==='expenses'?'Expenses':'Invoices'}</button><button class="secondary" id="ctCancel">Close</button></div>`;$('ctCancel').onclick=close;if(source==='liability_settlement')window.LiabilityPayments?.showGstActions(id,$('ctSettlementActions'),()=>active(c),e=>error(c,e),()=>saved(c,'GST settlement updated'));$('ctSource').onclick=async()=>{if(!active(c))return;try{const businessId=c.bid;if(['customer_payment','invoice_payment','supplier_payment','expense_payment'].includes(source)){const incoming=['customer_payment','invoice_payment'].includes(source),column=incoming?'invoice_id':'expense_id',table=incoming?'customer_payments':'expense_payments';const result=await sb().from(table).select(column).eq('business_id',businessId).eq('id',r.source_id).maybeSingle();if(!active(c))return;if(result.error)throw new Error(result.error.message);if(result.data?.[column]){close();return incoming?await window.FrindlyInvoices.openDetails(result.data[column]):await window.Expenses.openDetails(result.data[column]);}}if(source==='liability_settlement'){const results=await Promise.allSettled(['gst','wages','ird'].map(async kind=>({kind,data:await rpc('frindly_settlement_snapshot',{p_kind:kind,p_source_id:null})})));if(!active(c))return;for(const result of results){if(result.status!=='fulfilled')continue;const {kind,data}=result.value,payment=(data.payments||[]).find(p=>p.accounting_journal_id===id),allocations=(payment?.allocations||[]).filter(a=>a.kind===kind);if(allocations.length){const sourceId=allocations.length===1?allocations[0].gst_return_id||allocations[0].pay_run_id:null;close();return await window.LiabilityPayments.open(kind,sourceId);}}}if(source==='customer_refund'){close();return await window.FrindlyInvoices.openRefunds();}close();await window.switchView?.(target);if(source==='supplier_refund')window.Expenses?.switchTab('credits');}catch(e){if(active(c))error(c,e);else toast(e.message||String(e));}};}
 
  async function taxHistory(){const root=$('provisionalCashHistory');if(!root)return;const b=bid();try{const data=await snapshot();if(b!==bid())return;const tx=data.transactions.filter(t=>['income_tax','income_tax_refund'].includes(t.purpose)&&t.status==='recorded');root.innerHTML='<h3>Recorded income-tax payments and refunds</h3><p class="hint">These are the same transactions shown in Money In &amp; Out. Estimates do not mean tax has been paid.</p>'+(tx.map(t=>`<p>${esc(t.legs[0]?.transaction_date)} · ${esc(money(t.amount))} · Tax year ${esc(t.tax_year)} · ${esc(t.taxpayer)} <button class="secondary compact-btn" data-cash-view="${esc(t.id)}">View</button></p>`).join('')||'<p class="hint">No income-tax transactions recorded here yet.</p>');}catch(e){if(b===bid())root.textContent=e.message;}}
- window.CashTransactions={ownershipPeriods,ownerChanges,choose,open,reconcile,view,render,ledger,totals,taxHistory,snapshot};
+ window.CashTransactions={openShareCapitalReview,ownershipPeriods,ownerChanges,choose,open,reconcile,view,render,ledger,totals,taxHistory,snapshot};
  document.addEventListener('click',e=>{const a=e.target.closest('[data-cash-open]'),v=e.target.closest('[data-cash-view]'),j=e.target.closest('[data-cash-journal]');if(a){if(a.dataset.cashPurpose)open(a.dataset.cashOpen,{purpose:a.dataset.cashPurpose,tax_year:a.dataset.cashYear});else choose(a.dataset.cashOpen);}if(v)view(v.dataset.cashView);if(j)journal(j.dataset.cashJournal);});
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&context)close();});
 })();
