@@ -147,7 +147,12 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   const updateBalance=()=>{
    if(!c.buybackReview||!c.capitalPreview)return;
    $('ctBuybackAllocationBalance').textContent=buybackBalanceMessage(c);
-   $('ctBuybackBalance').textContent=buybackBalanceMessage(c,true);
+   const footer=$('ctBuybackBalance');
+   const alert=$('ctError');
+   const warning=buybackBalanceMessage(c,true);
+   if(!alert.hidden&&footer.textContent&&alert.textContent===footer.textContent&&warning!==footer.textContent)alert.hidden=true;
+   footer.textContent=warning;
+   footer.hidden=!warning||(!alert.hidden&&alert.textContent===warning);
   };
   c.updateBuybackBalance=updateBalance;
   extra.addEventListener('input',updateBalance);
@@ -241,7 +246,10 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   }
   if(p.purpose==='share_buyback'){
    const warning=buybackBalanceMessage(c,true);
-   if(warning)return error(c,new Error(warning));
+   if(warning){
+    $('ctBuybackBalance').hidden=true;
+    return error(c,new Error(warning));
+   }
   }
   const duplicate=(c.data.transactions||[]).find(t=>t.status==='recorded'&&(t.purpose===p.purpose||['share_buyback','return_share_capital'].includes(t.purpose)&&['share_buyback','return_share_capital'].includes(p.purpose))&&cents(t.amount)===cents(p.amount)&&t.legs?.some(l=>l.bank_account_id===p.bank_id&&l.transaction_date===p.date));
   if(duplicate&&!c.duplicateAcknowledged){

@@ -40,6 +40,7 @@ test('capital forms require an explicit equity split and authorisations, reusing
  await page.click('#ctSave');
  assert.equal(await page.evaluate(()=>calls.length),0);
  assert.match(await page.textContent('#ctError'),/Review the approved allocation/);
+ assert.equal(await page.locator('#ctBuybackBalance').isVisible(),false);
  await page.selectOption('.ct-capital-account','retained');
  await page.evaluate(()=>window.rejectMatch=true);
  await page.click('#ctSave');
