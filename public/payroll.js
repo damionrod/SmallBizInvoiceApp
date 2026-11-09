@@ -44,18 +44,44 @@
   function clearTenantRuntimeState(){state.settingsDirty=false;clearOperationalState();state.settings=null;state.salaryHistory=[];state.countryRules=[];state.ruleCountries=[];state.payItems=[];state.leaveTypes=[];state.docTypes=[]}
   function renderOperationalState(){renderEmployees();renderTimesheets();renderRuns();renderReportSelectors();renderPayrollReport()}
   function payrollLoadMessage(message=''){let el=$('payrollLoadError');if(!el){const page=$('view-payroll');const head=page?.querySelector('.page-head');if(page&&head){el=document.createElement('div');el.id='payrollLoadError';el.className='admin-inline-message';el.style.marginBottom='12px';head.insertAdjacentElement('afterend',el)}}if(el){el.textContent=message;el.hidden=!message}}
+  let payRunFilterBusiness = null;
+  let payRunFinancialYear = null;
+
+  async function loadPayRunHistory(client, table, businessId) {
+    const rows = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      let query = client.from(table).select('*').eq('business_id', businessId);
+      if (table === 'payroll_pay_runs') query = query.order('pay_date', {ascending: false});
+      const {data, error} = await query.order('id').range(offset, offset + pageSize - 1);
+      if (error) return {error};
+      rows.push(...(data || []));
+      if (!data || data.length < pageSize) return {data: rows};
+    }
+  }
+
   async function load(){
     const c=client(),uiBid=biz()?.id;if(!c||!uiBid){clearTenantRuntimeState();state.businessId=null;state.loaded=false;renderOperationalState();payrollLoadMessage('Unable to load Payroll data. Business access could not be resolved.');return}
     const ctx=await c.rpc('current_business_id');
     if(ctx.error||!ctx.data||ctx.data!==uiBid){clearTenantRuntimeState();state.businessId=null;state.loaded=false;renderOperationalState();payrollLoadMessage('Unable to load Payroll data. Please refresh after confirming the active business.');console.error('Payroll tenant context mismatch',{uiBusinessId:uiBid,resolvedBusinessId:ctx.data,error:ctx.error?.message});return}
-    const requestBid=ctx.data;clearTenantRuntimeState();state.businessId=requestBid;state.loaded=false;renderOperationalState();payrollLoadMessage('');
+    const requestBid=ctx.data;
+    if (payRunFilterBusiness !== requestBid) {
+      payRunFilterBusiness = requestBid;
+      payRunFinancialYear = null;
+      if ($('payRunPeriod')) $('payRunPeriod').value = 'current_fy';
+    }
+    clearTenantRuntimeState();state.businessId=requestBid;state.loaded=false;renderOperationalState();payrollLoadMessage('');
     const seeded=await ensureDefaults(requestBid);if(seeded?.error){if(biz()?.id!==requestBid)return;renderOperationalState();payrollLoadMessage('Unable to load Payroll data. Your Payroll access could not be verified.');return}
     const set=await c.from('payroll_settings').select('*').eq('business_id',requestBid).maybeSingle();if(set.error){if(biz()?.id!==requestBid)return;renderOperationalState();payrollLoadMessage('Unable to load Payroll data. Payroll settings could not be loaded.');console.error('Payroll settings load failed',set.error);return}
     state.settings=set.data||{country_code:'NZ',currency:appSettings().currency||'NZD',default_pay_frequency:'fortnightly',default_pay_day:5,default_weekly_hours:40,default_working_days:5,employee_prefix:'EMP'};const country=String(state.settings.country_code||'NZ').toUpperCase();let rules=await c.from('country_payroll_rules').select('*').eq('active',true).order('effective_from',{ascending:false});if(rules.error){console.warn('Country payroll rules fallback:',rules.error.message);rules=await c.from('payroll_country_rules').select('*').eq('active',true).order('effective_from',{ascending:false})}const allRules=rules.data||[];state.ruleCountries=[...new Set(allRules.map(r=>String(r.country_code||'').trim().toUpperCase()).filter(Boolean))].sort();state.countryRules=allRules.filter(r=>String(r.country_code||'').trim().toUpperCase()===country);
     const names=['employees','timesheets','timesheet expenses','pay runs','pay-run employees','pay-run lines','pay items','leave types','document types','employee documents','jobs','customers','work patterns','OWD determinations','statutory calculations','statutory entitlements','bereavement events','leave transactions','PAYG eligibility','annual-holiday entitlement periods','final-pay calculations','final-pay components'];
     const results=await Promise.all([
-      c.from('payroll_employees').select('*').eq('business_id',requestBid).order('last_name'),c.from('payroll_timesheets').select('*').eq('business_id',requestBid).order('work_date',{ascending:false}),c.from('payroll_timesheet_expenses').select('*').eq('business_id',requestBid).order('created_at'),c.from('payroll_pay_runs').select('*').eq('business_id',requestBid).order('pay_date',{ascending:false}),c.from('payroll_pay_run_employees').select('*').eq('business_id',requestBid),c.from('payroll_pay_run_lines').select('*').eq('business_id',requestBid),c.from('payroll_pay_items').select('*').eq('business_id',requestBid).eq('archived',false).order('item_type').order('name'),c.from('payroll_leave_types').select('*').eq('business_id',requestBid).eq('archived',false).order('name'),c.from('payroll_document_types').select('*').eq('business_id',requestBid).eq('archived',false).order('sort_order'),c.from('payroll_employee_documents').select('*').eq('business_id',requestBid).order('uploaded_at',{ascending:false}),c.from('job_costings').select('id,costing_number,customer_id,customer_name,job_description').eq('business_id',requestBid).order('created_at',{ascending:false}),c.from('customers').select('id,name').eq('business_id',requestBid).order('name'),c.from('payroll_employee_work_patterns').select('*').eq('business_id',requestBid).order('effective_from',{ascending:false}),c.from('payroll_owd_determinations').select('*').eq('business_id',requestBid).order('relevant_date',{ascending:false}),c.from('payroll_statutory_leave_calculations').select('*').eq('business_id',requestBid).order('relevant_from',{ascending:false}),c.from('payroll_statutory_leave_entitlements').select('*').eq('business_id',requestBid).order('period_start',{ascending:false}),c.from('payroll_bereavement_events').select('*').eq('business_id',requestBid).order('event_date',{ascending:false}),c.from('payroll_leave_transactions').select('*').eq('business_id',requestBid).order('transaction_date',{ascending:false}),c.from('payroll_payg_eligibility_determinations').select('*').eq('business_id',requestBid).order('effective_from',{ascending:false}),c.from('payroll_annual_holiday_entitlement_periods').select('*').eq('business_id',requestBid).order('entitlement_date',{ascending:false}),c.from('payroll_final_pay_calculations').select('*').eq('business_id',requestBid).order('created_at',{ascending:false}),c.from('payroll_final_pay_components').select('*').eq('business_id',requestBid).order('created_at',{ascending:false})
+      c.from('payroll_employees').select('*').eq('business_id',requestBid).order('last_name'),c.from('payroll_timesheets').select('*').eq('business_id',requestBid).order('work_date',{ascending:false}),c.from('payroll_timesheet_expenses').select('*').eq('business_id',requestBid).order('created_at'),loadPayRunHistory(c, 'payroll_pay_runs', requestBid),loadPayRunHistory(c, 'payroll_pay_run_employees', requestBid),loadPayRunHistory(c, 'payroll_pay_run_lines', requestBid),c.from('payroll_pay_items').select('*').eq('business_id',requestBid).eq('archived',false).order('item_type').order('name'),c.from('payroll_leave_types').select('*').eq('business_id',requestBid).eq('archived',false).order('name'),c.from('payroll_document_types').select('*').eq('business_id',requestBid).eq('archived',false).order('sort_order'),c.from('payroll_employee_documents').select('*').eq('business_id',requestBid).order('uploaded_at',{ascending:false}),c.from('job_costings').select('id,costing_number,customer_id,customer_name,job_description').eq('business_id',requestBid).order('created_at',{ascending:false}),c.from('customers').select('id,name').eq('business_id',requestBid).order('name'),c.from('payroll_employee_work_patterns').select('*').eq('business_id',requestBid).order('effective_from',{ascending:false}),c.from('payroll_owd_determinations').select('*').eq('business_id',requestBid).order('relevant_date',{ascending:false}),c.from('payroll_statutory_leave_calculations').select('*').eq('business_id',requestBid).order('relevant_from',{ascending:false}),c.from('payroll_statutory_leave_entitlements').select('*').eq('business_id',requestBid).order('period_start',{ascending:false}),c.from('payroll_bereavement_events').select('*').eq('business_id',requestBid).order('event_date',{ascending:false}),c.from('payroll_leave_transactions').select('*').eq('business_id',requestBid).order('transaction_date',{ascending:false}),c.from('payroll_payg_eligibility_determinations').select('*').eq('business_id',requestBid).order('effective_from',{ascending:false}),c.from('payroll_annual_holiday_entitlement_periods').select('*').eq('business_id',requestBid).order('entitlement_date',{ascending:false}),c.from('payroll_final_pay_calculations').select('*').eq('business_id',requestBid).order('created_at',{ascending:false}),c.from('payroll_final_pay_components').select('*').eq('business_id',requestBid).order('created_at',{ascending:false})
     ]);
+    const financialYear = await c.from('financial_settings')
+      .select('financial_year_start_month,financial_year_start_day').eq('business_id', requestBid).maybeSingle();
+    if (biz()?.id !== requestBid) return;
+    payRunFinancialYear = financialYear.data;
     const salaryHistoryResult=await c.from('payroll_employee_salary_history').select('employee_id,effective_from,annual_salary,reason').eq('business_id',requestBid).order('effective_from',{ascending:true});
     if(biz()?.id!==requestBid)return;
     if(salaryHistoryResult.error){clearOperationalState();state.loaded=false;renderOperationalState();payrollLoadMessage('Unable to load Payroll salary history.');console.error('Payroll salary history load failed',salaryHistoryResult.error);return}
@@ -964,7 +990,93 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
     toast(finalise?'Pay run finalised. Payslips are ready in Pay Runs.':'Pay run saved.');
   }
   function filedEvent(runId){return (state.irdFilings||[]).find(x=>x.pay_run_id===runId&&x.status==='filed_in_myir')||null}
-  function renderRuns(){if(!$('payrollRunRows'))return;const arr=state.runs,actions=r=>{const locked=['finalised','reversed'].includes(r.status),history=locked?`<button class="secondary" data-pr-payslips="${r.id}">Payslips</button><button class="secondary" data-pr-ird="${r.id}">IRD Filing</button>`:'',email=r.status==='finalised'?`<button class="secondary" data-pr-email-payslips="${r.id}">Email Payslips</button>`:'',primary=r.status==='finalised'?`<button class="danger" data-pr-reverse="${r.id}">Reverse</button>`:r.status==='reversed'?'':`<button class="danger" data-pr-delete="${r.id}">Delete</button>`;return `<button class="secondary" data-pr-view="${r.id}">${locked?'View':'Edit'}</button>${primary}${history}${email}${r.status==='finalised'?`<button class="secondary" data-liability-kind="wages" data-liability-source="${r.id}">Record Payment · Wages</button><button class="secondary" data-liability-kind="ird" data-liability-source="${r.id}">Record Payment · IRD</button>`:''}`};$('payrollRunRows').innerHTML=arr.map(r=>`<tr><td><strong>${esc(r.pay_run_number)}</strong></td><td>${iso(r.period_start)} – ${iso(r.period_end)}</td><td>${iso(r.pay_date)}</td><td>${esc(human(r.pay_frequency))}</td><td>${money(r.gross_pay)}</td><td>${money(r.net_pay)}</td><td><div class="payroll-status-stack"><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span>${filedEvent(r.id)?'<span class="badge payroll-ird-filed">IRD filed</span>':''}</div></td><td><div class="row-actions">${actions(r)}</div></td></tr>`).join('')||'<tr><td colspan="8">No pay runs yet. Create your first payroll when you are ready.</td></tr>';$('payrollRunCards').innerHTML=arr.map(r=>`<div class="payroll-mobile-card"><strong>${esc(r.pay_run_number)}</strong><span>${iso(r.period_start)} – ${iso(r.period_end)}</span><small>Pay date ${iso(r.pay_date)} · Gross ${money(r.gross_pay)} · Net ${money(r.net_pay)}</small><div class="payroll-status-stack"><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span>${filedEvent(r.id)?'<span class="badge payroll-ird-filed">IRD filed</span>':''}</div><div class="row-actions">${actions(r)}</div></div>`).join('');document.querySelectorAll('[data-pr-view]').forEach(b=>b.onclick=()=>openRun(state.runs.find(r=>r.id===b.dataset.prView)));document.querySelectorAll('[data-pr-delete]').forEach(b=>b.onclick=()=>deletePayRun(b.dataset.prDelete));document.querySelectorAll('[data-pr-reverse]').forEach(b=>b.onclick=()=>reversePayRun(b.dataset.prReverse));document.querySelectorAll('[data-pr-payslips]').forEach(b=>b.onclick=()=>openPayslipChooser(b.dataset.prPayslips));document.querySelectorAll('[data-pr-email-payslips]').forEach(b=>b.onclick=()=>emailRunPayslips(b.dataset.prEmailPayslips));document.querySelectorAll('[data-pr-ird]').forEach(b=>b.onclick=()=>openIrdFiling(b.dataset.prIrd));const r=arr[0];$('payrollGrossSummary').textContent=r?money(r.gross_pay):'—';$('payrollNetSummary').textContent=r?money(r.net_pay):'—';$('payrollEmployerSummary').textContent=r?money(r.employer_contributions):'—';$('payrollCostSummary').textContent=r?money(r.total_employment_cost):'—';window.LiabilityPayments?.refreshButtons?.()}
+  function setupPayRunFilters() {
+    if ($('payRunPeriod')) return;
+    const summary = $('payrollGrossSummary')?.closest('.summary-grid');
+    if (!summary) return;
+    $('payrollGrossSummary').previousElementSibling.textContent = 'Gross Pay';
+    $('payrollNetSummary').previousElementSibling.textContent = 'Net Pay';
+    summary.insertAdjacentHTML('beforebegin', `
+      <div class="card payroll-filters" aria-label="Pay run filters">
+        <label>Period<select id="payRunPeriod">
+          <option value="current_fy">Current FY</option>
+          <option value="this_month">This Month</option>
+          <option value="last_month">Last Month</option>
+          <option value="3">Last 3 Months</option>
+          <option value="6">Last 6 Months</option>
+          <option value="12">Last 12 Months</option>
+          <option value="custom">Custom Date Range</option>
+        </select></label>
+        <label>From<input id="payRunFrom" type="date"></label>
+        <label>To<input id="payRunTo" type="date"></label>
+        <button id="payRunReset" type="button" class="secondary">Reset</button>
+      </div>
+      <p id="payRunRangeNote" class="hint" role="status"></p>`);
+    $('payRunPeriod').onchange = renderRuns;
+    for (const id of ['payRunFrom', 'payRunTo']) {
+      $(id).onchange = () => {
+        $('payRunPeriod').value = 'custom';
+        renderRuns();
+      };
+    }
+    $('payRunReset').onclick = () => {
+      $('payRunPeriod').value = 'current_fy';
+      renderRuns();
+    };
+  }
+
+  function payRunDateRange() {
+    const preset = $('payRunPeriod').value;
+    if (preset === 'custom') return {from: $('payRunFrom').value, to: $('payRunTo').value};
+    const end = today();
+    const now = new Date(end + 'T12:00:00');
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    let from = end.slice(0, 7) + '-01';
+    let to = end;
+    if (preset === 'last_month') {
+      from = dateOnly(new Date(year, month - 1, 1));
+      to = dateOnly(new Date(year, month, 0));
+    } else if (preset === 'current_fy') {
+      const startMonth = Math.max(1, Math.min(12, num(payRunFinancialYear?.financial_year_start_month) || 4)) - 1;
+      const startDay = Math.max(1, Math.min(28, num(payRunFinancialYear?.financial_year_start_day) || 1));
+      const start = new Date(year, startMonth, startDay);
+      from = dateOnly(now < start ? new Date(year - 1, startMonth, startDay) : start);
+    } else if (preset !== 'this_month') {
+      const days = {'3': 90, '6': 183, '12': 365};
+      from = addDays(end, -days[preset]);
+    }
+    $('payRunFrom').value = from;
+    $('payRunTo').value = to;
+    return {from, to};
+  }
+
+  function visiblePayRuns() {
+    setupPayRunFilters();
+    if (!$('payRunPeriod')) return state.runs;
+    const {from, to} = payRunDateRange();
+    const invalid = from && to && from > to;
+    $('payRunRangeNote').textContent = invalid
+      ? 'Choose a To date on or after the From date.'
+      : 'Filtered by Pay Date. Totals include finalised runs and show payroll amounts before checking payment status.';
+    if (invalid) return [];
+    return state.runs.filter(run => run.pay_date && (!from || run.pay_date >= from) && (!to || run.pay_date <= to));
+  }
+
+  function renderPayRunTotals(runs) {
+    const finalised = runs.filter(run => run.status === 'finalised');
+    for (const [id, field] of Object.entries({
+      payrollGrossSummary: 'gross_pay',
+      payrollNetSummary: 'net_pay',
+      payrollEmployerSummary: 'employer_contributions',
+      payrollCostSummary: 'total_employment_cost'
+    })) {
+      const cents = finalised.reduce((sum, run) => sum + Math.round(num(run[field]) * 100), 0);
+      $(id).textContent = state.loaded ? money(cents / 100) : '—';
+    }
+  }
+
+  function renderRuns(){if(!$('payrollRunRows'))return;const arr=visiblePayRuns(),actions=r=>{const locked=['finalised','reversed'].includes(r.status),history=locked?`<button class="secondary" data-pr-payslips="${r.id}">Payslips</button><button class="secondary" data-pr-ird="${r.id}">IRD Filing</button>`:'',email=r.status==='finalised'?`<button class="secondary" data-pr-email-payslips="${r.id}">Email Payslips</button>`:'',primary=r.status==='finalised'?`<button class="danger" data-pr-reverse="${r.id}">Reverse</button>`:r.status==='reversed'?'':`<button class="danger" data-pr-delete="${r.id}">Delete</button>`;return `<button class="secondary" data-pr-view="${r.id}">${locked?'View':'Edit'}</button>${primary}${history}${email}${r.status==='finalised'?`<button class="secondary" data-liability-kind="wages" data-liability-source="${r.id}">Record Payment · Wages</button><button class="secondary" data-liability-kind="ird" data-liability-source="${r.id}">Record Payment · IRD</button>`:''}`};$('payrollRunRows').innerHTML=arr.map(r=>`<tr><td><strong>${esc(r.pay_run_number)}</strong></td><td>${iso(r.period_start)} – ${iso(r.period_end)}</td><td>${iso(r.pay_date)}</td><td>${esc(human(r.pay_frequency))}</td><td>${money(r.gross_pay)}</td><td>${money(r.net_pay)}</td><td><div class="payroll-status-stack"><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span>${filedEvent(r.id)?'<span class="badge payroll-ird-filed">IRD filed</span>':''}</div></td><td><div class="row-actions">${actions(r)}</div></td></tr>`).join('')||`<tr><td colspan="8">${state.runs.length?'No pay runs match the selected dates.':'No pay runs yet. Create your first payroll when you are ready.'}</td></tr>`;$('payrollRunCards').innerHTML=arr.map(r=>`<div class="payroll-mobile-card"><strong>${esc(r.pay_run_number)}</strong><span>${iso(r.period_start)} – ${iso(r.period_end)}</span><small>Pay date ${iso(r.pay_date)} · Gross ${money(r.gross_pay)} · Net ${money(r.net_pay)}</small><div class="payroll-status-stack"><span class="badge payroll-status ${r.status}">${esc(human(r.status))}</span>${filedEvent(r.id)?'<span class="badge payroll-ird-filed">IRD filed</span>':''}</div><div class="row-actions">${actions(r)}</div></div>`).join('');document.querySelectorAll('[data-pr-view]').forEach(b=>b.onclick=()=>openRun(state.runs.find(r=>r.id===b.dataset.prView)));document.querySelectorAll('[data-pr-delete]').forEach(b=>b.onclick=()=>deletePayRun(b.dataset.prDelete));document.querySelectorAll('[data-pr-reverse]').forEach(b=>b.onclick=()=>reversePayRun(b.dataset.prReverse));document.querySelectorAll('[data-pr-payslips]').forEach(b=>b.onclick=()=>openPayslipChooser(b.dataset.prPayslips));document.querySelectorAll('[data-pr-email-payslips]').forEach(b=>b.onclick=()=>emailRunPayslips(b.dataset.prEmailPayslips));document.querySelectorAll('[data-pr-ird]').forEach(b=>b.onclick=()=>openIrdFiling(b.dataset.prIrd));if(!arr.length)$('payrollRunCards').textContent=$('payrollRunRows').textContent;renderPayRunTotals(arr);window.LiabilityPayments?.refreshButtons?.()}
   function exportPaydayData(runId){const run=state.runs.find(r=>r.id===runId);if(!run)return;const rows=[['Employee ID','Employee','IRD Number','Tax Code','Pay Period Start','Pay Period End','Pay Date','Gross Earnings','PAYE','Student Loan','KiwiSaver Employee','KiwiSaver Employer Gross','ESCT','Net Pay']];state.runEmployees.filter(x=>x.pay_run_id===runId).forEach(x=>{const e=state.employees.find(e=>e.id===x.employee_id)||{};rows.push([e.employee_number||x.employee_snapshot?.employee_number||'',displayName(e)||x.employee_snapshot?.name||'',e.ird_number||'',e.tax_code||x.employee_snapshot?.tax_code||'',run.period_start,run.period_end,run.pay_date,x.gross_pay,x.paye,x.student_loan,x.kiwisaver_employee,x.kiwisaver_employer_gross,x.esct,x.net_pay])});window.FinloCore.csv.downloadCsvRows(`${run.pay_run_number}-payday-data.csv`,rows,{newline:'\n',revokeDelay:0});toast('Payday filing data exported. Review it before using it for government reporting.')}
 
   function irdDigits(v){return String(v||'').replace(/\D/g,'')}
