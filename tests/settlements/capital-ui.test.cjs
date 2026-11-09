@@ -4,9 +4,9 @@ test('capital forms require an explicit equity split and authorisations, reusing
  const browser=await chromium.launch({headless:true,executablePath:process.env.SETTLEMENT_CHROMIUM_PATH,args:['--no-sandbox','--disable-gpu','--disable-software-rasterizer','--no-zygote','--single-process']});
  try{const page=await browser.newPage({viewport:{width:390,height:844}});await page.setContent('<div id="finCashFlowBody"></div>');await page.addStyleTag({path:path.join(__dirname,'../../public/styles-core.css')});await page.addStyleTag({path:path.join(__dirname,'../../public/styles.css')});
  await page.evaluate(()=>{
-  window.calls=[];window.crypto.randomUUID=()=>String(Math.random());window.allowed=true;
+  window.calls=[];window.crypto.randomUUID=()=>String(Math.random());window.allowed=true;window.postedCapital=1000;
   window.FinloCore={format:{money:n=>'$'+Number(n).toFixed(2)},ui:{toast:m=>window.message=m}};
-  window.SAAS={state:{business:{id:'a',settings:{currency:'NZD'}}},client:()=>({rpc:async(name,args)=>{if(name==='frindly_cash_snapshot')return {data:{entity_type:'company',can_write:true,owners:[{id:'owner',name:'Owner'}],transactions:[],capital:{can_record:allowed,shareholders:[{id:'shareholder',name:'Shareholder A'}],accounts:[{id:'capital',name:'3000 · Share capital'},{id:'retained',name:'3300 · Retained earnings'}]}}};calls.push({name,args});return {data:'saved'};},from:()=>({select(){return this},eq(){return this},order:async()=>({data:[{id:'bnz',name:'BNZ',is_default:true,accounting_account_id:'bankgl'}]})})})};
+  window.SAAS={state:{business:{id:'a',settings:{currency:'NZD'}}},client:()=>({rpc:async(name,args)=>{if(name==='frindly_buyback_share_capital_preview')return {data:{account_id:'capital',balance:postedCapital}};if(name==='frindly_cash_snapshot')return {data:{entity_type:'company',can_write:true,owners:[{id:'owner',name:'Owner'}],transactions:[],capital:{can_record:allowed,shareholders:[{id:'shareholder',name:'Shareholder A'}],accounts:[{id:'capital',name:'3000 · Share capital'},{id:'retained',name:'3300 · Retained earnings'}]}}};calls.push({name,args});if(window.rejectMatch)return {error:{message:'Statement line was already reconciled'}};return {data:'saved'};},from:()=>({select(){return this},eq(){return this},order:async()=>({data:[{id:'bnz',name:'BNZ',is_default:true,accounting_account_id:'bankgl'}]})})})};
  });
  await page.addScriptTag({path:path.join(__dirname,'../../public/cash-transactions.js')});
  await page.evaluate(()=>CashTransactions.choose('out'));assert.equal(await page.locator('[data-money-route="share_buyback"]').count(),1);assert.equal(await page.locator('[data-money-route="return_share_capital"]').count(),1);await page.click('[data-money-route="share_buyback"]');await page.waitForSelector('#ctOwner');assert.equal(await page.locator('#ctCapitalLines').isVisible(),false);
@@ -14,12 +14,42 @@ test('capital forms require an explicit equity split and authorisations, reusing
  await page.fill('#ctAmount','600');await page.fill('#ctDate','2026-10-01');await page.selectOption('#ctOwner','shareholder');await page.click('#ctSave');assert.match(await page.textContent('#ctBuybackSummary'),/Shareholder A/);assert.equal(await page.locator('.ct-capital-amount').inputValue(),'600');await page.selectOption('.ct-capital-account','capital');await page.fill('.ct-capital-amount','400');await page.click('#ctCapitalAdd');await page.locator('.ct-capital-account').nth(1).selectOption('retained');await page.locator('.ct-capital-amount').nth(1).fill('100');
  await page.fill('#ctCapitalAuthority','Board resolution 17');await page.fill('#ctCapitalAuthorityDate','2026-09-30');await page.fill('#ctCapitalReviewer','Accountant A');await page.fill('#ctCapitalShares','50 ordinary shares cancelled');await page.fill('#ctNote','Approved split of share capital and retained earnings');await page.selectOption('#ctCapitalTax','no_additional_withholding');
  await page.click('#ctSave');assert.equal(await page.evaluate(()=>calls.length),0);
- for(const id of ['ctCapitalAuthorised','ctCapitalSolvent','ctCapitalReviewed','ctCapitalNotPosted'])await page.check('#'+id);
+ await page.check('#ctBuybackConfirm');
  await page.click('#ctSave');assert.match(await page.textContent('#ctError'),/must equal/);assert.equal(await page.evaluate(()=>calls.length),0);
  await page.locator('.ct-capital-amount').nth(1).fill('200');await page.selectOption('#ctCapitalTax','accountant');await page.click('#ctSave');assert.match(await page.textContent('#ctError'),/accountant workflow/);assert.equal(await page.evaluate(()=>calls.length),0);await page.selectOption('#ctCapitalTax','no_additional_withholding');
  for(const width of [390,1440]){await page.setViewportSize({width,height:900});assert.equal(await page.evaluate(()=>{const m=document.querySelector('#cashTransactionModal .modal-box');return m.scrollWidth<=m.clientWidth+1}),true);}
  await page.click('#ctSave');await page.waitForFunction(()=>calls.length===1);const call=await page.evaluate(()=>calls[0]);assert.equal(call.name,'frindly_record_cash_transaction');assert.equal(call.args.p_transaction.purpose,'share_buyback');assert.equal(call.args.p_transaction.bank_id,'bnz');assert.equal(call.args.p_transaction.owner_id,'shareholder');assert.equal(call.args.p_transaction.gst_treatment,'NO_GST');assert.deepEqual(call.args.p_transaction.capital_allocations,[{account_id:'capital',amount:400},{account_id:'retained',amount:200}]);assert.equal(call.args.p_transaction.capital_authorised,true);
  await page.evaluate(()=>CashTransactions.open('out',{purpose:'return_share_capital'}));assert.match(await page.textContent('#ctShareholderHelp'),/shareholder receiving the capital repayment/);assert.equal(await page.locator('#ctCapitalAdd').isVisible(),false);assert.equal(await page.locator('.ct-capital-account').inputValue(),'');await page.selectOption('#ctPurpose','loan_repayment');assert.equal(await page.locator('#ctCapitalLines').count(),0);assert.equal(await page.locator('#ctNote').evaluate(e=>e.required),false);await page.click('#ctCancel');
+ await page.evaluate(()=>{
+  calls=[];postedCapital=0;
+  return CashTransactions.reconcile({id:'bank-line',bank_account_id:'bnz',amount:-1740,transaction_date:'2026-10-16'},null,{ownerEquity:true,purpose:'repay_owner_loan'});
+ });
+ await page.click('#ctBankBuyback');
+ await page.selectOption('#ctOwner','shareholder');
+ await page.click('#ctSave');
+ await page.selectOption('.ct-capital-account','capital');
+ await page.waitForFunction(()=>document.querySelector('#ctBuybackAllocationBalance').textContent.includes('$0.00 posted share capital on 2026-10-16'));
+ assert.match(await page.textContent('#ctBuybackBalance'),/1740.00/);
+ await page.fill('#ctCapitalAuthority','Board resolution 17');
+ await page.fill('#ctCapitalAuthorityDate','2026-09-30');
+ await page.fill('#ctCapitalReviewer','Accountant A');
+ await page.fill('#ctCapitalShares','50 ordinary shares cancelled');
+ await page.fill('#ctNote','Approved allocation');
+ await page.selectOption('#ctCapitalTax','no_additional_withholding');
+ await page.check('#ctBuybackConfirm');
+ await page.click('#ctSave');
+ assert.equal(await page.evaluate(()=>calls.length),0);
+ assert.match(await page.textContent('#ctError'),/Review the approved allocation/);
+ await page.selectOption('.ct-capital-account','retained');
+ await page.evaluate(()=>window.rejectMatch=true);
+ await page.click('#ctSave');
+ await page.waitForFunction(()=>document.querySelector('#ctError').textContent.includes('already reconciled'));
+ assert.equal(await page.evaluate(()=>document.activeElement.id),'ctError');
+ const matched=await page.evaluate(()=>calls[0]);
+ assert.equal(matched.name,'frindly_match_cash_transaction');
+ assert.equal(matched.args.p_bank_transaction_id,'bank-line');
+ for(const flag of ['capital_authorised','capital_solvent','capital_tax_reviewed','capital_not_previously_posted'])assert.equal(matched.args.p_transaction[flag],true);
+ await page.click('#ctCancel');
  await page.evaluate(()=>{allowed=false;return CashTransactions.open('out',{purpose:'share_buyback'})});assert.match(await page.textContent('#ctError'),/authorised accounting access/);assert.equal(await page.locator('#ctSave').count(),0);
  }finally{await browser.close();}
 });

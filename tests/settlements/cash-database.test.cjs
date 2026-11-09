@@ -105,8 +105,13 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 
  // Capital uses the same record, legs, lines, journal writer, reports and matching.
  await db.query(`insert into public.financial_settings(business_id,business_entity_type) values($1,'company'),($2,'company')`,[A,B]);
+ const previewMigration=fs.readdirSync(path.join(__dirname,'../../supabase/migrations')).find(f=>f.endsWith('_buyback_share_capital_preview.sql'));
+ await db.exec(fs.readFileSync(path.join(__dirname,'../../supabase/migrations',previewMigration),'utf8'));
+ const preview=async(date)=>scalar('select public.frindly_buyback_share_capital_preview($1)',[date]);
+ assert.deepEqual(await preview('2026-09-30'),{account_id:capital,balance:-await bal(capital,'2026-09-30')||0});
  const reserve=await acct(A,'3300','retained_earnings','equity',null,'credit');
  const capReceipt=await record(payload('capital_contribution','in',{amount:1000,owner_id:owner}));
+ assert.deepEqual(await preview('2026-10-01'),{account_id:capital,balance:-await bal(capital,'2026-10-01')});
  await scalar(`select public.v6192_create_posted_journal($1,'2026-09-01','manual','manual_journal',gen_random_uuid(),'Reserve opening','Reserve opening',$2)`,[A,JSON.stringify([{account_id:gl,debit:500,credit:0},{account_id:reserve,debit:0,credit:500}])]);
  const approval={owner_id:owner,capital_authorised:true,capital_solvent:true,capital_tax_reviewed:true,capital_not_previously_posted:true,capital_authority_ref:'RES-2026-01',capital_authority_date:'2026-09-30',capital_reviewer:'Accountant A',capital_share_details:'50 ordinary shares cancelled',capital_tax_status:'no_additional_withholding',note:'Approved equity split; no additional withholding due'};
  const buyPayload=payload('share_buyback','out',{...approval,amount:600,capital_allocations:[{account_id:capital,amount:400},{account_id:reserve,amount:200}]});

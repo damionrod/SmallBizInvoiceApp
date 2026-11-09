@@ -14,7 +14,7 @@
  function active(c){return context===c&&bid()===c.bid;}
  function modal(){let m=$('cashTransactionModal');if(m)return m;m=document.createElement('div');m.id='cashTransactionModal';m.className='modal';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-label','Record bank transaction');m.innerHTML='<div class="modal-box small-modal"><button class="close" id="ctClose" aria-label="Close">×</button><div id="ctContent"></div></div>';document.body.append(m);$('ctClose').onclick=close;m.addEventListener('click',e=>{if(e.target===m)close()});return m;}
  function close(){if(context?.busy)return;sequence++;context=null;modal().classList.remove('open');}
- function error(c,e){if(!active(c))return;const el=$('ctError');if(el){el.textContent=e.message||String(e);el.hidden=false;}else toast(e.message||String(e));}
+ function error(c,e){if(!active(c))return;const el=$('ctError');if(el){el.textContent=e.message||String(e);el.hidden=false;if(el.tabIndex===-1&&el.classList.contains('notice'))el.focus();}else toast(e.message||String(e));}
  function field(name,title,html,wide=false){return `<label class="${wide?'wide':''}">${title}${html}</label>`;}
  function options(rows,valueKey='id',nameKey='name'){return rows.map(x=>`<option value="${esc(x[valueKey])}">${esc(x[nameKey])}</option>`).join('');}
  async function banks(c){const r=await sb().from('bank_accounts').select('id,name,account_number,is_default,accounting_account_id,currency').eq('business_id',c.bid).eq('archived',false).order('name');if(r.error)throw new Error(r.error.message);return (r.data||[]).filter(b=>b.accounting_account_id);}
@@ -76,6 +76,35 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   if(tax){const entity=c.data.entity_type||window.SAAS?.state?.business?.settings?.business_entity_type; if(['sole_trader','partnership'].includes(entity))$('ctTaxpayer').value='owner';}
   if(!$('ctDescription').dataset.edited)$('ctDescription').value=label(p);
  }
+ function buybackBalanceMessage(c,onlyWarning=false){
+  const preview=c.capitalPreview;
+  if(!preview?.account_id)return '';
+  const lines=[...$('ctCapitalLines').children];
+  const allocated=lines.filter(row=>row.querySelector('select').value===preview.account_id)
+   .reduce((total,row)=>total+cents(row.querySelector('input').value),0);
+  if(!allocated)return '';
+  const available=money(preview.balance);
+  const summary=`${available} posted share capital on ${$('ctDate').value}. Proposed allocation: ${money(allocated/100)}.`;
+  return allocated>cents(preview.balance)?summary+' Review the approved allocation before recording.':onlyWarning?'':summary;
+ }
+ async function previewBuybackBalance(c){
+  c.capitalPreview=null;
+  const date=$('ctDate').value;
+  const notice=$('ctBuybackAllocationBalance');
+  notice.textContent='Checking posted share capital…';
+  $('ctBuybackBalance').textContent='';
+  try{
+   const result=await rpc('frindly_buyback_share_capital_preview',{p_as_of:date});
+   if(!active(c)||!c.buybackReview||$('ctDate').value!==date)return;
+   c.capitalPreview=result;
+   c.updateBuybackBalance();
+  }catch(e){
+   if(active(c)&&c.buybackReview&&$('ctDate').value===date)notice.textContent='The posted balance will be checked when you record this payment.';
+  }
+ }
+ function capitalConfirmation(id){
+  return ($('ctBuybackConfirm')||$(id))?.checked===true;
+ }
  function setupBuyback(c){
   const form=$('ctForm'),payment=form.firstElementChild,extra=$('ctExtra');
   form.classList.add('ct-buyback-form');
@@ -94,6 +123,7 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   extra.querySelector('p').hidden=true;
   $('ctCapitalLines').parentElement.firstChild.textContent='Accounting instructions';
   $('ctCapitalAdd').textContent='Split across accounts';
+  $('ctCapitalAdd').insertAdjacentHTML('beforebegin','<small id="ctBuybackAllocationBalance" class="hint" role="status"></small>');
   $('ctDescription').parentElement.hidden=true;
   $('ctReference').parentElement.firstChild.textContent='Bank reference (optional)';
   const approval=document.createElement('div');
@@ -104,20 +134,25 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    approval.append($(id).parentElement);
   }
   $('ctNote').parentElement.firstChild.textContent='Accounting instructions or document reference';
-  const confirmations={
-   ctCapitalAuthorised:'The company approved this buyback and has the supporting documents.',
-   ctCapitalSolvent:'The directors confirmed the required solvency checks and certificates.',
-   ctCapitalReviewed:'Our accountant approved the accounting and tax treatment.',
-   ctCapitalNotPosted:'This payment and equity reduction have not already been recorded.'
-  };
-  for(const [id,copy] of Object.entries(confirmations)){
-   const box=$(id),label=box.parentElement,caption=document.createElement('span');
-   caption.textContent=copy;
-   label.classList.add('ct-buyback-confirmation');
-   label.replaceChildren(box,caption);
-  }
+  const confirmation=$('ctCapitalAuthorised').parentElement;
+  confirmation.classList.add('ct-buyback-confirmation');
+  confirmation.innerHTML='<input type="checkbox" id="ctBuybackConfirm" required><span>I confirm the company approvals and solvency checks are complete, the accountant approved the allocation and tax treatment, and this payment and equity reduction are being recorded for the first time.</span>';
+  for(const id of ['ctCapitalSolvent','ctCapitalReviewed','ctCapitalNotPosted'])$(id).parentElement.remove();
   const actions=$('ctSave').parentElement;
+  actions.before($('ctError'));
+  $('ctError').classList.add('notice');
+  $('ctError').tabIndex=-1;
+  actions.insertAdjacentHTML('beforebegin','<p id="ctBuybackBalance" class="hint" role="status"></p>');
   actions.insertAdjacentHTML('afterbegin','<button type="button" class="secondary" id="ctBuybackBack">Back</button>');
+  const updateBalance=()=>{
+   if(!c.buybackReview||!c.capitalPreview)return;
+   $('ctBuybackAllocationBalance').textContent=buybackBalanceMessage(c);
+   $('ctBuybackBalance').textContent=buybackBalanceMessage(c,true);
+  };
+  c.updateBuybackBalance=updateBalance;
+  extra.addEventListener('input',updateBalance);
+  extra.addEventListener('change',updateBalance);
+  $('ctCapitalLines').addEventListener('click',updateBalance);
   $('ctBuybackHelp').onclick=()=>{$('ctBuybackHelpText').hidden=!$('ctBuybackHelpText').hidden;};
   const setStep=isReview=>{
    c.buybackReview=isReview;
@@ -128,6 +163,9 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    $('ctBuybackBack').hidden=!isReview;
    $('ctSave').textContent=isReview?(c.tx?'Record & match':'Record buyback payment'):'Review payment';
    form.noValidate=!isReview;
+   $('ctError').hidden=true;
+   $('ctBuybackBalance').hidden=!isReview;
+   if(isReview)void previewBuybackBalance(c);
    if(isReview)review.querySelector('h3').focus();
    else $('ctPurpose').focus();
   };
@@ -135,6 +173,12 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
   c.reviewBuyback=()=>{
    if(!c.data.capital?.can_record)return error(c,new Error('Capital payments require authorised accounting access.'));
    for(const control of payment.querySelectorAll('input,select'))if(!control.reportValidity())return;
+   const linked=(c.data.capital?.share_changes||[]).find(row=>row.id===event.value);
+   const authority=$('ctCapitalAuthority');
+   if(!authority.value||authority.value===c.linkedAuthority){
+    c.linkedAuthority=linked?.reference||'';
+    authority.value=c.linkedAuthority;
+   }
    const shareholder=owner.selectedOptions[0].textContent;
    $('ctDescription').value='Share buyback – '+shareholder;
    $('ctBuybackSummary').textContent=shareholder+' · '+money($('ctAmount').value)+' · '+$('ctDate').value+' · '+$('ctBank').selectedOptions[0].textContent;
@@ -186,7 +230,7 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    $('ctPurpose').focus();
   }catch(e){error(c,e);}
  }
- function payload(c){const p=$('ctPurpose').value;return {kind:c.kind,purpose:p,loan_id:$('ctLoan')?.value||undefined,loan_fee:$('ctLoan')?.value&&$('ctLoanFee')?.value?Number($('ctLoanFee').value):undefined,loan_due_date:$('ctLoan')?.value?(c.loanDue||($('ctLoan').value===c.preset.loan_id?c.preset.loan_due_date:undefined)):undefined,date:$('ctDate').value,received_date:$('ctReceived')?.value||undefined,bank_id:$('ctBank').value,to_bank_id:$('ctTo')?.value||undefined,amount:Number($('ctAmount').value),description:$('ctDescription').value.trim(),reference:$('ctReference').value.trim(),note:$('ctNote').value.trim(),party:$('ctParty')?.value.trim()||undefined,gst_treatment:$('ctGst')?.value||'NO_GST',owner_id:(!['income_tax','income_tax_refund'].includes(p)||$('ctTaxpayer')?.value==='owner')?$('ctOwner')?.value||undefined:undefined,taxpayer:$('ctTaxpayer')?.value||undefined,tax_year:$('ctYear')?Number($('ctYear').value):undefined,interest_amount:c.preset.interest_only&&p==='loan_repayment'&&$('ctLoan')?.value===c.preset.loan_id?Number($('ctAmount').value):Number($('ctInterest')?.value||0),withheld_amount:Number($('ctWithheld')?.value||0),account_id:$('ctCategory')?.value||undefined,...(['share_buyback','return_share_capital'].includes(p)?{capital_share_change_id:$('ctCapitalEvent')?.value||null,capital_allocations:[...document.querySelectorAll('#ctCapitalLines .ct-capital-line')].map(row=>({account_id:row.querySelector('select').value,amount:Number(row.querySelector('input').value)})),capital_authority_ref:$('ctCapitalAuthority')?.value.trim(),capital_authority_date:$('ctCapitalAuthorityDate')?.value,capital_reviewer:$('ctCapitalReviewer')?.value.trim(),capital_share_details:$('ctCapitalShares')?.value.trim(),capital_tax_status:$('ctCapitalTax')?.value,capital_authorised:!!$('ctCapitalAuthorised')?.checked,capital_solvent:!!$('ctCapitalSolvent')?.checked,capital_tax_reviewed:!!$('ctCapitalReviewed')?.checked,capital_not_previously_posted:!!$('ctCapitalNotPosted')?.checked}:{})};}
+ function payload(c){const p=$('ctPurpose').value;return {kind:c.kind,purpose:p,loan_id:$('ctLoan')?.value||undefined,loan_fee:$('ctLoan')?.value&&$('ctLoanFee')?.value?Number($('ctLoanFee').value):undefined,loan_due_date:$('ctLoan')?.value?(c.loanDue||($('ctLoan').value===c.preset.loan_id?c.preset.loan_due_date:undefined)):undefined,date:$('ctDate').value,received_date:$('ctReceived')?.value||undefined,bank_id:$('ctBank').value,to_bank_id:$('ctTo')?.value||undefined,amount:Number($('ctAmount').value),description:$('ctDescription').value.trim(),reference:$('ctReference').value.trim(),note:$('ctNote').value.trim(),party:$('ctParty')?.value.trim()||undefined,gst_treatment:$('ctGst')?.value||'NO_GST',owner_id:(!['income_tax','income_tax_refund'].includes(p)||$('ctTaxpayer')?.value==='owner')?$('ctOwner')?.value||undefined:undefined,taxpayer:$('ctTaxpayer')?.value||undefined,tax_year:$('ctYear')?Number($('ctYear').value):undefined,interest_amount:c.preset.interest_only&&p==='loan_repayment'&&$('ctLoan')?.value===c.preset.loan_id?Number($('ctAmount').value):Number($('ctInterest')?.value||0),withheld_amount:Number($('ctWithheld')?.value||0),account_id:$('ctCategory')?.value||undefined,...(['share_buyback','return_share_capital'].includes(p)?{capital_share_change_id:$('ctCapitalEvent')?.value||null,capital_allocations:[...document.querySelectorAll('#ctCapitalLines .ct-capital-line')].map(row=>({account_id:row.querySelector('select').value,amount:Number(row.querySelector('input').value)})),capital_authority_ref:$('ctCapitalAuthority')?.value.trim(),capital_authority_date:$('ctCapitalAuthorityDate')?.value,capital_reviewer:$('ctCapitalReviewer')?.value.trim(),capital_share_details:$('ctCapitalShares')?.value.trim(),capital_tax_status:$('ctCapitalTax')?.value,capital_authorised:capitalConfirmation('ctCapitalAuthorised'),capital_solvent:capitalConfirmation('ctCapitalSolvent'),capital_tax_reviewed:capitalConfirmation('ctCapitalReviewed'),capital_not_previously_posted:capitalConfirmation('ctCapitalNotPosted')}:{})};}
  async function saved(c,message){if(!active(c))return;c.busy=false;close();toast(message);c.onDone?.();window.dispatchEvent(new CustomEvent('frindly:cash-recorded'));await Promise.allSettled([window.Financials?.refresh?.(),window.Dashboard?.refresh?.()]);await taxHistory();}
  async function save(c){if(!active(c)||c.busy)return;const p=payload(c);if(!p.bank_id||c.kind==='transfer'&&(!p.to_bank_id||p.to_bank_id===p.bank_id))return error(c,new Error('Select the correct bank accounts.'));if($('ctGst')&&!$('ctGst').value)return error(c,new Error('Choose the grant’s GST treatment.'));if($('ctOwner')&&!['income_tax','income_tax_refund'].includes(p.purpose)&&!p.owner_id||p.taxpayer==='owner'&&!p.owner_id)return error(c,new Error('Select an owner/shareholder.'));
   if(['share_buyback','return_share_capital'].includes(p.purpose)){
@@ -194,6 +238,10 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
    if(p.capital_tax_status!=='no_additional_withholding')return error(c,new Error('Use the accountant workflow for withholding or a previously recorded payable.'));
    if(!p.owner_id||!p.capital_authorised||!p.capital_solvent||!p.capital_tax_reviewed||!p.capital_not_previously_posted)return error(c,new Error('Select the shareholder and confirm all authorisations.'));
    if(!p.capital_allocations.length||p.capital_allocations.some(x=>!x.account_id||!Number.isFinite(x.amount)||x.amount<=0)||p.capital_allocations.reduce((n,x)=>n+cents(x.amount),0)!==cents(p.amount))return error(c,new Error('Approved equity allocations must equal the bank payment.'));
+  }
+  if(p.purpose==='share_buyback'){
+   const warning=buybackBalanceMessage(c,true);
+   if(warning)return error(c,new Error(warning));
   }
   const duplicate=(c.data.transactions||[]).find(t=>t.status==='recorded'&&(t.purpose===p.purpose||['share_buyback','return_share_capital'].includes(t.purpose)&&['share_buyback','return_share_capital'].includes(p.purpose))&&cents(t.amount)===cents(p.amount)&&t.legs?.some(l=>l.bank_account_id===p.bank_id&&l.transaction_date===p.date));
   if(duplicate&&!c.duplicateAcknowledged){
@@ -271,8 +319,10 @@ if($('ctOtherAdvanced'))$('ctOtherAdvanced').onclick=()=>route(c,'advanced');
  async function reconcile(tx,onDone,preset={}){
   const c={bid:bid(),tx,onDone,busy:false};context=c;const token=++sequence;modal().classList.add('open');$('ctClose').disabled=false;$('ctContent').innerHTML='<p>Finding recorded transactions…</p><p id="ctError" role="alert" hidden></p>';
   try{const data=await snapshot();if(!active(c)||token!==sequence)return;const candidates=(data.transactions||[]).filter(t=>t.status==='recorded').flatMap(t=>(t.legs||[]).filter(l=>!l.matched&&l.bank_account_id===tx.bank_account_id&&cents(l.amount)===cents(tx.amount)).map(l=>({t,l}))).sort((a,b)=>Math.abs(Date.parse(a.l.transaction_date)-Date.parse(tx.transaction_date))-Math.abs(Date.parse(b.l.transaction_date)-Date.parse(tx.transaction_date)));
-   $('ctContent').innerHTML=`<h2>Other bank transaction</h2><p>${esc(tx.transaction_date)} · ${esc(money(tx.amount))}</p><p id="ctError" role="alert" hidden></p><h3>Match a recorded transaction</h3>${candidates.length?`<label>Recorded transaction<select id="ctExisting"><option value="">Select a transaction</option>${candidates.map(({t,l})=>`<option value="${esc(l.id)}">${esc(l.transaction_date)} · ${esc(t.description)} · ${esc(money(l.amount))}</option>`).join('')}</select></label><p class="hint" id="ctMatchDate">Matching uses the bank statement date, ${esc(tx.transaction_date)}. Any date correction is audited.</p><button class="primary" id="ctMatch">Match recorded transaction</button>`:'<p class="hint">No unmatched transaction has this bank, amount and direction.</p>'}<h3>Not recorded yet?</h3><p class="hint">For grants, interest, loans, owner funds and income tax. Check recorded transactions before creating another.</p><div class="actions"><button class="secondary" id="ctNew">Record ${tx.amount>0?'money in':'money out'} & match</button><button class="secondary" id="ctTransfer"><span aria-hidden="true">⇄</span> Transfer between accounts</button><button class="secondary" id="ctCancel">Cancel</button></div>`;
-   $('ctCancel').onclick=close;$('ctNew').onclick=()=>open(tx.amount>0?'in':'out',preset,tx,onDone);$('ctTransfer').onclick=()=>open('transfer',{},tx,onDone);
+   $('ctContent').innerHTML=`<h2>${preset.ownerEquity?'Owner / Equity':'Other bank transaction'}</h2><p>${esc(tx.transaction_date)} · ${esc(money(tx.amount))}</p><p id="ctError" role="alert" hidden></p><h3>Match a recorded transaction</h3>${candidates.length?`<label>Recorded transaction<select id="ctExisting"><option value="">Select a transaction</option>${candidates.map(({t,l})=>`<option value="${esc(l.id)}">${esc(l.transaction_date)} · ${esc(t.description)} · ${esc(money(l.amount))}</option>`).join('')}</select></label><p class="hint" id="ctMatchDate">Matching uses the bank statement date, ${esc(tx.transaction_date)}. Any date correction is audited.</p><button class="primary" id="ctMatch">Match recorded transaction</button>`:'<p class="hint">No unmatched transaction has this bank, amount and direction.</p>'}<h3>Not recorded yet?</h3><p class="hint">For grants, interest, loans, owner funds and income tax. Check recorded transactions before creating another.</p><div class="actions">${preset.ownerEquity&&tx.amount<0&&data.capital?.can_record?'<button type="button" class="secondary" id="ctBankBuyback">Share buyback</button>':''}<button class="secondary" id="ctNew">Record ${tx.amount>0?'money in':'money out'} & match</button><button class="secondary" id="ctTransfer"><span aria-hidden="true">⇄</span> Transfer between accounts</button><button class="secondary" id="ctCancel">Cancel</button></div>`;
+   $('ctCancel').onclick=close;
+   if($('ctBankBuyback'))$('ctBankBuyback').onclick=()=>open('out',{purpose:'share_buyback'},tx,onDone);
+   $('ctNew').onclick=()=>open(tx.amount>0?'in':'out',preset,tx,onDone);$('ctTransfer').onclick=()=>open('transfer',{},tx,onDone);
    if($('ctMatch'))$('ctMatch').onclick=async()=>{if(c.busy)return;const id=$('ctExisting').value;if(!id)return error(c,new Error('Select the recorded transaction.'));c.busy=true;$('ctMatch').disabled=true;try{await rpc('frindly_match_cash_transaction',{p_bank_transaction_id:tx.id,p_leg_id:id});await saved(c,'Transaction matched');}catch(e){error(c,e);}finally{c.busy=false;if($('ctMatch'))$('ctMatch').disabled=false;}};
   }catch(e){error(c,e);}
  }
