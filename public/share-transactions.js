@@ -20,13 +20,16 @@ function showInvestments(){
    ...receipts.map(h=>({date:h.received_on||'',id:h.id,type:'in',amount:Number(h.amount||0),description:'Share capital investment',detail:h.reference||h.description||'',shares:h.linked_share_transaction_id?'+'+h.allocated_shares:'Awaiting allocation',pending:!h.linked_share_transaction_id})),
    ...returns.map(h=>({date:h.paid_on||'',id:h.id,type:'out',amount:Number(h.amount||0),description:'Share buyback',detail:h.change_id?'Confirmed'+(h.completion_date?' · '+h.completion_date:''):'Share cancellation pending',shares:h.change_id?'-'+h.cancelled_shares:'Pending',pending:!h.change_id}))
   ].sort((a,b)=>a.date.localeCompare(b.date)||a.type.localeCompare(b.type)||a.id.localeCompare(b.id));
-  return '<details style="margin:10px 0" open><summary style="cursor:pointer;font-weight:600">'+esc(o.name)+' — Shareholder statement</summary>'+
+  return '<details style="margin:10px 0" open><summary style="cursor:pointer;font-weight:600">'+esc(o.name)+' — Investment & shareholding statement</summary>'+
    '<div style="display:flex;gap:24px;flex-wrap:wrap;margin:12px 0;padding:10px;background:#f7f9fc;border-radius:8px"><div><small>Total invested</small><div><strong>'+fmt(invested)+'</strong></div></div><div><small>Buybacks paid</small><div><strong>'+fmt(paid)+'</strong></div></div><div><small>Net capital movement</small><div><strong>'+fmt(invested-paid)+'</strong></div></div>'+(pending?'<div><small>Awaiting share allocation</small><div><strong>'+fmt(pending)+'</strong></div></div>':'')+'</div>'+
    '<p class="hint">Net capital movement is money received less buybacks paid, not the remaining accounting value of shares. The shareholder register above shows actual shares held.</p>'+
+   (data.can_write?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px"><button type="button" class="secondary" data-owner-cash data-owner-id="'+esc(o.id)+'" data-kind="in" data-purpose="capital_contribution">Record share investment</button><button type="button" class="secondary" data-owner-cash data-owner-id="'+esc(o.id)+'" data-kind="in" data-purpose="owner_funds_introduced">Record repayable funds</button><button type="button" class="secondary" data-owner-shares>Manage shares</button></div>':'')+
    '<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Date</th><th>Description</th><th style="text-align:right">Money in</th><th style="text-align:right">Money out</th><th>Shares</th><th>Action / status</th></tr></thead><tbody>'+
    (lines.length?lines.map(h=>'<tr><td style="white-space:nowrap">'+esc(h.date||'—')+'</td><td><strong>'+esc(h.description)+'</strong>'+(h.detail?'<div class="hint">'+esc(h.detail)+'</div>':'')+'</td><td style="text-align:right">'+(h.type==='in'?fmt(h.amount):'—')+'</td><td style="text-align:right">'+(h.type==='out'?fmt(h.amount):'—')+'</td><td style="white-space:nowrap">'+esc(h.shares)+'</td><td>'+(h.type==='in'?(h.pending?(data.can_write?'<button type="button" class="secondary" data-investment-id="'+esc(h.id)+'">Allocate shares</button>':'Awaiting allocation'):'Allocated'):(h.pending?'<button type="button" class="secondary" data-buyback-finalize="'+esc(h.id)+'">Complete cancellation</button>':'Confirmed'))+'</td></tr>').join(''):'<tr><td colspan="6">No investment or buyback transactions recorded.</td></tr>')+
    '</tbody></table></div></details>';
  }).join('');
+ p.querySelectorAll('[data-owner-cash]').forEach(b=>b.onclick=()=>openOwnerCash(b.dataset.ownerId,b.dataset.kind,b.dataset.purpose));
+ p.querySelectorAll('[data-owner-shares]').forEach(b=>b.onclick=()=>open());
  p.querySelectorAll('[data-investment-id]').forEach(b=>b.onclick=()=>open(b.dataset.investmentId));
  p.querySelectorAll('[data-buyback-finalize]').forEach(b=>b.onclick=()=>{const id=b.dataset.buybackFinalize;if(window.CashTransactions?.view)window.CashTransactions.view(id);else window.alert('Open Financials → Money In & Out and select this buyback payment to confirm its share cancellation.');});
 }
@@ -50,7 +53,33 @@ busy=true;el('shareTxSave').disabled=true;
 try{await rpc('frindly_record_share_transaction',{p_request_id:crypto.randomUUID(),p_payload:payload});data=await rpc('frindly_share_transactions_snapshot');render();window.Financials?.refresh?.();}catch(ex){err.textContent=ex.message;el('shareTxSave').disabled=false;}finally{busy=false;}
 };}
 async function open(receiptId){const m=modal();m.classList.add('open');el('shareTxBody').textContent='Loading share register…';try{data=await rpc('frindly_share_transactions_snapshot');render();if(receiptId){const c=(data.capital_receipts||[]).find(x=>x.id===receiptId);if(c){el('shareTxType').value='issue';el('shareTxType').dispatchEvent(new Event('change'));el('shareTxTo').value=c.owner_id;el('shareTxReceipt').value=c.id;el('shareTxAmount').value=Number(c.amount).toFixed(2);el('shareTxReference').value='Share allocation for capital receipt';el('shareTxShares').focus();}else el('shareTxError').textContent='Investment already allocated or unavailable.';}}catch(e){el('shareTxBody').textContent='Unable to load share transactions: '+e.message;}}
-function attach(){const register=el('finOwnerRegisterRows');if(!register||el('shareTxOpen'))return;const card=register.closest('.card');const title=card?.querySelector('.card-title');if(!title)return;const b=document.createElement('button');b.type='button';b.id='shareTxOpen';b.className='secondary';b.textContent='Share transactions';b.onclick=()=>open();title.append(b);rpc('frindly_share_transactions_snapshot').then(v=>{data=v;showInvestments()}).catch(()=>{});}
+function enhanceOwnerPage(){
+ const register=el('finOwnerRegisterRows'),add=el('finOwnerAdd'),card=add?.closest('.fin-owner-add-card');
+ if(!register||!add||!card)return;
+ if(!el('finOwnerAddToggle')){
+  const header=card.querySelector('.card-title');
+  if(header){
+   const title=header.querySelector('h3');if(title)title.textContent='Add a person';
+   const note=header.querySelector('p');if(note)note.textContent='Register a director, shareholder or owner first. Money and shares can be linked afterwards.';
+   const toggle=document.createElement('button');toggle.id='finOwnerAddToggle';toggle.type='button';toggle.className='secondary';toggle.textContent='+ Add person';toggle.setAttribute('aria-expanded','false');
+   header.style.display='flex';header.style.justifyContent='space-between';header.style.alignItems='center';header.style.gap='12px';header.append(toggle);
+   const fields=card.querySelector('.fin-owner-add-grid');if(fields){fields.hidden=true;toggle.onclick=()=>{fields.hidden=!fields.hidden;toggle.setAttribute('aria-expanded',String(!fields.hidden));toggle.textContent=fields.hidden?'+ Add person':'Hide form';if(!fields.hidden)el('finOwnerName')?.focus();};}
+   add.textContent='Save person';
+  }
+ }
+ if(!el('finOwnerQuickHelp')){
+  const help=document.createElement('p');help.id='finOwnerQuickHelp';help.className='hint';help.textContent='Adding a person does not move money or issue shares. After saving, use their profile to record or link investments and manage shareholding.';card.append(help);
+ }
+ const registerCard=register.closest('.card');
+ if(registerCard&&!el('finOwnerProfileHelp')){
+  const hint=document.createElement('p');hint.id='finOwnerProfileHelp';hint.className='hint';hint.textContent='Select a person below to review their investment statement or record a linked transaction.';registerCard.querySelector('.card-title')?.append(hint);
+ }
+}
+function openOwnerCash(ownerId,kind,purpose){
+ if(!window.CashTransactions?.open){window.alert('Open Financials → Money In & Out to record this transaction.');return;}
+ window.CashTransactions.open(kind,{purpose,owner_id:ownerId});
+}
+function attach(){const register=el('finOwnerRegisterRows');if(!register)return;enhanceOwnerPage();if(el('shareTxOpen'))return;const card=register.closest('.card');const title=card?.querySelector('.card-title');if(!title)return;const b=document.createElement('button');b.type='button';b.id='shareTxOpen';b.className='secondary';b.textContent='Share transactions';b.onclick=()=>open();title.append(b);rpc('frindly_share_transactions_snapshot').then(v=>{data=v;showInvestments()}).catch(()=>{});}
 window.FrindlyShareTransactions={refresh:async()=>{if(!el('finOwnerRegisterRows'))return;data=await rpc('frindly_share_transactions_snapshot');showInvestments();}};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',attach);else attach();
 })();
