@@ -8344,15 +8344,15 @@ html body #view-expenses .expense-simple-filters > .csv-download-action{
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
-  gap:9px!important;
-  min-height:42px!important;
-  height:42px!important;
-  padding:0 18px!important;
+  gap:7px!important;
+  min-height:40px!important;
+  height:40px!important;
+  padding:0 12px!important;
   border:0!important;
-  border-radius:12px!important;
+  border-radius:10px!important;
   background:#1558b8!important;
   color:#fff!important;
-  font-size:13px!important;
+  font-size:12px!important;
   font-weight:700!important;
   line-height:1!important;
   white-space:nowrap!important;
@@ -8361,13 +8361,13 @@ html body #view-expenses .expense-simple-filters > .csv-download-action{
   grid-column:auto!important;
   grid-row:auto!important;
   align-self:end!important;
-  justify-self:stretch!important;
+  justify-self:start!important;
 }
 html body #view-invoices .csv-download-action .csv-download-icon,
 html body #view-expenses .csv-download-action .csv-download-icon{
   display:inline-flex;align-items:center;justify-content:center;
-  width:20px;height:20px;flex:0 0 20px;
-  font-size:24px;line-height:1;color:#fff;
+  width:18px;height:18px;flex:0 0 18px;
+  stroke:currentColor;color:#fff;
 }
 html body #view-invoices .csv-download-action:hover,
 html body #view-expenses .csv-download-action:hover{background:#104a9c!important}
@@ -8389,7 +8389,7 @@ html body #view-expenses .csv-download-action:focus-visible{
   }
   html body #view-invoices .csv-download-action .csv-download-icon,
   html body #view-expenses .csv-download-action .csv-download-icon{
-    width:15px;height:15px;flex-basis:15px;font-size:19px;
+    width:16px;height:16px;flex-basis:16px;
   }
 }
 @media(max-width:460px){
@@ -8404,5 +8404,13 @@ html body #view-expenses .csv-download-action:focus-visible{
   html body #view-invoices .invoice-list-filters > .csv-download-action,
   html body #view-expenses .expense-simple-filters > .csv-download-action{
     grid-column:2!important;grid-row:auto!important;
+  }
+}
+
+/* Match the adjacent Reset control's height, without changing its click behaviour. */
+@media(min-width:761px){
+  html body #view-invoices .invoice-list-filters > #resetFilters,
+  html body #view-expenses .expense-simple-filters > #expenseResetFilters{
+    height:40px!important;min-height:40px!important;
   }
 }
