@@ -8309,3 +8309,27 @@ body:has(#seFormModal){overflow:hidden}
   height:auto;
   line-height:1;
 }
+
+/* Bills & Expenses: four summary cards, two columns on narrow screens. */
+html body #view-expenses .expense-bills-summary{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+@media(max-width:760px){
+  html body #view-expenses .expense-bills-summary{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric{
+    min-height:82px!important;
+    padding:10px 6px!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric span{
+    font-size:10px!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric strong{
+    font-size:clamp(13px,3.8vw,18px)!important;
+  }
+  html body #view-expenses .expense-bills-summary .metric small{
+    font-size:10px!important;
+  }
+}
