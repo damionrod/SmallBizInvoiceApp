@@ -8296,3 +8296,16 @@ body:has(#seFormModal){overflow:hidden}
   html body #expense-panel-add #expCreateSupplier,
   html body #expense-panel-add #expCreateCategory{width:100%!important}
 }
+
+/* Invoice item product picker: centre the dropdown chevron within its existing input. */
+#view-create .item-row .product-picker > .product-picker-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  margin:0;
+  box-sizing:border-box;
+  min-height:0;
+  height:auto;
+  line-height:1;
+}
