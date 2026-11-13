@@ -8333,3 +8333,76 @@ html body #view-expenses .expense-bills-summary{
     font-size:10px!important;
   }
 }
+
+/* Invoice and expense list CSV actions: shared download appearance and filter-row placement. */
+html body #view-invoices .invoice-list-filters,
+html body #view-expenses .expense-simple-filters{
+  grid-template-columns:minmax(130px,.8fr) minmax(145px,.85fr) minmax(145px,.85fr) minmax(145px,.8fr) minmax(220px,1.7fr) auto auto!important;
+}
+html body #view-invoices .invoice-list-filters > .csv-download-action,
+html body #view-expenses .expense-simple-filters > .csv-download-action{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:9px!important;
+  min-height:42px!important;
+  height:42px!important;
+  padding:0 18px!important;
+  border:0!important;
+  border-radius:12px!important;
+  background:#1558b8!important;
+  color:#fff!important;
+  font-size:13px!important;
+  font-weight:700!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+  grid-column:auto!important;
+  grid-row:auto!important;
+  align-self:end!important;
+  justify-self:stretch!important;
+}
+html body #view-invoices .csv-download-action .csv-download-icon,
+html body #view-expenses .csv-download-action .csv-download-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;flex:0 0 20px;
+  font-size:24px;line-height:1;color:#fff;
+}
+html body #view-invoices .csv-download-action:hover,
+html body #view-expenses .csv-download-action:hover{background:#104a9c!important}
+html body #view-invoices .csv-download-action:focus-visible,
+html body #view-expenses .csv-download-action:focus-visible{
+  outline:3px solid #8ebaff!important;outline-offset:2px!important;
+}
+@media(max-width:760px){
+  html body #view-invoices .invoice-list-filters,
+  html body #view-expenses .expense-simple-filters{
+    grid-template-columns:minmax(90px,.8fr) minmax(0,1.6fr) auto auto!important;
+  }
+  html body #view-invoices .invoice-list-filters > .csv-download-action,
+  html body #view-expenses .expense-simple-filters > .csv-download-action{
+    width:auto!important;min-width:0!important;
+    min-height:38px!important;height:38px!important;
+    padding:0 10px!important;border-radius:9px!important;
+    font-size:11px!important;
+  }
+  html body #view-invoices .csv-download-action .csv-download-icon,
+  html body #view-expenses .csv-download-action .csv-download-icon{
+    width:15px;height:15px;flex-basis:15px;font-size:19px;
+  }
+}
+@media(max-width:460px){
+  html body #view-invoices .invoice-list-filters,
+  html body #view-expenses .expense-simple-filters{
+    grid-template-columns:minmax(85px,1fr) minmax(0,1.5fr)!important;
+  }
+  html body #view-invoices .invoice-list-filters > #resetFilters,
+  html body #view-expenses .expense-simple-filters > #expenseResetFilters{
+    grid-column:1!important;grid-row:auto!important;
+  }
+  html body #view-invoices .invoice-list-filters > .csv-download-action,
+  html body #view-expenses .expense-simple-filters > .csv-download-action{
+    grid-column:2!important;grid-row:auto!important;
+  }
+}
