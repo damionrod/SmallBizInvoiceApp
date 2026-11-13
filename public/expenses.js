@@ -32,7 +32,8 @@
     from.innerHTML='<option value="">Select who paid</option>'
       +banks.map(b=>`<option value="bank:${esc(b.id)}">${esc(b.name)} — Business bank account</option>`).join('')
       +owners.flatMap(o=>[`<option value="owner-repayable:${esc(o.id)}">${esc(o.display_name)} — Repayable loan</option>`,`<option value="owner-capital:${esc(o.id)}">${esc(o.display_name)} — Capital contribution</option>`]).join('');
-    from.value=[...from.options].some(o=>o.value===selected)?selected:'';
+    const defaultBank=banks.find(b=>b.is_default)||banks[0];
+    from.value=[...from.options].some(o=>o.value===selected&&selected)?selected:(defaultBank?'bank:'+defaultBank.id:'');
     if(help){const capital=from.value.startsWith('owner-capital:'),repayable=from.value.startsWith('owner-repayable:');help.textContent=capital?'A non-repayable equity contribution; no shares issued automatically and no bank receipt created.':repayable?'Recorded in the selected person’s repayable current account; no business-bank transaction created.':'';help.hidden=!(capital||repayable);}
   }
   function statusOf(e){if(isVoidedExpense(e))return 'voided';if(e.payment_status==='draft')return 'draft';const remaining=supplierCreditAdjustedOutstanding(e),payments=(e.expense_payments||[]).reduce((a,p)=>a+num(p.amount),0);if(remaining<=0.005)return 'paid';if(e.due_date&&e.due_date<today())return 'overdue';if(payments>0.005)return 'part_paid';return 'unpaid'}
@@ -63,7 +64,7 @@
       sb.from('job_costings').select('id,costing_number,job_description,customer_name,costing_date').eq('business_id',business()?.id).order('created_at',{ascending:false}).limit(250),
       sb.from('business_owners').select('id,display_name,status,is_shareholder,is_director,owner_type').eq('business_id',business()?.id).eq('status','active').order('display_name'),
       sb.from('financial_settings').select('financial_year_start_month,financial_year_start_day').eq('business_id',business()?.id).maybeSingle(),
-      sb.from('bank_accounts').select('id,name,accounting_account_id').eq('business_id',business()?.id).eq('archived',false).order('name')
+      sb.from('bank_accounts').select('id,name,accounting_account_id,is_default').eq('business_id',business()?.id).eq('archived',false).order('name')
     ]);
     if(cats.error)throw cats.error;if(sups.error)throw sups.error;if(jobs.error)console.warn(jobs.error);if(owners.error)console.warn('Owner/shareholder register unavailable:',owners.error.message);if(financialSettings.error)console.warn('Financial year settings unavailable:',financialSettings.error.message);
     state.categories=cats.data||[];state.suppliers=sups.data||[];state.jobs=jobs.data||[];state.owners=owners.data||[];state.fundingBanks=fundingBanks.error?[]:(fundingBanks.data||[]);if(fundingBanks.error)console.warn('Expense funding bank accounts unavailable:',fundingBanks.error.message);state.financialYearStart={month:Math.max(1,Math.min(12,num(financialSettings.data?.financial_year_start_month)||4)),day:Math.max(1,Math.min(28,num(financialSettings.data?.financial_year_start_day)||1))};
