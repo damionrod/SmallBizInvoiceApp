@@ -4106,8 +4106,15 @@ button[aria-busy="true"]::after{content:"";width:14px;height:14px;margin-left:8p
   #view-create .items-header{display:none!important}
   #view-create .item-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;padding:11px!important;margin-bottom:9px!important;border:1px solid var(--fr-border,#d8e0e5)!important;border-radius:12px!important;background:#fff!important}
   #view-create .item-row .desc-wrap{grid-column:1/-1!important}
-  #view-create .item-row .line-total{grid-column:1!important;align-self:center!important;padding:8px 2px!important}
-  #view-create .item-row .remove{grid-column:2!important;width:100%!important;min-height:44px!important}
+  #view-create .item-row .line-total{grid-column:1!important;grid-row:3!important;align-self:center!important;padding:8px 2px!important}
+  #view-create .item-row .remove{
+    position:static!important;
+    grid-column:2!important;
+    grid-row:3!important;
+    justify-self:end;
+    width:44px!important;
+    min-height:44px!important;
+  }
   #view-create .invoice-options-grid,#view-create .totals-wrap{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
   #view-create>.actions{position:sticky!important;bottom:calc(6px + env(safe-area-inset-bottom))!important;z-index:20!important;background:rgba(255,255,255,.96)!important;border:1px solid #e1e8ed!important;border-radius:12px!important;padding:8px!important;box-shadow:0 8px 24px rgba(14,42,60,.12)!important}
 
@@ -4136,8 +4143,6 @@ button[aria-busy="true"]::after{content:"";width:14px;height:14px;margin-left:8p
 @media (max-width:390px){
   #view-schedule .schedule-toolbar{grid-template-columns:1fr!important}
   #view-schedule .schedule-toolbar>select{grid-column:1!important}
-  #view-create .item-row{grid-template-columns:1fr!important}
-  #view-create .item-row .desc-wrap,#view-create .item-row .line-total,#view-create .item-row .remove{grid-column:1!important}
   #payrollRunModal .payrun-footer-actions{grid-template-columns:1fr 1fr!important}
 }
 
