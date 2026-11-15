@@ -105,12 +105,13 @@ Deno.serve(async (req) => {
         const { data: paymentSettings } = await admin.from('invoice_payment_settings').select('stripe_account_id,connect_status').eq('business_id', owned.business_id).maybeSingle();
         const balance = Number(currentInvoice.balance_due ?? currentInvoice.total ?? 0);
         if (paymentSettings?.stripe_account_id && paymentSettings.connect_status === 'active' && balance > 0.005) {
+          const origin = appOrigin();
           const token = createOpaqueToken();
           const tokenHash = await hashOpaqueToken(token);
           await admin.from('invoice_payment_links').update({ active: false, updated_at: new Date().toISOString() }).eq('business_id', owned.business_id).eq('invoice_id', owned.id).eq('active', true);
           const { error: linkError } = await admin.from('invoice_payment_links').insert({ business_id: owned.business_id, invoice_id: owned.id, token_hash: tokenHash, active: true });
           if (linkError) throw linkError;
-          paymentUrl = `${appOrigin(req)}/pay.html?token=${encodeURIComponent(token)}`;
+          paymentUrl = `${origin}/pay.html?token=${encodeURIComponent(token)}`;
         }
       }
     } catch (paymentLinkError) {

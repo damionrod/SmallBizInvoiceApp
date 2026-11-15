@@ -50,8 +50,12 @@ const daysBetween = (from: string, to: string) => {
   return Math.floor((b - a) / 86400000);
 };
 
+const secureEqual = (a: string, b: string) => { const x = new TextEncoder().encode(a); const y = new TextEncoder().encode(b); let diff = x.length ^ y.length; for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0); return diff === 0; };
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
+  if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
+  const expected = Deno.env.get("INVOICE_REMINDER_WORKER_SECRET") || "";
+  const provided = req.headers.get("x-frindly-worker-secret") || "";
+  if (expected.length < 32 || !provided || !secureEqual(expected, provided)) return json(req, { error: "Unauthorized" }, 401);
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -106,12 +110,13 @@ Deno.serve(async (req) => {
           if (!enabledError && enabled === true) {
             const { data: paymentSettings } = await admin.from("invoice_payment_settings").select("stripe_account_id,connect_status").eq("business_id", job.business_id).maybeSingle();
             if (paymentSettings?.stripe_account_id && paymentSettings.connect_status === "active" && Number(job.balance_due || 0) > 0.005) {
+              const origin = appOrigin();
               const token = createOpaqueToken();
               const tokenHash = await hashOpaqueToken(token);
               await admin.from("invoice_payment_links").update({ active: false, updated_at: new Date().toISOString() }).eq("business_id", job.business_id).eq("invoice_id", job.invoice_id).eq("active", true);
               const { error: linkError } = await admin.from("invoice_payment_links").insert({ business_id: job.business_id, invoice_id: job.invoice_id, token_hash: tokenHash, active: true });
               if (linkError) throw linkError;
-              paymentUrl = `${appOrigin(req)}/pay.html?token=${encodeURIComponent(token)}`;
+              paymentUrl = `${origin}/pay.html?token=${encodeURIComponent(token)}`;
             }
           }
         } catch (paymentLinkError) {

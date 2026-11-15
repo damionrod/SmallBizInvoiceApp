@@ -26,19 +26,13 @@ export function calculateCustomerFee(amount: number, settings: any): number {
   return roundCents(mode === 'split' ? grossedUp / 2 : grossedUp);
 }
 
-export function appOrigin(req: Request, requested?: unknown): string {
-  const configured = String(Deno.env.get('PUBLIC_APP_URL') || '').trim();
-  const candidate = String(requested || req.headers.get('origin') || configured || 'https://frindly.co.nz').trim();
-  try {
-    const url = new URL(candidate);
-    if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Unsupported app URL protocol');
-    url.pathname = '';
-    url.search = '';
-    url.hash = '';
-    return url.toString().replace(/\/$/, '');
-  } catch {
-    return configured || 'https://frindly.co.nz';
+export function appOrigin(): string {
+  const configured = Deno.env.get('PUBLIC_APP_URL')?.trim() || 'https://frindly.co.nz';
+  const url = new URL(configured);
+  if (url.protocol !== 'https:' || url.username || url.password) {
+    throw new Error('PUBLIC_APP_URL must be an HTTPS URL without credentials.');
   }
+  return url.origin;
 }
 
 export function createOpaqueToken(): string {

@@ -220,12 +220,12 @@ async function createConnectAccount(ctx: Context, req: Request) {
   return paymentJson({ success: true, account_id: account.id, settings: status, account });
 }
 
-async function createAccountLink(ctx: Context, req: Request) {
+async function createAccountLink(ctx: Context) {
   await requireEnabled(ctx.admin, ctx.businessId);
   const cfg = await getStripeConfig(ctx.admin, true);
   const settings = await getSettings(ctx.admin, ctx.businessId);
   if (!settings.stripe_account_id) throw new Error('Start Stripe setup before opening onboarding.');
-  const origin = appOrigin(req);
+  const origin = appOrigin();
   const returnUrl = `${origin}/?connect=return#settings/payments`;
   const refreshUrl = `${origin}/?connect=refresh#settings/payments`;
   const response = await fetch('https://api.stripe.com/v2/core/account_links', {
@@ -311,7 +311,7 @@ async function details(admin: any, payload: any) {
   });
 }
 
-async function checkout(admin: any, payload: any, req: Request) {
+async function checkout(admin: any, payload: any) {
   const token = String(payload?.token || '').trim();
   if (!token) return bad('Payment token is required.', 400);
   const record = await loadPublicPayment(admin, token);
@@ -331,6 +331,7 @@ async function checkout(admin: any, payload: any, req: Request) {
   if (amount > record.balance + 0.005) return bad(`The maximum payment for this invoice is ${record.balance.toFixed(2)}.`, 400);
 
   const fee = calculateCustomerFee(amount, record.settings);
+  const origin = appOrigin();
   const gross = roundCents(amount + fee);
   const currency = record.currency;
   const { data: transaction, error: transactionError } = await admin.from('invoice_payment_transactions').insert({
@@ -362,7 +363,6 @@ async function checkout(admin: any, payload: any, req: Request) {
   }
   if (record.invoice.customer_email) form.set('customer_email', String(record.invoice.customer_email));
   form.set('billing_address_collection', 'auto');
-  const origin = appOrigin(req);
   form.set('success_url', `${origin}/pay.html?token=${encodeURIComponent(token)}&status=success&session_id={CHECKOUT_SESSION_ID}`);
   form.set('cancel_url', `${origin}/pay.html?token=${encodeURIComponent(token)}&status=cancelled`);
   form.set('client_reference_id', record.invoice.id);
@@ -411,7 +411,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'checkout') {
       await enforceRateLimit(admin, 'invoice-payments:checkout', String(payload?.token || clientIp(req)), 20, 3600);
-      return await checkout(admin, payload, req);
+      return await checkout(admin, payload);
     }
 
     const ctx = await contextFor(req, action !== 'status');
@@ -420,7 +420,7 @@ Deno.serve(async (req) => {
     if (action === 'get-settings') return paymentJson({ settings: await getSettings(ctx.admin, ctx.businessId) });
     if (action === 'save-settings') return await saveSettings(ctx, payload);
     if (action === 'create-account') return await createConnectAccount(ctx, req);
-    if (action === 'create-account-link') return await createAccountLink(ctx, req);
+    if (action === 'create-account-link') return await createAccountLink(ctx);
     if (action === 'status') return await refreshStatus(ctx);
     return bad('Unknown invoice payment action.', 400);
   } catch (error) {
