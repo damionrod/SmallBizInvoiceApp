@@ -4,3 +4,6 @@ __pycache__/
 *.py[cod]
 playwright-report/
 test-results/
+
+# Private database backups and production inventory outputs.
+/backup/
