@@ -810,7 +810,7 @@ async function exportCustomers(){const arr=await allCustomers(),headers=['custom
 function parseCsv(text){return window.FinloCore.csv.parseCsv(text)}
 async function importCustomersFile(file){const rows=parseCsv(await file.text());if(rows.length<2)return toast('CSV has no customer rows');const headers=rows[0].map(x=>x.trim().toLowerCase()),ix=n=>headers.indexOf(n),existing=await allCustomers(),group={};for(const r of rows.slice(1)){const name=r[ix('customer_name')]||r[ix('name')]||'';if(!name.trim())continue;const no=r[ix('customer_number')]||'',key=no||name.trim().toLowerCase();if(!group[key])group[key]={customer_number:no||customerNo(existing),customer_type:r[ix('customer_type')]||'individual',category:r[ix('category')]||'',name,address:r[ix('address')]||'',dob:r[ix('customer_dob')]||'',contacts:[],custom_fields:[]};const email=r[ix('email')]||'',cn=r[ix('contact_name')]||'';if(cn||email||r[ix('phone')]||r[ix('mobile')])group[key].contacts.push({id:makeLocalId(),name:cn,designation:r[ix('designation')]||'',phone:r[ix('phone')]||'',mobile:r[ix('mobile')]||'',email,dob:r[ix('contact_dob')]||'',billing:/^(yes|true|1)$/i.test(r[ix('billing_contact')]||'')});const custom=r[ix('custom_fields')];if(custom){try{group[key].custom_fields=JSON.parse(custom)}catch{}}}let count=0;for(const c of Object.values(group)){const old=existing.find(x=>(c.customer_number&&x.customer_number===c.customer_number)||x.name.toLowerCase()===c.name.toLowerCase());if(old){c.id=old.id;if(!c.contacts.length)c.contacts=old.contacts;await persistCustomer(c,true)}else await persistCustomer(c,false);count++}await renderCustomers();toast(`${count} customer record${count===1?'':'s'} imported/updated`)}
 // Extend edit-invoice customer restoration without changing legacy invoice behavior.
-const _loadForEditV10=loadForEdit;loadForEdit=async function(inv){await _loadForEditV10(inv);selectedCustomerId=inv.customer_id||null;if($('invoiceCustomerCategory'))$('invoiceCustomerCategory').value=inv.customer_category||'';if($('invoiceBillingContact'))$('invoiceBillingContact').value=inv.customer_contact_name||'';if($('invoiceCustomerPhone'))$('invoiceCustomerPhone').value=inv.customer_phone||'';if($('invoiceCustomerMobile'))$('invoiceCustomerMobile').value=inv.customer_mobile||'';if($('invoiceAutoReminderPolicy'))$('invoiceAutoReminderPolicy').value=inv.auto_reminder_policy||'default';if(inv.customer_id)allCustomers().then(a=>{const c=a.find(x=>String(x.id)===String(inv.customer_id));if(c&&$('selectedCustomerHint'))$('selectedCustomerHint').textContent=`${c.customer_number} · Linked customer`});const wrap=$('directStageBilling'),panel=$('directStagePanel'),agreed=$('directAgreedAmount'),pct=$('directStagePercent');if(wrap)wrap.hidden=!!sourceQuoteId;if(panel)panel.hidden=true;if(!sourceQuoteId&&billingSeriesId&&num(quoteOriginalExGst)>0){if(wrap)wrap.hidden=false;if(panel)panel.hidden=false;if(agreed){agreed.value=num(quoteOriginalExGst).toFixed(2);agreed.disabled=true}if(pct){pct.value=(num(quoteBillingExGst??calcTotals().subtotal)/num(quoteOriginalExGst)*100).toFixed(2)}directStagePreview()}else{if(agreed){agreed.disabled=false;agreed.value=''}if(pct)pct.value='30'}}
+const _loadForEditV10=loadForEdit;loadForEdit=async function(inv){await _loadForEditV10(inv);selectedCustomerId=inv.customer_id||null;if($('invoiceCustomerCategory'))$('invoiceCustomerCategory').value=inv.customer_category||'';if($('invoiceBillingContact'))$('invoiceBillingContact').value=inv.customer_contact_name||'';if($('invoiceCustomerPhone'))$('invoiceCustomerPhone').value=inv.customer_phone||'';if($('invoiceCustomerMobile'))$('invoiceCustomerMobile').value=inv.customer_mobile||'';if($('invoiceAutoReminderPolicy'))$('invoiceAutoReminderPolicy').value=inv.auto_reminder_policy||'default';if(inv.customer_id)allCustomers().then(a=>{const c=a.find(x=>String(x.id)===String(inv.customer_id));if(c&&$('selectedCustomerHint'))$('selectedCustomerHint').textContent=`${c.customer_number} · Linked customer`});const wrap=$('directStageBilling'),panel=$('directStagePanel'),agreed=$('directAgreedAmount'),pct=$('directStagePercent');if(wrap)wrap.hidden=!!sourceQuoteId&&!(num(quoteOriginalExGst)>0);if(panel)panel.hidden=true;if(!sourceQuoteId&&billingSeriesId&&num(quoteOriginalExGst)>0){if(wrap)wrap.hidden=false;if(panel)panel.hidden=false;if(agreed){agreed.value=num(quoteOriginalExGst).toFixed(2);agreed.disabled=true}if(pct){pct.value=(num(quoteBillingExGst??calcTotals().subtotal)/num(quoteOriginalExGst)*100).toFixed(2)}directStagePreview()}else{if(agreed){agreed.disabled=false;agreed.value=''}if(pct)pct.value='30'}}
 // Invoice emails prefer the currently selected customer's billing contact.
 async function preferredInvoiceEmail(fallback){if(selectedCustomerId){const c=(await allCustomers()).find(x=>String(x.id)===String(selectedCustomerId));return billingContact(c)?.email||fallback}return fallback}
 $('customerName').addEventListener('change',e=>selectCustomerByName(e.target.value));$('customerName').addEventListener('blur',e=>setTimeout(()=>selectCustomerByName(e.target.value),80));
@@ -825,15 +825,59 @@ function directStagePreview(){
   const agreed=Math.max(0,num($('directAgreedAmount')?.value)),pct=Math.max(0,Math.min(100,num($('directStagePercent')?.value))),now=agreed*pct/100;
   $('directStageSummary').innerHTML=`<span>Agreed amount <strong>${money(agreed)}</strong></span><span>This invoice <strong>${money(now)}</strong></span><span>Remaining <strong>${money(Math.max(0,agreed-now))}</strong></span>`;
 }
-function scaleCurrentInvoiceTo(target){
+function scaleCurrentInvoiceTo(target, refresh=true){
   const current=calcTotals().subtotal;if(!(current>0)||!(target>0))return false;
-  const ratio=target/current;items=items.map(x=>({...x,unit_price:num(x.unit_price)*ratio}));renderItems();recalc();return true;
+  const ratio=target/current;items=items.map(x=>({...x,unit_price:num(x.unit_price)*ratio}));if(refresh){renderItems();recalc()}return true;
 }
 function clearDirectStageState(){billingSeriesId=null;if(!sourceQuoteId){quoteBillingType=null;quoteStageLabel='';quoteBillingExGst=null;quoteOriginalExGst=null;quotePreviouslyInvoicedExGst=null;quoteRemainingExGst=null}}
+function openQuoteDraftBillingOptions(){
+  const quoteId=sourceQuoteId, invoiceId=currentId;
+  const businessId=window.SAAS?.state?.business?.id, invoiceNumber=$('invoiceNumber').value;
+  return window.JobCosting?.openQuoteInvoiceOptions?.(quoteId,{
+    invoiceId,
+    onApply(q,options,balance){
+      if(sourceQuoteId!==quoteId||currentId!==invoiceId||
+         window.SAAS?.state?.business?.id!==businessId||$('invoiceNumber').value!==invoiceNumber){
+        invoiceError('The invoice draft changed. Open invoice options again.');
+        return false;
+      }
+      const {total:agreed,invoiced,remaining}=balance;
+      const requested=options.mode==='remaining'?remaining:options.mode==='progress_amount'?
+        num(options.amount):agreed*num(options.percent)/100;
+      const amount=Math.round((requested+Number.EPSILON)*100)/100;
+      if(!(amount>0)||amount>remaining+0.005){
+        invoiceError('Enter an amount up to the remaining quote balance.');
+        return false;
+      }
+      const previousLabel=quoteStageLabel;
+      const fullBalance=Math.abs(amount-remaining)<0.005;
+      const type=fullBalance?(invoiced<=0.005?'full':'final'):options.mode==='advance'?'advance':'progress';
+      const label={full:'Full invoice',final:'Final balance',advance:'Advance payment',progress:'Progress invoice'}[type];
+      if(!scaleCurrentInvoiceTo(amount,false)){
+        invoiceError('Add invoice items before applying part invoicing.');
+        return false;
+      }
+      quoteBillingType=type;
+      quoteStageLabel=label;
+      quoteBillingExGst=amount;
+      quoteOriginalExGst=agreed;
+      quotePreviouslyInvoicedExGst=invoiced;
+      quoteRemainingExGst=Math.max(0,remaining-amount);
+      if(q.quote_number){
+        const reference=$('reference');
+        if(reference.value===`Quote ${q.quote_number} · ${previousLabel}`)reference.value=`Quote ${q.quote_number} · ${label}`;
+        if(items[0]?.custom===`${previousLabel} · Quote ${q.quote_number}`)items[0].custom=`${label} · Quote ${q.quote_number}`;
+      }
+      renderItems();recalc();
+      toast(`${label} selected. Review the draft before saving or sending.`);
+      return true;
+    }
+  });
+}
 function bindDirectStageBilling(){
   const wrap=$('directStageBilling'),panel=$('directStagePanel');if(!wrap||!panel)return;
   $('directStageToggle').onclick=()=>{
-    if(sourceQuoteId)return;
+    if(sourceQuoteId)return openQuoteDraftBillingOptions();
     panel.hidden=!panel.hidden;
     if(panel.hidden)return;
     const current=calcTotals().subtotal;if(billingSeriesId&&num(quoteOriginalExGst)>0){$('directAgreedAmount').value=num(quoteOriginalExGst).toFixed(2);$('directAgreedAmount').disabled=true;if(!$('directStagePercent').value)$('directStagePercent').value=(num(quoteBillingExGst??current)/num(quoteOriginalExGst)*100).toFixed(2)}else{ $('directAgreedAmount').disabled=false;if(!$('directAgreedAmount').value&&current>0)$('directAgreedAmount').value=current.toFixed(2)}directStagePreview();
@@ -897,6 +941,7 @@ window.prefillInvoiceFromQuote=async function(q,options={}){
     items=[{description,custom:q?.quote_number?`${quoteStageLabel} · Quote ${q.quote_number}`:'',qty:1,unit_price:billEx}];
   }
   $('reference').value=q?.quote_number?`Quote ${q.quote_number} · ${quoteStageLabel}`:'';
+  if($('directStageBilling'))$('directStageBilling').hidden=!(sourceQuoteId&&original>0);
   renderItems();recalc();switchView('create');
   toast(`${quoteStageLabel} loaded into a new invoice. Review it, then save or email the invoice.`);
 };
