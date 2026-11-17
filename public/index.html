@@ -276,6 +276,11 @@ document.addEventListener('DOMContentLoaded',()=>{
             <label>Total agreed amount (ex GST)<input id="directAgreedAmount" type="number" min="0.01" step="0.01" inputmode="decimal"></label>
             <label>Invoice now (%)<input id="directStagePercent" type="number" min="0.01" max="100" step="0.01" inputmode="decimal" value="30"></label>
           </div>
+          <div id="quoteStageInputs" hidden>
+            <div class="direct-stage-grid"><label>Or amount (ex GST)<input id="quoteStageAmount" type="number" min="0.01" step="0.01" inputmode="decimal"></label></div>
+            <div class="row-actions"><button type="button" class="secondary" id="quoteStageAdvance" hidden></button></div>
+            <p class="hint" id="quoteStageNote" aria-live="polite"></p>
+          </div>
           <div class="direct-stage-summary" id="directStageSummary"></div>
           <div class="row-actions direct-stage-actions"><button type="button" class="secondary" id="directStageCancel">Keep full invoice</button><button type="button" class="primary" id="directStageApply">Apply part invoice</button></div>
         </div>
@@ -1325,7 +1330,7 @@ Please find attached quote {quoteNumber}."></textarea></label>
   <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="share-transactions.js?v=20261113-direct-capital-share-issue"></script>
   <script src="referrals.js?v=61.102L-login-reliability"></script>
-  <script src="saas.js?v=20261118-quote-part"></script>
+  <script src="saas.js?v=20261118-quote-inline"></script>
   <script src="stock-equipment.js?v=20261117-stock-csv"></script>
   <script src="onboarding.js?v=61.115-onboarding-simplified"></script>
   <script src="finlo-helper.js?v=61.107ABA-helper-fab-safe"></script>

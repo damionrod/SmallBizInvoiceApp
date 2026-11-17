@@ -11,6 +11,7 @@ function context(){
   addItem:()=>{},updateTaxLabels:()=>{},recalc:()=>{},refreshCustomerPickers:()=>{},renderItems:()=>{},switchView:()=>{},toast:()=>{},
   num:Number,isIssuedInvoice:()=>false};
  vm.createContext(c);
+ vm.runInContext(body('function resetQuoteStageControls(){','function directStagePreview(){'),c);
  vm.runInContext(body('async function newInvoice(){','function addItem('),c);
  vm.runInContext(body('async function loadForEdit(x){','let lastInvoiceView='),c);
  return {c,$};

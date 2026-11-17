@@ -92,7 +92,7 @@ function updateTaxLabels(){const tx=taxConfig(),au=isAuInvoiceBusiness(),rate=au
 function invoiceDraftData(){return{selectedCustomerId,sourceQuoteId,sourceJobCostingId,fields:Object.fromEntries(['invoiceDate','dueDate','invoiceAuTaxClass','customerName','customerAddress','customerEmail','reference','invoiceCustomerCategory','invoiceBillingContact','invoiceCustomerPhone','invoiceCustomerMobile','customerNote','discountType','discountValue','amountPaid','recurringFrequency'].map(id=>[id,$(id)?.value??''])),recurringEnabled:$('recurringEnabled')?.checked===true,items:structuredClone(items)}}
 function restoreInvoiceDraft(d){if(!d||currentId)return;selectedCustomerId=d.selectedCustomerId||null;sourceQuoteId=d.sourceQuoteId||null;sourceJobCostingId=d.sourceJobCostingId||null;Object.entries(d.fields||{}).forEach(([id,v])=>{if($(id))$(id).value=v});if($('recurringEnabled'))$('recurringEnabled').checked=!!d.recurringEnabled;if(Array.isArray(d.items)&&d.items.length)items=d.items;renderItems();$('recurringOptions').style.display=$('recurringEnabled').checked?'block':'none';recalc()}
 function bindInvoiceDraftProtection(){window.DraftProtection?.watch?.('invoice-new',$('view-create'),invoiceDraftData,restoreInvoiceDraft)}
-async function newInvoice(){currentId=null;selectedCustomerId=null;sourceQuoteId=null;sourceJobCostingId=null;quoteBillingType=null;quoteStageLabel='';quoteBillingExGst=null;quoteOriginalExGst=null;quotePreviouslyInvoicedExGst=null;quoteRemainingExGst=null;billingSeriesId=null;if($('directStageBilling'))$('directStageBilling').hidden=false;if($('directStagePanel'))$('directStagePanel').hidden=true;$('invoiceNumber').value=await nextInvoiceNo();$('invoiceDate').value=isoDate();$('dueDate').value=addDays($('invoiceDate').value,settings.dueDays??3);if($('invoiceAuTaxClass'))$('invoiceAuTaxClass').value='';await refreshInvoiceTaxRuntime($('invoiceDate').value,false);['customerName','customerAddress','customerEmail','reference','invoiceCustomerCategory','invoiceBillingContact','invoiceCustomerPhone','invoiceCustomerMobile'].forEach(id=>{if($(id))$(id).value=''});if($('selectedCustomerHint'))$('selectedCustomerHint').textContent='';$('customerNote').value=(settings.invoiceText.defaultNote||'').replace(/\{dueDays\}/g,String(settings.dueDays??3)).replace(/\{tradingName\}/g,settings.trading||settings.company||'your business');items=[];addItem();$('discountType').value='percent';$('discountValue').value='';$('amountPaid').value='';$('recurringEnabled').checked=false;$('recurringFrequency').value='fortnightly';$('recurringOptions').style.display='none';if($('invoiceAutoReminderPolicy'))$('invoiceAutoReminderPolicy').value='default';$('invoiceMoreOptions').open=false;updateTaxLabels();recalc();refreshCustomerPickers()}
+async function newInvoice(){currentId=null;selectedCustomerId=null;sourceQuoteId=null;sourceJobCostingId=null;quoteBillingType=null;quoteStageLabel='';quoteBillingExGst=null;quoteOriginalExGst=null;quotePreviouslyInvoicedExGst=null;quoteRemainingExGst=null;billingSeriesId=null;if($('directStageBilling'))$('directStageBilling').hidden=false;if($('directStagePanel')){$('directStagePanel').hidden=true;resetQuoteStageControls()}$('invoiceNumber').value=await nextInvoiceNo();$('invoiceDate').value=isoDate();$('dueDate').value=addDays($('invoiceDate').value,settings.dueDays??3);if($('invoiceAuTaxClass'))$('invoiceAuTaxClass').value='';await refreshInvoiceTaxRuntime($('invoiceDate').value,false);['customerName','customerAddress','customerEmail','reference','invoiceCustomerCategory','invoiceBillingContact','invoiceCustomerPhone','invoiceCustomerMobile'].forEach(id=>{if($(id))$(id).value=''});if($('selectedCustomerHint'))$('selectedCustomerHint').textContent='';$('customerNote').value=(settings.invoiceText.defaultNote||'').replace(/\{dueDays\}/g,String(settings.dueDays??3)).replace(/\{tradingName\}/g,settings.trading||settings.company||'your business');items=[];addItem();$('discountType').value='percent';$('discountValue').value='';$('amountPaid').value='';$('recurringEnabled').checked=false;$('recurringFrequency').value='fortnightly';$('recurringOptions').style.display='none';if($('invoiceAutoReminderPolicy'))$('invoiceAutoReminderPolicy').value='default';$('invoiceMoreOptions').open=false;updateTaxLabels();recalc();refreshCustomerPickers()}
 function addItem(data){items.push(data?{...data}:{description:'',custom:'',qty:1,unit_price:0});renderItems()}
 function renderItems(){
   const root=$('items'),products=settings.products.length?settings.products:DEFAULT_PRODUCTS;
@@ -810,7 +810,7 @@ async function exportCustomers(){const arr=await allCustomers(),headers=['custom
 function parseCsv(text){return window.FinloCore.csv.parseCsv(text)}
 async function importCustomersFile(file){const rows=parseCsv(await file.text());if(rows.length<2)return toast('CSV has no customer rows');const headers=rows[0].map(x=>x.trim().toLowerCase()),ix=n=>headers.indexOf(n),existing=await allCustomers(),group={};for(const r of rows.slice(1)){const name=r[ix('customer_name')]||r[ix('name')]||'';if(!name.trim())continue;const no=r[ix('customer_number')]||'',key=no||name.trim().toLowerCase();if(!group[key])group[key]={customer_number:no||customerNo(existing),customer_type:r[ix('customer_type')]||'individual',category:r[ix('category')]||'',name,address:r[ix('address')]||'',dob:r[ix('customer_dob')]||'',contacts:[],custom_fields:[]};const email=r[ix('email')]||'',cn=r[ix('contact_name')]||'';if(cn||email||r[ix('phone')]||r[ix('mobile')])group[key].contacts.push({id:makeLocalId(),name:cn,designation:r[ix('designation')]||'',phone:r[ix('phone')]||'',mobile:r[ix('mobile')]||'',email,dob:r[ix('contact_dob')]||'',billing:/^(yes|true|1)$/i.test(r[ix('billing_contact')]||'')});const custom=r[ix('custom_fields')];if(custom){try{group[key].custom_fields=JSON.parse(custom)}catch{}}}let count=0;for(const c of Object.values(group)){const old=existing.find(x=>(c.customer_number&&x.customer_number===c.customer_number)||x.name.toLowerCase()===c.name.toLowerCase());if(old){c.id=old.id;if(!c.contacts.length)c.contacts=old.contacts;await persistCustomer(c,true)}else await persistCustomer(c,false);count++}await renderCustomers();toast(`${count} customer record${count===1?'':'s'} imported/updated`)}
 // Extend edit-invoice customer restoration without changing legacy invoice behavior.
-const _loadForEditV10=loadForEdit;loadForEdit=async function(inv){await _loadForEditV10(inv);selectedCustomerId=inv.customer_id||null;if($('invoiceCustomerCategory'))$('invoiceCustomerCategory').value=inv.customer_category||'';if($('invoiceBillingContact'))$('invoiceBillingContact').value=inv.customer_contact_name||'';if($('invoiceCustomerPhone'))$('invoiceCustomerPhone').value=inv.customer_phone||'';if($('invoiceCustomerMobile'))$('invoiceCustomerMobile').value=inv.customer_mobile||'';if($('invoiceAutoReminderPolicy'))$('invoiceAutoReminderPolicy').value=inv.auto_reminder_policy||'default';if(inv.customer_id)allCustomers().then(a=>{const c=a.find(x=>String(x.id)===String(inv.customer_id));if(c&&$('selectedCustomerHint'))$('selectedCustomerHint').textContent=`${c.customer_number} · Linked customer`});const wrap=$('directStageBilling'),panel=$('directStagePanel'),agreed=$('directAgreedAmount'),pct=$('directStagePercent');if(wrap)wrap.hidden=!!sourceQuoteId&&!(num(quoteOriginalExGst)>0);if(panel)panel.hidden=true;if(!sourceQuoteId&&billingSeriesId&&num(quoteOriginalExGst)>0){if(wrap)wrap.hidden=false;if(panel)panel.hidden=false;if(agreed){agreed.value=num(quoteOriginalExGst).toFixed(2);agreed.disabled=true}if(pct){pct.value=(num(quoteBillingExGst??calcTotals().subtotal)/num(quoteOriginalExGst)*100).toFixed(2)}directStagePreview()}else{if(agreed){agreed.disabled=false;agreed.value=''}if(pct)pct.value='30'}}
+const _loadForEditV10=loadForEdit;loadForEdit=async function(inv){await _loadForEditV10(inv);selectedCustomerId=inv.customer_id||null;if($('invoiceCustomerCategory'))$('invoiceCustomerCategory').value=inv.customer_category||'';if($('invoiceBillingContact'))$('invoiceBillingContact').value=inv.customer_contact_name||'';if($('invoiceCustomerPhone'))$('invoiceCustomerPhone').value=inv.customer_phone||'';if($('invoiceCustomerMobile'))$('invoiceCustomerMobile').value=inv.customer_mobile||'';if($('invoiceAutoReminderPolicy'))$('invoiceAutoReminderPolicy').value=inv.auto_reminder_policy||'default';if(inv.customer_id)allCustomers().then(a=>{const c=a.find(x=>String(x.id)===String(inv.customer_id));if(c&&$('selectedCustomerHint'))$('selectedCustomerHint').textContent=`${c.customer_number} · Linked customer`});const wrap=$('directStageBilling'),panel=$('directStagePanel'),agreed=$('directAgreedAmount'),pct=$('directStagePercent');if(wrap)wrap.hidden=!!sourceQuoteId&&!(num(quoteOriginalExGst)>0);if(panel){panel.hidden=true;resetQuoteStageControls()}if(!sourceQuoteId&&billingSeriesId&&num(quoteOriginalExGst)>0){if(wrap)wrap.hidden=false;if(panel)panel.hidden=false;if(agreed){agreed.value=num(quoteOriginalExGst).toFixed(2);agreed.disabled=true}if(pct){pct.value=(num(quoteBillingExGst??calcTotals().subtotal)/num(quoteOriginalExGst)*100).toFixed(2)}directStagePreview()}else{if(agreed){agreed.disabled=false;agreed.value=''}if(pct)pct.value='30'}}
 // Invoice emails prefer the currently selected customer's billing contact.
 async function preferredInvoiceEmail(fallback){if(selectedCustomerId){const c=(await allCustomers()).find(x=>String(x.id)===String(selectedCustomerId));return billingContact(c)?.email||fallback}return fallback}
 $('customerName').addEventListener('change',e=>selectCustomerByName(e.target.value));$('customerName').addEventListener('blur',e=>setTimeout(()=>selectCustomerByName(e.target.value),80));
@@ -820,6 +820,18 @@ refreshCustomerPickers();
 
 
 // v61.107AAZ: optional direct advance/progress billing. Ordinary invoices remain unchanged unless explicitly enabled.
+function resetQuoteStageControls(){
+  const quoteInputs=$('quoteStageInputs');
+  if(!quoteInputs.hidden){
+    $('directAgreedAmount').value='';
+    $('directAgreedAmount').disabled=false;
+    $('directStagePercent').value='30';
+  }
+  quoteInputs.hidden=true;
+  $('directStagePercent').disabled=false;
+  $('directStageApply').disabled=false;
+  $('directStageCancel').textContent='Keep full invoice';
+}
 function directStagePreview(){
   if(!$('directStageSummary'))return;
   const agreed=Math.max(0,num($('directAgreedAmount')?.value)),pct=Math.max(0,Math.min(100,num($('directStagePercent')?.value))),now=agreed*pct/100;
@@ -830,61 +842,109 @@ function scaleCurrentInvoiceTo(target, refresh=true){
   const ratio=target/current;items=items.map(x=>({...x,unit_price:num(x.unit_price)*ratio}));if(refresh){renderItems();recalc()}return true;
 }
 function clearDirectStageState(){billingSeriesId=null;if(!sourceQuoteId){quoteBillingType=null;quoteStageLabel='';quoteBillingExGst=null;quoteOriginalExGst=null;quotePreviouslyInvoicedExGst=null;quoteRemainingExGst=null}}
-function openQuoteDraftBillingOptions(){
-  const quoteId=sourceQuoteId, invoiceId=currentId;
-  const businessId=window.SAAS?.state?.business?.id, invoiceNumber=$('invoiceNumber').value;
-  return window.JobCosting?.openQuoteInvoiceOptions?.(quoteId,{
-    invoiceId,
-    onApply(q,options,balance){
-      if(sourceQuoteId!==quoteId||currentId!==invoiceId||
-         window.SAAS?.state?.business?.id!==businessId||$('invoiceNumber').value!==invoiceNumber){
-        invoiceError('The invoice draft changed. Open invoice options again.');
-        return false;
-      }
-      const {total:agreed,invoiced,remaining}=balance;
-      const requested=options.mode==='remaining'?remaining:options.mode==='progress_amount'?
-        num(options.amount):agreed*num(options.percent)/100;
-      const amount=Math.round((requested+Number.EPSILON)*100)/100;
-      if(!(amount>0)||amount>remaining+0.005){
-        invoiceError('Enter an amount up to the remaining quote balance.');
-        return false;
-      }
-      const previousLabel=quoteStageLabel;
-      const fullBalance=Math.abs(amount-remaining)<0.005;
-      const type=fullBalance?(invoiced<=0.005?'full':'final'):options.mode==='advance'?'advance':'progress';
-      const label={full:'Full invoice',final:'Final balance',advance:'Advance payment',progress:'Progress invoice'}[type];
-      if(!scaleCurrentInvoiceTo(amount,false)){
-        invoiceError('Add invoice items before applying part invoicing.');
-        return false;
-      }
-      quoteBillingType=type;
-      quoteStageLabel=label;
-      quoteBillingExGst=amount;
-      quoteOriginalExGst=agreed;
-      quotePreviouslyInvoicedExGst=invoiced;
-      quoteRemainingExGst=Math.max(0,remaining-amount);
-      if(q.quote_number){
-        const reference=$('reference');
-        if(reference.value===`Quote ${q.quote_number} · ${previousLabel}`)reference.value=`Quote ${q.quote_number} · ${label}`;
-        if(items[0]?.custom===`${previousLabel} · Quote ${q.quote_number}`)items[0].custom=`${label} · Quote ${q.quote_number}`;
-      }
-      renderItems();recalc();
-      toast(`${label} selected. Review the draft before saving or sending.`);
-      return true;
-    }
-  });
+function applyQuoteDraftBilling(q,balance,amount,isAdvance){
+  const {total:agreed,invoiced,remaining}=balance;
+  const previousLabel=quoteStageLabel;
+  const fullBalance=Math.abs(amount-remaining)<0.005;
+  const type=fullBalance?(invoiced<=0.005?'full':'final'):isAdvance?'advance':'progress';
+  const label={full:'Full invoice',final:'Final balance',advance:'Advance payment',progress:'Progress invoice'}[type];
+  if(!scaleCurrentInvoiceTo(amount,false)){
+    invoiceError('Add invoice items before applying part invoicing.');
+    return false;
+  }
+  quoteBillingType=type;
+  quoteStageLabel=label;
+  quoteBillingExGst=amount;
+  quoteOriginalExGst=agreed;
+  quotePreviouslyInvoicedExGst=invoiced;
+  quoteRemainingExGst=Math.max(0,remaining-amount);
+  if(q.quote_number){
+    const reference=$('reference');
+    if(reference.value===`Quote ${q.quote_number} · ${previousLabel}`)reference.value=`Quote ${q.quote_number} · ${label}`;
+    if(items[0]?.custom===`${previousLabel} · Quote ${q.quote_number}`)items[0].custom=`${label} · Quote ${q.quote_number}`;
+  }
+  renderItems();recalc();
+  toast(`${label} selected. Review the draft before saving or sending.`);
+  return true;
 }
 function bindDirectStageBilling(){
   const wrap=$('directStageBilling'),panel=$('directStagePanel');if(!wrap||!panel)return;
+  const agreedField=$('directAgreedAmount'),percent=$('directStagePercent'),amountField=$('quoteStageAmount');
+  const quoteInputs=$('quoteStageInputs'),advance=$('quoteStageAdvance'),note=$('quoteStageNote');
+  const apply=$('directStageApply'),cancel=$('directStageCancel');
+  let pending=null;
+  const activeContext=context=>pending===context&&!panel.hidden&&sourceQuoteId===context.quoteId&&
+    currentId===context.invoiceId&&window.SAAS?.state?.business?.id===context.businessId&&
+    $('invoiceNumber').value===context.invoiceNumber;
+  const cents=n=>Math.round((n+Number.EPSILON)*100)/100;
+  function quoteAmount(context){
+    if(amountField.value.trim())return cents(num(amountField.value));
+    const pct=num(percent.value);
+    return pct>0&&pct<=100?cents(context.balance.total*pct/100):0;
+  }
+  function previewQuote(){
+    if(!pending?.balance||!activeContext(pending))return;
+    const {total,invoiced,remaining}=pending.balance,amount=quoteAmount(pending);
+    const valid=amount>0&&amount<=remaining+0.005;
+    $('directStageSummary').innerHTML=`<span>Agreed amount <strong>${money(total)}</strong></span><span>This invoice <strong>${valid?money(amount):'—'}</strong></span><span>Remaining <strong>${money(valid?Math.max(0,remaining-amount):remaining)}</strong></span>`;
+    note.textContent=`Already invoiced: ${money(invoiced)}. Available to invoice: ${money(remaining)}.`;
+    apply.disabled=!valid;
+  }
+  async function openQuotePanel(){
+    const context={quoteId:sourceQuoteId,invoiceId:currentId,businessId:window.SAAS?.state?.business?.id,invoiceNumber:$('invoiceNumber').value};
+    pending=context;
+    quoteInputs.hidden=false;
+    agreedField.disabled=true;
+    agreedField.value='';
+    percent.value='';
+    percent.disabled=true;
+    amountField.value='';
+    amountField.disabled=true;
+    advance.hidden=true;
+    apply.disabled=true;
+    cancel.textContent='Keep current invoice';
+    note.textContent='Checking the remaining quote balance…';
+    $('directStageSummary').textContent='';
+    try{
+      const {quote,balance}=await window.JobCosting.quoteInvoiceOptionsState(context.quoteId,context.invoiceId);
+      if(!activeContext(context))return;
+      Object.assign(context,{quote,balance});
+      agreedField.value=balance.total.toFixed(2);
+      amountField.max=balance.remaining.toFixed(2);
+      const preset=num(quote.advance_percent);
+      context.advancePercent=quote.advance_enabled===true&&balance.invoiced<=0.005&&preset>0&&preset<=100?preset:0;
+      advance.hidden=!context.advancePercent;
+      advance.textContent=`Use ${context.advancePercent}% advance`;
+      percent.disabled=false;
+      amountField.disabled=false;
+      if(['advance','progress'].includes(quoteBillingType))amountField.value=cents(calcTotals().subtotal).toFixed(2);
+      else if(context.advancePercent)percent.value=String(context.advancePercent);
+      previewQuote();
+    }catch(err){
+      if(activeContext(context))note.textContent='Could not check the quote balance. Close this section and try again.';
+    }
+  }
+  advance.onclick=()=>{if(pending?.balance&&activeContext(pending)){percent.value=String(pending.advancePercent);amountField.value='';previewQuote()}};
+  amountField.oninput=()=>{if(amountField.value)percent.value='';previewQuote()};
   $('directStageToggle').onclick=()=>{
-    if(sourceQuoteId)return openQuoteDraftBillingOptions();
     panel.hidden=!panel.hidden;
-    if(panel.hidden)return;
+    if(panel.hidden){pending=null;return}
+    if(sourceQuoteId)return openQuotePanel();
     const current=calcTotals().subtotal;if(billingSeriesId&&num(quoteOriginalExGst)>0){$('directAgreedAmount').value=num(quoteOriginalExGst).toFixed(2);$('directAgreedAmount').disabled=true;if(!$('directStagePercent').value)$('directStagePercent').value=(num(quoteBillingExGst??current)/num(quoteOriginalExGst)*100).toFixed(2)}else{ $('directAgreedAmount').disabled=false;if(!$('directAgreedAmount').value&&current>0)$('directAgreedAmount').value=current.toFixed(2)}directStagePreview();
   };
-  $('directAgreedAmount').oninput=directStagePreview;$('directStagePercent').oninput=directStagePreview;
-  $('directStageCancel').onclick=()=>{panel.hidden=true;clearDirectStageState();toast('Full invoice remains selected.')};
-  $('directStageApply').onclick=()=>{const agreed=num($('directAgreedAmount').value),pct=num($('directStagePercent').value);if(!(agreed>0))return invoiceError('Enter the total agreed amount.');if(!(pct>0&&pct<100))return invoiceError('Enter a percentage greater than 0 and less than 100.');const target=agreed*pct/100;if(billingSeriesId&&num(quoteOriginalExGst)>0){const maxForThis=Math.max(0,agreed-num(quotePreviouslyInvoicedExGst||0));if(target>maxForThis+0.005)return invoiceError(`This stage cannot exceed the remaining ${money(maxForThis)}.`);if(!scaleCurrentInvoiceTo(target))return invoiceError('Add invoice items first, then apply the staged amount.');quoteBillingExGst=target;quoteOriginalExGst=agreed;quoteRemainingExGst=Math.max(0,maxForThis-target);quoteBillingType=quoteRemainingExGst<=0.005?'final':(quoteBillingType==='advance'?'advance':'progress');quoteStageLabel=quoteBillingType==='final'?'Final balance':(quoteBillingType==='advance'?'Advance payment':'Progress invoice');panel.hidden=true;return toast(`${quoteStageLabel} updated. ${money(quoteRemainingExGst)} remains to invoice.`)}if(!scaleCurrentInvoiceTo(target))return invoiceError('Add the full invoice items first, then apply part invoicing.');billingSeriesId=crypto?.randomUUID?.()||`${Date.now()}-0000-4000-8000-${Math.random().toString(16).slice(2,14).padEnd(12,'0')}`;quoteBillingType='advance';quoteStageLabel='Advance payment';quoteBillingExGst=target;quoteOriginalExGst=agreed;quotePreviouslyInvoicedExGst=0;quoteRemainingExGst=Math.max(0,agreed-target);panel.hidden=true;toast(`Advance invoice applied. ${money(quoteRemainingExGst)} remains to invoice.`)};
+  agreedField.oninput=directStagePreview;
+  percent.oninput=()=>{if(sourceQuoteId){if(percent.value)amountField.value='';previewQuote()}else directStagePreview()};
+  $('directStageCancel').onclick=()=>{panel.hidden=true;pending=null;if(sourceQuoteId)return;clearDirectStageState();toast('Full invoice remains selected.')};
+  apply.onclick=()=>{
+    if(sourceQuoteId){
+      if(!pending?.balance||!activeContext(pending))return;
+      const amount=quoteAmount(pending);
+      if(!(amount>0)||amount>pending.balance.remaining+0.005)return;
+      const isAdvance=pending.advancePercent>0&&amount===cents(pending.balance.total*pending.advancePercent/100);
+      if(applyQuoteDraftBilling(pending.quote,pending.balance,amount,isAdvance)){panel.hidden=true;pending=null}
+      return;
+    }
+    const agreed=num($('directAgreedAmount').value),pct=num($('directStagePercent').value);if(!(agreed>0))return invoiceError('Enter the total agreed amount.');if(!(pct>0&&pct<100))return invoiceError('Enter a percentage greater than 0 and less than 100.');const target=agreed*pct/100;if(billingSeriesId&&num(quoteOriginalExGst)>0){const maxForThis=Math.max(0,agreed-num(quotePreviouslyInvoicedExGst||0));if(target>maxForThis+0.005)return invoiceError(`This stage cannot exceed the remaining ${money(maxForThis)}.`);if(!scaleCurrentInvoiceTo(target))return invoiceError('Add invoice items first, then apply the staged amount.');quoteBillingExGst=target;quoteOriginalExGst=agreed;quoteRemainingExGst=Math.max(0,maxForThis-target);quoteBillingType=quoteRemainingExGst<=0.005?'final':(quoteBillingType==='advance'?'advance':'progress');quoteStageLabel=quoteBillingType==='final'?'Final balance':(quoteBillingType==='advance'?'Advance payment':'Progress invoice');panel.hidden=true;return toast(`${quoteStageLabel} updated. ${money(quoteRemainingExGst)} remains to invoice.`)}if(!scaleCurrentInvoiceTo(target))return invoiceError('Add the full invoice items first, then apply part invoicing.');billingSeriesId=crypto?.randomUUID?.()||`${Date.now()}-0000-4000-8000-${Math.random().toString(16).slice(2,14).padEnd(12,'0')}`;quoteBillingType='advance';quoteStageLabel='Advance payment';quoteBillingExGst=target;quoteOriginalExGst=agreed;quotePreviouslyInvoicedExGst=0;quoteRemainingExGst=Math.max(0,agreed-target);panel.hidden=true;toast(`Advance invoice applied. ${money(quoteRemainingExGst)} remains to invoice.`)};
 }
 async function directBillingState(inv){const all=await allInvoices(),series=all.filter(x=>String(x.billing_series_id||'')===String(inv.billing_series_id||'')&&(x.lifecycle_state||'draft')!=='voided'),agreed=num(inv.quote_original_ex_gst),invoiced=series.reduce((a,x)=>a+num(x.quote_billing_ex_gst??x.subtotal),0);return{agreed,invoiced,remaining:Math.max(0,agreed-invoiced),series}}
 async function invoiceBillingHistory(inv){
