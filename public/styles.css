@@ -8345,7 +8345,8 @@ html body #view-expenses .expense-simple-filters{
   grid-template-columns:minmax(130px,.8fr) minmax(145px,.85fr) minmax(145px,.85fr) minmax(145px,.8fr) minmax(220px,1.7fr) auto auto!important;
 }
 html body #view-invoices .invoice-list-filters > .csv-download-action,
-html body #view-expenses .expense-simple-filters > .csv-download-action{
+html body #view-expenses .expense-simple-filters > .csv-download-action,
+html body #view-stock-equipment .se-toolbar > .csv-download-action{
   display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
@@ -8369,15 +8370,18 @@ html body #view-expenses .expense-simple-filters > .csv-download-action{
   justify-self:start!important;
 }
 html body #view-invoices .csv-download-action .csv-download-icon,
-html body #view-expenses .csv-download-action .csv-download-icon{
+html body #view-expenses .csv-download-action .csv-download-icon,
+html body #view-stock-equipment .csv-download-action .csv-download-icon{
   display:inline-flex;align-items:center;justify-content:center;
   width:18px;height:18px;flex:0 0 18px;
   stroke:currentColor;color:#fff;
 }
 html body #view-invoices .csv-download-action:hover,
-html body #view-expenses .csv-download-action:hover{background:#104a9c!important}
+html body #view-expenses .csv-download-action:hover,
+html body #view-stock-equipment .csv-download-action:hover{background:#104a9c!important}
 html body #view-invoices .csv-download-action:focus-visible,
-html body #view-expenses .csv-download-action:focus-visible{
+html body #view-expenses .csv-download-action:focus-visible,
+html body #view-stock-equipment .csv-download-action:focus-visible{
   outline:3px solid #8ebaff!important;outline-offset:2px!important;
 }
 @media(max-width:760px){
@@ -8419,3 +8423,5 @@ html body #view-expenses .csv-download-action:focus-visible{
     height:40px!important;min-height:40px!important;
   }
 }
+
+#view-stock-equipment .se-mobile-record-table .se-searchable[hidden]{display:none!important}
