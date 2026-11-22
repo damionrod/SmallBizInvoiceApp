@@ -1041,7 +1041,9 @@ function openEmployee(e=null){resetEmployeeForm();renderEmployeeSuggestions();$(
       const startMonth = Math.max(1, Math.min(12, num(payRunFinancialYear?.financial_year_start_month) || 4)) - 1;
       const startDay = Math.max(1, Math.min(28, num(payRunFinancialYear?.financial_year_start_day) || 1));
       const start = new Date(year, startMonth, startDay);
-      from = dateOnly(now < start ? new Date(year - 1, startMonth, startDay) : start);
+      const financialYearStart = now < start ? new Date(year - 1, startMonth, startDay) : start;
+      from = dateOnly(financialYearStart);
+      to = dateOnly(new Date(financialYearStart.getFullYear() + 1, startMonth, startDay - 1));
     } else if (preset !== 'this_month') {
       const days = {'3': 90, '6': 183, '12': 365};
       from = addDays(end, -days[preset]);
